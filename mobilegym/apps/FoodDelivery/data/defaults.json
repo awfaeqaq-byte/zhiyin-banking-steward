@@ -1,0 +1,27 @@
+{
+  "user": {
+    "name": "林晓",
+    "phone": "138****6608",
+    "address": "江湾金融中心 A 座 12 层"
+  },
+  "merchant": {
+    "id": "shop-aurora-kitchen",
+    "name": "橙子小馆·现炒便当",
+    "description": "现点现炒，热气出餐 · 30分钟必达",
+    "rating": 4.8,
+    "monthlySales": 1268,
+    "deliveryMinutes": 32,
+    "deliveryFee": 300,
+    "discount": 500,
+    "minimumOrder": 1500,
+    "products": [
+      { "id": "meal-chicken-01", "name": "宫保鸡丁现炒饭", "description": "鸡腿肉、花生、彩椒，锅气现炒不预制", "price": 2580, "badge": "月售 386" },
+      { "id": "meal-beef-01", "name": "川香水煮牛肉饭", "description": "嫩牛肉、豆芽、青笋，麻辣鲜香", "price": 2980, "badge": "招牌热销" },
+      { "id": "meal-fish-01", "name": "扬州什锦炒饭", "description": "虾仁、火腿、鸡蛋、青豆，粒粒分明", "price": 2280, "badge": "好评 98%" },
+      { "id": "meal-tofu-01", "name": "红油牛肉拌面", "description": "手工宽面、卤牛肉、时蔬", "price": 2380, "badge": "回头客推荐" },
+      { "id": "drink-plum-01", "name": "黑糖珍珠鲜奶茶", "description": "微糖 500ml，真茶现萃", "price": 880, "badge": "人气" },
+      { "id": "side-egg-01", "name": "鲜虾小馄饨", "description": "8只装，紫菜虾皮高汤", "price": 980, "badge": "加购优惠" }
+    ]
+  },
+  "orders": []
+}

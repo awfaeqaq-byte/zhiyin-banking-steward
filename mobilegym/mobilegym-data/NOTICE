@@ -1,0 +1,21 @@
+mobilegym-data
+Copyright 2026 The mobile-gym Authors
+
+This is the dataset companion to the mobile-gym research environment.
+The companion code repository contains the simulator, agent runner,
+benchmark task definitions, and tooling that consume this data.
+
+The dataset compilation and any synthetic content authored by the
+maintainers are licensed under the Creative Commons
+Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0);
+see LICENSE.
+
+This package may also include content whose copyright is held by
+third parties — for example, user-generated content collected through
+third-party platforms' official developer APIs, and visual assets
+derived from third-party theme stores, designers, or device
+manufacturers. For such content, copyright remains with the original
+creators and is not relicensed by this package.
+
+For trademark notices, dataset provenance, the position on AI / ML
+training, and the takedown procedure, see DISCLAIMER.md.

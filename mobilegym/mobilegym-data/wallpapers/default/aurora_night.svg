@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="3200" viewBox="0 0 1440 3200">
+  <defs>
+    <linearGradient id="night" x1="720" y1="0" x2="720" y2="3200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10213d"/>
+      <stop offset="0.5" stop-color="#071525"/>
+      <stop offset="1" stop-color="#04070f"/>
+    </linearGradient>
+    <radialGradient id="mint" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(248 740) rotate(34) scale(1060 440)">
+      <stop offset="0" stop-color="#98ffe4" stop-opacity="0.72"/>
+      <stop offset="0.45" stop-color="#42c7d9" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#42c7d9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violet" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1040 1080) rotate(136) scale(980 520)">
+      <stop offset="0" stop-color="#b99cff" stop-opacity="0.58"/>
+      <stop offset="0.55" stop-color="#6a5cff" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#6a5cff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="3200" fill="url(#night)"/>
+  <rect width="1440" height="3200" fill="url(#mint)"/>
+  <rect width="1440" height="3200" fill="url(#violet)"/>
+</svg>

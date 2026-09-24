@@ -1,0 +1,257 @@
+/* Banking motion: acknowledge edits, preserve the task, then confirm the outcome.
+   Values and controls are immediately usable; no animation gates execution. */
+:root {
+  --motion-quick: 140ms;
+  --motion-state: 240ms;
+  --motion-arrive: 380ms;
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 180ms var(--motion-ease),
+    opacity 140ms ease;
+}
+.motion-disclosure[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition-duration: 280ms, 180ms;
+}
+.motion-disclosure[data-open="false"] {
+  pointer-events: none;
+}
+.motion-disclosure-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+.native-history-reveal {
+  width: 100%;
+}
+.native-history-reveal > div > p {
+  margin: 0 0 8px auto;
+}
+.native-messages:has(.native-history-reveal[data-open="false"]) {
+  row-gap: 0;
+}
+.native-messages:has(.native-history-reveal[data-open="false"]) > button {
+  margin-bottom: 9px;
+}
+.native-latest-message {
+  animation: message-acknowledge var(--motion-state) var(--motion-ease);
+}
+.native-task {
+  animation: task-arrive var(--motion-arrive) var(--motion-ease);
+}
+.native-task-node {
+  animation: task-anchor 480ms var(--motion-ease);
+}
+.native-free strong {
+  animation: balance-settle 360ms var(--motion-ease);
+}
+.native-free.negative strong {
+  animation: none;
+}
+.native-funds-bar {
+  animation: funds-reveal 420ms var(--motion-ease);
+}
+.native-change {
+  animation: update-acknowledge 650ms ease-out;
+}
+.native-state,
+.mode-option {
+  transition:
+    background-color var(--motion-state) ease,
+    color var(--motion-state) ease;
+}
+.native-receipt {
+  animation: receipt-arrive var(--motion-arrive) var(--motion-ease);
+}
+.native-receipt[data-state="reserved"] .native-receipt-icon svg {
+  animation: receipt-seal 420ms var(--motion-ease);
+}
+.native-receipt[data-state="reserved"] .native-receipt-icon polyline,
+.native-receipt[data-state="reserved"] .native-receipt-icon path {
+  stroke-dasharray: 32;
+  animation: receipt-check 480ms var(--motion-ease);
+}
+.identity-portrait {
+  display: inline-flex;
+  flex-shrink: 0;
+  animation: identity-change 300ms ease-out;
+}
+.identity-copy {
+  animation: identity-change 240ms ease-out;
+}
+.button-base,
+.native-send,
+.native-voice-button,
+.icon-control,
+.native-plan-summary button {
+  transition:
+    transform var(--motion-quick) var(--motion-ease),
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+.button-base:active:not(:disabled),
+.native-send:active,
+.native-voice-button:active,
+.icon-control:active,
+.native-plan-summary button:active {
+  transform: scale(0.98);
+}
+.native-send:hover svg {
+  transform: translate(1px, -1px);
+}
+.native-send svg {
+  transition: transform var(--motion-quick) var(--motion-ease);
+}
+.dialog-overlay[data-state="closed"] {
+  animation: overlay-dismiss 140ms ease-in;
+}
+.dialog-content[data-state="closed"] {
+  animation: dialog-dismiss 160ms ease-in;
+}
+
+@keyframes message-acknowledge {
+  from {
+    opacity: 0.6;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes task-arrive {
+  from {
+    opacity: 0.65;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes task-anchor {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes balance-settle {
+  from {
+    color: #206a70;
+    translate: 0 3px;
+  }
+  to {
+    color: inherit;
+    translate: 0 0;
+  }
+}
+@keyframes funds-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes update-acknowledge {
+  from {
+    background-color: #cce9e6;
+  }
+  to {
+    background-color: #eff9f7;
+  }
+}
+@keyframes receipt-arrive {
+  from {
+    opacity: 0.7;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes receipt-seal {
+  from {
+    transform: scale(0.8);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes receipt-check {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes identity-change {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes overlay-dismiss {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-dismiss {
+  to {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dialog-content[data-state="closed"] {
+    animation-name: sheet-dismiss;
+  }
+}
+@keyframes sheet-dismiss {
+  to {
+    opacity: 0;
+    translate: 0 18px;
+  }
+}
+
+/* Reduce spatial motion, keep gentle acknowledgement and all textual status. */
+@media (prefers-reduced-motion: reduce) {
+  .motion-disclosure {
+    transition: opacity 100ms ease !important;
+  }
+  .native-root .native-change {
+    animation: update-acknowledge 180ms ease-out !important;
+  }
+  .dialog-content[data-state="open"],
+  .dialog-overlay[data-state="open"] {
+    animation: identity-change 100ms ease-out !important;
+  }
+  .dialog-content[data-state="closed"],
+  .dialog-overlay[data-state="closed"] {
+    animation: overlay-dismiss 80ms ease-in !important;
+  }
+  .button-base,
+  .native-send,
+  .native-voice-button,
+  .icon-control,
+  .native-plan-summary button {
+    transition:
+      background-color 100ms ease,
+      color 100ms ease !important;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,20 @@
+.memory-manager { display: grid; gap: 12px; }
+.memory-manager h3 { margin: 12px 0 0; font-size: 16px; }
+.profile-understanding { display: grid; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.memory-manager > details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.memory-toggle { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 12px; }
+.memory-toggle input { width: 24px; height: 24px; accent-color: var(--teal); }
+.memory-manager .memory-help { font-size: 12px; line-height: 1.6; color: var(--muted); margin: 0; }
+.memory-manager form { display: grid; gap: 10px; }
+.memory-manager form label { display: grid; gap: 6px; font-size: 14px; }
+.memory-manager textarea,.memory-manager select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: inherit; background: white; color: var(--ink); }
+.memory-manager textarea { min-height: 76px; resize: vertical; }
+.memory-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.memory-manager button,.memory-candidate button { min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--pale); padding: 8px 12px; color: var(--teal-dark); font: inherit; cursor: pointer; }
+.memory-manager button:disabled { opacity: .5; cursor: default; }
+.memory-records article { border-top: 1px solid var(--line); padding: 12px 0; display: grid; gap: 8px; }
+.memory-records p { margin: 0; overflow-wrap: anywhere; }
+.memory-records small { color: var(--muted); font-size: 12px; }
+.memory-records summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.memory-candidate { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.memory-manager :focus-visible,.memory-candidate button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }

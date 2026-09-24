@@ -1,0 +1,30 @@
+{
+  "transactions": [
+    { "id": "wx-20260914-01", "direction": "expense", "amountCents": 850, "category": "shopping", "merchant": "深圳吉米便利店", "occurredAt": "2026-09-14T21:39:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-02", "direction": "expense", "amountCents": 300, "category": "transport", "merchant": "深圳市地铁相关运营主体", "occurredAt": "2026-09-14T21:33:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-03", "direction": "expense", "amountCents": 800, "category": "shopping", "merchant": "厦威夷安居店", "occurredAt": "2026-09-14T19:54:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-04", "direction": "expense", "amountCents": 2400, "category": "other", "merchant": "美团平台商户", "occurredAt": "2026-09-14T19:41:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-05", "direction": "expense", "amountCents": 880, "category": "shopping", "merchant": "新力有家便利店", "occurredAt": "2026-09-14T19:13:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-06", "direction": "expense", "amountCents": 300, "category": "transport", "merchant": "深圳市地铁相关运营主体", "occurredAt": "2026-09-14T18:48:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-07", "direction": "expense", "amountCents": 1727, "category": "transport", "merchant": "高德打车", "occurredAt": "2026-09-14T14:32:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260914-08", "direction": "expense", "amountCents": 790, "category": "dining", "merchant": "瑞幸咖啡", "occurredAt": "2026-09-14T08:20:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260912-01", "direction": "expense", "amountCents": 45000, "category": "education", "merchant": "知行课堂", "occurredAt": "2026-09-12T20:12:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260911-01", "direction": "expense", "amountCents": 33804, "category": "shopping", "merchant": "京东商城", "occurredAt": "2026-09-11T16:22:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260910-01", "direction": "expense", "amountCents": 30045, "category": "transport", "merchant": "中国铁路", "occurredAt": "2026-09-10T09:18:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260909-01", "direction": "income", "amountCents": 175000, "category": "income", "merchant": "工资", "occurredAt": "2026-09-09T09:00:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260908-01", "direction": "expense", "amountCents": 27697, "category": "service", "merchant": "生活服务", "occurredAt": "2026-09-08T18:10:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260907-01", "direction": "expense", "amountCents": 13765, "category": "dining", "merchant": "海底捞", "occurredAt": "2026-09-07T20:05:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260906-01", "direction": "expense", "amountCents": 14260, "category": "gift", "merchant": "群红包", "occurredAt": "2026-09-06T21:30:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260905-01", "direction": "expense", "amountCents": 10000, "category": "transfer", "merchant": "转账给张伟", "occurredAt": "2026-09-05T12:08:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260903-01", "direction": "expense", "amountCents": 4982, "category": "life", "merchant": "水电燃气", "occurredAt": "2026-09-03T10:16:00+08:00", "source": "wechat_pay" },
+    { "id": "wx-20260901-01", "direction": "expense", "amountCents": 81853, "category": "other", "merchant": "其他消费", "occurredAt": "2026-09-01T17:46:00+08:00", "source": "wechat_pay" }
+  ],
+  "monthlyHistory": [
+    { "month": "2026-04", "expenseCents": 699295 },
+    { "month": "2026-05", "expenseCents": 845954 },
+    { "month": "2026-06", "expenseCents": 587783 },
+    { "month": "2026-07", "expenseCents": 659046 },
+    { "month": "2026-08", "expenseCents": 1103246 }
+  ],
+  "settings": { "dailyReport": true, "includeManualRecords": true }
+}

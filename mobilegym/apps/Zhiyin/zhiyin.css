@@ -1,0 +1,43 @@
+.zhiyin-phone-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding-bottom: 28px;
+  background: #fafcfb;
+}
+.zhiyin-phone-edge { position: absolute; top: 40px; bottom: 28px; width: 12px; touch-action: none; }
+.zhiyin-phone-edge-left { left: 0; }
+.zhiyin-phone-edge-right { right: 0; }
+.zhiyin-phone-viewport { position: relative; flex: 1; min-height: 0; }
+.zhiyin-phone-frame { display: block; width: 100%; height: 100%; border: 0; background: #fafcfb; }
+.zhiyin-phone-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: #fafcfb;
+  color: #14545c;
+  text-align: center;
+  font-size: 16px;
+}
+.zhiyin-phone-status p { color: #52676f; font-size: 14px; line-height: 1.6; }
+.zhiyin-phone-status button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #206a70;
+  color: white;
+  cursor: pointer;
+}
+.zhiyin-phone-status button:hover { background: #14545c; }
+.zhiyin-phone-status button:focus-visible { outline: 3px solid #206a70; outline-offset: 4px; }

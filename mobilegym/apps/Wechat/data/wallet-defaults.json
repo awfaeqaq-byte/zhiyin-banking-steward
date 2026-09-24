@@ -1,0 +1,27 @@
+{
+  "balanceCents": 32860,
+  "transfers": [
+    {
+      "id": "transfer-seed-in-1",
+      "peerWxid": "wxid_zhangwei",
+      "peerName": "张伟",
+      "direction": "incoming",
+      "amountCents": 100000,
+      "note": "聚餐费用",
+      "status": "received",
+      "createdAt": "2026-09-12T12:03:00+08:00",
+      "receivedAt": "2026-09-12T12:04:00+08:00"
+    },
+    {
+      "id": "transfer-seed-out-1",
+      "peerWxid": "wxid_zhangwei",
+      "peerName": "张伟",
+      "direction": "outgoing",
+      "amountCents": 10000,
+      "note": "晚饭",
+      "status": "received",
+      "createdAt": "2026-09-05T20:16:00+08:00",
+      "receivedAt": "2026-09-05T20:18:00+08:00"
+    }
+  ]
+}

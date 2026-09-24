@@ -1,0 +1,39 @@
+.recurring-review { margin-top: 32px; color: var(--ink); }
+.recurring-heading { display: flex; gap: 12px; align-items: flex-start; padding-bottom: 20px; }
+.recurring-heading > svg { flex-shrink: 0; color: var(--teal); margin-top: 3px; }
+.recurring-heading h2 { font-size: 18px; font-weight: 600; }
+.recurring-heading > div { min-width: 0; }
+.recurring-heading p, .recurring-item-heading p { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.75; overflow-wrap: anywhere; }
+.recurring-item { border-top: 1px solid var(--line); padding: 24px 0; }
+.recurring-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.recurring-item-heading > div { min-width: 0; }
+.recurring-item-heading h3 { margin-top: 8px; font-size: 16px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.recurring-item-heading > strong { font-size: 22px; font-variant-numeric: tabular-nums; flex-shrink: 0; text-align: right; line-height: 1.4; }
+.recurring-item-heading small { display: block; text-align: right; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.recurring-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; line-height: 1.5; color: #80581d; }
+.recurring-status.confirmed { color: var(--teal); }
+.recurring-reason { margin: 16px 0 8px; font-size: 14px; line-height: 1.75; }
+.recurring-estimate { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; color: var(--muted); line-height: 1.75; }
+.recurring-estimate svg { margin-top: 2px; flex-shrink: 0; }
+.recurring-evidence { margin-top: 12px; }
+.recurring-evidence summary, .recurring-ignored summary { cursor: pointer; min-height: 44px; padding: 12px 0; color: var(--teal); font-size: 13px; }
+.recurring-evidence summary:focus-visible, .recurring-ignored summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.recurring-evidence table { width: 100%; font-size: 13px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.recurring-evidence th, .recurring-evidence td { padding: 12px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.recurring-evidence th:last-child, .recurring-evidence td:last-child { text-align: right; }
+.recurring-evidence th { color: var(--muted); font-weight: 400; }
+.recurring-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.recurring-actions button, .recurring-ignored button { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; background: var(--paper); font-size: 13px; line-height: 1.5; }
+.recurring-actions .recurring-confirm { color: var(--teal-dark); background: var(--pale); border-color: transparent; }
+.recurring-actions button:hover, .recurring-ignored button:hover { background: var(--pale); }
+.recurring-boundary, .recurring-ignored p { font-size: 13px; line-height: 1.8; color: var(--muted); margin: 12px 0; }
+.recurring-ignored { border-top: 1px solid var(--line); }
+.recurring-ignored > div { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 0; font-size: 14px; line-height: 1.7; }
+.recurring-ignored > div span { min-width: 0; overflow-wrap: anywhere; }
+.recurring-ignored button { flex-shrink: 0; color: var(--teal); }
+@media (max-width: 400px) {
+  .recurring-item-heading { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .recurring-item-heading > strong { font-size: 20px; text-align: left; overflow-wrap: anywhere; max-width: 100%; }
+  .recurring-item-heading small { display: inline; margin-left: 6px; }
+  .recurring-actions button { flex: 1; }
+}

@@ -1,0 +1,503 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-22T09:39:53.000Z",
+  "title": "Design System: 知银",
+  "extensions": {
+    "colorMeta": {
+      "teal": {
+        "role": "primary",
+        "displayName": "teal",
+        "tonalRamp": [
+          "oklch(15.00% 0.07093 202.89)",
+          "oklch(26.43% 0.07093 202.89)",
+          "oklch(37.86% 0.07093 202.89)",
+          "oklch(49.29% 0.07093 202.89)",
+          "oklch(60.71% 0.07093 202.89)",
+          "oklch(72.14% 0.07093 202.89)",
+          "oklch(83.57% 0.07093 202.89)",
+          "oklch(95.00% 0.07093 202.89)"
+        ]
+      },
+      "teal-dark": {
+        "role": "primary",
+        "displayName": "teal-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.06287 207.33)",
+          "oklch(26.43% 0.06287 207.33)",
+          "oklch(37.86% 0.06287 207.33)",
+          "oklch(49.29% 0.06287 207.33)",
+          "oklch(60.71% 0.06287 207.33)",
+          "oklch(72.14% 0.06287 207.33)",
+          "oklch(83.57% 0.06287 207.33)",
+          "oklch(95.00% 0.06287 207.33)"
+        ]
+      },
+      "pale": {
+        "role": "primary",
+        "displayName": "pale",
+        "tonalRamp": [
+          "oklch(15.00% 0.01068 189.82)",
+          "oklch(26.43% 0.01068 189.82)",
+          "oklch(37.86% 0.01068 189.82)",
+          "oklch(49.29% 0.01068 189.82)",
+          "oklch(60.71% 0.01068 189.82)",
+          "oklch(72.14% 0.01068 189.82)",
+          "oklch(83.57% 0.01068 189.82)",
+          "oklch(95.00% 0.01068 189.82)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.03772 235.15)",
+          "oklch(26.43% 0.03772 235.15)",
+          "oklch(37.86% 0.03772 235.15)",
+          "oklch(49.29% 0.03772 235.15)",
+          "oklch(60.71% 0.03772 235.15)",
+          "oklch(72.14% 0.03772 235.15)",
+          "oklch(83.57% 0.03772 235.15)",
+          "oklch(95.00% 0.03772 235.15)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.02671 224.03)",
+          "oklch(26.43% 0.02671 224.03)",
+          "oklch(37.86% 0.02671 224.03)",
+          "oklch(49.29% 0.02671 224.03)",
+          "oklch(60.71% 0.02671 224.03)",
+          "oklch(72.14% 0.02671 224.03)",
+          "oklch(83.57% 0.02671 224.03)",
+          "oklch(95.00% 0.02671 224.03)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "canvas",
+        "tonalRamp": [
+          "oklch(15.00% 0.00344 174.48)",
+          "oklch(26.43% 0.00344 174.48)",
+          "oklch(37.86% 0.00344 174.48)",
+          "oklch(49.29% 0.00344 174.48)",
+          "oklch(60.71% 0.00344 174.48)",
+          "oklch(72.14% 0.00344 174.48)",
+          "oklch(83.57% 0.00344 174.48)",
+          "oklch(95.00% 0.00344 174.48)"
+        ]
+      },
+      "mobile-canvas": {
+        "role": "neutral",
+        "displayName": "mobile-canvas",
+        "tonalRamp": [
+          "oklch(15.00% 0.00248 165.08)",
+          "oklch(26.43% 0.00248 165.08)",
+          "oklch(37.86% 0.00248 165.08)",
+          "oklch(49.29% 0.00248 165.08)",
+          "oklch(60.71% 0.00248 165.08)",
+          "oklch(72.14% 0.00248 165.08)",
+          "oklch(83.57% 0.00248 165.08)",
+          "oklch(95.00% 0.00248 165.08)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "line",
+        "tonalRamp": [
+          "oklch(15.00% 0.00847 168.74)",
+          "oklch(26.43% 0.00847 168.74)",
+          "oklch(37.86% 0.00847 168.74)",
+          "oklch(49.29% 0.00847 168.74)",
+          "oklch(60.71% 0.00847 168.74)",
+          "oklch(72.14% 0.00847 168.74)",
+          "oklch(83.57% 0.00847 168.74)",
+          "oklch(95.00% 0.00847 168.74)"
+        ]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "sidebar",
+        "tonalRamp": [
+          "oklch(15.00% 0.00661 160.08)",
+          "oklch(26.43% 0.00661 160.08)",
+          "oklch(37.86% 0.00661 160.08)",
+          "oklch(49.29% 0.00661 160.08)",
+          "oklch(60.71% 0.00661 160.08)",
+          "oklch(72.14% 0.00661 160.08)",
+          "oklch(83.57% 0.00661 160.08)",
+          "oklch(95.00% 0.00661 160.08)"
+        ]
+      },
+      "nav-selected": {
+        "role": "neutral",
+        "displayName": "nav-selected",
+        "tonalRamp": [
+          "oklch(15.00% 0.01667 162.73)",
+          "oklch(26.43% 0.01667 162.73)",
+          "oklch(37.86% 0.01667 162.73)",
+          "oklch(49.29% 0.01667 162.73)",
+          "oklch(60.71% 0.01667 162.73)",
+          "oklch(72.14% 0.01667 162.73)",
+          "oklch(83.57% 0.01667 162.73)",
+          "oklch(95.00% 0.01667 162.73)"
+        ]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "secondary",
+        "tonalRamp": [
+          "oklch(15.00% 0.01185 170.26)",
+          "oklch(26.43% 0.01185 170.26)",
+          "oklch(37.86% 0.01185 170.26)",
+          "oklch(49.29% 0.01185 170.26)",
+          "oklch(60.71% 0.01185 170.26)",
+          "oklch(72.14% 0.01185 170.26)",
+          "oklch(83.57% 0.01185 170.26)",
+          "oklch(95.00% 0.01185 170.26)"
+        ]
+      },
+      "secondary-hover": {
+        "role": "secondary",
+        "displayName": "secondary-hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.01783 170.06)",
+          "oklch(26.43% 0.01783 170.06)",
+          "oklch(37.86% 0.01783 170.06)",
+          "oklch(49.29% 0.01783 170.06)",
+          "oklch(60.71% 0.01783 170.06)",
+          "oklch(72.14% 0.01783 170.06)",
+          "oklch(83.57% 0.01783 170.06)",
+          "oklch(95.00% 0.01783 170.06)"
+        ]
+      },
+      "ghost": {
+        "role": "neutral",
+        "displayName": "ghost",
+        "tonalRamp": [
+          "oklch(15.00% 0.02915 168.56)",
+          "oklch(26.43% 0.02915 168.56)",
+          "oklch(37.86% 0.02915 168.56)",
+          "oklch(49.29% 0.02915 168.56)",
+          "oklch(60.71% 0.02915 168.56)",
+          "oklch(72.14% 0.02915 168.56)",
+          "oklch(83.57% 0.02915 168.56)",
+          "oklch(95.00% 0.02915 168.56)"
+        ]
+      },
+      "ghost-hover": {
+        "role": "neutral",
+        "displayName": "ghost-hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.00912 161.35)",
+          "oklch(26.43% 0.00912 161.35)",
+          "oklch(37.86% 0.00912 161.35)",
+          "oklch(49.29% 0.00912 161.35)",
+          "oklch(60.71% 0.00912 161.35)",
+          "oklch(72.14% 0.00912 161.35)",
+          "oklch(83.57% 0.00912 161.35)",
+          "oklch(95.00% 0.00912 161.35)"
+        ]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "danger",
+        "tonalRamp": [
+          "oklch(15.00% 0.13436 19.66)",
+          "oklch(26.43% 0.13436 19.66)",
+          "oklch(37.86% 0.13436 19.66)",
+          "oklch(49.29% 0.13436 19.66)",
+          "oklch(60.71% 0.13436 19.66)",
+          "oklch(72.14% 0.13436 19.66)",
+          "oklch(83.57% 0.13436 19.66)",
+          "oklch(95.00% 0.13436 19.66)"
+        ]
+      },
+      "danger-hover": {
+        "role": "secondary",
+        "displayName": "danger-hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.01412 22.76)",
+          "oklch(26.43% 0.01412 22.76)",
+          "oklch(37.86% 0.01412 22.76)",
+          "oklch(49.29% 0.01412 22.76)",
+          "oklch(60.71% 0.01412 22.76)",
+          "oklch(72.14% 0.01412 22.76)",
+          "oklch(83.57% 0.01412 22.76)",
+          "oklch(95.00% 0.01412 22.76)"
+        ]
+      },
+      "status": {
+        "role": "secondary",
+        "displayName": "status",
+        "tonalRamp": [
+          "oklch(15.00% 0.06575 163.23)",
+          "oklch(26.43% 0.06575 163.23)",
+          "oklch(37.86% 0.06575 163.23)",
+          "oklch(49.29% 0.06575 163.23)",
+          "oklch(60.71% 0.06575 163.23)",
+          "oklch(72.14% 0.06575 163.23)",
+          "oklch(83.57% 0.06575 163.23)",
+          "oklch(95.00% 0.06575 163.23)"
+        ]
+      },
+      "status-bg": {
+        "role": "secondary",
+        "displayName": "status-bg",
+        "tonalRamp": [
+          "oklch(15.00% 0.01407 155.59)",
+          "oklch(26.43% 0.01407 155.59)",
+          "oklch(37.86% 0.01407 155.59)",
+          "oklch(49.29% 0.01407 155.59)",
+          "oklch(60.71% 0.01407 155.59)",
+          "oklch(72.14% 0.01407 155.59)",
+          "oklch(83.57% 0.01407 155.59)",
+          "oklch(95.00% 0.01407 155.59)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "focus",
+        "tonalRamp": [
+          "oklch(15.00% 0.06784 203.14)",
+          "oklch(26.43% 0.06784 203.14)",
+          "oklch(37.86% 0.06784 203.14)",
+          "oklch(49.29% 0.06784 203.14)",
+          "oklch(60.71% 0.06784 203.14)",
+          "oklch(72.14% 0.06784 203.14)",
+          "oklch(83.57% 0.06784 203.14)",
+          "oklch(95.00% 0.06784 203.14)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "账户金额",
+        "purpose": "账户余额；使用等宽数字排列。"
+      },
+      "headline": {
+        "displayName": "页面问候",
+        "purpose": "首页主标题；详情页与移动端有局部字号。"
+      },
+      "body": {
+        "displayName": "说明",
+        "purpose": "说明通常为12–13px；当前前置token记录12px基础说明。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "composer",
+        "value": "0 7px 30px #1f4f3f07",
+        "purpose": "桌面输入容器。"
+      },
+      {
+        "name": "dialog",
+        "value": "0 24px 100px #0f2d3326",
+        "purpose": "对话框抬升。"
+      },
+      {
+        "name": "toast",
+        "value": "0 6px 25px #12372a20",
+        "purpose": "即时反馈。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "滑块与进入动画。"
+      },
+      {
+        "name": "button-transition",
+        "value": "180ms",
+        "purpose": "背景、文字、投影变化。"
+      },
+      {
+        "name": "dialog-enter",
+        "value": "280ms",
+        "purpose": "桌面对话框进入。"
+      },
+      {
+        "name": "sheet-enter",
+        "value": "300ms",
+        "purpose": "手机贴底面板进入。减少动态效果时关闭。"
+      },
+      {
+        "name": "steward-task-presence",
+        "value": "1.8s ease-in-out infinite",
+        "purpose": "仅 steward-task-workspace-v1 原生首页处理中使用的头像呼吸；减少动态效果时关闭，不影响经典款。"
+      },
+      {
+        "name": "steward-task-resolution-enter",
+        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "仅原生首页保留或稍后选择后的回执进入；可收起并回到安静工作台，减少动态效果时关闭。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide-min",
+        "value": "1450px"
+      },
+      {
+        "name": "compact-desktop-max",
+        "value": "1100px"
+      },
+      {
+        "name": "icon-sidebar-max",
+        "value": "850px"
+      },
+      {
+        "name": "mobile-max",
+        "value": "640px"
+      },
+      {
+        "name": "narrow-max",
+        "value": "370px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Funding forecast window",
+      "kind": "input",
+      "description": "近期资金安排的原生 7／14／30 天单选窗口，默认 7 天；保留键盘操作、44px 触控区域和选中焦点。预览只展示窗口控件，不运行资金测算。",
+      "html": "<div class=\"ds-funding-horizon\" role=\"radiogroup\" aria-label=\"选择资金测算窗口\"><label><input type=\"radio\" name=\"ds-funding-horizon\" checked /><span>未来 7 天</span></label><label><input type=\"radio\" name=\"ds-funding-horizon\" /><span>未来 14 天</span></label><label><input type=\"radio\" name=\"ds-funding-horizon\" /><span>未来 30 天</span></label></div>",
+      "css": ".ds-funding-horizon{display:flex;flex-wrap:wrap;gap:4px;width:fit-content;padding:4px;background:var(--pale,#eaf4f3);border-radius:12px;color:var(--ink,#142b38);font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif}.ds-funding-horizon label{position:relative;cursor:pointer}.ds-funding-horizon input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.ds-funding-horizon span{display:flex;align-items:center;box-sizing:border-box;min-height:44px;padding:8px 14px;border-radius:9px;font-size:13px;transition:background 160ms,color 160ms}.ds-funding-horizon input:checked+span{background:var(--teal,#206a70);color:var(--paper,#fff)}.ds-funding-horizon input:focus-visible+span{outline:2px solid var(--teal,#206a70);outline-offset:3px}.ds-funding-horizon label:hover span{box-shadow:inset 0 0 0 1px var(--teal,#206a70)}@media(max-width:540px){.ds-funding-horizon{justify-content:space-between}.ds-funding-horizon span{padding:8px 10px;font-size:12px}}@media(prefers-reduced-motion:reduce){.ds-funding-horizon span{transition:none}}"
+    },
+    {
+      "name": "Connected provider source",
+      "kind": "card",
+      "refersTo": "provider-source",
+      "description": "设置内只读来源卡：脱敏账号与授权项数；余额仅在可用时展示，不展示同步时间。重新授权会进入知银确认与合作方确认两步流程，断开为独立动作。预览数据仅为状态示例。",
+      "html": "<section class=\"ds-provider\"><div class=\"ds-provider-main\"><span class=\"ds-provider-mark\" aria-hidden=\"true\">微</span><div class=\"ds-provider-copy\"><div class=\"ds-provider-title\"><h3>微信支付</h3><span class=\"ds-provider-status\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>已连接</span></div><p>演示账号 ***8888 · 已授权 3 项</p></div></div><div class=\"ds-provider-actions\"><button type=\"button\">重新授权</button><button type=\"button\">断开连接</button></div></section>",
+      "css": ".ds-provider{font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;color:var(--ink,#142b38);border:1px solid var(--line,#e4ebe8);border-radius:15px;background:var(--paper,#fff);overflow:hidden}.ds-provider-main{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;padding:17px 18px}.ds-provider-mark{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;color:#fff;background:#07c160;font-size:18px;font-weight:700}.ds-provider-copy{min-width:0}.ds-provider-title{display:flex;align-items:center;gap:9px}.ds-provider-title h3{margin:0;font-size:15px}.ds-provider-copy p{margin:4px 0 0;color:var(--muted,#61757d);font-size:12px;line-height:1.5}.ds-provider-copy small{display:block;margin-top:3px;color:#77898e;font-size:10px}.ds-provider-status{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:20px;background:#e4f5ed;color:#247556;font-size:10px;font-weight:600}.ds-provider-actions{display:grid;grid-template-columns:1fr 1fr;min-height:45px;border-top:1px solid var(--line,#e4ebe8)}.ds-provider-actions button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;background:#fbfdfc;color:#4f686f;font:12px \"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;cursor:pointer}.ds-provider-actions button+button{border-left:1px solid var(--line,#e4ebe8);color:#8b4d50}.ds-provider-actions button:focus-visible{outline:3px solid #68aab0;outline-offset:4px}.ds-provider-actions button:active{filter:brightness(.96)}@media(max-width:640px){.ds-provider-main{padding:15px}}"
+    },
+    {
+      "name": "Scoped read consent",
+      "kind": "input",
+      "refersTo": "consent-scope",
+      "description": "授权面板的独立读取范围行，包含用途说明、勾选状态和整行键盘焦点。",
+      "html": "<fieldset class=\"ds-scopes\"><legend>允许读取</legend><label><input type=\"checkbox\" checked/><span><strong>读取账户余额</strong><small>用于计算当前可支配资金</small></span><span class=\"ds-scope-check\" aria-hidden=\"true\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg></span></label><label><input type=\"checkbox\"/><span><strong>读取自动扣费</strong><small>用于识别未来确定支出</small></span><span class=\"ds-scope-check\" aria-hidden=\"true\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg></span></label></fieldset>",
+      "css": ".ds-scopes{font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;color:var(--ink,#142b38);margin:20px 0;padding:0;border:0}.ds-scopes legend{margin-bottom:9px;font-size:12px;font-weight:600;color:var(--muted,#61757d)}.ds-scopes label{display:grid;grid-template-columns:1fr 22px;align-items:center;gap:10px;min-height:67px;padding:11px 3px;border-bottom:1px solid var(--line,#e4ebe8);cursor:pointer}.ds-scopes input{position:absolute;opacity:0;pointer-events:none}.ds-scopes strong,.ds-scopes small{display:block}.ds-scopes strong{font-size:14px}.ds-scopes small{margin-top:3px;color:var(--muted,#61757d);font-size:11px}.ds-scope-check{display:grid;place-items:center;width:21px;height:21px;border:1px solid #b8cbc7;border-radius:6px;color:transparent}.ds-scopes input:checked~.ds-scope-check{border-color:var(--teal,#206a70);background:var(--teal,#206a70);color:#fff}.ds-scopes label:focus-within{outline:2px solid var(--teal,#206a70);outline-offset:2px}"
+    },
+    {
+      "name": "Button / primary",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "当前按钮变体；相同尺寸、焦点和禁用处理。",
+      "html": "<button class=\"ds-button-primary\">核对转账方案</button>",
+      "css": ".ds-button-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--teal,#206a70);color:#fff;font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;font-size:13px;font-weight:500;line-height:1.5;border:1px solid transparent;border-radius:10px;padding:12px 18px;min-height:44px;cursor:pointer;transition:background .18s,color .18s,box-shadow .18s}.ds-button-primary:hover{background:var(--teal-dark,#14545c)}.ds-button-primary:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-button-primary:active:not(:disabled){filter:brightness(.96)}.ds-button-primary:disabled{opacity:.48;cursor:not-allowed}@media(max-width:640px){.ds-button-primary{min-height:47px}}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none}}"
+    },
+    {
+      "name": "Button / secondary",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "当前按钮变体；相同尺寸、焦点和禁用处理。",
+      "html": "<button class=\"ds-button-secondary\">返回修改</button>",
+      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#e8f2ee;color:var(--teal-dark,#14545c);font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;font-size:13px;font-weight:500;line-height:1.5;border:1px solid transparent;border-radius:10px;padding:12px 18px;min-height:44px;cursor:pointer;transition:background .18s,color .18s,box-shadow .18s}.ds-button-secondary:hover{background:#dcebe5}.ds-button-secondary:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-button-secondary:active:not(:disabled){filter:brightness(.96)}.ds-button-secondary:disabled{opacity:.48;cursor:not-allowed}@media(max-width:640px){.ds-button-secondary{min-height:47px}}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none}}"
+    },
+    {
+      "name": "Button / ghost",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "当前按钮变体；相同尺寸、焦点和禁用处理。",
+      "html": "<button class=\"ds-button-ghost\">暂不处理</button>",
+      "css": ".ds-button-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:#677d74;font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;font-size:13px;font-weight:500;line-height:1.5;border:1px solid transparent;border-radius:10px;padding:12px 18px;min-height:44px;cursor:pointer;transition:background .18s,color .18s,box-shadow .18s}.ds-button-ghost:hover{background:#eaf1ed}.ds-button-ghost:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-button-ghost:active:not(:disabled){filter:brightness(.96)}.ds-button-ghost:disabled{opacity:.48;cursor:not-allowed}@media(max-width:640px){.ds-button-ghost{min-height:47px}}@media(prefers-reduced-motion:reduce){.ds-button-ghost{transition:none}}"
+    },
+    {
+      "name": "Button / danger",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "当前按钮变体；相同尺寸、焦点和禁用处理。",
+      "html": "<button class=\"ds-button-danger\">确认模拟挂失</button>",
+      "css": ".ds-button-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:#b34c51;font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;font-size:13px;font-weight:500;line-height:1.5;border:1px solid #d9a8a9;border-radius:10px;padding:12px 18px;min-height:44px;cursor:pointer;transition:background .18s,color .18s,box-shadow .18s}.ds-button-danger:hover{background:#fff2f1}.ds-button-danger:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-button-danger:active:not(:disabled){filter:brightness(.96)}.ds-button-danger:disabled{opacity:.48;cursor:not-allowed}@media(max-width:640px){.ds-button-danger{min-height:47px}}@media(prefers-reduced-motion:reduce){.ds-button-danger{transition:none}}"
+    },
+    {
+      "name": "Labeled field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "白色输入与可见标签；只读核对面为浅灰绿。",
+      "html": "<label class=\"ds-field\">收款人<input value=\"妈妈\" /></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:8px;font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;font-size:12px;color:#536f62;margin-bottom:18px}.ds-field input{background:#fff;border:1px solid #ceddd4;border-radius:9px;padding:12px;height:47px;color:var(--ink,#142b38);font:15px \"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;caret-color:var(--teal,#206a70)}.ds-field input:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-field input:read-only{background:#f0f4ef;color:#476657;border-color:transparent}@media(max-width:640px){.ds-field input{font-size:16px}}"
+    },
+    {
+      "name": "Selected navigation",
+      "kind": "nav",
+      "refersTo": "nav-selected",
+      "description": "桌面主导航的选中状态；图标与文字同时标识入口。",
+      "html": "<nav aria-label=\"主导航\"><button class=\"ds-nav\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z\"/></svg>管家<i></i></button></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:15px;width:184px;padding:15px 19px;text-align:left;border:0;border-radius:12px;background:#dfece5;color:var(--teal-dark,#14545c);font:600 15px \"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;cursor:pointer;transition:background .18s}.ds-nav:hover{background:#dfece5}.ds-nav:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-nav:active{filter:brightness(.96)}.ds-nav i{width:5px;height:5px;border-radius:50%;background:var(--teal,#206a70);margin-left:auto}@media(prefers-reduced-motion:reduce){.ds-nav{transition:none}}"
+    },
+    {
+      "name": "Status chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "非交互状态；必须包含可读文字。",
+      "html": "<span class=\"ds-pill\">已完成</span>",
+      "css": ".ds-pill{display:inline-block;background:#e9f3ec;border-radius:6px;padding:5px 8px;font:10px \"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;color:#477962;white-space:nowrap}"
+    },
+    {
+      "name": "Surface and list row",
+      "kind": "card",
+      "refersTo": "surface",
+      "description": "白色细边框承载面与图标列表行。",
+      "html": "<div class=\"ds-surface\"><button class=\"ds-row\"><span class=\"ds-glyph\"><svg width=\"21\" height=\"21\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"/><path d=\"M2 10h20\"/></svg></span><span class=\"ds-copy\"><strong>银行卡管理</strong><span>查看卡片状态与支付限额</span></span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m9 18 6-6-6-6\"/></svg></button></div>",
+      "css": ".ds-surface{background:#fff;border:1px solid var(--line,#e4ebe8);border-radius:var(--radius,16px)}.ds-row{display:flex;align-items:center;gap:13px;width:100%;padding:17px 18px;text-align:left;border:0;border-radius:16px;background:transparent;color:var(--ink,#142b38);font-family:\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;cursor:pointer;transition:background .18s}.ds-row:hover{background:#f3f8f6}.ds-row:focus-visible{outline:3px solid var(--focus,#68aab0);outline-offset:4px}.ds-row:active{filter:brightness(.96)}.ds-glyph{width:43px;height:43px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#edf6f4;color:#377781;flex-shrink:0}.ds-copy{flex:1;min-width:0}.ds-copy strong{display:block;font-size:13px;font-weight:550;line-height:1.55}.ds-copy>span{display:block;font-size:11px;color:var(--muted,#61757d);margin-top:4px;line-height:1.6}@media(prefers-reduced-motion:reduce){.ds-row{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "亲切可信的私人银行管家",
+    "overview": "知银以深墨蓝文字、克制的青绿强调和接近暖白的底色呈现个人银行服务。留白与细边框组织信息，数字保持清楚，语气温和而不轻佻。宁宁与阿衡采用同一界面系统，以人物肖像和引导文案表达陪伴方式的差异。\n\n这是已实现原型的视觉记录，依据 `PRODUCT.md`、`src/index.css`、`src/App.tsx` 和 `src/components/ui/`。前置 token 是后续页面的基准；组件和断点中的局部值以当前样式表为事实来源。",
+    "keyCharacteristics": [
+      "深色文字、青绿操作与浅色承载面形成清楚层级。",
+      "以圆角卡片、带图标的列表和简短解释降低阅读负担。",
+      "桌面侧栏与移动底栏共享“管家、资产、我的”三个入口。",
+      "管家解释、方案核对和用户确认保持视觉区分。",
+      "AI 原生首页是一条默认安静的连续会话，只让明确需要处理的授权事件进入首屏。"
+    ],
+    "rules": [],
+    "dos": [
+      "Do 保持青绿主操作、墨蓝主要信息和浅色内容面的角色一致。",
+      "Do 用明确文字、图标和状态共同解释金额、风险和下一步。",
+      "Do 为固定输入框、底栏和安全区保留空间。",
+      "Do 在每个资金流程中保留可读的核对与确认界面。",
+      "Do 延续键盘焦点、标签、对话框语义和减少动态效果支持。",
+      "Do 将单项续费提醒偏好与订阅清单、14 天财务预测分开处理。",
+      "Do 在授权失效或同步失败时保留上次数据，并清楚标记数据可能陈旧。",
+      "Do 让 AI 原生首页默认安静，一次只提升一件需处理事件；资金差额优先，数据核对中或失败时不展示资金结论。",
+      "Do 为 AI 对话动作保留白名单校验、44px 触控目标、错误播报和减少动态效果支持。",
+      "Do 将日期、沙箱状态、首条 assistant message、快捷提问、消息记录与 composer 保持在同一连续会话 region。",
+      "Do 将知银、叶先生和动态选择的宁宁或阿衡作为三种不同身份传给模型。"
+    ],
+    "donts": [
+      "Don't 用宁宁或阿衡的个性差异改变金融能力或确认边界。",
+      "Don't 仅用颜色表示风险、选中状态或完成状态。",
+      "Don't 给所有卡片追加明显投影或把图表配色升级为主操作色。",
+      "Don't 用装饰性人物内容挤压金额、错误信息或确认动作。",
+      "Don't 把演示结果写成真实扣款、真实银行连接或已执行投资。",
+      "Don't 把“取消自动续费”入口做成即时执行；必须保留二次确认和谨慎按钮。",
+      "Don't 在支付平台回执前宣称取消成功，或省略识别结果的授权来源。",
+      "Don't 让模型执行清单之外的订阅动作，或把“准备取消”绕过用户二次确认。",
+      "Don't 隐藏沙箱演示标识，或在无授权状态声称宁宁已经读取、检查了支付账户。",
+      "Don't 让普通订阅、“下一笔续费”或常驻近期扣费数量占据 AI 原生首页首屏。",
+      "Don't 恢复独立 conversation-intro、聊天卡外框或“摘要加聊天卡”的双层首页结构。",
+      "Don't 把知银称作用户，或让当前管家在每条回复中重复自我介绍。",
+      "Don't 把各平台余额互相抵扣，或把含未确认结算款项的“待核实差额”写成确定的最低补款额。"
+    ]
+  }
+}

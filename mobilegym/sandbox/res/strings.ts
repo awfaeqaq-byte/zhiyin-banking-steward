@@ -1,0 +1,27 @@
+// The console is a browser-level operator tool, not a simulated App resource namespace.
+export const consoleStrings = {
+  current: '当前测试数据', wechat: '微信零钱', alipay: '支付宝余额', contracts: '项有效续费',
+  access: '不会自动授予知银权限。先在知银连接平台并完成双方授权，再回到知银查看订阅或向宁宁提问。',
+  scenarios: '测试场景', scenarioLabel: '选择测试场景', prepare: '准备这个场景', expectation: '建议这样测试',
+  balance: '修改测试余额', currency: '元', applyBalance: '应用测试余额', useCurrent: '填入当前余额',
+  balanceHelp: '直接设置沙箱余额，不生成充值账单，不影响银行卡。',
+  time: '推进时间与扣费', advance: '推进并结算', days: '推进天数', settle: '执行当前到期扣费',
+  timeHelp: '影响整台沙箱手机。推进后时钟暂停在目标时间，刷新页面会回到启动时钟；已产生的扣费和账单保留。每项签约最多结算一次，不补扣跳过的多期。',
+  advanceHelp: '将推进整台手机的时间，并实际结算两个平台所有已到期续费。余额和账单都会变化，无法一键撤销。',
+  settleHelp: '将按当前沙箱时间结算两个平台所有已到期续费。余额不足的项目不会扣款；已成功扣款不会重复记账。此操作无法一键撤销。',
+  confirm: '确认执行', cancel: '取消', undo: '撤销上次设置',
+  undoHelp: '只撤销最近一次余额或场景设置；如果之后发生支付、扣费或订阅变更，会阻止撤销，避免覆盖新数据。刷新后撤销记录不保留。',
+  undoConfirm: '恢复到上次设置前的余额、订阅与账单。若财务数据已有后续变化，将停止撤销。',
+  undone: '已撤销上次设置', updated: '测试数据已更新', history: '操作记录', historyEmpty: '本次打开页面后还没有财务测试操作。',
+  historyHint: '仅保留本次页面会话最近 10 次操作，不包含聊天复位。',
+  error: '操作未完成', missing: '请重新检查输入后重试。',
+  boundary: '数据保存在此浏览器的沙箱中；刷新仍保留应用数据，不涉及真实资金。',
+  preview: '执行前确认', settingsHelp: '仅修改下述测试数据；原有聊天、其他订阅和授权保持不变。重复载入同一场景不会重复添加。已扣过费的测试签约保留结算状态，可新建其他场景继续测试。',
+  frozen: '已暂停', flowing: '运行中',
+  scenario: {
+    renewal: { title: '临近续费提醒', description: '微信新增“测试音乐会员”：25 元／月，明天到期。余额保持不变。', prompt: '哪些会员快扣费了？帮我取消测试音乐会员。', expected: '知银应提示临近续费；确认取消后，再推进一天，不应产生该项扣费。' },
+    shortfall: { title: '单平台余额不足', description: '微信零钱设为 5 元、支付宝余额设为 1,000 元。微信新增 25 元／月“测试音乐会员”，明天到期。', prompt: '接下来一周的钱够续费吗？', expected: '微信该项至少差 20 元；支付宝余额不应抵扣微信缺口。原有续费也会参与测算。' },
+    duplicate: { title: '跨平台重复订阅', description: '微信新增“测试视频甲会员”、支付宝新增“测试视频乙会员”，各 25 元／月，分别明天、后天到期。余额保持不变。', prompt: '帮我检查重复订阅，哪些值得保留？', expected: '知银应指出同类视频服务可能重复，而不是直接取消。取消仍需你的确认。' },
+    recurring: { title: '账单中的疑似订阅', description: '微信写入 4 笔“测试云盘”历史账单：每隔 30 天 18 元。仅补充历史测试记录，不改变当前余额，也不创建签约。', prompt: '账单里有没有我没注意到的自动续费？', expected: '应识别为疑似周期付款，展示依据并请你核实，不能当成已确认签约直接取消。' },
+  },
+};

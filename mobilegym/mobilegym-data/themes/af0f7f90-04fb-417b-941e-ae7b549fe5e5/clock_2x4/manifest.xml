@@ -1,0 +1,350 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Clock frameRate="30" resDensity="480" type="awesome" scaleByDensity="false" screenWidth="1080" type="awesome" useVariableUpdater="Battery,DateTime.Minute" version="1">
+<VariableBinders>
+<ContentProviderBinder columns="city_id,city_name,weather_type,aqilevel,description,temperature,forecast_type,tmphighs,tmplows,wind,humidity,sunrise,sunset,pressure,weathernamesfrom,forecast_type,publish_time" countName="hasweather" name="WeatherProvider" uri="content://weather/actualWeatherData/1">
+<Variable column="city_id" name="weather_city_id" type="string"/>
+<Variable column="city_name" name="weather_location" type="string"/>
+<Variable column="weather_type" name="weather_id" type="int"/>
+<Variable column="temperature" name="weather_temperature" type="string"/>
+<Variable column="aqilevel" name="weather_aqi" type="int"/>
+<Variable column="sunrise" name="weather_sunrise" type="int"/>
+<Variable column="sunset" name="weather_sunset" type="int"/>
+<Variable column="forecast_type" name="weather_forecast_type" type="int"/>
+<Variable column="wind" name="weather_wind" type="string"/>
+<Variable column="pressure" name="weather_pressure" type="int"/>
+<Variable column="humidity" name="weather_humidity" type="int"/>
+<Variable column="weather_type" name="weather_type" type="string[]"/>
+<Variable column="description" name="weather_description" type="string"/>
+<Variable column="weathernamesfrom" name="weather_weathernamesfrom" type="string[]"/>
+<Variable column="tmphighs" name="weather_temphigh" type="string[]"/>
+<Variable column="tmplows" name="weather_templow" type="string[]"/>
+<Variable column="publish_time" name="weather_publish_time" type="string"/>
+<Trigger>
+<VariableCommand expression="ifelse(#weather_aqi }= 0 ** #weather_aqi {= 50,&apos;空气优&apos;,#weather_aqi}50 ** #weather_aqi {= 100,&apos;空气良好&apos;,#weather_aqi}100 ** #weather_aqi {= 150,&apos;轻度污染&apos;,#weather_aqi}150 ** #weather_aqi {= 200,&apos;中度污染&apos;,#weather_aqi}200 ** #weather_aqi {= 300,&apos;严重污染&apos;,#weather_aqi}300,&apos;重度污染&apos;,&apos;获取信息异常&apos;)" name="weather_air_quality" type="string"/>
+<VariableCommand expression="ifelse(#weather_id}25 || #weather_id{0,0, (#weather_id }= 4 ** #weather_id {= 6 || #weather_id }= 8 ** #weather_id {= 11 || #weather_id == 25),4,#weather_id }= 13 ** #weather_id {= 17,13 ,#weather_id }= 18 ** #weather_id {= 21 || #weather_id == 23,18,#weather_id)" name="weatherId"/>
+<VariableCommand expression="90*(((#hour24-8)*3600000+#minute*60000+#second*1000)/#weather_sunset)-45" name="weather_sun_rotation"/>
+<VariableCommand expression="max(min(#weather_sun_rotation,45),-45)+45" name="weather_rot_angle"/>
+</Trigger>
+</ContentProviderBinder>
+<ContentProviderBinder columns="aqi,pm25,pm10,so2,no2" countName="hasweatherinfo" dependency="WeatherProvider" uriFormat="content://weatherinfo/aqi/%s" uriParas="@weather_city_id">
+<Variable column="pm25" name="weather_pm25" type="int"/>
+<Variable column="no2" name="weather_no2" type="int"/>
+<Variable column="pm10" name="weather_pm10" type="int"/>
+<Variable column="so2" name="weather_so2" type="int"/>
+</ContentProviderBinder>
+<ContentProviderBinder columns="status" countName="hasResult" name="CountService" uriFormat="content://com.miui.maml.provider/analytics/%s" uriParas="@countParas"/>
+<!--计步-->
+<ContentProviderBinder name="MiSteps" uri="content://com.mi.health.provider.main/activity/steps/brief" column="steps,goal,distance,energy,strength_duration,summary" countName="hasSteps" >
+<Variable name="MiSteps_steps" type="string" column="steps"/>
+<Variable name="MiSteps_goal" type="string" column="goal"/>
+<Variable name="MiSteps_distance" type="string" column="distance"/>
+<Variable name="MiSteps_energy" type="string" column="energy"/>
+<Variable name="MiSteps_strength_duration" type="string" column="strength_duration"/>
+<Variable name="MiSteps_summary" type="string" column="summary"/>
+</ContentProviderBinder>
+</VariableBinders>
+
+<Var expression="#view_width" name="sw"/>
+<Var expression="#view_height" name="sh"/>
+<Var expression="#view_width/2" name="sw/2"/>
+<Var expression="#view_height/2" name="sh/2"/>
+
+<Var expression="ifelse(#applied_light_wallpaper,'#cc000000','#ffffff')" type="string" name="allcolortext"/>
+<VarArray type="string">
+<Vars>
+<Var index="#ampm" name="time_ampm"/>
+</Vars>
+<Items>
+<Item value="AM"/>
+<Item value="PM"/>
+</Items>
+</VarArray>
+<Group>
+
+<!-- <Rectangle alignV="center" align="center" h="330" w="75" x="#sw/2" y="#sh/2" alpha="255*0.2" cornerRadius="30" fillColor="#000000"/> -->
+<Button alignV="center" align="center" h="330" w="75" x="#sw/2" y="#sh/2">
+<Triggers>
+<Trigger action="double"> 
+<VariableCommand name="time_type" expression="int(#time_type+1)%4" persist="true" delay="50"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+
+<Group alpha="255" x="#sw/2"  visibility="eq(#time_type,3)">
+<Group h="420" w="450" x="-250" y="250">
+<Image alignV="center" align="center" h="420" w="460" src="ToolsScreen_src/icons/main_5.9.png"/>
+<Group x="0" y="-210">
+<DateTime name="time5" y="90" align="center" alignV="center" color="#ffffff" formatExp="ifelse(#time_format,'HH:mm','hh:mm')" size="120" fontFamily="mitype-clock" alpha="255"/>
+<Image alignV="center" align="center" y="210" h="80" w="350" src="ToolsScreen_src/icons/timebg2.9.png"/>
+
+<DateTime align="center" alignV="center" color="#ffffff" format="M月d日 EEEE" size="40" y="210" x="0"/>
+<DateTime align="center" alignV="center" color="#ffffff" format="YY年 N月e" size="40" y="210+110" x="0"/>
+</Group>
+<Rectangle y="-110" alignV="center" align="center" h="110" pivotX="225" pivotY="210" w="350" alpha="255*0" cornerRadius="30" fillColor="#000000"/>
+<Button name="clock_button"  y="-110" alignV="center" align="center" h="130" pivotX="225" pivotY="210" w="350"/>
+
+<Rectangle y="65" alignV="center" align="center" h="200" pivotX="225" pivotY="210" w="420" alpha="255*0" cornerRadius="30" fillColor="#000000"/>
+<Button y="65" alignV="center" align="center" h="200" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" package="com.android.calendar" class="com.android.calendar.AllInOneActivity"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+<Group h="420" w="450" x="250" y="250">
+<Image alignV="center" align="center" h="420" pivotX="225" pivotY="210" w="460" src="ToolsScreen_src/icons/main_5.9.png"/>
+<Group x="-245" y="-200">
+<Image align="center" alignV="center" h="120" src="ToolsScreen_src/weather/weather.png" srcid="#weatherId" w="120" x="340" y="80"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="miui-thin" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) {= 8" x="47" y="70"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="mitype-clock" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) }= 9" x="47" y="70"/>
+<Text align="left" alignV="center" alpha="255" color="#ffffff" size="40" textExp="@weather_location" x="47" y="175"/>
+<Text align="left" alignV="center" alpha="245" color="#ffffff" size="40" textExp="@weather_description+' '+@weather_templow[0]+'/'+@weather_temphigh[0]+'°'" x="47" y="300" />
+<Group align="left" alignV="center" x="47" y="340">
+<Image name="rain_fall" src="ToolsScreen_src/weather/rain_fall.png" srcid="ifelse(#weather_forecast_type == 11 || #weather_forecast_type == 8,1,#weather_forecast_type == 10 || #weather_forecast_type == 6 || #weather_forecast_type == 7,2,#weather_forecast_type == 9 || #weather_forecast_type == 5 || #weather_forecast_type == 4,3,#weather_forecast_type }= 13 ** #weather_forecast_type {= 17 || #weather_forecast_type == 22,4,0)" y="13"/>
+<Text color="#FFFFFF" size="40" textExp="ifelse(strContains(@weather_weathernamesfrom[0],'雨') == 0,'1小时后无雨',strContains(@weather_weathernamesfrom[0],'雨') != 0,'1小时后有'+@weather_weathernamesfrom[0],#weather_id }= 4 ** #weather_id {= 11,'正在下雨',#weather_id }= 13 ** #weather_id {= 17 || #weather_id == 22,'正在下雪','降水预报')" x="#rain_fall.bmp_width+10"/>
+</Group>
+</Group>
+<Rectangle alignV="center" align="center" h="300" pivotX="225" pivotY="210" w="420" alpha="255*0" fillColor="#000000"/>
+<Button alignV="center" align="center" h="320" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" class="com.miui.weather2.ActivityWeatherMain" package="com.miui.weather2"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+</Group>
+<Group alpha="255" x="#sw/2"   visibility="eq(#time_type,2)">
+<Group h="420" w="450" x="-250" y="250">
+<Image alignV="center" align="center" h="420" pivotX="225" pivotY="210" w="460" src="ToolsScreen_src/icons/main_5.9.png"/>
+<Group x="-230" y="-210">
+<DateTime name="time4" align="left" alignV="center" color="#ffffff" formatExp="ifelse(#time_format,'HH:mm','hh:mm')" size="115" y="80" x="40" fontFamily="mitype-clock"/>
+<Text name="ampm1" align="left" alignV="center" pivotX="#ampm1.text_width/2" color="#ffffff" size="30" textExp="@time_ampm" x="#time4.text_width+45" y="115"/>
+<DateTime align="left" alignV="center" color="#ffffff" format="aa好" size="40" y="175" x="50"/>
+<DateTime align="left" alignV="center" color="#ffffff" format="M月d日 E" size="40" y="310" x="50"/>
+<DateTime align="left" alignV="center" color="#ffffff" format="YY年N月e" size="40" y="380" x="50"/>
+<Group visibility="0" y="300">
+<Text x="50" y="0" w="320" align="left" color="#ffffff" size="40" textExp="'无日程'" visibility="strIsEmpty(@cal_title)"/> 
+<DateTime x="50" y="20" color="#ffffff" size="40" value="#event_start" format="M月d日 EEEE H:mm - " visibility="!strIsEmpty(@cal_title)"/> 
+<DateTime x="50" y="40" color="#ffffff" size="40" value="#event_end" format="M月d日 EEEE H:mm" visibility="!strIsEmpty(@cal_title)"/> 
+<DateTime x="50" y="320" color="#ffffff" size="40" format="今年已过去D天"/> 
+</Group>
+</Group>
+<Rectangle y="-120" alignV="center" align="center" h="110" pivotX="225" pivotY="210" w="420" alpha="255*0" cornerRadius="30" fillColor="#ffffff"/>
+<Button y="-120" alignV="center" align="center" h="110" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" class="com.android.deskclock.DeskClockTabActivity" package="com.android.deskclock"/>
+</Trigger>
+</Triggers>
+</Button>
+
+<Rectangle y="130" alignV="center" align="center" h="150" pivotX="225" pivotY="210" w="420" alpha="255*0" cornerRadius="30" fillColor="#ffffff"/>
+<Button y="130" alignV="center" align="center" h="150" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" package="com.android.calendar" class="com.android.calendar.AllInOneActivity"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+<Group h="420" w="450" x="250" y="250">
+<Image alignV="center" align="center" h="420" pivotX="225" pivotY="210" w="460" src="ToolsScreen_src/icons/main_5.9.png"/>
+<Group x="-245" y="-200">
+<Image align="center" alignV="center" h="120" src="ToolsScreen_src/weather/weather.png" srcid="#weatherId" w="120" x="340" y="80"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="miui-thin" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) {= 8" x="47" y="70"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="mitype-clock" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) }= 9" x="47" y="70"/>
+<Text align="left" alignV="center" alpha="255" color="#ffffff" size="40" textExp="@weather_location" x="47" y="175"/>
+<Text align="left" alignV="center" alpha="245" color="#ffffff" size="40" textExp="@weather_description+' '+@weather_templow[0]+'/'+@weather_temphigh[0]+'°'" x="47" y="300" />
+<Group align="left" alignV="center" x="47" y="340">
+<Image name="rain_fall" src="ToolsScreen_src/weather/rain_fall.png" srcid="ifelse(#weather_forecast_type == 11 || #weather_forecast_type == 8,1,#weather_forecast_type == 10 || #weather_forecast_type == 6 || #weather_forecast_type == 7,2,#weather_forecast_type == 9 || #weather_forecast_type == 5 || #weather_forecast_type == 4,3,#weather_forecast_type }= 13 ** #weather_forecast_type {= 17 || #weather_forecast_type == 22,4,0)" y="13"/>
+<Text color="#FFFFFF" size="40" textExp="ifelse(strContains(@weather_weathernamesfrom[0],'雨') == 0,'1小时后无雨',strContains(@weather_weathernamesfrom[0],'雨') != 0,'1小时后有'+@weather_weathernamesfrom[0],#weather_id }= 4 ** #weather_id {= 11,'正在下雨',#weather_id }= 13 ** #weather_id {= 17 || #weather_id == 22,'正在下雪','降水预报')" x="#rain_fall.bmp_width+10"/>
+</Group>
+</Group>
+<Rectangle alignV="center" align="center" h="300" pivotX="225" pivotY="210" w="420" alpha="255*0" fillColor="#ffffff"/>
+<Button alignV="center" align="center" h="320" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" class="com.miui.weather2.ActivityWeatherMain" package="com.miui.weather2"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+</Group>
+
+
+<Group alpha="255" x="#sw/2"   visibility="eq(#time_type,1)">
+<Group h="420" w="450" x="-250" y="250">
+<Image alignV="center" align="center" h="420" pivotX="225" pivotY="210" w="460" src="ToolsScreen_src/icons/main_1.9.png"/>
+<Group x="-230" y="-210">
+<DateTime name="time4" align="left" alignV="center" color="#ffffff" formatExp="ifelse(#time_format,'HH:mm','hh:mm')" size="115" y="80" x="40" fontFamily="mitype-clock"/>
+<Text name="ampm1" align="left" alignV="center" pivotX="#ampm1.text_width/2" color="#ffffff" size="30" textExp="@time_ampm" x="#time4.text_width+45" y="115"/>
+<DateTime align="left" alignV="center" color="#ffffff" format="aa好" size="40" y="175" x="50"/>
+<DateTime align="left" alignV="center" color="#ffffff" format="M月d日 E" size="40" y="310" x="50"/>
+<DateTime align="left" alignV="center" color="#ffffff" format="YY年N月e" size="40" y="380" x="50"/>
+<Group visibility="0" y="300">
+<Text x="50" y="0" w="320" align="left" color="#ffffff" size="40" textExp="'无日程'" visibility="strIsEmpty(@cal_title)"/> 
+<DateTime x="50" y="20" color="#ffffff" size="40" value="#event_start" format="M月d日 EEEE H:mm - " visibility="!strIsEmpty(@cal_title)"/> 
+<DateTime x="50" y="40" color="#ffffff" size="40" value="#event_end" format="M月d日 EEEE H:mm" visibility="!strIsEmpty(@cal_title)"/> 
+<DateTime x="50" y="320" color="#ffffff" size="40" format="今年已过去D天"/> 
+</Group>
+</Group>
+<Rectangle y="-120" alignV="center" align="center" h="110" pivotX="225" pivotY="210" w="420" alpha="255*0" cornerRadius="30" fillColor="#ffffff"/>
+<Button y="-120" alignV="center" align="center" h="110" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" class="com.android.deskclock.DeskClockTabActivity" package="com.android.deskclock"/>
+</Trigger>
+</Triggers>
+</Button>
+
+<Rectangle y="130" alignV="center" align="center" h="150" pivotX="225" pivotY="210" w="420" alpha="255*0" cornerRadius="30" fillColor="#ffffff"/>
+<Button y="130" alignV="center" align="center" h="150" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" package="com.android.calendar" class="com.android.calendar.AllInOneActivity"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+<Group h="420" w="450" x="250" y="250">
+<Image alignV="center" align="center" h="420" pivotX="225" pivotY="210" w="460" src="ToolsScreen_src/icons/main_2.9.png"/>
+<Group x="-245" y="-200">
+<Image align="center" alignV="center" h="120" src="ToolsScreen_src/weather/weather.png" srcid="#weatherId" w="120" x="340" y="80"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="miui-thin" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) {= 8" x="47" y="70"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="mitype-clock" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) }= 9" x="47" y="70"/>
+<Text align="left" alignV="center" alpha="255" color="#ffffff" size="40" textExp="@weather_location" x="47" y="175"/>
+<Text align="left" alignV="center" alpha="245" color="#ffffff" size="40" textExp="@weather_description+' '+@weather_templow[0]+'/'+@weather_temphigh[0]+'°'" x="47" y="300" />
+<Group align="left" alignV="center" x="47" y="340">
+<Image name="rain_fall" src="ToolsScreen_src/weather/rain_fall.png" srcid="ifelse(#weather_forecast_type == 11 || #weather_forecast_type == 8,1,#weather_forecast_type == 10 || #weather_forecast_type == 6 || #weather_forecast_type == 7,2,#weather_forecast_type == 9 || #weather_forecast_type == 5 || #weather_forecast_type == 4,3,#weather_forecast_type }= 13 ** #weather_forecast_type {= 17 || #weather_forecast_type == 22,4,0)" y="13"/>
+<Text color="#FFFFFF" size="40" textExp="ifelse(strContains(@weather_weathernamesfrom[0],'雨') == 0,'1小时后无雨',strContains(@weather_weathernamesfrom[0],'雨') != 0,'1小时后有'+@weather_weathernamesfrom[0],#weather_id }= 4 ** #weather_id {= 11,'正在下雨',#weather_id }= 13 ** #weather_id {= 17 || #weather_id == 22,'正在下雪','降水预报')" x="#rain_fall.bmp_width+10"/>
+</Group>
+</Group>
+<Rectangle alignV="center" align="center" h="300" pivotX="225" pivotY="210" w="420" alpha="255*0" fillColor="#ffffff"/>
+<Button alignV="center" align="center" h="320" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" class="com.miui.weather2.ActivityWeatherMain" package="com.miui.weather2"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+</Group>
+
+
+<Group alpha="255" x="#sw/2" visibility="eq(#time_type,0)">
+<Group h="420" w="450" x="-250" y="250">
+<Image alignV="center" align="center" h="420" w="460" src="ToolsScreen_src/icons/main_3.9.png"/>
+<Group x="0" y="-210">
+<DateTime name="time5" y="100" align="center" alignV="center" color="#000000" formatExp="ifelse(#time_format,'HH:mm','hh:mm')" size="115" fontFamily="mitype-clock" alpha="0.8*255"/>
+<Image alignV="center" align="center" y="210" h="80" w="350" src="ToolsScreen_src/icons/timebg.9.png"/>
+
+<DateTime align="center" alignV="center" color="#000000" format="M月d日 EEEE" size="40" y="210" x="0"/>
+<DateTime align="center" alignV="center" color="#000000" format="YY年 N月e" size="40" y="210+110" x="0"/>
+</Group>
+<Rectangle y="-110" alignV="center" align="center" h="110" pivotX="225" pivotY="210" w="350" alpha="255*0" cornerRadius="30" fillColor="#000000"/>
+<Button name="clock_button"  y="-110" alignV="center" align="center" h="130" pivotX="225" pivotY="210" w="350"/>
+<Rectangle y="65" alignV="center" align="center" h="200" pivotX="225" pivotY="210" w="420" alpha="255*0" cornerRadius="30" fillColor="#000000"/>
+<Button y="65" alignV="center" align="center" h="200" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" package="com.android.calendar" class="com.android.calendar.AllInOneActivity"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+<Group h="420" w="450" x="250" y="250">
+<Image alignV="center" align="center" h="420" pivotX="225" pivotY="210" w="460" src="ToolsScreen_src/icons/main_4.9.png"/>
+<Group x="-245" y="-200">
+<Image align="center" alignV="center" h="120" src="ToolsScreen_src/weather/weather.png" srcid="#weatherId" w="120" x="340" y="80"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="miui-thin" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) {= 8" x="47" y="70"/>
+<Text alignV="center" align="left" color="#ffffff" fontFamily="mitype-clock" size="120" textExp="@weather_temperature" visibility="int(@__miui_version_code) }= 9" x="47" y="70"/>
+<Text align="left" alignV="center" alpha="255" color="#ffffff" size="40" textExp="@weather_location" x="47" y="175"/>
+<Text align="left" alignV="center" alpha="245" color="#ffffff" size="40" textExp="@weather_description+' '+@weather_templow[0]+'/'+@weather_temphigh[0]+'°'" x="47" y="300" />
+<Group align="left" alignV="center" x="47" y="340">
+<Image name="rain_fall" src="ToolsScreen_src/weather/rain_fall.png" srcid="ifelse(#weather_forecast_type == 11 || #weather_forecast_type == 8,1,#weather_forecast_type == 10 || #weather_forecast_type == 6 || #weather_forecast_type == 7,2,#weather_forecast_type == 9 || #weather_forecast_type == 5 || #weather_forecast_type == 4,3,#weather_forecast_type }= 13 ** #weather_forecast_type {= 17 || #weather_forecast_type == 22,4,0)" y="13"/>
+<Text color="#FFFFFF" size="40" textExp="ifelse(strContains(@weather_weathernamesfrom[0],'雨') == 0,'1小时后无雨',strContains(@weather_weathernamesfrom[0],'雨') != 0,'1小时后有'+@weather_weathernamesfrom[0],#weather_id }= 4 ** #weather_id {= 11,'正在下雨',#weather_id }= 13 ** #weather_id {= 17 || #weather_id == 22,'正在下雪','降水预报')" x="#rain_fall.bmp_width+10"/>
+</Group>
+</Group>
+<Rectangle alignV="center" align="center" h="300" pivotX="225" pivotY="210" w="420" alpha="255*0" fillColor="#000000"/>
+<Button alignV="center" align="center" h="320" pivotX="225" pivotY="210" w="420">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" class="com.miui.weather2.ActivityWeatherMain" package="com.miui.weather2"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+</Group>
+<!--计步
+<Group x="-180" y="660">
+<Image alignV="center" align="center" h="320" w="600" pivotX="160" pivotY="160" src="ToolsScreen_src/icons/main_4.9.png"/>
+<Var name="step_all" expression="@MiSteps_steps/@MiSteps_goal" type="number" const="false"/>
+<Text alignV="center" align="center" alpha="255" color="#ffffff" size="42" textExp="'今日步数'" x="120" y="-60"/>
+<Text alignV="center" align="center" alpha="255" color="#ffffff" size="42" textExp="@MiSteps_steps" x="120" y="0" />
+<Text alignV="center" align="center" alpha="255*0.9" color="#ffffff" size="42" textExp="ifelse(@MiSteps_steps{@MiSteps_goal,'继续加油','完成目标')" x="120" y="60" />
+<Arc  alignV="center" align="center" alpha="255*0.2" cap="round" close="false" h="200" w="200" startAngle="-90" strokeAlign="center" strokeColor="#ffffff" sweep="360" weight="45" x="-140" y="0"/>
+<Arc  alignV="center" align="center" alpha="255" cap="round" close="false" h="200" w="200" startAngle="-90" strokeAlign="center" strokeColor="#62C568" sweep="360*@MiSteps_steps/@MiSteps_goal" weight="45" x="-140" y="0" />
+<Text  alignV="center" align="center" alpha="255" color="#ffffff" size="32" textExp="'完成度'" x="-140" y="-30"/>
+<Rectangle align="center" cornerRadius="2" fillColor="#ffffff" h="3" w="90" x="-140" y="0"/>
+<Text  alignV="center" align="center" alpha="255" color="#ffffff" size="32" textExp="int(#step_all*100)+'%'" x="-140" y="30" />
+
+<Rectangle alignV="center" align="center" h="320" w="600" pivotX="160" pivotY="160" alpha="255*0" cornerRadius="30" fillColor="#ffffff"/>
+<Button alignV="center" align="center" h="320" w="600" pivotX="160" pivotY="160">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" package="com.mi.health" class="com.mi.health.exercise.ui.ExerciseDetailActivity"/>
+<ExternCommand command="unlock"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+
+-->
+
+
+<!--电量
+<Group x="320" y="660">
+<Image alignV="center" align="center" h="320" w="320" pivotX="160" pivotY="160" src="ToolsScreen_src/icons/main_5.9.png"/>
+<Group alignV="center" align="center" layered="true" clip="true" h="320" w="320" x="0" y="0" visibility="#battery_state == 1">
+<Image alignV="bottom" x="-70-50*abs(sin(#time/1200))" y="325" h="350*#battery_level/100" w="520" src="icons/shuiwei.9.png" alpha="255*0.4"/>
+<Image alignV="bottom" x="-140-20*abs(sin(#time/1100))" y="320" h="355*#battery_level/100" w="520" src="icons/shuiwei.9.png" alpha="255*0.6"/>
+<Array count="10" indexName="__rond" visibility="1">
+
+<Var const="true" expression="(320*rand())" index="#__rond" name="Particle_x" size="40" type="number[]"/>
+<Var const="true" expression="(4*rand()+3)" index="#__rond" name="Particle_y" size="40" type="number[]"/>
+
+<Var const="true" expression="(5*rand()+5)*3600" index="#__rond" name="Particle_t" size="40" type="number[]"/>
+
+<Var const="true" expression="0.4*rand()" index="#__rond" name="Particle_r" size="50" type="number[]"/>
+
+<Var const="true" expression="int(55*rand()+200)" index="#__rond" name="Particle_alpha" size="50" type="number[]"/>
+<Image scale="0.6+#Particle_r[#__rond]" src="particle_src/particle.png" x="#Particle_x[#__rond]" y="#Particle_y[#__rond]*320*#time/#Particle_t[#__rond]%320"/>
+</Array>
+<Image h="320" w="320" src="icons/batterybg.png" xfermode="dst_in"/>
+</Group>
+<Group alignV="center" align="center" layered="true" clip="true" h="320" w="320" x="0" y="0" visibility="#battery_state != 1">
+<Image alignV="bottom" x="-70-50*abs(sin(#time/1200))" y="325" h="350*#battery_level/100" w="520" src="icons/shuiwei.9.png" alpha="255*0.4"/>
+<Image alignV="bottom" x="-140-20*abs(sin(#time/1100))" y="320" h="355*#battery_level/100" w="520" src="icons/shuiwei.9.png" alpha="255*0.6"/>
+<Image h="320" w="320" src="icons/batterybg.png" xfermode="dst_in"/>
+</Group>
+<Text y="0" y="110" w="650" align="center" alignV="center" color="#ffffff" size="40" marqueeSpeed="30" textExp="'秒速充电 '+#battery_level+'%'" visibility="#ChargeSpeed }= 3**#battery_state == 1"/>
+<Text y="0" y="110"  w="650" align="center" alignV="center" color="#ffffff" size="40" marqueeSpeed="30" textExp="'极速充电 '+#battery_level+'%'" visibility="#ChargeSpeed == 2**#battery_state == 1"/>
+<Text y="0" y="110"  w="650" align="center" alignV="center" color="#ffffff" size="40" marqueeSpeed="30" textExp="'快速充电 '+#battery_level+'%'" visibility="#ChargeSpeed == 1**#battery_state == 1"/>
+<Text y="0" y="110"  w="650" align="center" alignV="center" color="#ffffff" size="40" marqueeSpeed="30" textExp="'普通充电 '+#battery_level+'%'" visibility="#ChargeSpeed == 0**#battery_state == 1" />
+<Text y="0" y="110"  w="650" align="center" alignV="center" color="#ffffff" size="40" marqueeSpeed="30" textExp="'当前电量 '+#battery_level+'%'" visibility="#battery_state != 1" />
+<Rectangle alignV="center" align="center" h="320" w="320" pivotX="160" pivotY="160" alpha="255*0" cornerRadius="30" fillColor="#ffffff"/>
+<Button alignV="center" align="center" h="320" w="320" pivotX="160" pivotY="160">
+<Triggers>
+<Trigger action="up">
+<IntentCommand action="android.intent.action.MAIN" package="com.miui.securitycenter" class="com.miui.powercenter.PowerMainActivity"/>
+</Trigger>
+</Triggers>
+</Button>
+</Group>
+
+-->
+
+</Clock>

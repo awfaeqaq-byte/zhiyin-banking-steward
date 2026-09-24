@@ -1,0 +1,146 @@
+/* Shared secondary-page rhythm; the conversation keeps its own fixed shell. */
+.app-shell .main-content.is-detail-page {
+  --detail-canvas: #f4f7f6;
+  padding-top: 16px;
+}
+.app-shell.mode-native .main-content.is-detail-page { --detail-canvas: #fcfefd; }
+.app-shell .main-content.is-detail-page > .page-heading {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  align-items: flex-start;
+  gap: 14px;
+  padding-block: 16px 18px;
+  margin-bottom: 22px;
+  background: var(--detail-canvas);
+}
+.app-shell .main-content.is-detail-page > .page-heading > div { min-width: 0; }
+.app-shell .main-content.is-detail-page .page-heading h1 { font-size: 26px; line-height: 1.4; }
+.app-shell .main-content.is-detail-page .page-heading p { margin-top: 6px; font-size: 13px; line-height: 1.7; }
+.app-shell .main-content.is-detail-page :is(button, input, select, summary) { scroll-margin-top: 112px; }
+.app-shell .main-content.is-detail-page .back-button { margin: 0; flex-shrink: 0; border-radius: 12px; }
+
+.app-shell :is(.page-assets, .page-profile) .row-copy strong { font-size: 15px; }
+.app-shell :is(.page-assets, .page-profile) .row-copy > span { font-size: 13px; line-height: 1.65; }
+.app-shell :is(.page-assets, .page-profile) .list-row { min-height: 80px; padding: 17px 18px; }
+.app-shell :is(.page-assets, .page-profile) .list-row:focus-visible { outline-offset: -3px; }
+.app-shell :is(.page-assets, .page-profile) .glyph { width: 38px; height: 38px; }
+.app-shell :is(.page-assets, .page-profile) .text-link { min-height: 44px; min-width: 44px; font-size: 13px; }
+.app-shell :is(.page-assets, .page-profile) .section-title { font-size: 17px; }
+
+/* Assets: keep the balance, the next action, and its source easy to distinguish. */
+.app-shell .page-assets .asset-overview { padding: 20px 24px 24px; }
+.app-shell .asset-overview .section-line { font-size: 13px; }
+.app-shell .asset-overview .section-line > span { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.app-shell .asset-overview .icon-control { width: 44px; height: 44px; }
+.asset-demo-label { font-size: 11px; font-weight: 400; color: #536f65; }
+.app-shell .asset-overview .balance { font-size: clamp(30px, 3.1vw, 40px); margin: 12px 0 22px; }
+.app-shell .asset-overview .account-foot { font-size: 12px; flex-wrap: wrap; line-height: 1.65; }
+.asset-funding-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 18px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--teal-dark);
+  text-align: left;
+}
+.asset-funding-entry > span { display: grid; gap: 5px; flex: 1; min-width: 0; }
+.asset-funding-entry strong { font-size: 15px; font-weight: 600; }
+.asset-funding-entry small { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.asset-funding-entry:hover { background: var(--pale); }
+.app-shell .asset-distribution .list-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+}
+.app-shell .asset-distribution .list-row > strong { font-size: 16px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.app-shell .page-assets .bank-card { height: 216px; }
+.app-shell .page-assets .bank-card-top > span:first-child { font-size: 13px; }
+.app-shell .page-assets .bank-card-top > span:last-child,
+.app-shell .page-assets .bank-card-bottom { font-size: 12px; }
+
+/* Profile: account access is near the top, with remembered preferences secondary. */
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+  grid-template-areas: "identity services" "preferences controls";
+  align-items: start;
+  gap: 24px 32px;
+}
+.profile-layout > section { min-width: 0; }
+.profile-identity { grid-area: identity; }
+.profile-services { grid-area: services; }
+.profile-preferences { grid-area: preferences; }
+.profile-controls { grid-area: controls; }
+.app-shell .profile-layout .section-title { margin: 0 0 14px; }
+.app-shell .profile-layout .profile-person { gap: 14px; padding: 22px 20px; }
+.app-shell .profile-layout .profile-person h2 { font-size: 19px; }
+.app-shell .profile-layout .profile-person p { font-size: 13px; line-height: 1.6; }
+.app-shell .profile-layout .profile-person .pill { font-size: 11px; white-space: nowrap; }
+.app-shell .profile-layout .user-avatar { flex-shrink: 0; }
+.app-shell .profile-layout .profile-steward {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  padding: 18px 20px;
+}
+.app-shell .profile-layout .profile-steward strong { font-size: 15px; }
+.app-shell .profile-layout .profile-steward p { font-size: 12px; line-height: 1.65; margin-top: 4px; }
+.app-shell .profile-layout .profile-steward .text-link { grid-column: 2; justify-self: start; margin: 0; padding: 0; }
+.app-shell .profile-preferences .list-row { min-height: 58px; padding-block: 10px; }
+.app-shell .profile-preferences .row-copy strong { font-size: 14px; font-weight: 500; }
+.app-shell .profile-preferences .glyph { width: 28px; height: 28px; background: transparent; }
+.app-shell .profile-preferences .fine-print { margin-top: 12px; font-size: 12px; line-height: 1.75; }
+.app-shell .page-profile .profile-brand { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 36px 0 0; color: var(--muted); }
+.app-shell .page-profile .profile-brand strong { font-size: 16px; margin: 0; }
+.app-shell .page-profile .profile-brand span { font-size: 12px; margin: 0; }
+.app-shell .page-profile .profile-brand small { flex-basis: 100%; text-align: center; font-size: 11px; margin: 4px 0 0; line-height: 1.7; }
+
+@media (max-width: 1000px) {
+  .profile-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "identity" "services" "preferences" "controls"; gap: 26px; }
+  .app-shell .page-profile { max-width: 760px; }
+}
+@media (max-width: 640px) {
+  .app-shell .main-content.is-detail-page { --detail-canvas: #fafcfb; padding-inline: 20px; padding-top: 0; }
+  .app-shell.mode-native .main-content.is-detail-page { --detail-canvas: #fcfefd; }
+  .app-shell .main-content.is-detail-page > .page-heading { gap: 10px; padding-block: 14px 16px; margin-bottom: 16px; }
+  .app-shell .main-content.is-detail-page .page-heading h1 { font-size: 23px; }
+  .app-shell .main-content.is-detail-page .page-heading p { font-size: 12px; }
+  .app-shell .main-content.is-detail-page .back-button { width: 44px; height: 44px; margin-left: -6px; }
+  .app-shell :is(.page-assets, .page-profile) .list-row { padding-inline: 16px; }
+  .app-shell .page-assets .asset-overview { padding: 16px 18px 20px; }
+  .app-shell .asset-overview .balance { font-size: 34px; }
+  .app-shell .page-assets .assets-layout { gap: 30px; }
+  .app-shell .profile-layout .profile-person { padding: 20px 16px; }
+  .app-shell .profile-layout .profile-steward { padding: 16px; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; }
+  .app-shell .profile-layout .profile-steward .avatar { width: 40px; height: 40px; }
+  .app-shell .profile-layout .profile-steward .text-link { grid-column: auto; font-size: 12px; }
+  .app-shell .profile-layout .profile-steward p { max-width: 16em; }
+}
+@media (max-width: 380px) {
+  .app-shell .main-content.is-detail-page { padding-inline: 16px; }
+  .app-shell .profile-layout .profile-steward { grid-template-columns: 40px minmax(0, 1fr); }
+  .app-shell .profile-layout .profile-steward .text-link { grid-column: 2; }
+  .app-shell .profile-layout .profile-person { gap: 10px; flex-wrap: wrap; }
+  .app-shell .profile-layout .profile-person .pill { margin-left: 59px; }
+  .app-shell .asset-overview .balance { font-size: 30px; }
+  .app-shell .asset-distribution .list-row { grid-template-columns: 38px minmax(0, 1fr); gap: 5px 10px; }
+  .app-shell .asset-distribution .list-row > strong { grid-column: 2; }
+}
+/* Bank sandbox uses the existing banking palette and compact form rhythm. */
+.bank-transfer-flow,.bank-ledger { display:grid; gap:14px; }
+.bank-ledger { padding:20px; margin-top:18px; }
+.bank-transfer-facts { margin:0; }
+.bank-transfer-facts > div { display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid var(--line); }
+.bank-transfer-facts dt { color:var(--muted); }
+.bank-transfer-facts dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; }
+.bank-transfer-flow select { font:inherit; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--paper); color:var(--ink); }
+.bank-transfer-flow small,.bank-ledger small { overflow-wrap:anywhere; color:var(--muted); }
+.bank-ledger-list { max-height:360px; overflow:auto; }
+.bank-ledger-list summary { min-height:56px; display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; border-top:1px solid var(--line); }
+.bank-ledger-list small { display:block; font-size:12px; }

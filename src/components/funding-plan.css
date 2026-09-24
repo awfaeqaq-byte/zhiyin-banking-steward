@@ -1,0 +1,62 @@
+.funding-plan { max-width: 880px; }
+.funding-toolbar { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin: 8px 0 24px; }
+.funding-horizon { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--pale); border-radius: 12px; }
+.funding-horizon label { position: relative; cursor: pointer; }
+.funding-horizon label span { display: flex; align-items: center; min-height: 44px; padding: 8px 14px; border-radius: 9px; font-size: 13px; transition: background 160ms, color 160ms; }
+.funding-horizon input:checked + span { background: var(--teal); color: var(--paper); }
+.funding-horizon input:focus-visible + span { outline: 2px solid var(--teal); outline-offset: 3px; }
+.funding-horizon label:hover span { box-shadow: inset 0 0 0 1px var(--teal); }
+.funding-refresh { display: flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; justify-content: center; border: 0; background: transparent; color: var(--teal); font-size: 13px; }
+.funding-verdict { display: flex; align-items: flex-start; gap: 12px; padding: 20px; background: var(--pale); border-radius: var(--radius); }
+.funding-verdict > svg { margin-top: 2px; color: var(--teal); }
+.funding-verdict h2 { font-size: 17px; }
+.funding-verdict p { margin-top: 6px; font-size: 13px; }
+.funding-verdict.needs-funding { background: #fffaf0; }
+.funding-verdict.needs-funding > svg { color: var(--amber); }
+.funding-overview { display: flex; flex-wrap: wrap; gap: 24px 64px; margin: 24px 0 12px; }
+.funding-overview span { display: block; font-size: 13px; color: var(--muted); }
+.funding-overview strong { display: block; font-size: 22px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.funding-scope { color: var(--muted); font-size: 12px; margin-bottom: 28px; }
+.funding-account { padding: 24px 0; border-top: 1px solid var(--line); }
+.funding-account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.funding-account-heading h2 { display: flex; align-items: center; gap: 8px; }
+.funding-account-heading > span { font-size: 12px; color: var(--muted); }
+.funding-account-heading > .funding-shortfall { color: var(--amber); font-weight: 600; }
+.funding-account-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.funding-account-numbers dt { font-size: 12px; color: var(--muted); }
+.funding-account-numbers dd { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.funding-deficit-copy { font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+.funding-warnings { padding-left: 18px; font-size: 12px; color: var(--amber); line-height: 1.8; }
+.funding-charges summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-size: 13px; color: var(--teal); }
+.funding-charges summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.funding-charges table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+.funding-charges th, .funding-charges td { padding: 12px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.funding-charges th:first-child { width: 44%; text-align: left; padding-left: 0; }
+.funding-charges thead th { font-weight: 400; color: var(--muted); font-size: 12px; }
+.funding-charges tbody th { font-weight: 400; }
+.funding-charges tbody th span { display: block; font-size: 12px; color: var(--muted); }
+.funding-charges tbody th strong { display: block; margin-top: 4px; font-weight: 500; }
+.funding-no-charges { color: var(--muted); font-size: 13px; }
+.funding-actions { display: flex; gap: 12px; margin: 24px 0 16px; }
+.funding-actions .button-base { min-height: 44px; }
+.funding-footnote { font-size: 12px; line-height: 1.9; color: var(--muted); }
+.funding-error { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--amber); margin-bottom: 16px; }
+.funding-empty { padding: 48px 20px; max-width: 520px; margin: 0 auto; text-align: center; }
+.funding-empty > svg { margin: 0 auto 20px; color: var(--teal); }
+.funding-empty p { margin: 12px 0 24px; color: var(--muted); font-size: 14px; }
+@media (max-width: 540px) {
+  .funding-toolbar { gap: 8px; }
+  .funding-horizon { flex: 1; justify-content: space-between; }
+  .funding-horizon label span { padding: 8px 10px; font-size: 12px; }
+  .funding-refresh span { display: none; }
+  .funding-verdict { padding: 16px; }
+  .funding-verdict h2 { font-size: 16px; }
+  .funding-overview { justify-content: space-between; gap: 16px; }
+  .funding-account-numbers { gap: 8px; }
+  .funding-account-numbers dd { font-size: 14px; }
+  .funding-account-heading { align-items: flex-start; }
+  .funding-actions { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .funding-horizon label span { transition: none; }
+}

@@ -1,0 +1,77 @@
+.reply-prose { display: grid; gap: 8px; font-size: 15px; line-height: 1.7; max-width: 68ch; overflow-wrap: anywhere; }
+.reply-prose p { margin: 0; }
+.reply-prose h3 { font-size: 19px; line-height: 1.5; margin: 8px 0 0; }
+.reply-prose h3:first-child { margin-top: 0; }
+.reply-prose ul { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
+.reply-prose li::marker { color: var(--teal); }
+.reply-prose strong { color: var(--ink); font-weight: 650; }
+.bill-reply { width: 100%; min-width: 0; animation: bill-unfold 450ms cubic-bezier(.16,1,.3,1) both; }
+.bill-reply-heading h2 { font-size: clamp(23px,4vw,30px); line-height: 1.4; letter-spacing: -.025em; margin: 0 0 8px; }
+.bill-reply-heading p { color: var(--muted); font-size: 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.bill-source { display: block; color: var(--teal-dark); font-size: 12px; margin-top: 6px; }
+.bill-verdict { margin: 16px 0; padding: 16px; border-radius: 16px; background: var(--pale,#eaf4f3); color: var(--ink); }
+.bill-verdict > p { font-size: 14px; line-height: 1.7; margin: 0 0 12px; }
+.bill-primary-amount { display: grid; gap: 6px; }
+.bill-primary-amount > span { font-size: 13px; color: var(--teal-dark); }
+.bill-primary-amount > strong { font-size: clamp(32px,8vw,46px); line-height: 1.15; font-weight: 600; letter-spacing: -.035em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bill-inflow { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-top: 12px; padding-top: 12px; border-top: 1px solid #cbded7; font-size: 13px; }
+.bill-inflow small { color: var(--teal-dark); font-size: 11px; }
+.bill-distribution h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.bill-distribution-track { display: flex; height: 10px; gap: 3px; border-radius: 3px; overflow: hidden; }
+.bill-distribution-track span { min-width: 2px; flex-basis: 0; }
+.bill-tone-0 { background: var(--teal); }
+.bill-tone-1 { background: #6b9690; }
+.bill-tone-2 { background: #a4bdb3; }
+.bill-tone-3 { background: #bfb9a6; }
+.bill-tone-other { background: #d9e1dc; }
+.bill-distribution ul { list-style: none; padding: 8px 0 12px; margin: 0; }
+.bill-distribution li { display: grid; grid-template-columns: 8px minmax(0,1fr) auto auto; align-items: center; gap: 10px; padding: 9px 0; font-size: 14px; }
+.bill-category-dot { width: 7px; height: 7px; border-radius: 50%; }
+.bill-distribution li > span:nth-child(2) { overflow-wrap: anywhere; }
+.bill-distribution li small { color: var(--muted); font-size: 12px; }
+.bill-distribution li strong { min-width: 65px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
+.bill-disclosure { border-top: 1px solid var(--line); }
+.bill-disclosure summary { display: flex; gap: 10px; align-items: center; list-style: none; min-height: 52px; cursor: pointer; font-size: 14px; color: var(--ink); }
+.bill-disclosure summary::-webkit-details-marker { display: none; }
+.bill-disclosure summary > span { flex: 1; }
+.bill-disclosure summary > svg { color: var(--teal); }
+.bill-disclosure[open] summary > svg:last-child { transform: rotate(180deg); }
+.bill-disclosure summary:hover { color: var(--teal); }
+.bill-disclosure summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 6px; }
+.bill-transactions { list-style: none; margin: 0; padding: 0; }
+.bill-transactions li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.bill-transactions li div { display: grid; gap: 5px; min-width: 0; }
+.bill-transactions strong { font-weight: 500; overflow-wrap: anywhere; }
+.bill-transactions small { font-size: 11px; color: var(--muted); }
+.bill-transactions li > span { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bill-other-flows { display: grid; gap: 12px; font-size: 14px; padding: 8px 0; }
+.bill-other-flows > div { display: flex; justify-content: space-between; }
+.bill-other-flows dd { margin: 0; font-variant-numeric: tabular-nums; }
+.bill-note, .bill-coverage { color: var(--muted); font-size: 12px; line-height: 1.75; margin: 8px 0 16px; }
+.bill-coverage { padding-top: 16px; border-top: 1px solid var(--line); margin-bottom: 0; }
+.bill-interpretation .reply-prose { padding-bottom: 20px; }
+.bill-reply ::selection, .reply-prose ::selection { background: #cbe5df; color: var(--ink); }
+.bill-advice { display: grid; gap: 12px; margin: 16px 0 20px; }
+.bill-inline-evidence { margin: 0; padding: 12px 16px 0; background: var(--pale,#eaf4f3); border-radius: 12px; min-width: 0; }
+.bill-inline-evidence figcaption { font-size: 13px; font-weight: 600; color: var(--teal-dark); padding-bottom: 4px; }
+.bill-inline-evidence .bill-transactions li { gap: 12px; }
+.bill-inline-evidence .bill-transactions li:first-child { border-top: 0; }
+.bill-inline-evidence .bill-transactions small { color: var(--teal-dark); }
+.bill-inline-evidence .bill-disclosure summary { min-height: 44px; font-size: 12px; }
+.bill-trend h3 { margin: 0 0 8px; font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; }
+.bill-trend p { margin: 0 0 8px; font-size: 14px; line-height: 1.7; }
+.bill-trend { padding: 16px 0; border-top: 1px solid var(--line); }
+.bill-trend small { display: block; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.bill-limitations { padding-left: 20px; margin: 8px 0 16px; font-size: 12px; color: var(--muted); line-height: 1.7; }
+.reply-table { min-width: 0; max-width: 100%; }
+.reply-prose { min-width: 0; }
+.reply-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.reply-table table { width: 100%; min-width: 280px; border-collapse: collapse; font-size: 13px; line-height: 1.5; text-align: left; }
+.reply-table th { padding: 8px 6px; font-weight: 500; color: var(--muted); background: var(--pale,#eaf4f3); white-space: nowrap; }
+.reply-table td { padding: 10px 6px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; min-width: 40px; }
+.reply-table .reply-table-money { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.reply-table-toggle { width: 100%; min-height: 44px; display: flex; justify-content: center; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--teal-dark); font: inherit; font-size: 13px; cursor: pointer; }
+.reply-table-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.reply-table-toggle:focus-visible, .reply-table-scroll:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+@keyframes bill-unfold { from { opacity: .65; transform: translateY(9px); } }
+@media (prefers-reduced-motion: reduce) { .bill-reply { animation: none; } }

@@ -1,0 +1,729 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-16T10:10:08Z",
+  "title": "Design System: MobileGym WeChat — transfers, wallet, and auto renew",
+  "extensions": {
+    "sandboxFinance": {
+      "contract": "sandbox-console-operator-drawer-v1",
+      "sources": ["sandbox/FinanceTestPanel.tsx", "sandbox/sandbox-console.css"],
+      "scope": "Browser-level operator drawer; preserve the incumbent graphite and warm paper identity and independent phone canvas.",
+      "layout": "Non-shrinking header with independently scrolling body; two-column live balances with 20px tabular figures and flat section dividers.",
+      "controls": {
+        "minHeight": "44px",
+        "borderRadius": "8px",
+        "backgroundColor": "#fffdfa",
+        "textColor": "#171a1c",
+        "focus": "3px solid #86b8ff; outline-offset: 2px",
+        "nativeElements": ["select", "details", "summary"]
+      },
+      "behavior": "Live WeChat and Alipay balances and active-authorization counts; four scenario presets; confirmed balance settings and clock advance; separate real settlement with countable results; conflict-guarded undo; ten latest successful operations per panel session.",
+      "confirmationFocus": "Focus the inline preview and disable the remaining finance controls; restore focus to the initiating control after dismissal, with an enabled-control fallback.",
+      "sharedTargetOverrides": "Drawer trigger, close control, and reset confirmation buttons have 44px minimum targets."
+    },
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.18893 151.21)",
+          "oklch(26.43% 0.18893 151.21)",
+          "oklch(37.86% 0.18893 151.21)",
+          "oklch(49.29% 0.18893 151.21)",
+          "oklch(60.71% 0.18893 151.21)",
+          "oklch(72.14% 0.18893 151.21)",
+          "oklch(83.57% 0.18893 151.21)",
+          "oklch(95.00% 0.18893 151.21)"
+        ]
+      },
+      "primary-disabled": {
+        "role": "primary",
+        "displayName": "primary-disabled",
+        "tonalRamp": [
+          "oklch(15.00% 0.09849 156.71)",
+          "oklch(26.43% 0.09849 156.71)",
+          "oklch(37.86% 0.09849 156.71)",
+          "oklch(49.29% 0.09849 156.71)",
+          "oklch(60.71% 0.09849 156.71)",
+          "oklch(72.14% 0.09849 156.71)",
+          "oklch(83.57% 0.09849 156.71)",
+          "oklch(95.00% 0.09849 156.71)"
+        ]
+      },
+      "transfer": {
+        "role": "secondary",
+        "displayName": "transfer",
+        "tonalRamp": [
+          "oklch(15.00% 0.15432 62.71)",
+          "oklch(26.43% 0.15432 62.71)",
+          "oklch(37.86% 0.15432 62.71)",
+          "oklch(49.29% 0.15432 62.71)",
+          "oklch(60.71% 0.15432 62.71)",
+          "oklch(72.14% 0.15432 62.71)",
+          "oklch(83.57% 0.15432 62.71)",
+          "oklch(95.00% 0.15432 62.71)"
+        ]
+      },
+      "transfer-soft": {
+        "role": "secondary",
+        "displayName": "transfer-soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.02870 77.55)",
+          "oklch(26.43% 0.02870 77.55)",
+          "oklch(37.86% 0.02870 77.55)",
+          "oklch(49.29% 0.02870 77.55)",
+          "oklch(60.71% 0.02870 77.55)",
+          "oklch(72.14% 0.02870 77.55)",
+          "oklch(83.57% 0.02870 77.55)",
+          "oklch(95.00% 0.02870 77.55)"
+        ]
+      },
+      "incoming": {
+        "role": "secondary",
+        "displayName": "incoming",
+        "tonalRamp": [
+          "oklch(15.00% 0.16550 152.51)",
+          "oklch(26.43% 0.16550 152.51)",
+          "oklch(37.86% 0.16550 152.51)",
+          "oklch(49.29% 0.16550 152.51)",
+          "oklch(60.71% 0.16550 152.51)",
+          "oklch(72.14% 0.16550 152.51)",
+          "oklch(83.57% 0.16550 152.51)",
+          "oklch(95.00% 0.16550 152.51)"
+        ]
+      },
+      "incoming-soft": {
+        "role": "secondary",
+        "displayName": "incoming-soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.02060 161.48)",
+          "oklch(26.43% 0.02060 161.48)",
+          "oklch(37.86% 0.02060 161.48)",
+          "oklch(49.29% 0.02060 161.48)",
+          "oklch(60.71% 0.02060 161.48)",
+          "oklch(72.14% 0.02060 161.48)",
+          "oklch(83.57% 0.02060 161.48)",
+          "oklch(95.00% 0.02060 161.48)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "background",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "balance-background": {
+        "role": "neutral",
+        "displayName": "balance-background",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "text",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "border",
+        "tonalRamp": [
+          "oklch(15.00% 0.00581 264.53)",
+          "oklch(26.43% 0.00581 264.53)",
+          "oklch(37.86% 0.00581 264.53)",
+          "oklch(49.29% 0.00581 264.53)",
+          "oklch(60.71% 0.00581 264.53)",
+          "oklch(72.14% 0.00581 264.53)",
+          "oklch(83.57% 0.00581 264.53)",
+          "oklch(95.00% 0.00581 264.53)"
+        ]
+      },
+      "link": {
+        "role": "secondary",
+        "displayName": "link",
+        "tonalRamp": [
+          "oklch(15.00% 0.07080 264.51)",
+          "oklch(26.43% 0.07080 264.51)",
+          "oklch(37.86% 0.07080 264.51)",
+          "oklch(49.29% 0.07080 264.51)",
+          "oklch(60.71% 0.07080 264.51)",
+          "oklch(72.14% 0.07080 264.51)",
+          "oklch(83.57% 0.07080 264.51)",
+          "oklch(95.00% 0.07080 264.51)"
+        ]
+      },
+      "error": {
+        "role": "secondary",
+        "displayName": "error",
+        "tonalRamp": [
+          "oklch(15.00% 0.20554 24.60)",
+          "oklch(26.43% 0.20554 24.60)",
+          "oklch(37.86% 0.20554 24.60)",
+          "oklch(49.29% 0.20554 24.60)",
+          "oklch(60.71% 0.20554 24.60)",
+          "oklch(72.14% 0.20554 24.60)",
+          "oklch(83.57% 0.20554 24.60)",
+          "oklch(95.00% 0.20554 24.60)"
+        ]
+      },
+      "sent-bubble": {
+        "role": "secondary",
+        "displayName": "sent-bubble",
+        "tonalRamp": [
+          "oklch(15.00% 0.18648 136.34)",
+          "oklch(26.43% 0.18648 136.34)",
+          "oklch(37.86% 0.18648 136.34)",
+          "oklch(49.29% 0.18648 136.34)",
+          "oklch(60.71% 0.18648 136.34)",
+          "oklch(72.14% 0.18648 136.34)",
+          "oklch(83.57% 0.18648 136.34)",
+          "oklch(95.00% 0.18648 136.34)"
+        ]
+      },
+      "subscription-selection": {
+        "role": "secondary",
+        "displayName": "Selected Cycle Wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.01401 162.48)",
+          "oklch(26.43% 0.01401 162.48)",
+          "oklch(37.86% 0.01401 162.48)",
+          "oklch(49.29% 0.01401 162.48)",
+          "oklch(60.71% 0.01401 162.48)",
+          "oklch(72.14% 0.01401 162.48)",
+          "oklch(83.57% 0.01401 162.48)",
+          "oklch(95.00% 0.01401 162.48)"
+        ]
+      },
+      "merchant-gold": {
+        "role": "secondary",
+        "displayName": "Merchant Gold",
+        "tonalRamp": [
+          "oklch(15.00% 0.15059 89.68)",
+          "oklch(26.43% 0.15059 89.68)",
+          "oklch(37.86% 0.15059 89.68)",
+          "oklch(49.29% 0.15059 89.68)",
+          "oklch(60.71% 0.15059 89.68)",
+          "oklch(72.14% 0.15059 89.68)",
+          "oklch(83.57% 0.15059 89.68)",
+          "oklch(95.00% 0.15059 89.68)"
+        ]
+      },
+      "merchant-gold-text": {
+        "role": "secondary",
+        "displayName": "Merchant Gold Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.12396 48.23)",
+          "oklch(26.43% 0.12396 48.23)",
+          "oklch(37.86% 0.12396 48.23)",
+          "oklch(49.29% 0.12396 48.23)",
+          "oklch(60.71% 0.12396 48.23)",
+          "oklch(72.14% 0.12396 48.23)",
+          "oklch(83.57% 0.12396 48.23)",
+          "oklch(95.00% 0.12396 48.23)"
+        ]
+      },
+      "merchant-red": {
+        "role": "secondary",
+        "displayName": "Merchant Red",
+        "tonalRamp": [
+          "oklch(15.00% 0.21648 26.48)",
+          "oklch(26.43% 0.21648 26.48)",
+          "oklch(37.86% 0.21648 26.48)",
+          "oklch(49.29% 0.21648 26.48)",
+          "oklch(60.71% 0.21648 26.48)",
+          "oklch(72.14% 0.21648 26.48)",
+          "oklch(83.57% 0.21648 26.48)",
+          "oklch(95.00% 0.21648 26.48)"
+        ]
+      },
+      "console-graphite": {
+        "role": "neutral",
+        "displayName": "Operator Graphite",
+        "tonalRamp": [
+          "oklch(15.00% 0.00604 236.85)",
+          "oklch(26.43% 0.00604 236.85)",
+          "oklch(37.86% 0.00604 236.85)",
+          "oklch(49.29% 0.00604 236.85)",
+          "oklch(60.71% 0.00604 236.85)",
+          "oklch(72.14% 0.00604 236.85)",
+          "oklch(83.57% 0.00604 236.85)",
+          "oklch(95.00% 0.00604 236.85)"
+        ]
+      },
+      "console-trigger": {
+        "role": "neutral",
+        "displayName": "Utility Graphite",
+        "tonalRamp": [
+          "oklch(15.00% 0.00695 229.13)",
+          "oklch(26.43% 0.00695 229.13)",
+          "oklch(37.86% 0.00695 229.13)",
+          "oklch(49.29% 0.00695 229.13)",
+          "oklch(60.71% 0.00695 229.13)",
+          "oklch(72.14% 0.00695 229.13)",
+          "oklch(83.57% 0.00695 229.13)",
+          "oklch(95.00% 0.00695 229.13)"
+        ]
+      },
+      "console-panel": {
+        "role": "neutral",
+        "displayName": "Warm Workbench",
+        "tonalRamp": [
+          "oklch(15.00% 0.00698 88.64)",
+          "oklch(26.43% 0.00698 88.64)",
+          "oklch(37.86% 0.00698 88.64)",
+          "oklch(49.29% 0.00698 88.64)",
+          "oklch(60.71% 0.00698 88.64)",
+          "oklch(72.14% 0.00698 88.64)",
+          "oklch(83.57% 0.00698 88.64)",
+          "oklch(95.00% 0.00698 88.64)"
+        ]
+      },
+      "console-paper": {
+        "role": "neutral",
+        "displayName": "Operator Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00450 78.30)",
+          "oklch(26.43% 0.00450 78.30)",
+          "oklch(37.86% 0.00450 78.30)",
+          "oklch(49.29% 0.00450 78.30)",
+          "oklch(60.71% 0.00450 78.30)",
+          "oklch(72.14% 0.00450 78.30)",
+          "oklch(83.57% 0.00450 78.30)",
+          "oklch(95.00% 0.00450 78.30)"
+        ]
+      },
+      "console-line": {
+        "role": "neutral",
+        "displayName": "Warm Hairline",
+        "tonalRamp": [
+          "oklch(15.00% 0.01174 84.58)",
+          "oklch(26.43% 0.01174 84.58)",
+          "oklch(37.86% 0.01174 84.58)",
+          "oklch(49.29% 0.01174 84.58)",
+          "oklch(60.71% 0.01174 84.58)",
+          "oklch(72.14% 0.01174 84.58)",
+          "oklch(83.57% 0.01174 84.58)",
+          "oklch(95.00% 0.01174 84.58)"
+        ]
+      },
+      "console-muted": {
+        "role": "neutral",
+        "displayName": "Workbench Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.00818 88.69)",
+          "oklch(26.43% 0.00818 88.69)",
+          "oklch(37.86% 0.00818 88.69)",
+          "oklch(49.29% 0.00818 88.69)",
+          "oklch(60.71% 0.00818 88.69)",
+          "oklch(72.14% 0.00818 88.69)",
+          "oklch(83.57% 0.00818 88.69)",
+          "oklch(95.00% 0.00818 88.69)"
+        ]
+      },
+      "console-danger": {
+        "role": "tertiary",
+        "displayName": "Scoped Destructive Red",
+        "tonalRamp": [
+          "oklch(15.00% 0.16799 27.95)",
+          "oklch(26.43% 0.16799 27.95)",
+          "oklch(37.86% 0.16799 27.95)",
+          "oklch(49.29% 0.16799 27.95)",
+          "oklch(60.71% 0.16799 27.95)",
+          "oklch(72.14% 0.16799 27.95)",
+          "oklch(83.57% 0.16799 27.95)",
+          "oklch(95.00% 0.16799 27.95)"
+        ]
+      },
+      "console-status": {
+        "role": "neutral",
+        "displayName": "Environment Status",
+        "tonalRamp": [
+          "oklch(15.00% 0.01919 223.71)",
+          "oklch(26.43% 0.01919 223.71)",
+          "oklch(37.86% 0.01919 223.71)",
+          "oklch(49.29% 0.01919 223.71)",
+          "oklch(60.71% 0.01919 223.71)",
+          "oklch(72.14% 0.01919 223.71)",
+          "oklch(83.57% 0.01919 223.71)",
+          "oklch(95.00% 0.01919 223.71)"
+        ]
+      },
+      "console-focus": {
+        "role": "secondary",
+        "displayName": "Operator Focus Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.11534 257.19)",
+          "oklch(26.43% 0.11534 257.19)",
+          "oklch(37.86% 0.11534 257.19)",
+          "oklch(49.29% 0.11534 257.19)",
+          "oklch(60.71% 0.11534 257.19)",
+          "oklch(72.14% 0.11534 257.19)",
+          "oklch(83.57% 0.11534 257.19)",
+          "oklch(95.00% 0.11534 257.19)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Editable amount",
+        "purpose": "Transfer amount only."
+      },
+      "balance": {
+        "displayName": "Wallet balance",
+        "purpose": "Large current balance."
+      },
+      "subscription-meta": {
+        "displayName": "Auto-renew metadata",
+        "purpose": "Merchant names and compact validation messages."
+      },
+      "subscription-secondary": {
+        "displayName": "Auto-renew supporting copy",
+        "purpose": "Explanatory strips, detail labels, and billing-cycle choices."
+      },
+      "subscription-body": {
+        "displayName": "Auto-renew body and action",
+        "purpose": "Service names, fields, values, and primary actions."
+      },
+      "subscription-dialog-title": {
+        "displayName": "Cancellation dialog title",
+        "purpose": "The single consequence-confirmation heading."
+      },
+      "console-title": {
+        "displayName": "Operator drawer title",
+        "purpose": "Compact title in the graphite browser-level console header."
+      },
+      "console-body": {
+        "displayName": "Operator body",
+        "purpose": "Operation names, scope descriptions, and state explanations."
+      },
+      "console-label": {
+        "displayName": "Operator metadata",
+        "purpose": "Environment, availability, connection, and count labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "chat-small",
+        "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        "purpose": "Transfer messages and incumbent chat bubbles."
+      },
+      {
+        "name": "console-trigger",
+        "value": "0 8px 24px rgb(0 0 0 / 32%)",
+        "purpose": "Separates the compact browser-edge console trigger from the simulator."
+      },
+      {
+        "name": "console-drawer",
+        "value": "0 24px 72px rgb(0 0 0 / 48%), 0 6px 18px rgb(0 0 0 / 22%)",
+        "purpose": "The only strong console elevation; separates the open operator drawer from the phone world."
+      }
+    ],
+    "motion": [
+      {
+        "name": "short",
+        "value": "200ms",
+        "purpose": "Chat send transition."
+      },
+      {
+        "name": "standard",
+        "value": "ease-in-out",
+        "purpose": "Existing short chat transition easing."
+      },
+      {
+        "name": "typing-stagger",
+        "value": "120ms",
+        "purpose": "Pending contact-reply dots."
+      },
+      {
+        "name": "console-enter",
+        "value": "260ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Horizontal drawer entrance and exit."
+      },
+      {
+        "name": "console-fade",
+        "value": "150ms ease",
+        "purpose": "Drawer opacity and compact state transitions."
+      },
+      {
+        "name": "console-trigger-motion",
+        "value": "180ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "One-pixel trigger lift and hidden-state movement."
+      },
+      {
+        "name": "console-spinner",
+        "value": "700ms linear infinite",
+        "purpose": "Running reset indicator; slows to 1.4s when reduced motion is requested."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "console-compact",
+        "value": "820px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Transfer submit",
+      "kind": "button",
+      "refersTo": "transfer-submit",
+      "description": "Primary keypad-side action; disabled for a nonpositive amount or while submitting. Preview uses a compact isolated height.",
+      "html": "<button class=\"ds-transfer-submit\">转账</button>",
+      "css": ".ds-transfer-submit{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;width:25%;min-height:58px;border:0;background:#07c160;color:#fff;font-size:19px;cursor:pointer}.ds-transfer-submit:active:not(:disabled){filter:brightness(.95)}.ds-transfer-submit:focus-visible{outline:auto}.ds-transfer-submit:disabled{background:#9be6b8;cursor:default}"
+    },
+    {
+      "name": "Transfer submit disabled",
+      "kind": "button",
+      "refersTo": "transfer-submit-disabled",
+      "description": "Disabled amount action; does not simulate successful submission.",
+      "html": "<button class=\"ds-transfer-disabled\" disabled>转账</button>",
+      "css": ".ds-transfer-disabled{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;width:25%;min-height:58px;border:0;background:#9be6b8;color:#fff;font-size:19px}"
+    },
+    {
+      "name": "Amount input",
+      "kind": "input",
+      "refersTo": "amount-input",
+      "description": "Real decimal input with a currency mark and balance hint. Application code normalizes physical and on-screen input.",
+      "html": "<label class=\"ds-amount-label\" for=\"ds-amount\">转账金额</label><div class=\"ds-amount-row\"><span>¥</span><input id=\"ds-amount\" inputmode=\"decimal\" value=\"20.00\" aria-describedby=\"ds-balance\"/></div><p class=\"ds-balance\" id=\"ds-balance\">零钱余额 ¥100.00</p>",
+      "css": ".ds-amount-label{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;font-size:16px;color:#000}.ds-amount-row{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;display:flex;align-items:flex-end;margin-top:1.5rem;border-bottom:1px solid #f3f4f6;padding-bottom:.5rem;color:#000}.ds-amount-row>span{font-size:50px;line-height:1;font-weight:500;margin-right:.75rem}.ds-amount-row input{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;min-width:0;flex:1;height:58px;font-size:52px;line-height:1;font-weight:500;background:transparent;border:0;outline:none}.ds-balance{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;font-size:13px;color:#9ca3af;margin-top:1rem}"
+    },
+    {
+      "name": "Number key",
+      "kind": "button",
+      "refersTo": "keypad-key",
+      "description": "One key in the three-column keypad; app logic handles digits, decimal and delete.",
+      "html": "<button class=\"ds-number-key\" type=\"button\">5</button>",
+      "css": ".ds-number-key{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;height:58px;width:80px;background:#fff;color:#000;border:0;border-right:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;font-size:23px;cursor:pointer}.ds-number-key:active{filter:brightness(.95)}.ds-number-key:focus-visible{outline:auto}"
+    },
+    {
+      "name": "Transfer message",
+      "kind": "card",
+      "refersTo": "transfer-card",
+      "description": "Non-interactive financial status group. Displayed amount and state must come from the shared transfer.",
+      "html": "<div class=\"ds-transfer-card\" role=\"group\" aria-label=\"转账 ¥20.00\"><div class=\"ds-transfer-body\"><span class=\"ds-transfer-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M4 7h16m-5-5 5 5-5 5M20 17H4m5-5-5 5 5 5\"/></svg></span><div><strong>¥20.00</strong><p>待对方收款</p></div></div><div class=\"ds-transfer-footer\">微信转账</div></div>",
+      "css": ".ds-transfer-card{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;width:232px;overflow:hidden;border-radius:6px;background:var(--app-c-wechat-transfer,#fa9d3b);color:white;box-shadow:0 1px 3px 0 rgb(0 0 0 / .1),0 1px 2px -1px rgb(0 0 0 / .1)}.ds-transfer-body{padding:1rem 1rem .75rem;display:flex;align-items:center;gap:.75rem}.ds-transfer-icon{width:2.75rem;height:2.75rem;border:2px solid rgb(255 255 255 / .9);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}.ds-transfer-body strong{font-size:18px;line-height:1.25;font-weight:500}.ds-transfer-body p{font-size:12px;color:rgb(255 255 255 / .9);margin:.25rem 0 0}.ds-transfer-footer{height:1.75rem;padding:0 1rem;background:rgb(255 255 255 / .95);display:flex;align-items:center;font-size:11px;color:#9a9a9a}"
+    },
+    {
+      "name": "Wallet navigation row",
+      "kind": "nav",
+      "refersTo": "wallet-row",
+      "description": "Only implemented destinations use a button and trailing chevron; unavailable rows are non-interactive with aria-disabled.",
+      "html": "<button class=\"ds-wallet-row\" type=\"button\"><span>零钱</span><span class=\"ds-wallet-value\">¥100.00<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></span></button>",
+      "css": ".ds-wallet-row{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;background:white;border:0;border-bottom:1px solid #f9fafb;text-align:left;color:#000;font-size:17px;cursor:pointer}.ds-wallet-row:active{background:#f9fafb}.ds-wallet-row:focus-visible{outline:auto}.ds-wallet-value{display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:#9ca3af}.ds-wallet-value svg{color:#d1d5db}"
+    },
+    {
+      "name": "Chat textarea",
+      "kind": "input",
+      "refersTo": "chat-input",
+      "description": "Existing composer input; app container preserves OS keyboard layout.",
+      "html": "<textarea class=\"ds-chat-input\" rows=\"1\" aria-label=\"消息\"></textarea>",
+      "css": ".ds-chat-input{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",\"WenQuanYi Micro Hei\",\"Noto Sans SC\",\"Noto Sans CJK SC\",Helvetica,Arial,sans-serif;width:100%;min-height:var(--app-card-height-40,40px);max-height:var(--app-card-height-120,120px);background:var(--app-surface,#fff);color:#000;border:0;border-radius:6px;padding:.5rem .75rem;font-size:var(--app-chat-bubble-text-size,16px);line-height:24px;resize:none;box-shadow:0 1px 3px 0 rgb(0 0 0 / .1),0 1px 2px -1px rgb(0 0 0 / .1)}.ds-chat-input:focus{outline:none}"
+    },
+    {
+      "name": "Sandbox console trigger",
+      "kind": "button",
+      "refersTo": "sandbox-trigger",
+      "description": "Browser-edge entry to the operator world; hidden while the drawer is open and moved to the lower-right at compact widths.",
+      "html": "<button class=\"ds-sandbox-trigger\" type=\"button\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z\"/><path d=\"m9 12 2 2 4-4\"/></svg><span>沙箱控制台</span></button>",
+      "css": ".ds-sandbox-trigger{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",sans-serif;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 15px;border:1px solid rgb(255 255 255 / 18%);border-radius:999px;background:#202426;color:#f7f7f4;box-shadow:0 8px 24px rgb(0 0 0 / 32%);font-size:13px;font-weight:650;cursor:pointer;transition:transform 180ms cubic-bezier(.16,1,.3,1),background-color 140ms ease}.ds-sandbox-trigger:hover{background:#2a2f32;transform:translateY(-1px)}.ds-sandbox-trigger:active{transform:translateY(1px)}.ds-sandbox-trigger:focus-visible{outline:3px solid #86b8ff;outline-offset:2px}"
+    },
+    {
+      "name": "Sandbox operator drawer",
+      "kind": "custom",
+      "refersTo": "sandbox-drawer",
+      "description": "Graphite-header, warm-paper operator drawer mounted beside the phone; the operation card names the connected app and exact data domain.",
+      "html": "<aside class=\"ds-sandbox-drawer\" aria-label=\"沙箱控制台\"><header class=\"ds-sandbox-header\"><div><div class=\"ds-sandbox-title-row\"><h1>沙箱控制台</h1><span class=\"ds-sandbox-env\"><i></i>本地环境</span></div><p>准备和复位演示数据，不改变手机内的产品界面。</p></div><button aria-label=\"关闭沙箱控制台\">×</button></header><div class=\"ds-sandbox-body\"><div class=\"ds-sandbox-section-label\"><strong>应用数据</strong><span>1 项可用</span></div><section class=\"ds-sandbox-operation\"><div class=\"ds-sandbox-operation-main\"><span class=\"ds-sandbox-app\"><svg width=\"23\" height=\"23\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\"><path d=\"M21 15a4 4 0 0 1-4 4H8l-5 3v-7a4 4 0 0 1-1-3V7a4 4 0 0 1 4-4h11a4 4 0 0 1 4 4z\"/></svg></span><div><strong>微信聊天 <em>已连接</em></strong><p>会话列表、消息记录与待处理 AI 回复</p></div></div><button class=\"ds-sandbox-action\">↻ <span>恢复初始聊天</span> ›</button></section><footer>◈ <span>所有操作只作用于当前浏览器标签页的沙箱数据。</span></footer></div></aside>",
+      "css": ".ds-sandbox-drawer{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",sans-serif;width:min(404px,calc(100vw - 32px));overflow:hidden;border:1px solid #34393c;border-radius:16px;background:#f4f2ed;color:#171a1c;box-shadow:0 24px 72px rgb(0 0 0 / 48%),0 6px 18px rgb(0 0 0 / 22%)}.ds-sandbox-header{display:flex;justify-content:space-between;min-height:128px;padding:27px 24px 22px;background:#171a1c;color:#faf9f6}.ds-sandbox-title-row{display:flex;align-items:center;gap:12px}.ds-sandbox-title-row h1{margin:0;font-size:23px;line-height:1.2;letter-spacing:-.025em;font-weight:720}.ds-sandbox-env{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#2a3033;color:#d7dddf;font-size:11px;font-weight:650}.ds-sandbox-env i{width:6px;height:6px;border-radius:50%;background:#91a0a6;box-shadow:0 0 0 3px rgb(145 160 166 / 14%)}.ds-sandbox-header p{max-width:292px;margin:10px 0 0;color:#bbbdbb;font-size:13px;line-height:1.55}.ds-sandbox-header button{width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:#b9bcba;font-size:24px;cursor:pointer}.ds-sandbox-header button:hover{background:#2b2f31;color:#fff}.ds-sandbox-body{padding:27px 22px 22px}.ds-sandbox-section-label{display:flex;justify-content:space-between;margin-bottom:12px;font-size:14px}.ds-sandbox-section-label span{color:#66645f;font-size:11px}.ds-sandbox-operation{overflow:hidden;border:1px solid #d8d4cc;border-radius:14px;background:#fffdfa}.ds-sandbox-operation-main{display:flex;align-items:center;gap:13px;padding:17px 16px 14px}.ds-sandbox-app{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#07c160;color:#fff}.ds-sandbox-operation-main strong{font-size:15px}.ds-sandbox-operation-main em{margin-left:7px;color:#267147;font-size:11px;font-style:normal}.ds-sandbox-operation-main p{margin:5px 0 0;color:#66645f;font-size:12px}.ds-sandbox-action{display:grid;grid-template-columns:20px 1fr 18px;width:100%;min-height:49px;align-items:center;padding:0 15px;border:0;border-top:1px solid #e5e1da;background:#faf8f4;color:#343536;text-align:left;font-size:13px;font-weight:650;cursor:pointer}.ds-sandbox-action:hover{background:#f4efe8;color:#b7352d}.ds-sandbox-body footer{display:flex;gap:8px;margin-top:36px;color:#77746e;font-size:11px;line-height:1.45}.ds-sandbox-drawer button:focus-visible{outline:3px solid #86b8ff;outline-offset:2px}@media(max-width:820px){.ds-sandbox-drawer{width:auto;border-radius:14px}}"
+    },
+    {
+      "name": "Sandbox destructive confirmation",
+      "kind": "card",
+      "refersTo": "sandbox-danger-action",
+      "description": "In-place alert dialog that names reset inclusions and exclusions before a destructive action; cancel stays neutral and only the final action is red.",
+      "html": "<div class=\"ds-sandbox-confirmation\" role=\"alertdialog\" aria-labelledby=\"ds-reset-title\" aria-describedby=\"ds-reset-description\" tabindex=\"-1\"><span class=\"ds-sandbox-confirm-icon\">↻</span><div><h3 id=\"ds-reset-title\">仅恢复会话列表与消息</h3><p id=\"ds-reset-description\">会停止尚未完成的联系人回复。不会影响微信零钱、账单、联系人和其他应用。</p><div class=\"ds-sandbox-confirm-actions\"><button>取消</button><button class=\"ds-sandbox-danger\">确认恢复</button></div></div></div>",
+      "css": ".ds-sandbox-confirmation{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",sans-serif;display:grid;grid-template-columns:34px 1fr;gap:11px;max-width:360px;padding:15px;border-top:1px solid #e0d8cc;background:#fff6eb;color:#171a1c}.ds-sandbox-confirm-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#f3dfca;color:#8e3d25;font-size:18px}.ds-sandbox-confirmation h3{margin:1px 0 5px;font-size:13px;font-weight:720}.ds-sandbox-confirmation p{margin:0;color:#685b50;font-size:12px;line-height:1.55}.ds-sandbox-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:11px}.ds-sandbox-confirm-actions button{min-height:34px;padding:0 13px;border:1px solid #d9d1c7;border-radius:10px;background:#fffdfa;color:#43413d;font-size:12px;font-weight:680;cursor:pointer}.ds-sandbox-confirm-actions .ds-sandbox-danger{border-color:#b7352d;background:#b7352d;color:#fff}.ds-sandbox-confirm-actions button:hover{filter:brightness(.97)}.ds-sandbox-confirm-actions button:focus-visible{outline:3px solid #86b8ff;outline-offset:2px}.ds-sandbox-confirmation:focus-visible{outline:3px solid #86b8ff;outline-offset:2px}"
+    },
+    {
+      "name": "Auto-renew authorization row",
+      "kind": "nav",
+      "refersTo": "subscription-list-row",
+      "description": "An active authorization only: service first, merchant and activation date second, with merchant color confined to the circular marker.",
+      "html": "<button class=\"ds-subscription-row\" type=\"button\"><span class=\"ds-subscription-marker\">广</span><span class=\"ds-subscription-copy\"><strong>中国联通话费自动交费</strong><span>广东联通</span><small>开通于2026年2月7日</small></span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button>",
+      "css": ".ds-subscription-row{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",sans-serif;display:flex;min-height:96px;width:100%;align-items:center;padding:16px;border:0;border-bottom:1px solid #f3f4f6;background:#fff;color:#000;text-align:left;cursor:pointer}.ds-subscription-row:active{background:#f9fafb}.ds-subscription-row:focus-visible{outline:2px solid #07c160;outline-offset:-2px}.ds-subscription-marker{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;margin-right:12px;border-radius:999px;background:#f3c744;color:#9c4b18;font-size:14px;font-weight:600}.ds-subscription-copy{display:flex;min-width:0;flex:1;flex-direction:column}.ds-subscription-copy strong{overflow:hidden;color:#000;font-size:16px;font-weight:500;line-height:24px;text-overflow:ellipsis;white-space:nowrap}.ds-subscription-copy span{margin-top:4px;color:#6b7280;font-size:13px;line-height:20px}.ds-subscription-copy small{margin-top:4px;color:#9ca3af;font-size:12px;line-height:20px}.ds-subscription-row>svg{margin-left:8px;color:#d1d5db}"
+    },
+    {
+      "name": "Auto-renew field row",
+      "kind": "input",
+      "refersTo": "subscription-field",
+      "description": "One flat label/value row in the full-width creation form; neighboring rows share a white group and hairline separators.",
+      "html": "<label class=\"ds-subscription-field\"><span>服务名称</span><input value=\"视频会员\" aria-label=\"服务名称\"/></label>",
+      "css": ".ds-subscription-field{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",sans-serif;display:flex;min-height:58px;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #f3f4f6;background:#fff;color:#000}.ds-subscription-field>span{width:88px;flex:0 0 88px;font-size:16px}.ds-subscription-field input{min-width:0;flex:1;border:0;background:transparent;color:#000;font:inherit;font-size:16px;outline:none}.ds-subscription-field input::placeholder{color:#d1d5db}.ds-subscription-field:focus-within{box-shadow:inset 3px 0 #07c160}"
+    },
+    {
+      "name": "Auto-renew billing cycle",
+      "kind": "button",
+      "refersTo": "subscription-cycle-selected",
+      "description": "Three equal monthly, quarterly, and yearly choices; the selected segment uses border, text, and fill together.",
+      "html": "<fieldset class=\"ds-subscription-cycle\"><legend>扣费周期</legend><div><button type=\"button\" aria-pressed=\"true\">每月</button><button type=\"button\" aria-pressed=\"false\">每季</button><button type=\"button\" aria-pressed=\"false\">每年</button></div></fieldset>",
+      "css": ".ds-subscription-cycle{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",sans-serif;margin:0;padding:16px;border:0;background:#fff}.ds-subscription-cycle legend{padding:0;color:#6b7280;font-size:14px;line-height:20px}.ds-subscription-cycle>div{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.ds-subscription-cycle button{height:40px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;color:#000;font-size:14px;cursor:pointer}.ds-subscription-cycle button[aria-pressed=\"true\"]{border-color:#07c160;background:#f0fbf5;color:#07a858}.ds-subscription-cycle button:active{background:#f9fafb}.ds-subscription-cycle button:focus-visible{outline:2px solid #07c160;outline-offset:2px}"
+    },
+    {
+      "name": "Auto-renew confirm",
+      "kind": "button",
+      "refersTo": "subscription-confirm",
+      "description": "Full-width WeChat-green creation action; unavailable until all required values are valid.",
+      "html": "<button class=\"ds-subscription-confirm\" type=\"button\">确认添加</button>",
+      "css": ".ds-subscription-confirm{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",sans-serif;width:100%;height:48px;border:0;border-radius:6px;background:#07c160;color:#fff;font-size:16px;font-weight:500;cursor:pointer;transition:background-color 150ms ease}.ds-subscription-confirm:hover{background:#06b65a}.ds-subscription-confirm:active{background:#06ad56}.ds-subscription-confirm:focus-visible{outline:2px solid #07c160;outline-offset:2px}.ds-subscription-confirm:disabled{background:#9be6b8;cursor:default}"
+    },
+    {
+      "name": "Auto-renew cancellation dialog",
+      "kind": "custom",
+      "refersTo": "subscription-danger-action",
+      "description": "Consequence-first confirmation with the neutral safe action first and the only danger-colored action second.",
+      "html": "<div class=\"ds-subscription-scrim\"><div class=\"ds-subscription-dialog\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"ds-subscription-dialog-title\" aria-describedby=\"ds-subscription-dialog-body\"><div class=\"ds-subscription-dialog-copy\"><h2 id=\"ds-subscription-dialog-title\">确定要关闭吗？</h2><p id=\"ds-subscription-dialog-body\">关闭后，服务到期将不再自动续费，也不会继续扣费。</p></div><div class=\"ds-subscription-dialog-actions\"><button autofocus>再想想</button><button class=\"ds-subscription-danger\">仍要关闭</button></div></div></div>",
+      "css": ".ds-subscription-scrim{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"PingFang SC\",sans-serif;display:grid;min-height:300px;place-items:center;background:rgb(0 0 0 / 50%)}.ds-subscription-dialog{width:300px;overflow:hidden;border-radius:12px;background:#fff;color:#000}.ds-subscription-dialog-copy{padding:24px;text-align:center}.ds-subscription-dialog h2{margin:0 0 8px;font-size:18px;font-weight:700;line-height:25px}.ds-subscription-dialog p{margin:0;color:#6b7280;font-size:14px;line-height:20px}.ds-subscription-dialog-actions{display:flex;border-top:1px solid #f3f4f6}.ds-subscription-dialog-actions button{height:52px;flex:1;border:0;background:#fff;color:#000;font-size:16px;cursor:pointer}.ds-subscription-dialog-actions button+button{border-left:1px solid #f3f4f6}.ds-subscription-dialog-actions .ds-subscription-danger{color:#fa5151;font-weight:500}.ds-subscription-dialog-actions button:active{background:#f9fafb}.ds-subscription-dialog-actions button:focus-visible{outline:2px solid #07c160;outline-offset:-2px}.ds-subscription-dialog-actions button:disabled{cursor:default;opacity:.55}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A familiar WeChat money conversation",
+    "overview": "Preserve the incumbent WeChat simulation: gray and white surfaces, green primary actions, compact chat bubbles and orange transfer receipts. Amount, recipient and transaction status carry the visual hierarchy. The feature lives inside the simulated phone, with keyboard and navigation behavior governed by MobileGym.\n\nAuto renew is a scoped extension of that same WeChat world: an active authorization list and its maintenance flow, not a banking dashboard. It inherits the gray-white settings language, black information hierarchy, blue secondary text, flat dividers, and green confirmation action. Merchant color appears only inside circular service markers. The direction contract is `wechat-autorenew-management-v1`; it extends the incumbent identity without a concept roll.\n\nThe sandbox console is a scoped operator-world extension, not a replacement identity: matte graphite utility chrome opens onto a warm paper work area outside the phone. It identifies the controlled app with restrained WeChat green, explains the exact data boundary, and makes destructive scope explicit before acting. The direction contract is `sandbox-console-operator-drawer-v1`.\n\nThis is an incremental record for `apps/Wechat/pages/chat/TransferPage.tsx`, `ChatDetail.tsx`, `apps/Wechat/pages/pay/WalletPage.tsx`, `WalletBalancePage.tsx`, `apps/Wechat/pages/settings/Subscriptions.tsx`, `SubscriptionAddPage.tsx`, `SubscriptionDetailPage.tsx`, and the separate `sandbox/SandboxConsole.tsx` integration. It does not impose WeChat styling on other apps or make the operator console masquerade as a mobile app. It does not replace `AGENTS.md`, `docs/platform/`, the app manifest, or resource conventions. Existing app resources remain authoritative outside this scope.",
+    "keyCharacteristics": [
+      "White functional surfaces sit on a restrained gray canvas.",
+      "Green denotes the primary action; orange identifies a transfer receipt.",
+      "Amounts and explicit status text stay readable together.",
+      "Keyboard input and financial state remain consistent across the amount page, chat and wallet.",
+      "Auto renew lists only effective authorizations, with merchant identity subordinate to the service name.",
+      "Addition uses full-width field groups and a restrained monthly/quarterly/yearly selector; cancellation is explicit and confirmed.",
+      "The operator drawer remains outside the 360×800 phone and uses compact, countable status language.",
+      "Graphite and warm paper distinguish developer operations from the simulated product world."
+    ],
+    "rules": [
+      {
+        "name": "The Shared Financial State Rule",
+        "body": "Drive wallet balance, wallet records, ledger entries and chat transfer messages from the same transfer operation and ID. Status updates must update the matching chat message and wallet record together; do not hard-code a success receipt independently.",
+        "section": "components"
+      },
+      {
+        "name": "The Honest Control Rule",
+        "body": "Unsupported actions must be explicitly disabled and accompanied by clear availability text. Wallet menu items without a route are non-interactive rows with `aria-disabled` and no chevron or pressed feedback. Recharge and withdrawal are disabled buttons and share an explanatory note. Do not imply that those operations can complete in the demo.",
+        "section": "components"
+      },
+      {
+        "name": "The Active Authorization Rule",
+        "body": "The management list represents effective automatic-debit authorizations, not historical subscriptions or a financial dashboard. Filter inactive records from the list and make status explicit in detail.",
+        "section": "components"
+      },
+      {
+        "name": "The Deliberate Cancellation Rule",
+        "body": "Ending an effective debit authorization always requires a consequence statement and a second explicit action. Initial focus stays on safety, danger color belongs only to the final confirmation, and keyboard focus never escapes or disappears.",
+        "section": "components"
+      },
+      {
+        "name": "The Separate Worlds Rule",
+        "body": "WeChat colors describe the simulated app; graphite and warm paper describe the browser-level operator tool. The console may identify WeChat with its green, but it must not inherit the mobile app's full visual language.",
+        "section": "colors"
+      },
+      {
+        "name": "The Outside-the-Phone Rule",
+        "body": "Operator controls live in the browser layer, use a separate mount root, and act on real runtime data without becoming an icon, route, or surface inside the simulated device.",
+        "section": "layout"
+      },
+      {
+        "name": "The Reserved Elevation Rule",
+        "body": "Use strong elevation only to separate the operator drawer from the simulator. Inside the drawer, use tonal layering and hairline borders, not nested card shadows.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Scoped Destruction Rule",
+        "body": "A destructive control must name the data domain, explain inclusions and exclusions before execution, require an explicit confirmation, block dismissal while running, and end with a verifiable count or a bounded failure message.",
+        "section": "components"
+      },
+      {
+        "name": "The Focus Return Rule",
+        "body": "Opening, escalating to confirmation, and closing each have an intentional focus destination. Visual hiding never substitutes for removing inactive controls from the accessibility flow.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do preserve WeChat's gray-white surfaces, green actions and orange transfer receipt.",
+      "Do support both physical input and on-screen keys with one amount state.",
+      "Do show amount, recipient and explicit financial status together.",
+      "Do derive all financial displays from the shared transfer state.",
+      "Do show only active auto-renew authorizations in the management list and expose cadence and status in detail.",
+      "Do use full-width white field groups, the 12/13/14/16/18px ladder, and green confirmation for auto-renew creation.",
+      "Do place initial dialog focus on “再想想”, constrain focus, support Escape, and restore focus after cancellation is dismissed.",
+      "Do disable unsupported actions and state their availability.",
+      "Do keep remote AI credentials on the backend and retain the local reply mode.",
+      "Do keep the sandbox console in its browser-level root and the phone canvas unchanged.",
+      "Do reserve WeChat green in the console for identifying the controlled app or its connected state.",
+      "Do describe destructive scope before confirmation and report a countable outcome afterward.",
+      "Do preserve focus transfer, focus return, Escape behavior, and reduced-motion handling."
+    ],
+    "donts": [
+      "Don't apply this scoped palette to other MobileGym apps.",
+      "Don't use a receipt color alone to communicate completion.",
+      "Don't use a decorative keypad in place of an editable input.",
+      "Don't claim a real payment or provider-confirmed receipt from simulated state.",
+      "Don't turn auto renew into a banking dashboard or stack its settings groups as floating cards.",
+      "Don't use merchant colors outside circular service markers.",
+      "Don't add fake chevrons, button roles, or blue action styling to static subscription information.",
+      "Don't end an active authorization without the consequence dialog and a separate danger confirmation.",
+      "Don't put an API key into frontend configuration or account settings.",
+      "Don't place sandbox controls inside the simulated phone or style the console as another mobile app.",
+      "Don't use destructive red for navigation, environment status, or decorative emphasis.",
+      "Don't let the drawer close, cancel, or accept a second action while a reset is running.",
+      "Don't communicate reset success with color alone or without the restored conversation and message counts."
+    ]
+  }
+}

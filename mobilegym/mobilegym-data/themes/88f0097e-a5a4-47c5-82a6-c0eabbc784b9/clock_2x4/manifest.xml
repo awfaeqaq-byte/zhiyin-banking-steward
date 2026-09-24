@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Clock version="1" frameRate="0" type="awesome" useVariableUpdater="DateTime.Second" screenWidth="1080" resDensity="480" scaleByDensity="false"> 
+  <ExternalCommands> 
+    <Trigger action="resume"> 
+      <BinderCommand name="MiSteps" command="refresh"/>  
+      <BinderCommand name="MiStep" command="refresh"/>  
+      <BinderCommand name="WeatherProvider" command="refresh"/>  
+      <AnimationCommand target="card_ani0" command="play"/>  
+      <AnimationCommand target="card_ani1" command="play" delay="50"/>  
+      <AnimationCommand target="card_ani2" command="play" delay="100"/>  
+      <AnimationCommand target="card_ani3" command="play" delay="800"/>  
+      <AnimationCommand target="clock_ani0" command="play"/>  
+      <AnimationCommand target="clock_ani1" command="play" delay="100"/>  
+      <AnimationCommand target="clock_ani2" command="play" delay="200"/>  
+      <AnimationCommand target="clock_ani3" command="play" delay="300"/>  
+      <AnimationCommand target="framerateControllerAni" command="play"/>  
+      <VariableCommand name="rand_num" expression="#rand_num+1"/>  
+      <!-- 每次用不同的值发送一个广播（用于百变壁纸收到广播后触发计算） -->  
+      <IntentCommand action="initialization" broadcast="true"> 
+        <!-- <Extra name="bg_number" type="number" expression="#time%1000000" /> -->  
+        <!-- <Extra name="bg_number" type="number" expression="#rand_num" /> --> 
+      </IntentCommand> 
+    </Trigger>  
+    <Trigger action="pause"> 
+      <AnimationCommand target="card_ani0" command="play(0,0)"/>  
+      <AnimationCommand target="card_ani1" command="play(0,0)"/>  
+      <AnimationCommand target="card_ani2" command="play(0,0)"/>  
+      <AnimationCommand target="card_ani3" command="play(0,0)"/>  
+      <AnimationCommand target="clock_ani0" command="play(0,0)"/>  
+      <AnimationCommand target="clock_ani1" command="play(0,0)"/>  
+      <AnimationCommand target="clock_ani2" command="play(0,0)"/>  
+      <AnimationCommand target="clock_ani3" command="play(0,0)"/> 
+    </Trigger>  
+    <Trigger action="resume,pause,init"> 
+      <BinderCommand name="WeatherProvider" command="refresh"/> 
+    </Trigger> 
+  </ExternalCommands>  
+  <VariableBinders> 
+    <!-- 天气接口 -->  
+    <ContentProviderBinder name="WeatherProvider" uri="content://weather/actualWeatherData/1" columns="city_name,weather_type,aqilevel,description,temperature,temperature_range" countName="hasweather"> 
+      <Variable name="weather_location" type="string" column="city_name"/>  
+      <Variable name="weather_id" type="int" column="weather_type"/>  
+      <Variable name="weather_type" column="weather_type" type="string[]"/>  
+      <Variable name="weather_temperature" type="string" column="temperature"/>  
+      <Variable name="weather_description" type="string" column="description"/>  
+      <Variable name="weather_aqi" type="int" column="aqilevel"/>  
+      <Variable name="weather_temphigh_0" type="string" column="tmphighs" rows="0"/>  
+      <Variable name="weather_templow_0" type="string" column="tmplows" rows="0"/>  
+      <Variable name="weather_temphigh" column="tmphighs" type="string[]"/>  
+      <Variable name="weather_templow" column="tmplows" type="string[]"/>  
+      <Variable name="weather_sunrise" type="int" column="sunrise"/>  
+      <Variable name="weather_sunset" type="int" column="sunset"/>  
+      <Variable name="weather_wind" type="string" column="wind"/>  
+      <Trigger> 
+        <!-- 天气类型简化版；可用于天气图标展示。例如：srcid="#weatherId" -->  
+        <VariableCommand name="weatherId" expression="ifelse(#weather_id}25||#weather_id{0,0, (#weather_id}=4**#weather_id{=6||#weather_id}=8**#weather_id{=11||#weather_id==25),4,#weather_id}=13**#weather_id{=17,13 ,#weather_id}=18**#weather_id{=21||#weather_id==23,18,#weather_id)"/>  
+        <VariableCommand name="air_quality_0" expression="ifelse(ge(#weather_aqi,0)*le(#weather_aqi,50),'优',gt(#weather_aqi,50)*le(#weather_aqi,100),'良好',gt(#weather_aqi,100)*le(#weather_aqi,150),'轻度污染',gt(#weather_aqi,150)*ge(#weather_aqi,200),'中度污染',gt(#weather_aqi,200)*le(#weather_aqi,300),'重度污染',gt(#weather_aqi,300),'严重污染','良好')" type="string"/> 
+      </Trigger> 
+    </ContentProviderBinder>  
+    <!-- 注意：不可卸载 小米健康App -->  
+    <ContentProviderBinder name="MiSteps" uri="content://com.mi.health.provider.main/activity/steps/brief" column="steps,goal,distance,energy,strength_duration,summary" countName="hasSteps"> 
+      <Variable name="MiSteps_steps" type="string" column="steps"/>  
+      <Variable name="MiSteps_goal" type="string" column="goal"/>  
+      <Variable name="MiSteps_distance" type="string" column="distance"/>  
+      <Variable name="MiSteps_energy" type="string" column="energy"/>  
+      <Variable name="MiSteps_strength_duration" type="string" column="strength_duration"/>  
+      <Variable name="MiSteps_summary" type="string" column="summary"/> 
+    </ContentProviderBinder>  
+    <ContentProviderBinder name="MiStep" uri="content://com.miui.providers.steps/item" columns="_id,_begin_time,_end_time,_mode,_steps" countName="hassteps" whereFormat="_begin_time&gt;='%d'" whereParas="int((#time_sys-#hour24*3600000-#minute*60000-#second*1000)/1000)*1000"> 
+      <Variable name="Mi_step" type="string[]" column="_steps"/>  
+      <Variable name="Mi_begin_time" type="string[]" column="_begin_time"/>  
+      <Variable name="Mi_end_time" type="string[]" column="_end_time"/>  
+      <Trigger> 
+        <!-- 初始化今天的总步数 -->  
+        <VariableCommand name="step_today" expression="0"/>  
+        <!-- 计算今天的总步数 -->  
+        <LoopCommand count="#hassteps" indexName="__s"> 
+          <VariableCommand name="step_today" expression="#step_today+int(@Mi_step[#__s])"/> 
+        </LoopCommand> 
+      </Trigger> 
+    </ContentProviderBinder>  
+    <BroadcastBinder action="send_to_clock"> 
+      <Variable name="timeformat12" type="number" extra="extra_timeformat12"/>  
+      <Variable name="timecolor_mode" type="number" extra="extra_timecolor_mode"/>  
+      <Variable name="tmp_sub_v" type="number" extra="extra_sub_v"/>  
+      <Variable name="tmp_time_font" type="number" extra="extra_time_font"/>  
+      <Variable name="tmp_date_font" type="number" extra="extra_date_font"/>  
+      <Variable name="tmp_sub_color" type="number" extra="extra_sub_color"/>  
+      <Variable name="tmp_time_tint" type="string" extra="extra_time_tint"/>  
+      <Variable name="tmp_signature" type="string" extra="extra_signature"/>  
+      <Variable name="tmp_signature0" type="string" extra="extra_signature0"/>  
+      <Variable name="tmp_sfcd" type="number" extra="extra_sfcd"/>  
+      <Variable name="tmp_battery_level" type="number" extra="extra_battery_level"/>  
+      <Variable name="tmp_date_diy" type="string" extra="extra_date_diy"/> 
+       <Variable name="clock3d" type="number" extra="send_clock3d"/> 
+           <Variable name="clockScaleID" type="number" extra="send_clockScaleID"/>  
+    </BroadcastBinder>  
+
+    <ContentProviderBinder name="DeskClockProvider" whereFormat="enabled=='%d'" whereParas="1" columns="message,enabled,hour,minutes,alarmtime,daysofweek" uri="content://com.android.deskclock/alarm" countName="hasAlarmClock"> 
+      <!-- 备注 -->  
+      <Variable name="clock_message" type="string[]" column="message"/>  
+      <!-- 开关 -->  
+      <Variable name="clock_enabled" type="string[]" column="enabled"/>  
+      <!-- 时 -->  
+      <Variable name="clock_hour" type="string[]" column="hour"/>  
+      <!-- 分 -->  
+      <Variable name="clock_minute" type="string[]" column="minutes"/>  
+      <!-- 响铃时间 -->  
+      <Variable name="clock_alarmtime" type="string[]" column="alarmtime"/>  
+      <!-- 重复方式 -->  
+      <!-- 0: 一次性 -->  
+      <!-- 1: 周一 -->  
+      <!-- 2: 周二 -->  
+      <!-- 4: 周三 -->  
+      <!-- 8: 周四 -->  
+      <!-- 16: 周五 -->  
+      <!-- 32: 周六 -->  
+      <!-- 64: 周日 -->  
+      <!-- 128: 法定工作日 -->  
+      <!-- 256: 法定节假日 -->  
+      <Variable name="clock_daysofweek" type="string[]" column="daysofweek"/>  
+      <Trigger> 
+        <LoopCommand count="7" indexName="i"> 
+          <!-- 重置isAlarmClock -->  
+          <VariableCommand name="isAlarmClock0" expression="0" type="number[]" index="#i"/>  
+          <!-- 计算isAlarmClock -->  
+          <MultiCommand condition="#repetition0 }= #weekVar[#i]"> 
+            <VariableCommand name="isAlarmClock0" expression="1" type="number[]" index="#i"/>  
+            <VariableCommand name="repetition0" expression="#repetition0-#weekVar[#i]" type="number"/> 
+          </MultiCommand> 
+        </LoopCommand> 
+      </Trigger> 
+    </ContentProviderBinder>  
+
+    
+    
+    
+    
+  </VariableBinders>  
+  <!-- 动态帧率 -->  
+  <FramerateController name="framerateControllerAni" initPause="true" loop="false"> 
+    <ControlPoint frameRate="140" time="0"/>  
+    <ControlPoint frameRate="140" time="2000"/>  
+    <ControlPoint frameRate="30" time="2001"/> 
+  </FramerateController>  
+  <Var name="card_ani0"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="ElasticEaseOut"/>  
+      <AniFrame value="1" time="2000"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="card_ani1"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="ElasticEaseOut"/>  
+      <AniFrame value="1" time="2000"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="card_ani2"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="ElasticEaseOut"/>  
+      <AniFrame value="1" time="2000"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="card_ani3"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="BackEaseOut"/>  
+      <AniFrame value="1" time="2000"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="clock_ani0"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="BackEaseOut"/>  
+      <AniFrame value="1" time="900"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="clock_ani1"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="BackEaseOut"/>  
+      <AniFrame value="1" time="900"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="clock_ani2"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="BackEaseOut"/>  
+      <AniFrame value="1" time="900"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Var name="clock_ani3"> 
+    <VariableAnimation loop="false" initPause="true"> 
+      <AniFrame value="0" time="0" easeType="BackEaseOut"/>  
+      <AniFrame value="1" time="900"/> 
+    </VariableAnimation> 
+  </Var>  
+  <Button name="clock_button" x="0" y="0" w="0" h="0"/>  
+  <Var name="sub_weather_temperature" expression="strReplaceAll(@weather_temperature,'℃','°')" type="string"/>  
+  <Var name="top_height" expression="(#view_height-#Rect_height*2-#gap*2)/2-40"/>  
+  <Var name="border" expression="(#view_width-#Rect_width*2-#gap)/2"/>  
+  <Var name="gap" expression="40"/>  
+  <Var name="Rect_width" expression="470"/>  
+  <Var name="Rect_height" expression="200"/>  
+  <Var name="t1" expression="#time_sys%60000"/>  
+  <Var name="m_angle" expression="(#minute-1)*6" threshold="6"> 
+    <Trigger> 
+      <Command target="fen.animation" value="play"/> 
+    </Trigger> 
+  </Var>  
+    <Var name="clock3d" expression="ifelse(isnull(#clock3d),1,#clock3d)"/>  
+    
+    <Var name="clockScale" expression="ifelse(#clockScaleID==0,0,#clockScaleID==1,0.05,#clockScaleID==2,0.1,0)" type="number"/>   
+    
+ <Group pivotX="#view_width/2" pivotY="#view_height/2" scale="1-#clockScale" > 
+  <!-- 底部卡片投影-->  
+  <Image x="#border+#Rect_width/2" y="#view_height" align="center" alignV="bottom" src="shadow.png" alpha="200*#card_ani2" visibility="#clock3d"/>  
+  <Image x="#border+#Rect_width+#gap+#Rect_width/2" y="#view_height" align="center" alignV="bottom" src="shadow.png" alpha="200*#card_ani2" visibility="#clock3d"/>  
+  <Group y="#top_height"> 
+    <!-- 日历和天气厚度-->  
+    <Group y="#Rect_height+#gap*2+10" pivotX="#view_width/2" pivotY="100" scale="1-0.05*#card_ani2*#clock3d" rotationX="40*#card_ani2" alpha="255*#card_ani2" visibility="#clock3d"> 
+      <Image x="#border" src="bg.png" tint="#D3D3D3"/>  
+      <Image x="#border+#Rect_width+#gap" src="bg.png" tint="#1C95E7"/> 
+    </Group>  
+    
+    
+    <Group y="#Rect_height+#gap*2" pivotX="#view_width/2" pivotY="100" scale="1-0.05*#card_ani2*#clock3d" rotationX="40*#card_ani2*#clock3d"> 
+      <!-- 日历-->  
+      <Group x="#border" w="#Rect_width" h="#Rect_height" clip="true"> 
+        <Image src="calender_bg.png" touchable="true"> 
+          <Triggers> 
+            <Trigger action="up"> 
+              <IntentCommand action="android.intent.action.MAIN" package="com.android.calendar" class="com.android.calendar.homepage.AllInOneActivity"/> 
+            </Trigger> 
+          </Triggers> 
+        </Image>  
+        <DateTime x="76" y="54" align="center" alignV="center" size="40" color="#FF3B30" format="E" fontFamily="mipro-medium"/>  
+        <DateTime x="76" y="128" align="center" alignV="center" size="70" color="#202021" format="d" fontFamily="mipro-medium"/>  
+        <DateTime x="310" y="48" align="center" alignV="center" size="40" color="#202021" format="A年" fontFamily="mipro-medium"/>  
+        <DateTime x="310" y="96" align="center" alignV="center" size="30" color="#202021" format="yyyy年M月d日" fontFamily="mipro-medium"/>  
+        <DateTime x="310" y="146" align="center" alignV="center" size="30" color="#FFFFFF" format="YY年 N月e" fontFamily="mipro-medium"/>  
+        <!-- 时钟卡片投影-->  
+        <Image x="#Rect_width/2" y="-40" align="center" src="shadow.png" alpha="80*#card_ani2+80*#card_ani3" visibility="#clock3d"/> 
+      </Group>  
+      <!-- 天气-->  
+      <Group x="#border+#Rect_width+#gap" w="#Rect_width" h="#Rect_height" clip="true"> 
+        <Image src="weather_bg.png" touchable="true"> 
+          <Triggers> 
+            <Trigger action="up"> 
+              <IntentCommand action="android.intent.action.MAIN" package="com.miui.weather2" class="com.miui.weather2.ActivityWeatherMain"/> 
+            </Trigger> 
+          </Triggers> 
+        </Image>  
+        <Text x="42" y="50" color="#B5EBA3" size="40" textExp="@sub_weather_temperature +' '+ @weather_description" fontFamily="mipro-medium" alignV="center"/>  
+        <Text x="42" y="100" color="#FFFFFF" size="34" textExp="@weather_templow_0 +'°'+'~'+ @weather_temphigh_0+'°'" fontFamily="mipro-medium" alignV="center"/>  
+        <Text x="76" y="161" alignV="center" color="#FFFFFF" size="30" fontFamily="mipro-medium" bold="true" textExp="formatDate('HH:mm',#weather_sunrise)"/>  
+        <Text x="220" y="161" alignV="center" color="#FFFFFF" size="30" fontFamily="mipro-medium" bold="true" textExp="formatDate('HH:mm',#weather_sunset)"/>  
+        <Text x="422" y="161" color="#FFFFFF" size="30" textExp="@air_quality_0" fontFamily="mipro-medium" align="right" alignV="center"/>  
+        <Image x="296+100*#clock_ani3" y="68" src="weather/weather.png" srcid="#weatherId" alpha="255*#clock_ani3" align="center" alignV="center"/>  
+        <!-- 健康卡片投影-->  
+        <Image x="#Rect_width/2" y="-40" align="center" src="shadow.png" alpha="80*#card_ani2+80*#card_ani3" visibility="#clock3d"/> 
+      </Group> 
+    </Group>  
+    
+    
+        <!-- 时钟和健康厚度-->  
+    <Group y="40*#card_ani3+10*#card_ani0" pivotX="#view_width/2" pivotY="100" scale="1-0.1*#card_ani0*#clock3d" rotationX="40*#card_ani0*#clock3d" visibility="#clock3d"> 
+      <Image x="#border" src="bg.png" tint="#0E0E0E"/>  
+      <Image x="#border+#Rect_width+#gap" src="bg.png" tint="#0E0E0E"/> 
+    </Group>  
+    
+    <Group y="40*#card_ani3*#clock3d" pivotX="#view_width/2" pivotY="100" scale="1-0.1*#card_ani0*#clock3d" rotationX="40*#card_ani0*#clock3d"> 
+      <!-- 时钟-->  
+      <Group x="#border"> 
+        <Image src="clock_bg.png" touchable="true"> 
+          <Triggers> 
+            <Trigger action="up"> 
+              <IntentCommand action="android.intent.action.MAIN" package="com.android.deskclock" class="com.android.deskclock.DeskClockTabActivity"/> 
+            </Trigger> 
+          </Triggers> 
+        </Image>  
+        <Group pivotX="100" pivotY="100" scale="#clock_ani0"> 
+          <Image src="clock.png"/>  
+          <Image name="shi" x="100" y="100" align="center" alignV="center" centerX="#shi.bmp_width/2" centerY="#shi.bmp_height/2" src="s.png" antiAlias="true" angle="#hour12*30+#minute/2"/>  
+          <Image name="fen" x="100" y="100" centerX="#fen.bmp_width/2" centerY="#fen.bmp_height/2" angle="#m_angle" src="f.png" align="center" alignV="center" antiAlias="true"> 
+            <RotationAnimation> 
+              <Rotation angle="0" time="0"/>  
+              <Rotation angle="6" time="250"/>  
+              <Rotation angle="6" time="100000000000"/> 
+            </RotationAnimation> 
+          </Image>  
+          <Image name="miao" x="100" y="100" antiAlias="true" centerX="#miao.bmp_width/2" centerY="#miao.bmp_height/2" angle="#t1*0.006" src="m.png" align="center" alignV="center"/> 
+        </Group>  
+        <DateTime x="320" y="72" align="center" alignV="center" size="70" color="#ffffff" formatExp="ifelse(#time_format,'HH:mm','h:mm')" fontFamily="mipro-medium"/>  
+        <DateTime x="320" y="72+68" align="center" alignV="center" size="40" color="#ffffff" format="aa" fontFamily="mipro-medium" visibility="#hasAlarmClock == 0"/> 
+        
+        <Var name="AlarmWidth" expression="#AlarmIcon.bmp_width+16+#Alarmtext.text_width"/>  
+        <Group x="320-#AlarmWidth/2" y="72+68" visibility="#hasAlarmClock != 0">
+         <Image name="AlarmIcon" x="0"  alignV="center" src="alarm.png"/> 
+          <Text name="Alarmtext" x="#AlarmIcon.bmp_width+16" size="36" alignV="center" color="#ffffff" text="闹钟" fontFamily="mipro-medium"/> 
+        </Group>  
+      </Group>  
+      <!-- 运动-->  
+      <Group x="#border+#Rect_width+#gap"> 
+        <Image name="app_health" x="0" y="0" w="1" h="1" srcType="ApplicationIcon" srcExp="'com.mi.health,com.mi.health.home.HomeActivity'" alpha="0"/>  
+        <Image src="bg.png" touchable="true"> 
+          <Triggers> 
+            <Trigger action="up"> 
+              <IntentCommand action="android.intent.action.VIEW" uri="market://details?id=com.mi.health&amp;ref=mithemelocksreen" flags="268435456" condition="!#app_health.bmp_width"/>  
+              <!-- 已安装 打开运动页面 -->  
+              <IntentCommand action="android.intent.action.VIEW" uri="com.mi.health://localhost/d?action=steps&amp;origin=mithemelocksreen" condition="#app_health.bmp_width"/> 
+            </Trigger> 
+          </Triggers> 
+        </Image>  
+        <Var name="FkTime"> 
+          <VariableAnimation> 
+            <AniFrame value="10000" time="0"/>  
+            <AniFrame value="20000" time="10000"/> 
+          </VariableAnimation> 
+        </Var>  
+        <Var name="Start_NameHolder_" expression="int(#FkTime/24)" threshold="1"> 
+          <Trigger> 
+            <VariableCommand name="rotation1" expression="int(#rotation1+1)%360"/> 
+          </Trigger> 
+        </Var>  
+        <Image x="100" y="100" align="center" alignV="center" pivotX="80" pivotY="80" scale="#clock_ani2" rotation="#rotation1" src="health.png"/>  
+        <Text x="212" y="50" alignV="center" size="40" color="#FF4377" fontFamily="mipro-medium" bold="true" width="250" marqueeSpeed="30" textExp="@MiSteps_steps+'步'"/>  
+        <Text x="212" y="100" alignV="center" size="40" color="#B6F825" fontFamily="mipro-medium" bold="true" width="250" marqueeSpeed="30" textExp="@MiSteps_distance+'公里'"/>  
+        <Text x="212" y="150" alignV="center" size="40" color="#27E3B5" fontFamily="mipro-medium" bold="true" width="250" marqueeSpeed="30" textExp="'消耗'+@MiSteps_energy+'千卡'"/> 
+      </Group> 
+    </Group> 
+  </Group> 
+ </Group>  
+  
+  
+</Clock>

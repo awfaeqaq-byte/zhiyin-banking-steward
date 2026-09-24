@@ -1,0 +1,2629 @@
+{
+  "version": 1,
+  "generatedAt": "2026-05-04T16:41:40.169550+00:00",
+  "defaultThemeId": "af0f7f90-04fb-417b-941e-ae7b549fe5e5",
+  "themes": [
+    {
+      "id": "0132f200-3467-4d4b-b8bd-1bd882145875",
+      "title": "纷紫",
+      "author": "蝎子",
+      "description": "【主题特色】\n已完美适配澎湃OS2白色控制中心和状态栏\n①干净具有设计感的磨砂质感、毛玻璃图标,目前已适配至1600+；\n②设置界面和控制中心采用了毛玻璃磨砂质感图标；\n③锁屏功能:深浅色模式、高斯模糊、音乐播放控件、细腻的解锁动画；\n【锁屏说明】\n上滑解锁,双击打开手电筒,锁屏点击右上角设置图标进入锁屏自定义设置。\n【状态栏说明】\n 用有无箭头区分快充慢充哦,慢充电池右边才有箭头,快充没有\n\nQQ群：783107876\n了解更新动态关注抖音/快手/酷安/小红书：蝎子主题\n感谢支持!祝你每天都开开心心哦~\\(^o^)/",
+      "price": 0,
+      "version": "6.0",
+      "assemblyId": "62f8020c-e37c-4d71-826e-6d5126460e01",
+      "previews": [
+        "preview_aod_0.jpg",
+        "preview_lockscreen_0.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png",
+        "preview_animation_0.jpg",
+        "preview_animation_1.jpg",
+        "preview_animation_2.jpg"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "6193afb6-06db-44f9-b0e4-e79692e0bfcb"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "7cae1e0c-dcdd-4f54-8cb1-c0f503434fb2"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "4aa7cabc-bc23-42c2-acc2-5810b23ccdd0"
+        },
+        {
+          "resourceCode": "bootanimation",
+          "localId": "19b88a4e-2bdf-437d-b07b-966b9ca4bbf8"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "ff5c4948-1185-4be8-981a-50e93bbd3875"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "0362463d-0ede-42c9-a5f4-ec72ffa97c18"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "4e307959-321b-411b-b2cf-d0010c79ef63"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "dac46129-a78d-4977-bc46-38e911977378"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "8aebd024-e649-46ef-b695-da77f2c7ab0e"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "3295d0c5-7171-48d0-9732-f0627e17d2f8"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "2dd7d3ee-c4fe-41bf-9ac4-2a1309cbbba9"
+        },
+        {
+          "resourceCode": "aod",
+          "localId": "10f363e1-34d8-483a-a8a5-58876318d6b8"
+        },
+        {
+          "resourceCode": "com.android.thememanager",
+          "localId": "cef847f2-04ee-4fab-ab1d-be233343fa8d"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "ada62832-2bdf-47ec-a788-cbd3d74381f4"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "41fd0a38-786e-4979-8f3d-94e8625249ee"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "6b835b07-49b2-46e5-b60f-88e8207405a2"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "e7bdf064-dcc8-4975-9bb5-c12c18ecc485"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "3c9abf53-5062-4ae4-bfee-5a79a0d51b6c"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.bilibili.app.in",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.spotify.music",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.tencent.weread",
+        "com.twitter.android",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "battery",
+        "bluetooth",
+        "data_4g_lte",
+        "headset",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 100,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 100,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 100,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png",
+        "dataTypes": [
+          "4g_lte"
+        ]
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 25
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-nxhdpi/com_android_thememanager.png",
+          "dynamic_item_icon": "res/drawable-nxhdpi/dynamic_item_icon.png",
+          "ic_app_timer": "res/drawable-nxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-nxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-nxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-nxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-nxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-nxhdpi/ic_display_settings.png",
+          "ic_hyper_ai": "res/drawable-nxhdpi/ic_hyper_ai.png",
+          "ic_interconnection": "res/drawable-nxhdpi/ic_interconnection.png",
+          "ic_miui_home_settings": "res/drawable-nxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-nxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-nxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-nxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-nxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-nxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-nxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-nxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-nxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-nxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-nxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-nxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-nxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-nxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-nxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "723e2ef3-691e-4ed1-9f12-991c85741567",
+      "title": "冰山",
+      "author": "Youlee",
+      "description": "这是新手刚学习完教程制作的第二款主题，永久免费，不定期更新，希望能收到反馈，以期成长和进步。谢谢\r\n同时欢迎大家关注个人的其他主题，再次致谢。\r\nYoulee的主题交流QQ群：580788737",
+      "price": -1,
+      "version": "4.0",
+      "assemblyId": "ec839d21-0cb7-41f8-8f52-f3cadcb9f904",
+      "previews": [
+        "preview_icons_0.png",
+        "preview_icons_1.png",
+        "preview_icons_2x3_0.png",
+        "preview_icons_4x3_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "icons",
+          "localId": "83141246-772a-4317-b62f-db788842266f"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "b5f59e63-70d5-4101-99e0-7dbb9527d302"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2"
+      ],
+      "statusbarIcons": [],
+      "capabilities": [
+        "icons",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        }
+      }
+    },
+    {
+      "id": "735009c9-3573-4137-a113-49635689264a",
+      "title": "魅影 灵动环",
+      "author": "池雨",
+      "description": "使用前请认真阅读主题说明，强烈建议加微信：xxx668820 获取主题的视频介绍\n\n1.应用主题后，必须锁屏重新解锁进入桌面，完成屏锁对百变桌面和时钟模块的信息传递，方能展示桌面和时钟的完整功能；\n\n2.部分机型修改壁纸自定义文字等操作后不生效，设置完毕后，先不要锁屏，重新应用一遍主题，再锁屏即可；\n\n3.双击屏锁底部解锁提示位置进入屏锁控制中心，屏锁所有功能均可自定义位置、大小、颜色及透明的等，点击对应的模块即可自定义屏锁各个功能，点击更多设置的‘教程与反馈’按钮可快速获取主题教程和反馈问题，点击右下角‘自定义’即可进入屏锁自定义界面，超多可自定义功能\n\n4.主题添加了指纹美化功能，可修改14种显示风格，前往屏锁控制中心的‘指纹美化’模块修改样式及移动位置到自带的指纹位置即可；\n\n5.屏锁可随意切换为挖孔灵动岛、胶囊灵动岛或仿多摄像头模式，包含11种个性的预设渐变颜色以及可随意自定义边框颜色的功能，可随意修改位置及大小，满足所有用户需求，挖孔和胶囊灵动岛包含充电、音乐和屏锁通知三大功能，仿多摄像头模式只能显示跑马灯效果，注意：桌面所有灵动样式及大小均同步屏锁设置\n\n6.由于系统原因，桌面挖孔和胶囊灵动仅支持电量，但可完美移动至摄像头位置，前往屏锁灵动设置完成设置后进入桌面即可自动同步颜色、大小及位置；\n\n7.主题共包含8种时钟样式、8种时期样式、12种小组件样式，且每个模块均可单独自定义位置、颜色及透明度，最强自定义功能\n\n8.主题解锁为上划解锁，为防误触，在屏锁设置界面，已屏蔽所有按钮；\n\n9.屏锁播放音乐时点击专辑图片可切换到沉浸全屏音乐，再次双击显示后的专辑图片退出（每个机型兼容的音乐播放器不一样，如无法显示专辑图片或出现屏闪，请更换其他音乐播放器）；\n\n10.为兼容所有系统屏锁壁纸自定义，屏锁壁纸不在相册或文件管理中直接设置：\n双击屏幕底部解锁提示位置——点击右下角‘自定义’跳转至屏锁自定义界面——点击插入屏锁壁纸——再将壁纸选项切换到自定义即可\n\n\n11.时钟所有样式为同步屏锁样式，颜色可在屏锁自定义界面修改为黑色、白色或同步屏锁颜色",
+      "price": 0,
+      "version": "23.12.21",
+      "assemblyId": "e5f1325c-34b4-4125-a13d-4407cbe96f27",
+      "previews": [
+        "preview_aod_0.jpg",
+        "preview_lockscreen_0.jpg",
+        "preview_lockscreen_1.jpg",
+        "preview_lockscreen_2.jpg",
+        "preview_lockscreen_3.jpg",
+        "preview_lockscreen_4.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_miwallpaper_0.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "5a2b007a-34bf-4525-9425-16b3ac1cd969"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "53636e44-c7cd-49af-b6b6-c880844e5a21"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "6ad1ce52-f21f-44f9-81ae-e9af82c469e5"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "4e7e8db8-19c2-4ebc-919a-a6f66fb0f1a1"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "46196d16-9981-4be6-b9a7-20f0f4f38df7"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "ad40650d-acd8-46bf-9276-e8667cbf3d2a"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "57cb0255-86c5-4249-98d9-16723390b94c"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "905d60dc-6315-4a83-8837-b56cd7dae7a2"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "98066c6b-2379-4ac8-ae12-9fcc1f87d84a"
+        },
+        {
+          "resourceCode": "aod",
+          "localId": "e615a77d-d3a8-4a34-ad83-51508187f661"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "b4afe21c-17e8-414b-8b11-d0cf31890fec"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "e997a30f-b2c0-4861-b5bb-146482f7f660"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "f452002d-0201-4812-986b-919b8f73a6f2"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "e57402c0-61b6-4d22-9955-180cb0292fdd"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "7497fed8-0138-44fd-abc8-a2ebcb14e3ba"
+        },
+        {
+          "resourceCode": "miwallpaper",
+          "localId": "0bc5fd2e-d3db-476f-8f97-2b4c59b486fb"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "cb521ae4-a952-4e01-aa4a-6c8e02aef53a"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "battery",
+        "bluetooth",
+        "no_sim",
+        "signal",
+        "silent",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 63,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 63,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 63,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 23
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "dynamic_item_icon": "res/drawable-xxhdpi/dynamic_item_icon.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_interconnection": "res/drawable-xxhdpi/ic_interconnection.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "88f0097e-a5a4-47c5-82a6-c0eabbc784b9",
+      "title": "AP15超级景深",
+      "author": "苏哥suger",
+      "description": "公众号：suger苏哥主题（下载景深壁纸、主题教程、上新通知）\n微信：suger2023（反馈）\n*************\n⚠️为了保证主题的完整效果，请全局应用主题，应用后如果有任何异常（状态栏没变，锁屏不生效等）请重启手机解决！\n⚠️在图库更换锁屏壁纸会使得主题锁屏丢失，具体更换锁屏壁纸方法请移步公众号【suger苏哥主题】查看教程！\n⚠️状态栏说明：显示大4/5g；屏蔽闹钟图标、屏蔽wifi6图标、屏蔽NFC图标、屏蔽快充图标、屏蔽数据箭头、屏蔽蓝牙图标、屏蔽有线耳机图标；\n*************\n✅【超级灵动岛】小米主题最强大的灵动岛设计，包含胶囊刘海、消息弹窗、充电弹窗、可交互音乐！\n✅【百变刘海】各种刘海样式：灵动岛、灵动大额头、齐刘海、遥遥领先等刘海随意切换；\n✅【景深壁纸】景深壁纸是这个主题的设计亮点（时间置于壁纸主体后面，与壁纸产生空间上的前后关系，有整体性，也有立体感）。主题内置了10景深壁纸，双击锁屏小白条可进入切换界面。景深壁纸可自定义，公众号【suger苏哥主题】可免费下载上千张景深壁纸！\n✅【神隐指纹】锁屏隐藏指纹图标还可以盲按解锁！美观与实用兼得！妥妥的黑科技功能！；\n✅【百变指纹】锁屏指纹可切换多种样式，指纹图案也能玩出新花样！；\n✅【Standby待机】该功能需要去锁屏自定义第10项打开！打开后在锁屏界面下滑即可以进入Standby待机界面！上滑退出！\n✅【大封面模式】锁屏播放音乐时点击音乐封面可进入大封面模式！（注意：使用网易云音乐或汽水音乐都能完美支持大封面模式，使用其他播放器可能无法显示封面）；\n✅【全天候显示模式】\n*************\n1.双击锁屏底部小白条进入编辑模式，可切换壁纸、时间、日期样式；\n2.双击锁屏底部小白条后右上角会弹出“笔”形按钮，点击该图标可进入锁屏自定义界面；\n3.锁屏消息向右滑动删除；",
+      "price": 0,
+      "version": "HyperOS.20240122",
+      "assemblyId": "e0ca0a23-c29e-43e3-aa61-01e7f2c947dc",
+      "previews": [
+        "preview_lockscreen_0.jpg",
+        "preview_lockscreen_1.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_miwallpaper_0.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "f2d0347c-e720-43b3-9b19-3802805730d6"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "25a187b6-9ebc-4bb9-bae4-9bf402a22c9d"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "c42cb544-3ac9-46e0-9b0c-ba31da6d7f3d"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "25365a21-7d6e-4e1e-9022-8ed5fc95835b"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "f7b595ae-c919-4299-8ea8-33a22bb1a96b"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "254b12de-8123-4833-bed3-6b246147bd43"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "f5dcf897-a927-47eb-a9df-9ce6e3af6772"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "ca2a3f61-7200-4dde-a587-4e0a398ea0d1"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "19ecc830-85fd-48e8-89ae-a0cd31ae36cc"
+        },
+        {
+          "resourceCode": "com.android.fileexplorer",
+          "localId": "52178a77-8c61-4995-81cb-bc4c098f932a"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "d006a185-7ea9-4e8b-8f71-7ed52b9912e8"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "0b6f2d88-0c9a-4cde-9136-fec736b55ec8"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "230c928d-8a26-4689-8673-3163b4bcbb75"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "7a82b192-02ac-4179-b1c7-5f2c4caea24b"
+        },
+        {
+          "resourceCode": "miwallpaper",
+          "localId": "cc16a3d5-0188-40d9-bec0-6c3cc91c2096"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "44e91ec7-2712-41d0-95de-b15327e7a061"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "10ca025b-2409-45d5-86bf-f95d966e09f5"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.tencent.mm",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "battery",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 100,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 100,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 100,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 23
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "ic_account_avatar": "res/drawable-xxhdpi/ic_account_avatar.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "8ccb11fc-a399-4965-81d4-d4bcdcd461d6",
+      "title": "寒",
+      "author": "傲寒i",
+      "description": "⭐使用主题前请认真阅读以下内容\n\n1、锁屏解锁方式：上滑解锁\n2、锁屏界面手电筒/相机快捷按钮 双击打开\n3、锁屏快捷功能页：锁屏界面右滑掉出\n4、锁屏设置：双击 快捷功能页右上角图标打开\n5、问：关闭锁屏快捷功能页如何重新打开?\n     答：主题壁纸-我的-模块混搭-锁屏-底部-个性化定制当前锁屏\n\n怎么抓住作者\n主题交流QQ群：721641506\n酷安：傲寒i    微信公众号：知寒i\n合作私信 \n壁纸授权自@桃子咕哩咕\n\n⭐侵权必究⭐",
+      "price": 0,
+      "version": "12.5 1.0",
+      "assemblyId": "b8ae1a1e-40d6-4a0f-bfab-3ed33ce982ab",
+      "previews": [
+        "preview_lockscreen_0.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "6bfdd6ea-7d1d-493c-adac-8a51c0a169e3"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "31bc1ac9-9b6d-4fc7-a6c6-f65c10aa428d"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "328ba4c1-e21f-40e6-9f5b-3731d16510d9"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "b6a35fc9-b92f-4825-90da-f0838554c0d8"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "c9e8c590-b6f6-44da-a171-640b091ef2e9"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "962f0c53-387e-4c91-b5b9-cd4834107a49"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "4ffec7a3-8482-408f-804a-2d0d7c0bfee5"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "f1abcf01-7a10-4945-9fa2-ebfd55df885e"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "854dcaf9-b7e4-4878-8bc0-2b035279ec95"
+        },
+        {
+          "resourceCode": "com.android.thememanager",
+          "localId": "74906ab2-02bb-4045-9b1c-78e2bbfb8ccd"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "04b87792-2806-47d6-98ee-7065c1acd4e0"
+        },
+        {
+          "resourceCode": "com.miui.screenrecorder",
+          "localId": "c2700ec4-6dc3-42db-a8b9-ec39aac40829"
+        },
+        {
+          "resourceCode": "com.android.updater",
+          "localId": "b80de9a6-2dad-437d-97ee-ad7ea0270b18"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "f731d633-d5fc-4f75-8018-8ced33c2cd05"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "5f312039-cdb9-4ab2-a628-f378912c0bd8"
+        },
+        {
+          "resourceCode": "com.milink.service",
+          "localId": "b8c72812-93f9-43fb-9060-956fe75b4315"
+        },
+        {
+          "resourceCode": "com.miui.personalassistant",
+          "localId": "745cb44b-efaa-4e32-b8b5-647fad5ff631"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "1f81a878-417f-48cb-a665-7e961461d8fb"
+        },
+        {
+          "resourceCode": "com.miui.mishare.connectivity",
+          "localId": "3efe69db-6cf3-4801-aa0a-96cca22e2874"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "ec18cdc0-8cbc-48fd-a8f1-538383bf6d38"
+        },
+        {
+          "resourceCode": "com.android.quicksearchbox",
+          "localId": "6ba29510-2817-471b-ac0d-0ea67265c9d1"
+        },
+        {
+          "resourceCode": "com.miui.voiceassist",
+          "localId": "dbdc461d-b6df-469f-8b0f-f10f4333c436"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "603527f6-defd-47b3-b486-ff9f4f374f4d"
+        },
+        {
+          "resourceCode": "com.miui.voicetrigger",
+          "localId": "90c66a4c-8d7a-472d-8995-4d0569346413"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "battery",
+        "bluetooth",
+        "headset",
+        "nfc",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 25,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 25,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 25,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryPowerSaveChargeFrames": 25,
+        "batteryPowerSaveChargeSprite": "battery_power_save_charge_sprite.png",
+        "batteryPowerSaveChargeFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "shade",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "shade": {
+          "active": true,
+          "inactive": true
+        },
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 24
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "dynamic_item_icon": "res/drawable-xxhdpi/dynamic_item_icon.png",
+          "ic_account_avatar": "res/drawable-xxhdpi/ic_account_avatar.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "acf4966f-3fd8-460a-93d7-a315ab35003d",
+      "title": "AP14超级景深",
+      "author": "苏哥suger",
+      "description": "公众号：suger苏哥主题（下载景深壁纸、主题教程、上新通知）\n微信：suger2023（反馈）\n*************\n⚠️为了保证主题的完整效果，请全局应用主题，应用后如果有任何异常（状态栏没变，锁屏不生效等）请重启手机解决！\n⚠️在图库更换锁屏壁纸会使得主题锁屏丢失，具体更换锁屏壁纸方法请移步公众号【suger苏哥主题】查看教程！\n*************\n✅【超级灵动岛】小米主题最强大的灵动岛设计，包含胶囊刘海、消息弹窗、充电弹窗、可交互音乐！\n✅【常驻卡片】在常驻卡片上长按可以切换4个卡片样式：应用程序、支付中心、文字卡片、自定义假通知；\n✅【景深壁纸】景深壁纸是这个主题的设计亮点（时间置于壁纸主体后面，与壁纸产生空间上的前后关系，有整体性，也有立体感）。主题内置了6张景深壁纸，双击锁屏小白条可进入切换界面。景深壁纸可自定义，公众号【suger苏哥主题】可免费下载上千张景深壁纸！\n✅【神隐指纹】锁屏隐藏指纹图标还可以盲按解锁！美观与实用兼得！妥妥的黑科技功能！（在锁屏自定义第14项设置）；\n✅【百变指纹】锁屏指纹可切换多种样式，指纹图案也能玩出新花样！（在锁屏自定义第14项设置）；\n✅【Standby待机】该功能需要去锁屏自定义第10项打开！打开后在锁屏界面下滑即可以进入Standby待机界面！上滑退出！\n✅【大封面模式】锁屏播放音乐时点击音乐封面可进入大封面模式！（注意：使用网易云音乐或汽水音乐都能完美支持大封面模式，使用其他播放器可能无法显示封面）；\n✅【全天候显示模式】该功能需要去锁屏自定义第11项打开！；\n✅【专注模式】打开专注模式后锁屏底部小白条上方会出现爱心图标，点击爱心图标可进入专注模式页面切换图标样式；\n✅【调用文件夹壁纸】：在文件管理中新建文件夹命名为：_ap14，把壁纸移动到该文件夹中。壁纸命名为0.jpg、1.jpg、2.jpg...按照数字顺序依次命名，可无限添加壁纸。\n*************\n1.双击锁屏底部小白条进入编辑模式，可切换壁纸、时间、日期样式；\n2.双击锁屏底部小白条后右上角会弹出“笔”形按钮，点击该图标可进入锁屏自定义界面；\n3.锁屏消息向右滑动删除；",
+      "price": 0,
+      "version": "HyperOS.20231223",
+      "assemblyId": "5ed05061-793b-4eb9-9919-e789a8616511",
+      "previews": [
+        "preview_lockscreen_0.jpg",
+        "preview_lockscreen_1.jpg",
+        "preview_lockscreen_2.jpg",
+        "preview_lockscreen_3.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_miwallpaper_0.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "c47f9711-6c6d-4f1e-9f23-d0193206d499"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "e9c049aa-1f96-41df-b3be-9739c21ccd43"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "57dfeebc-297d-484a-88b9-749cb0509f2b"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "9dffc426-e343-45aa-94ee-31a95855c6ec"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "6d05ccd2-8503-48cd-b5c8-53bc3f703c0d"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "16af0dec-6091-4b56-a88d-fecf24e00791"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "5d4b3f1e-bccd-44d2-8caa-ac341ca5f0eb"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "3a4f81be-51ba-4b89-8a89-ee4f9cd7c8e5"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "377a861e-fcab-4e65-951e-78e2208d69fd"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "64d46fdd-91b3-4510-a72a-8831847e9b6e"
+        },
+        {
+          "resourceCode": "com.android.fileexplorer",
+          "localId": "5d29675a-122b-4cca-b0be-bb5ff89134ce"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "81dfbfd9-07c2-44d6-8c96-252073ee04df"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "ce31d59f-69f3-4b12-8a74-7b0f2a4bf7ce"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "a150f56d-8deb-4e53-a200-c26e45131c5a"
+        },
+        {
+          "resourceCode": "miwallpaper",
+          "localId": "370a0855-acb7-471c-8941-6079d204715f"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "120c1ac0-2035-4d94-b08a-618f7b1cd4ea"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "e7846029-75fe-43d9-b1df-f40ed98a5a83"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.tencent.mm",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "battery",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 100,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 100,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 100,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 23
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "ic_account_avatar": "res/drawable-xxhdpi/ic_account_avatar.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "af0f7f90-04fb-417b-941e-ae7b549fe5e5",
+      "title": "夜半",
+      "author": "软糖",
+      "description": "务必看这里！羊角螺线圆角图标（5500+枚），动态图标（35+枚），创意时钟样式，主题模块覆盖度极高！\r\n※锁屏内置4种可拓展的锁屏时间样式，并支持壁纸高斯模糊，开屏缩放，帧率显示等附加设置，可玩性极高。\r\n※锁屏可分别关闭左滑负一屏和右滑相机。\r\n※锁屏点击负一屏下方紫色按钮可修改部分负一屏内容，双击负一屏部件进入相应功能。\r\n※双击桌面时钟中间可切换时钟样式。\r\n※四种4x2时钟样式。可双击时钟与天气中间空白区域切换样式。\r\n※两种4x3时钟样式。双击时钟上部空白区域可更换时钟样式（添加方式：先添加一个4x3时钟，再应用主题即可使用主题4x3时钟样式。）\r\n※感谢您的使用，祝您开心每一天。(＾▽＾)",
+      "price": 0,
+      "version": "37.240722",
+      "assemblyId": "9e3aaab9-69e5-43eb-8285-147dbf089f1a",
+      "previews": [
+        "preview_aod_0.jpg",
+        "preview_lockscreen_0.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "b502b2b1-fb60-47d0-b0d2-5e89781a40f9"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "14c2b8a0-af8d-4812-8f91-fe5e697a73ae"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "c4d0547a-fd37-445c-93cf-62e31dde73fa"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "afbda7dd-7cf1-414c-b797-6a99fb406174"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "e82979cb-909e-4c27-9ffd-7eb3ba054a9c"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "5cdcd1b9-d491-4b13-a5ea-45b62c9e2e0c"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "5bc0fc61-a8d2-4e62-9e59-f64a30a3acb1"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "c86c2047-1f63-4fd8-bc55-fbe5b3f18105"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "bebe7d54-0034-459e-af02-c921f2e3c50f"
+        },
+        {
+          "resourceCode": "com.miui.personalassistant",
+          "localId": "276c9448-082f-49ae-be6b-0d7f0a839e43"
+        },
+        {
+          "resourceCode": "com.miui.voiceassist",
+          "localId": "958042a8-a982-4e34-be3c-220b5ae10791"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "1894ffb7-ed70-4642-bac1-9d82f8e66621"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "f09eae1a-9e9f-4f31-ac13-8d9321029c0c"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "cab32ff3-f520-4ae1-b590-4ea6fea08c22"
+        },
+        {
+          "resourceCode": "com.android.updater",
+          "localId": "2fcbfdb7-658d-49b3-8ef1-3cab321cfcef"
+        },
+        {
+          "resourceCode": "aod",
+          "localId": "812a09a3-8d68-47d9-979c-5aa42296d294"
+        },
+        {
+          "resourceCode": "com.miui.mishare.connectivity",
+          "localId": "4c38d34d-292f-43c6-96df-6ac9e6f625e7"
+        },
+        {
+          "resourceCode": "clock_3x4",
+          "localId": "c52b8564-d535-4a15-bd27-72f8318c8a66"
+        },
+        {
+          "resourceCode": "com.miui.screenrecorder",
+          "localId": "164f5b71-d31d-4c9a-a64b-bcba880e55e3"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "8682c241-0e62-48af-8250-32497ef10851"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "74fdb317-66e0-4e6f-be83-7bed263af149"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "86cc83ba-268b-49a0-af65-ae0923e96c4d"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.bilibili.app.in",
+        "com.ebay.mobile",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.reddit.frontpage",
+        "com.spotify.music",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.tencent.weread",
+        "com.twitter.android",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "alarm",
+        "battery",
+        "bluetooth",
+        "headset",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 20,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 20,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 20,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "shade",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "shade": {
+          "active": true,
+          "inactive": true
+        },
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 24
+        },
+        "clock_2x4": true,
+        "clock_3x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "dynamic_item_icon": "res/drawable-xxhdpi/dynamic_item_icon.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_interconnection": "res/drawable-xxhdpi/ic_interconnection.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "e5bea30d-5544-4e03-b7e5-516d6704bc2f",
+      "title": "起源",
+      "author": "史莱克",
+      "description": "主题交流群：1群（9148602030） 专用群（766583627） 4群（316187079）5群（674228753）\r\n锁屏：屏幕右下角左滑，打开锁屏miui12支付卡，点击锁屏设置按钮进入锁屏设置，锁屏右滑为多功能负一屏，\r\n桌面大图标教程：视频教程https://b23.tv/WLaKC8，或者B站搜索起源主题就有教程，我亲自录视频教学。\r\n点击桌面天气右侧提示“上一组”“下一组”文字区域切换桌面时钟样式以达到大图标效果，本主题一共有33种时间样式，不会的可以加群问我，或者加我1412247270qq问我，喜欢的记得给主题点个赞，谢谢支持。",
+      "price": 0,
+      "version": "1.0.1",
+      "assemblyId": "e9c31c36-ee02-48a1-becc-d499d7b0dc9c",
+      "previews": [
+        "preview_lockscreen_0.jpg",
+        "preview_lockscreen_1.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "05e82bf0-1181-4f5b-9aa5-45fa072547d3"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "9b36f3c5-9328-4cbf-b8a9-53a7055394c0"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "1515b97d-2232-480c-b6b9-3cec7e78e10c"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "527e4272-5dee-4cb4-b9ab-00aaf55b0a62"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "ab0bbe76-e64b-47f9-be05-d881e0138dbc"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "d167b7c4-55c7-42f4-99e2-408e5772a249"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "a94ef3d7-4938-4b76-97c8-885aee58fedf"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "87069a3d-fdf7-4c58-a596-df9d4ea92015"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "27510a45-7acc-4d52-bd3b-f5a7df7ab8db"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "365e2670-cd15-4dc1-a818-4581657f17e2"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "ae318879-abd1-4ce6-97c8-b6effb3bb103"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.bilibili.app.in",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.spotify.music",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.tencent.weread",
+        "com.twitter.android",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "battery",
+        "bluetooth",
+        "headset",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 25,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 25,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 25,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 24
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "dynamic_item_icon": "res/drawable-xxhdpi/dynamic_item_icon.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_interconnection": "res/drawable-xxhdpi/ic_interconnection.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "e80e4cfc-f4ba-4eef-a487-9a7008744873",
+      "title": "小青山",
+      "author": "小sven",
+      "description": "青山相待，白云相爱，梦不到紫罗袍共黄金带。\n【锁屏】通过控制中心，可切换时钟模式 \n【控制中心】向右滑动，即可弹出控制中心； \n【图标】首发适配了1600+图标，完美体验； \n【解锁】上滑解锁；\n【其它】如果有bug以及未适配的图标，请留言，我们会尽快解决。",
+      "price": 0,
+      "version": "OS3-1",
+      "assemblyId": "9ca0d70a-7b41-4ddb-8e4a-c34c4b3a4026",
+      "previews": [
+        "preview_lockscreen_0.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "f43d5829-aadd-417b-9299-71c1db7a03c5"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "e4d766cb-7846-4776-97ff-e6c2f99cfbd4"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "c7f127da-1b63-4a14-b592-0b0755821357"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "d4a2176d-6c6a-412f-8808-53b990f1e0b6"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "29a2a760-59a9-444f-8516-2dacb151f861"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "0bb918f5-d0d6-481b-9eed-998192aa94cb"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "b37310f0-98a3-45ed-ad43-6504e0bf9234"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "cd9d6e9d-ecbd-4f79-826a-6ed25ad17964"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "5d572fed-df49-41d1-9fdc-3ae3ffb1f3b8"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "4072a3c9-3b06-443e-beb5-1de43531e95d"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "177b74f2-b1db-4607-8c98-c3b9ef9bf3ab"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "75735abb-cff4-4b4c-8c99-fa63b25c1a00"
+        },
+        {
+          "resourceCode": "com.miui.fliphome",
+          "localId": "8f2c4a3f-6deb-41c8-8e4f-9c42315c1479"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "a9872481-547f-4b76-925c-583b1c051fb1"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "5a82a55f-eec2-4bf9-80c2-0fbdcff57d2f"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.tencent.weread",
+        "com.twitter.android",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "bluetooth",
+        "headset",
+        "nfc",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 26
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "dynamic_item_icon": "res/drawable-xxhdpi/dynamic_item_icon.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_hyper_ai": "res/drawable-xxhdpi/ic_hyper_ai.png",
+          "ic_interconnection": "res/drawable-xxhdpi/ic_interconnection.png",
+          "ic_minors_control": "res/drawable-xxhdpi/ic_minors_control.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_settings_satellite": "res/drawable-xxhdpi/ic_settings_satellite.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    },
+    {
+      "id": "e9f41be7-8717-48db-a904-ebfc4b70724c",
+      "title": "灰色与青",
+      "author": "柒名",
+      "description": "历时一年的制作与完善，《灰色与青》终于趋于完善\n● 深度定制的下拉通知栏，独创的“猪鼻子”元素，多一抹色彩，同时适配炫彩全面屏手势\n● 锁屏极简设计，丝滑动画，一个按钮集成众多功能（音乐播放器点击封面播放或暂停，点击封面左右两侧区域切换歌曲；新增锁屏个性化设置），按住相机图标滑动打开相机。\n● 图标精心绘制，每一枚都有惊喜，绝不将就（目前适配图标1515枚，动态图标28枚）\n● 深度美化的系统界面等你发现，全局使用深蓝色主要字体，洁净又多彩\n● 还有舒适的开机动画\n适配众多模块，该主题保持更新\n【联系方式】邮箱：isqiming@qq.com\n推荐通过酷安私信反馈,id:柒名哎\n请先试用满意后购买哦，有问题可以联系我，喜欢给个好评~",
+      "price": 0,
+      "version": "3.8",
+      "assemblyId": "aa6a784c-1125-4b11-abd6-4bf396e251e8",
+      "previews": [
+        "preview_lockscreen_0.jpg",
+        "preview_lockscreen_1.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png",
+        "preview_animation_0.jpg",
+        "preview_animation_1.jpg",
+        "preview_animation_2.jpg"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "d23bddbc-09d2-424a-8b92-c590d4f7e6a6"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "d1c3abf2-4e6a-4b05-9939-93b99cf66d26"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "867829d7-8789-491a-9876-9cec50be7bb9"
+        },
+        {
+          "resourceCode": "bootanimation",
+          "localId": "251befa8-97d3-4e5d-a2d8-1855e02f493d"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "18a23a8c-504d-4f66-9302-2bde0b98764a"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "5cdfc7c6-4870-40b9-abcc-5ab8b386dd66"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "f0736ef4-bfa7-4c9e-b174-ad387d43d85a"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "5f3fd998-90dd-4365-9f76-f93e92ff12d4"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "bc3df92c-57c0-4c9c-9e58-5f45f9be0c13"
+        },
+        {
+          "resourceCode": "com.miui.cloudservice",
+          "localId": "e32b0235-eda0-4a17-a956-ddf1ee3d4a4a"
+        },
+        {
+          "resourceCode": "com.miui.player",
+          "localId": "55b25f3a-a37e-4644-be36-12fdbf944113"
+        },
+        {
+          "resourceCode": "com.android.updater",
+          "localId": "a27bbf38-1699-4328-a002-8373b377ac83"
+        },
+        {
+          "resourceCode": "com.android.thememanager",
+          "localId": "1c2c3a4c-b752-409a-a6ff-6190d439c477"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "20266818-85dd-420e-8ed8-20548793bec6"
+        },
+        {
+          "resourceCode": "com.miui.screenrecorder",
+          "localId": "e04419a9-bdf2-4735-9110-a241369c5be5"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "4146ab16-696d-4958-8d71-1d0aad4e79c6"
+        },
+        {
+          "resourceCode": "com.miui.touchassistant",
+          "localId": "e7250fbb-a52f-44da-9fe3-4ef3674a5d1f"
+        },
+        {
+          "resourceCode": "com.android.fileexplorer",
+          "localId": "1d6be133-61da-4927-92ec-078f82d05526"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "9558e3d8-efca-4610-91be-5de5c4bc8b55"
+        },
+        {
+          "resourceCode": "com.android.quicksearchbox",
+          "localId": "8e76dfd1-93e3-4cbf-a6af-ce20b78c98a7"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "2d370b69-67d5-494e-851a-e0776c15700d"
+        },
+        {
+          "resourceCode": "com.miui.notes",
+          "localId": "94aad954-ac58-4492-bbf8-6baed93f273f"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.bilibili.app.in",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.spotify.music",
+        "com.tencent.mm",
+        "com.tencent.weread",
+        "com.twitter.android",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "battery",
+        "bluetooth",
+        "headset",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 14,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 14,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 14,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "shade",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "shade": {
+          "active": true,
+          "inactive": true
+        },
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 25
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_security_status": "res/drawable-xxhdpi/ic_security_status.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_system_apps_updater": "res/drawable-xxhdpi/ic_system_apps_updater.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png",
+          "xiaomi_account": "res/drawable-xxhdpi/xiaomi_account.png"
+        }
+      }
+    },
+    {
+      "id": "ff408a84-3c05-4bf6-8148-c064c6c60e71",
+      "title": "西尼斯",
+      "author": "黑黑菌",
+      "description": "使用之前必看，必看，必看，不看后悔！锁屏消息通知打开方式：从左往右滑动打开\n1.主题内置4种锁屏跟4种时钟样式:第1种锁屏单击右上角头像位置、第2种锁屏单击右上角头像位置、第3种锁屏单击左上角设置图标、第4种锁屏单击左下角设置图标均可进入锁屏选择操作界面以及时钟选择界面。\n2.锁屏控制桌面时钟：每次在锁屏位置选择完桌面时钟时，先锁屏一次，在进入桌面即可。\n3.首发848枚精美图标，覆盖日常热门图标。\n4.黑黑菌主题 qq群：1081424802，欢迎大家加群反馈主题使用情况或者反馈适配图标 酷安ID：黑黑菌主题\n前言：主题自带桌面多布局功能，使用之前记得备份桌面图标，以免错乱！",
+      "price": 0,
+      "version": "9.0",
+      "assemblyId": "3cc42965-3663-42d2-9753-4fdc7378ab0f",
+      "previews": [
+        "preview_aod_0.jpg",
+        "preview_lockscreen_0.jpg",
+        "preview_lockscreen_1.jpg",
+        "preview_lockscreen_2.jpg",
+        "preview_lockscreen_3.jpg",
+        "preview_lockscreen_4.jpg",
+        "preview_launcher_0.jpg",
+        "preview_launcher_1.jpg",
+        "preview_statusbar_0.jpg",
+        "preview_statusbar_1.jpg",
+        "preview_contact_0.jpg",
+        "preview_mms_0.jpg",
+        "preview_mms_1.jpg",
+        "preview_icons_0.jpg",
+        "preview_icons_1.jpg",
+        "preview_icons_2.jpg",
+        "preview_icons_2x3_0.jpg",
+        "preview_icons_4x3_0.jpg",
+        "preview_clock_2x4_0.png"
+      ],
+      "subResources": [
+        {
+          "resourceCode": "contact",
+          "localId": "e249f765-7729-43a9-b676-a9223cb9c267"
+        },
+        {
+          "resourceCode": "wallpaper",
+          "localId": "81380948-30be-49a1-8e46-63308bc9cf57"
+        },
+        {
+          "resourceCode": "lockstyle",
+          "localId": "f286387a-1282-49b5-a3a5-7b7fbec59dae"
+        },
+        {
+          "resourceCode": "mms",
+          "localId": "237e68fc-c4e3-46a9-9be6-2b67cb739c1c"
+        },
+        {
+          "resourceCode": "framework",
+          "localId": "1ec63a8f-332d-4283-b815-2db78f78b2af"
+        },
+        {
+          "resourceCode": "launcher",
+          "localId": "39691abf-3120-4033-8f64-4dc76c0b50a2"
+        },
+        {
+          "resourceCode": "statusbar",
+          "localId": "f4eb4e1d-b079-464e-a1b3-c075000278bb"
+        },
+        {
+          "resourceCode": "lockscreen",
+          "localId": "60aac333-9790-4527-895f-3ef6d129349c"
+        },
+        {
+          "resourceCode": "com.android.settings",
+          "localId": "163cb01a-3728-4215-a3b1-b6f40d1139e4"
+        },
+        {
+          "resourceCode": "com.duokan.phone.remotecontroller",
+          "localId": "4c75532f-005f-414a-ae42-6c358ce3bd5d"
+        },
+        {
+          "resourceCode": "com.miui.voiceassist",
+          "localId": "2f036a61-b651-4f11-b1b7-ac73eb3ad3dd"
+        },
+        {
+          "resourceCode": "clock_2x4",
+          "localId": "09052d6e-fc73-4e7f-b2b8-f33d839d86ef"
+        },
+        {
+          "resourceCode": "framework-miui-res",
+          "localId": "9436a039-5d3e-4a87-8f17-ab2d5f3a4557"
+        },
+        {
+          "resourceCode": "com.milink.service",
+          "localId": "b29fc443-a83e-4c1c-aee9-9df4ba2e445b"
+        },
+        {
+          "resourceCode": "icons",
+          "localId": "5899466d-5533-4256-8161-937c4ebe018b"
+        },
+        {
+          "resourceCode": "aod",
+          "localId": "a4fd4545-cdad-41d8-b051-0de64a887041"
+        },
+        {
+          "resourceCode": "com.miui.voicetrigger",
+          "localId": "3d4ae659-d71c-4361-8908-edca6d9bb1b3"
+        },
+        {
+          "resourceCode": "com.miui.mishare.connectivity",
+          "localId": "f4e306ce-1cae-43ab-ae8b-74204992506f"
+        },
+        {
+          "resourceCode": "com.android.quicksearchbox",
+          "localId": "df57eed6-aff9-4185-850e-a4e54ab6b57d"
+        },
+        {
+          "resourceCode": "com.android.systemui1",
+          "localId": "eee1fd67-e609-402b-9014-a410af74f440"
+        },
+        {
+          "resourceCode": "miui.systemui.plugin",
+          "localId": "e6a6c2a9-2503-4553-adfa-6a355af2a8c3"
+        },
+        {
+          "resourceCode": "com.miui.screenrecorder",
+          "localId": "a5afccd8-bbe4-4074-bbdc-196b6aefb35a"
+        },
+        {
+          "resourceCode": "com.miui.securitycenter",
+          "localId": "df4c47be-6fe0-4abe-96d4-00575d209bbb"
+        },
+        {
+          "resourceCode": "com.miui.notification",
+          "localId": "533d06b3-267a-49d8-8ac8-e02c6a19cb9e"
+        }
+      ],
+      "type": "full",
+      "iconPackageNames": [
+        "com.MobileTicket",
+        "com.android.calculator2",
+        "com.android.calendar",
+        "com.android.contacts",
+        "com.android.deskclock",
+        "com.android.fileexplorer",
+        "com.android.mms",
+        "com.android.settings",
+        "com.android.thememanager",
+        "com.autonavi.minimap",
+        "com.bilibili.app.in",
+        "com.eg.android.AlipayGphone",
+        "com.miui.calculator",
+        "com.miui.compass",
+        "com.miui.gallery",
+        "com.miui.notes",
+        "com.miui.weather2",
+        "com.spotify.music",
+        "com.tencent.mm",
+        "com.tencent.wemeet.app",
+        "com.tencent.weread",
+        "com.twitter.android",
+        "com.xingin.xhs"
+      ],
+      "statusbarIcons": [
+        "airplane",
+        "alarm",
+        "battery",
+        "bluetooth",
+        "headset",
+        "no_sim",
+        "signal",
+        "signal_null",
+        "silent",
+        "vpn",
+        "wifi",
+        "wifi_null"
+      ],
+      "statusbarDynamic": {
+        "wifiLevels": 5,
+        "signalLevels": 6,
+        "batteryFrames": 14,
+        "batteryFrameSide": 40,
+        "batterySprite": "battery_sprite.png",
+        "batteryChargeFrames": 14,
+        "batteryChargeSprite": "battery_charge_sprite.png",
+        "batteryChargeFrameSide": 40,
+        "batteryPowerSaveFrames": 14,
+        "batteryPowerSaveSprite": "battery_power_save_sprite.png",
+        "batteryPowerSaveFrameSide": 40,
+        "batteryBoltOverlay": "battery_bolt.png"
+      },
+      "capabilities": [
+        "contact",
+        "icons",
+        "mms",
+        "settings",
+        "shade",
+        "statusbar",
+        "wallpaper"
+      ],
+      "extracted": {
+        "icons": true,
+        "statusbar": true,
+        "shade": {
+          "active": true,
+          "inactive": true
+        },
+        "wallpaper": {
+          "default": "default.jpg"
+        },
+        "com.android.settings": {
+          "count": 22
+        },
+        "clock_2x4": true
+      },
+      "componentAssets": {
+        "com.android.settings": {
+          "com_android_thememanager": "res/drawable-xxhdpi/com_android_thememanager.png",
+          "ic_app_timer": "res/drawable-xxhdpi/ic_app_timer.png",
+          "ic_battery_settings": "res/drawable-xxhdpi/ic_battery_settings.png",
+          "ic_bluetooth_settings": "res/drawable-xxhdpi/ic_bluetooth_settings.png",
+          "ic_bugreport_settings": "res/drawable-xxhdpi/ic_bugreport_settings.png",
+          "ic_device_connection": "res/drawable-xxhdpi/ic_device_connection.png",
+          "ic_display_settings": "res/drawable-xxhdpi/ic_display_settings.png",
+          "ic_miui_home_settings": "res/drawable-xxhdpi/ic_miui_home_settings.png",
+          "ic_my_device": "res/drawable-xxhdpi/ic_my_device.png",
+          "ic_notification_center": "res/drawable-xxhdpi/ic_notification_center.png",
+          "ic_other_advanced_settings": "res/drawable-xxhdpi/ic_other_advanced_settings.png",
+          "ic_portable_wlan_hotspot_settings": "res/drawable-xxhdpi/ic_portable_wlan_hotspot_settings.png",
+          "ic_privacy_protection": "res/drawable-xxhdpi/ic_privacy_protection.png",
+          "ic_security_settings_settings": "res/drawable-xxhdpi/ic_security_settings_settings.png",
+          "ic_settings_dualsim": "res/drawable-xxhdpi/ic_settings_dualsim.png",
+          "ic_sound_settings": "res/drawable-xxhdpi/ic_sound_settings.png",
+          "ic_system_app_settings": "res/drawable-xxhdpi/ic_system_app_settings.png",
+          "ic_unlock_set_settings": "res/drawable-xxhdpi/ic_unlock_set_settings.png",
+          "ic_vpn": "res/drawable-xxhdpi/ic_vpn.png",
+          "ic_wallpaper_settings": "res/drawable-xxhdpi/ic_wallpaper_settings.png",
+          "ic_wifi_settings": "res/drawable-xxhdpi/ic_wifi_settings.png",
+          "xiaoai": "res/drawable-xxhdpi/xiaoai.png"
+        }
+      }
+    }
+  ],
+  "fonts": [
+    {
+      "id": "64f88fb4-5a96-487b-b7da-c6f92657cfc7",
+      "title": "三极小篆体",
+      "author": "三极字库",
+      "description": "【字体介绍】破暖轻风，弄晴微雨，欲无还有。\n【字符规模】包含9千汉字\n【问题反馈】①设置-显示与亮度中可调整字体大小。②有任何不适配问题请先重启手机，若仍有问题请加群反馈。                                            [三极字库qq群239862157]",
+      "price": 600,
+      "version": "1.0",
+      "assemblyId": "5acae50d-7531-41b8-9537-1b2ef4c190ea",
+      "previews": [
+        "preview_fonts_0.png",
+        "preview_fonts_1.png",
+        "preview_fonts_2.png",
+        "preview_fonts_3.png"
+      ],
+      "subResources": [],
+      "type": "font"
+    }
+  ],
+  "aod": [
+    {
+      "id": "10f363e1-34d8-483a-a8a5-58876318d6b8",
+      "title": "纷紫",
+      "author": "蝎子",
+      "description": "【主题特色】\n已完美适配澎湃OS2白色控制中心和状态栏\n①干净具有设计感的磨砂质感、毛玻璃图标,目前已适配至1600+；\n②设置界面和控制中心采用了毛玻璃磨砂质感图标；\n③锁屏功能:深浅色模式、高斯模糊、音乐播放控件、细腻的解锁动画；\n【锁屏说明】\n上滑解锁,双击打开手电筒,锁屏点击右上角设置图标进入锁屏自定义设置。\n【状态栏说明】\n 用有无箭头区分快充慢充哦,慢充电池右边才有箭头,快充没有\n\nQQ群：783107876\n了解更新动态关注抖音/快手/酷安/小红书：蝎子主题\n感谢支持!祝你每天都开开心心哦~\\(^o^)/",
+      "price": -1,
+      "version": "6.0",
+      "assemblyId": "62f8020c-e37c-4d71-826e-6d5126460e01",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "1ee964f0-19fe-4c6c-9f40-c76ca671113e",
+      "title": "AP14超级景深",
+      "author": "苏哥suger",
+      "description": "公众号：suger苏哥主题（下载景深壁纸、主题教程、上新通知、反馈）\n*************\n⚠️为了保证主题的完整效果，请全局应用主题，应用后如果有任何异常（状态栏没变，锁屏不生效等）请重启手机解决！\n⚠️在图库更换锁屏壁纸会使得主题锁屏丢失，具体更换锁屏壁纸方法请移步公众号【suger苏哥主题】查看教程！\n*************\n1.双击锁屏底部小白条进入编辑模式，可切换壁纸、时间、日期样式；\n2.双击锁屏底部小白条后右上角会弹出“笔”形按钮，点击该图标可进入锁屏自定义界面；\n3.锁屏消息向左滑动删除；\n*************\n\n✅【超级开屏】7种开灯效果，搭配壁纸开屏动画，让你每次点亮锁屏都无比炫酷！\n✅【超级灵动岛】小米主题最强大的灵动岛设计，包含胶囊刘海、消息弹窗、充电弹窗、手电筒、可交互音乐(提示:该主题灵动岛与系统超级岛不冲突,可以共用)！\n✅【通知折叠】锁屏通知超过4条自动折叠，既美观又省空间；\n✅【百变刘海】各种刘海样式：除了灵动岛，还有灵动大额头、齐刘海、遥遥领先等刘海随意切换；\n✅【景深壁纸】主题内置了10景深壁纸，双击锁屏小白条可进入切换界面。景深壁纸可自定义，公众号【suger苏哥主题】可免费下载上千张景深壁纸！\n✅【神隐指纹】锁屏隐藏指纹图标还可以盲按解锁！美观与实用兼得！妥妥的黑科技功能！；\n✅【百变指纹】锁屏指纹可切换多种样式，指纹图案也能玩出新花样！\n✅【Standby待机】全屏大时钟，横屏竖屏随意摆放，手机也可成为桌面摆件！\n✅【大封面模式】锁屏播放音乐时点击音乐封面可进入大封面模式！\n✅【横屏音乐】进入大封面模式后，横屏摆放手机即可切换横屏音乐模式；\n✅【双击黑屏】双击锁屏进入黑屏模式，待机无敌炫酷；\n\n⚠️注意：以上功能大部分都是默认关闭的，需要进入锁屏自定义手动开启（双击锁屏底部小白条后右上角会弹出“笔”形按钮，点击该图标可进入锁屏自定义界面）。\n⚠️所有功能都可以在公众号【suger苏哥主题】查看教程！",
+      "price": -1,
+      "version": "OS3.20260106",
+      "assemblyId": "5ed05061-793b-4eb9-9919-e789a8616511",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "812a09a3-8d68-47d9-979c-5aa42296d294",
+      "title": "夜半",
+      "author": "软糖",
+      "description": "务必看这里！羊角螺线圆角图标（5500+枚），动态图标（35+枚），创意时钟样式，主题模块覆盖度极高！\r\n※锁屏内置4种可拓展的锁屏时间样式，并支持壁纸高斯模糊，开屏缩放，帧率显示等附加设置，可玩性极高。\r\n※锁屏可分别关闭左滑负一屏和右滑相机。\r\n※锁屏点击负一屏下方紫色按钮可修改部分负一屏内容，双击负一屏部件进入相应功能。\r\n※双击桌面时钟中间可切换时钟样式。\r\n※四种4x2时钟样式。可双击时钟与天气中间空白区域切换样式。\r\n※两种4x3时钟样式。双击时钟上部空白区域可更换时钟样式（添加方式：先添加一个4x3时钟，再应用主题即可使用主题4x3时钟样式。）\r\n※感谢您的使用，祝您开心每一天。(＾▽＾)",
+      "price": -1,
+      "version": "37.240722",
+      "assemblyId": "9e3aaab9-69e5-43eb-8285-147dbf089f1a",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "a4fd4545-cdad-41d8-b051-0de64a887041",
+      "title": "西尼斯",
+      "author": "黑黑菌",
+      "description": "使用之前必看，必看，必看，不看后悔！锁屏消息通知打开方式：从左往右滑动打开\n1.主题内置4种锁屏跟4种时钟样式:第1种锁屏单击右上角头像位置、第2种锁屏单击右上角头像位置、第3种锁屏单击左上角设置图标、第4种锁屏单击左下角设置图标均可进入锁屏选择操作界面以及时钟选择界面。\n2.锁屏控制桌面时钟：每次在锁屏位置选择完桌面时钟时，先锁屏一次，在进入桌面即可。\n3.首发848枚精美图标，覆盖日常热门图标。\n4.黑黑菌主题 qq群：1081424802，欢迎大家加群反馈主题使用情况或者反馈适配图标 酷安ID：黑黑菌主题\n前言：主题自带桌面多布局功能，使用之前记得备份桌面图标，以免错乱！",
+      "price": -1,
+      "version": "9.0",
+      "assemblyId": "3cc42965-3663-42d2-9753-4fdc7378ab0f",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "d435a5eb-299b-4fb5-a96a-8d102f968f18",
+      "title": "AP15超级景深",
+      "author": "苏哥suger",
+      "description": "公众号：suger苏哥主题（下载景深壁纸、主题教程、上新通知、反馈）\n*************\n⚠️为了保证主题的完整效果，请全局应用主题，应用后如果有任何异常（状态栏没变，锁屏不生效等）请重启手机解决！\n⚠️在图库更换锁屏壁纸会使得主题锁屏丢失，具体更换锁屏壁纸方法请移步公众号【suger苏哥主题】查看教程！\n*************\n1.双击锁屏底部小白条进入编辑模式，可切换壁纸、时间、日期样式；\n2.双击锁屏底部小白条后右上角会弹出“笔”形按钮，点击该图标可进入锁屏自定义界面；\n3.锁屏消息向左滑动删除；\n*************\n\n✅【超级开屏】7种开灯效果，搭配壁纸开屏动画，让你每次点亮锁屏都无比炫酷！\n✅【超级灵动岛】小米主题最强大的灵动岛设计，包含胶囊刘海、消息弹窗、充电弹窗、手电筒、可交互音乐(提示:该主题灵动岛与系统超级岛不冲突,可以共用)！\n✅【通知折叠】锁屏通知超过4条自动折叠，既美观又省空间；\n✅【百变刘海】各种刘海样式：除了灵动岛，还有灵动大额头、齐刘海、遥遥领先等刘海随意切换；\n✅【景深壁纸】主题内置了10景深壁纸，双击锁屏小白条可进入切换界面。景深壁纸可自定义，公众号【suger苏哥主题】可免费下载上千张景深壁纸！\n✅【神隐指纹】锁屏隐藏指纹图标还可以盲按解锁！美观与实用兼得！妥妥的黑科技功能！；\n✅【百变指纹】锁屏指纹可切换多种样式，指纹图案也能玩出新花样！\n✅【Standby待机】全屏大时钟，横屏竖屏随意摆放，手机也可成为桌面摆件！\n✅【大封面模式】锁屏播放音乐时点击音乐封面可进入大封面模式！\n✅【横屏音乐】进入大封面模式后，横屏摆放手机即可切换横屏音乐模式；\n✅【双击黑屏】双击锁屏进入黑屏模式，待机无敌炫酷；\n\n⚠️注意：以上功能大部分都是默认关闭的，需要进入锁屏自定义手动开启（双击锁屏底部小白条后右上角会弹出“笔”形按钮，点击该图标可进入锁屏自定义界面）。\n⚠️所有功能都可以在公众号【suger苏哥主题】查看教程！",
+      "price": -1,
+      "version": "OS3.20251201",
+      "assemblyId": "e0ca0a23-c29e-43e3-aa61-01e7f2c947dc",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "d65d9c3b-0ff3-4b90-ac8e-3f3355e52943",
+      "title": "夏日西瓜",
+      "author": "柒米科技",
+      "description": "夏日西瓜！",
+      "price": 0,
+      "version": "1.0",
+      "assemblyId": "4f135cb8-77ac-4658-bcdf-f09428cb9c77",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "da9d7e9a-1020-499f-b29b-38f047459ed8",
+      "title": "四环数据",
+      "author": "墨飞",
+      "description": "四个环形数据进度条组合显示，分别为电池电量、计步、日进度、年进度；\n周围的刻度会动态旋转到指定位置，四段刻度对应四环数据百分数；\n支持时钟、天气、日期、日程、节日提醒、农历显示（农历开关也是日程开关）",
+      "price": 0,
+      "version": "1.0",
+      "assemblyId": "89a893b2-4db8-4af5-acca-43baf35ee332",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    },
+    {
+      "id": "e615a77d-d3a8-4a34-ad83-51508187f661",
+      "title": "魅影 灵动环",
+      "author": "池雨",
+      "description": "使用前请认真阅读主题说明，强烈建议加微信：xxx668820 获取主题的视频介绍\n\n1.应用主题后，必须锁屏重新解锁进入桌面，完成屏锁对百变桌面和时钟模块的信息传递，方能展示桌面和时钟的完整功能；\n\n2.部分机型修改壁纸自定义文字等操作后不生效，设置完毕后，先不要锁屏，重新应用一遍主题，再锁屏即可；\n\n3.双击屏锁底部解锁提示位置进入屏锁控制中心，屏锁所有功能均可自定义位置、大小、颜色及透明的等，点击对应的模块即可自定义屏锁各个功能，点击更多设置的‘教程与反馈’按钮可快速获取主题教程和反馈问题，点击右下角‘自定义’即可进入屏锁自定义界面，超多可自定义功能\n\n4.主题添加了指纹美化功能，可修改14种显示风格，前往屏锁控制中心的‘指纹美化’模块修改样式及移动位置到自带的指纹位置即可；\n\n5.屏锁可随意切换为挖孔灵动岛、胶囊灵动岛或仿多摄像头模式，包含11种个性的预设渐变颜色以及可随意自定义边框颜色的功能，可随意修改位置及大小，满足所有用户需求，挖孔和胶囊灵动岛包含充电、音乐和屏锁通知三大功能，仿多摄像头模式只能显示跑马灯效果，注意：桌面所有灵动样式及大小均同步屏锁设置\n\n6.由于系统原因，桌面挖孔和胶囊灵动仅支持电量，但可完美移动至摄像头位置，前往屏锁灵动设置完成设置后进入桌面即可自动同步颜色、大小及位置；\n\n7.主题共包含8种时钟样式、8种时期样式、12种小组件样式，且每个模块均可单独自定义位置、颜色及透明度，最强自定义功能\n\n8.主题解锁为上划解锁，为防误触，在屏锁设置界面，已屏蔽所有按钮；\n\n9.屏锁播放音乐时点击专辑图片可切换到沉浸全屏音乐，再次双击显示后的专辑图片退出（每个机型兼容的音乐播放器不一样，如无法显示专辑图片或出现屏闪，请更换其他音乐播放器）；\n\n10.为兼容所有系统屏锁壁纸自定义，屏锁壁纸不在相册或文件管理中直接设置：\n双击屏幕底部解锁提示位置——点击右下角‘自定义’跳转至屏锁自定义界面——点击插入屏锁壁纸——再将壁纸选项切换到自定义即可\n\n\n11.时钟所有样式为同步屏锁样式，颜色可在屏锁自定义界面修改为黑色、白色或同步屏锁颜色",
+      "price": -1,
+      "version": "23.12.21",
+      "assemblyId": "e5f1325c-34b4-4125-a13d-4407cbe96f27",
+      "previews": [
+        "preview_aod_0.jpg"
+      ],
+      "subResources": [],
+      "type": "aod"
+    }
+  ],
+  "widgets": [
+    {
+      "id": "0132f200-3467-4d4b-b8bd-1bd882145875_clock_2x4",
+      "title": "纷紫时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "0132f200-3467-4d4b-b8bd-1bd882145875",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/0132f200-3467-4d4b-b8bd-1bd882145875/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "735009c9-3573-4137-a113-49635689264a_clock_2x4",
+      "title": "魅影 灵动环时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "735009c9-3573-4137-a113-49635689264a",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/735009c9-3573-4137-a113-49635689264a/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "88f0097e-a5a4-47c5-82a6-c0eabbc784b9_clock_2x4",
+      "title": "AP15超级景深时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "88f0097e-a5a4-47c5-82a6-c0eabbc784b9",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/88f0097e-a5a4-47c5-82a6-c0eabbc784b9/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "8ccb11fc-a399-4965-81d4-d4bcdcd461d6_clock_2x4",
+      "title": "寒时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "8ccb11fc-a399-4965-81d4-d4bcdcd461d6",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/8ccb11fc-a399-4965-81d4-d4bcdcd461d6/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "acf4966f-3fd8-460a-93d7-a315ab35003d_clock_2x4",
+      "title": "AP14超级景深时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "acf4966f-3fd8-460a-93d7-a315ab35003d",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/acf4966f-3fd8-460a-93d7-a315ab35003d/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "af0f7f90-04fb-417b-941e-ae7b549fe5e5_clock_2x4",
+      "title": "夜半时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "af0f7f90-04fb-417b-941e-ae7b549fe5e5",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/af0f7f90-04fb-417b-941e-ae7b549fe5e5/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "af0f7f90-04fb-417b-941e-ae7b549fe5e5_clock_3x4",
+      "title": "夜半时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "af0f7f90-04fb-417b-941e-ae7b549fe5e5",
+      "variants": [
+        {
+          "entry": "clock_3x4",
+          "spanX": 4,
+          "spanY": 3,
+          "preview": ""
+        }
+      ]
+    },
+    {
+      "id": "e5bea30d-5544-4e03-b7e5-516d6704bc2f_clock_2x4",
+      "title": "起源时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "e5bea30d-5544-4e03-b7e5-516d6704bc2f",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/e5bea30d-5544-4e03-b7e5-516d6704bc2f/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "e80e4cfc-f4ba-4eef-a487-9a7008744873_clock_2x4",
+      "title": "小青山时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "e80e4cfc-f4ba-4eef-a487-9a7008744873",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/e80e4cfc-f4ba-4eef-a487-9a7008744873/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "e9f41be7-8717-48db-a904-ebfc4b70724c_clock_2x4",
+      "title": "灰色与青时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "e9f41be7-8717-48db-a904-ebfc4b70724c",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/e9f41be7-8717-48db-a904-ebfc4b70724c/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "ff408a84-3c05-4bf6-8148-c064c6c60e71_clock_2x4",
+      "title": "西尼斯时钟",
+      "author": "",
+      "description": "",
+      "source": "theme",
+      "themeId": "ff408a84-3c05-4bf6-8148-c064c6c60e71",
+      "variants": [
+        {
+          "entry": "clock_2x4",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "/themes/ff408a84-3c05-4bf6-8148-c064c6c60e71/clock_2x4/preview.png"
+        }
+      ]
+    },
+    {
+      "id": "0a7e4dd5-04a2-4feb-866d-78eabff6f0b3",
+      "title": "喵喵",
+      "author": "小米主题",
+      "description": "喵～我睡觉的时候别打扰我……",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "1648abf9-db10-4941-8083-9a5e68241c75",
+      "title": "自选影集",
+      "author": "小米主题",
+      "description": "添加至桌面后，点击小部件来选择影集",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "347f3ecf-cd69-414b-8e25-41223586fd2b",
+      "title": "大桔观",
+      "author": "小米主题",
+      "description": "今天也要与阳光相伴！",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "540fc2cd-4b10-4f81-b593-712dcb49b873",
+      "title": "骰子",
+      "author": "小米主题",
+      "description": "来试试今天的手气吧",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png",
+        "widget_4x2.png",
+        "widget_4x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        },
+        {
+          "entry": "widget_4x2",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "preview/widget_4x2.png"
+        }
+      ]
+    },
+    {
+      "id": "5a6b76c4-cefa-45d7-8f2d-e39d3c4639f5",
+      "title": "硬币",
+      "author": "小米主题",
+      "description": "当硬币抛向空中，你的问题就会有答案",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "620f3044-b91d-49aa-9a94-82af3e9d0a2b",
+      "title": "日出日落",
+      "author": "天气",
+      "description": "查看所在位置下次日出和日落的时间",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "9e5fba4a-aefe-45f4-8c13-b334f5a7f910",
+      "title": "泡泡",
+      "author": "小米主题",
+      "description": "鼓鼓囊囊的嘴巴，整天咕噜咕噜吹泡泡，摇摇尾巴就向主人游过来啦！",
+      "type": "widget",
+      "previews": [
+        "widget_4x2.png",
+        "widget_4x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_4x2",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "preview/widget_4x2.png"
+        }
+      ]
+    },
+    {
+      "id": "a71db3f8-fc64-428c-8a80-5d11cf75be09",
+      "title": "一键加速",
+      "author": "手机管家",
+      "description": "手机提速，一键释放内存",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "b8006e83-c497-4642-9815-f674b82842b0",
+      "title": "今日天气",
+      "author": "天气",
+      "description": "了解某地今日天气状况与气温信息",
+      "type": "widget",
+      "previews": [
+        "widget_2x2.png",
+        "widget_2x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_2x2",
+          "spanX": 2,
+          "spanY": 2,
+          "preview": "preview/widget_2x2.png"
+        }
+      ]
+    },
+    {
+      "id": "bc0f0cd2-43fd-4323-8061-55a8bc997e1f",
+      "title": "多日天气",
+      "author": "天气",
+      "description": "了解某地多日天气状况与气温信息",
+      "type": "widget",
+      "previews": [
+        "widget_4x2.png",
+        "widget_4x2_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_4x2",
+          "spanX": 4,
+          "spanY": 2,
+          "preview": "preview/widget_4x2.png"
+        }
+      ]
+    },
+    {
+      "id": "c989887f-fa0d-4963-8c57-896c03e37efc",
+      "title": "多日天气",
+      "author": "天气",
+      "description": "了解某地多日天气详情",
+      "type": "widget",
+      "previews": [
+        "widget_4x4.png",
+        "widget_4x4_dark.png"
+      ],
+      "variants": [
+        {
+          "entry": "widget_4x4",
+          "spanX": 4,
+          "spanY": 4,
+          "preview": "preview/widget_4x4.png"
+        }
+      ]
+    }
+  ]
+}
