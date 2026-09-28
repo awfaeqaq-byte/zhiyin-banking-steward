@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, type BillAnalysis } from '../lib/bill-analysis';
 import { StewardReplyContent } from './steward-reply';
 import {TransferFollowUp} from './transfer-follow-up';
+import {TaskDueNotice} from './task-due-notice';
 import { parseReplyChoices } from '../lib/reply-choices';
 import {memoryContext,parseMemoryProposal} from '../lib/steward-memory';
 import {parseImpression} from '../lib/steward-profile';
 import {bankRecipients,bankRequest,validBankSnapshot,type BankReceipt} from '../lib/bank-transfer';
 import type {SmartIntent} from './smart-transfers';
-import {isBankRequest,isBankOperation} from '../lib/steward-chat';
+import {isBankRequest,isBankOperation,isTaskRequest} from '../lib/steward-chat';
+import {taskRequest,calendarEvents,localTaskTime,type ReminderDraft} from '../lib/task-calendar';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
 import {
   ArrowRight,
@@ -71,6 +73,8 @@ type Props = {
   onToggleReminder: (key: string, enabled: boolean) => void;
   onOpenSubscriptions: () => void;
   onOpenFunding?: () => void;
+  onOpenTasks?:(date?:number)=>void;
+  onPrepareTask?:(draft:ReminderDraft)=>void;
   onPrepareTransfer?: (intent:SmartIntent)=>void;
   bankReceipt?:BankReceipt|null;
   onPrepareCancel: (provider: ExternalFinancialProvider, subscriptionId: string) => void;
@@ -107,7 +111,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
-  if (action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
+  if (action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
   );
@@ -122,6 +126,8 @@ export function StewardChatHome({
   onToggleReminder,
   onOpenSubscriptions,
   onOpenFunding,
+  onOpenTasks,
+  onPrepareTask,
   onPrepareTransfer,
   bankReceipt,
   onPrepareCancel,
@@ -135,6 +141,7 @@ export function StewardChatHome({
   onDuplicatePreference,
 }: Props) {
   const referenceTime = now ?? fundingReferenceTime(connections);
+  const [taskAttention,setTaskAttention]=useState(false);
   const funding = useMemo(() => buildFundingForecast(connections, referenceTime), [connections, referenceTime]);
   const fundingAttention = !refreshError && !refreshing && onOpenFunding
     ? funding.accounts.find(account => account.status === "shortfall") : undefined;
@@ -293,7 +300,7 @@ export function StewardChatHome({
       if(epoch!==contextEpoch.current)throw new Error('记忆已更新，本轮上下文已重置，请重新发送。');
       const bankOnly=isBankOperation(prompt) || (isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null);
       const snapshot = refreshSubscriptions ? await refreshSubscriptions().catch(cause=>({connections:{},error:cause instanceof Error?cause.message:'平台数据不可用'})) : null;
-      if (snapshot?.error && !bankOnly) throw new Error(snapshot.error);
+      if (snapshot?.error && !bankOnly && !isTaskRequest(requestMessages)) throw new Error(snapshot.error);
       const backgroundUnavailable=Boolean(snapshot?.error || (!snapshot && refreshError));
       const latestConnections = backgroundUnavailable?{}:snapshot?.connections || connections;
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
@@ -314,11 +321,15 @@ export function StewardChatHome({
       setRequestPhase('replying');
       const billQuestion = billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
       const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(latestConnections,billQuestion,billReferenceTime(latestConnections,latestTime)) : undefined;
-      const bankData=isBankRequest(requestMessages)?await bankRequest().catch(()=>null):null;
+      const bankData=isBankRequest(requestMessages)||isTaskRequest(requestMessages)?await bankRequest().catch(()=>null):null;
+      const tasks=isTaskRequest(requestMessages)?await taskRequest().catch(()=>null):null;
+      const taskEvents=tasks?calendarEvents(tasks.tasks,validBankSnapshot(bankData)?bankData.schedules??[]:[],Object.values(latestConnections).filter((s):s is ConnectedFinancialSource=>!!s)):[];
+      const taskContext=tasks?`日程记录（最多20项，未列出不代表没有；时间为北京时间）：${JSON.stringify(taskEvents.filter(t=>t.status==='pending'||t.status==='failed').slice(0,20).map(t=>({title:t.title,time:localTaskTime(t.dueAt),kind:t.kind,status:t.status}))).slice(0,2200)}${!bankData?'；银行安排未能更新':''}${backgroundUnavailable?'；平台续费未能更新':''}`:'提醒数据未能读取，不能断言没有任务。';
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
       const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         transferBackground,
+        taskContext,
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
         memoryContext:remembered?memoryContext(remembered,prompt):'',
         ...(billAnalysis ? {billAnalysis} : {}),
@@ -378,6 +389,7 @@ export function StewardChatHome({
           <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
+        {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
 
         {!activeReplyId && !sending && !error && <section className={`steward-live-summary steward-workbench ${attentionEvent || fundingAttention || pendingRecurring.length ? "has-attention" : "is-quiet"}`} aria-label="管家工作台">
           <div className="steward-presence" aria-label={`${stewardName}在这里`}>
@@ -395,6 +407,7 @@ export function StewardChatHome({
                   : attentionEvent
                   ? "有件事想和你确认一下。"
                   : transferAttention ? '这笔安排有新进展，可以查看或告诉我想怎么调整。'
+                  : taskAttention ? '有到时间的提醒，方便时看一下。'
                   : sourceLabel
                     ? "今天没有需要你处理的事。"
                     : `连接微信支付或支付宝后，${stewardName}只会在有需要时提醒你。`)}</p>
@@ -538,6 +551,8 @@ export function StewardChatHome({
                   {action?.type==='prepare_aa' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({...action,kind:'aa'})}>核对AA分摊<ArrowRight size={16}/></button>}
                   {action?.type==='open_transfers' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({recipientId:'mom',amount:0})}>打开智能转账<ArrowRight size={16}/></button>}
                   {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records'})}>查看转账安排<ArrowRight size={16}/></button>}
+                  {action?.type==='open_tasks'&&onOpenTasks&&!historyOpen&&<button onClick={()=>onOpenTasks()}>打开任务日历<ArrowRight size={16}/></button>}
+                  {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask(action)}>核对并保存提醒<ArrowRight size={16}/></button>}
                   {action?.type === "set_reminder" && related && !historyOpen && (
                     <span className="action-complete"><BellRing size={14} />{related.title}提醒已更新</span>
                   )}

@@ -59,6 +59,8 @@ import { StewardChatHome } from "./components/steward-chat-home";
 import { type DuplicatePreferences, type DuplicateDecision } from "./lib/subscription-insights";
 import { fundingReferenceTime } from "./lib/funding-forecast";
 import { FundingPlan } from "./components/funding-plan";
+import {TaskCalendar} from './components/task-calendar';
+import type {ReminderDraft} from './lib/task-calendar';
 import { useSubscriptionSync } from "./lib/use-subscription-sync";
 import type { RecurringReviews, RecurringReviewStatus } from "./components/recurring-subscription-review";
 import "./components/native-banking.css";
@@ -90,6 +92,7 @@ type Page =
   | "settings"
   | "connections"
   | "funding"
+  | "tasks"
   | "subscriptions";
 type Modal =
   | "steward"
@@ -263,6 +266,8 @@ export default function App() {
   const frozen=bank.state?.frozen ?? false;
   const controls=useMemo(()=>bank.state?.controls || {overseas:false,contactless:true,night:true},[bank.state]);
   const [bankIntent,setBankIntent]=useState<SmartIntent|null>(null);
+  const [taskDraft,setTaskDraft]=useState<ReminderDraft|null>(null);
+  const [taskDate,setTaskDate]=useState<number>();
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
   const limit=String((bank.state?.limit ?? 2000000)/100);
@@ -413,7 +418,7 @@ export default function App() {
   });
   usePhoneBridge();
   useEffect(() => {
-    if (page === "home" || page === "subscriptions" || page === "funding") void refreshSubscriptions();
+    if (page === "home" || page === "subscriptions" || page === "funding" || page === 'tasks') void refreshSubscriptions();
   }, [page, refreshSubscriptions]);
   useEffect(() => {
     const refresh = () => { void refreshSubscriptions(); };
@@ -675,6 +680,7 @@ export default function App() {
               </span>
             </button>
             <div className="topbar-right">
+              <button className="icon-control" aria-label="任务日历" title="任务日历" onClick={()=>go('tasks')}><CalendarDays size={21}/></button>
               {mode === "classic" ? (
                 <>
                   <span className="desktop-date">9月13日，星期日</span>
@@ -1428,6 +1434,7 @@ export default function App() {
                         ? `已识别 ${subscriptionInsights.items.length} 项自动续费`
                         : "自动识别、提醒与取消"}
                       onClick={() => go("subscriptions")} />
+                    <Row icon={CalendarDays} title="任务日历" subtitle="提醒、预约转账与续费安排" onClick={()=>go('tasks')}/>
                     <Row icon={Settings2} title="设置"
                       subtitle={`使用模式 · ${mode === "classic" ? "经典款" : "AI 原生"}`}
                       onClick={() => go("settings")} />
@@ -1578,6 +1585,7 @@ export default function App() {
               />
             </>
           )}
+          {page === 'tasks' && <><Heading title="任务日历"/><TaskCalendar initialDate={taskDate} schedules={bank.state?.schedules??[]} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={()=>setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(`${source}:${id}`);go('subscriptions');}}/></>}
           {page === "funding" && (
             <>
               <Heading title="近期资金安排" subtitle="分开核对每个账户，留足接下来的续费" />
@@ -1602,6 +1610,8 @@ export default function App() {
               onToggleReminder={toggleSubscriptionReminder}
               onOpenSubscriptions={() => go("subscriptions")}
               onOpenFunding={() => go("funding")}
+              onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
+              onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
               onPrepareTransfer={setBankIntent}
               bankReceipt={bankReceipt}
               onPrepareCancel={(provider, subscriptionId) => {

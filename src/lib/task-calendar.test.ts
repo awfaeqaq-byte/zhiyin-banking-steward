@@ -4,9 +4,19 @@ import {createTaskStore} from '../../server/task-store';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {isTaskRequest,parseStewardReply,buildStewardInstructions} from './steward-chat';
 
 const now=Date.parse('2026-09-28T10:00:00+08:00');
 describe('任务日历',()=>{
+ it('宁宁先准备提醒而不直接保存，不把账单提醒误分流',()=>{
+  const future=new Date(Date.now()+86400000).toISOString().slice(0,19)+'+08:00';
+  expect(parseStewardReply(`[ZHIYIN_ACTION:PREPARE_TASK|核对账单|${future}]`,[]).action?.type).toBe('prepare_task');
+  expect(parseStewardReply('[ZHIYIN_ACTION:PREPARE_TASK|核对账单|2020-01-01T10:00:00+08:00]',[]).action).toBeUndefined();
+  const msgs=[{role:'user' as const,content:'明天早上9点提醒我看看这个月账单'}];
+  expect(buildStewardInstructions({stewardName:'宁宁',subscriptions:[],messages:msgs})).toContain('PREPARE_TASK');
+  expect(isTaskRequest([...msgs,{role:'user',content:'取消网易云订阅'}])).toBe(false);
+  expect(isTaskRequest([...msgs,{role:'user',content:'改成10点'}])).toBe(true);
+ });
  it('按北京时间归日，跨年、闰年月网格完整',()=>{
   expect(dayKey(Date.parse('2026-09-28T17:00:00Z'))).toBe('2026-09-29');
   expect(calendarDays('2028-02')).toHaveLength(35);
@@ -20,6 +30,7 @@ describe('任务日历',()=>{
   const completed=updateTasks(first,{type:'status',revision:1,id:'one',status:'completed'},now);
   expect(completed.tasks[0].status).toBe('completed');
   expect(()=>updateTasks(first,{type:'save',revision:1,id:'two',title:' ',dueAt:now-1},now)).toThrow();
+  // @ts-expect-error An untrusted API caller can send an unknown status.
   expect(()=>updateTasks(first,{type:'status',revision:1,id:'one',status:'paid'},now)).toThrow();
  });
  it('后端重建后仍能读取，不丢失任务',()=>{
