@@ -2,7 +2,31 @@ import {render,screen,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {afterEach,it,expect,vi} from 'vitest';
 import {SmartTransfers} from './smart-transfers';
+import {BankTransfer} from './bank-transfer';
 afterEach(()=>{vi.restoreAllMocks();localStorage.clear();});
+it('管家带来的保留金额可核对修改，执行前展示资金影响',async()=>{
+ const user=userEvent.setup(),calls:Record<string,unknown>[]=[];
+ vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{
+  const body=JSON.parse(String(options?.body||'{}'));calls.push(body);
+  return new Response(JSON.stringify({...body,id:'budget',balance:4230000,impact:{pendingTotal:200000,protectedAmount:1200000,remaining:2630000,available:2000000}}));
+ });
+ render(<BankTransfer initial={{recipientId:'mom',amount:200000,protectedAmount:1200000}} onDone={vi.fn()}/>);
+ expect(screen.getByLabelText('转账后至少保留（元）')).toHaveValue('12000');
+ await user.click(screen.getByRole('button',{name:'核对即时转账'}));
+ expect(await screen.findByText('其他待执行预约')).toBeVisible();
+ expect(screen.getByText('¥26,300')).toBeVisible();
+ expect(calls.find(c=>c.type==='prepare')).toMatchObject({protectedAmount:1200000});
+ expect(calls.some(c=>c.type==='confirm')).toBe(false);
+});
+it('查询安排直接打开记录页，失败任务提供重新安排且不自动付款',async()=>{
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[],schedules:[{id:'failed',recipientId:'mom',amount:200000,protectedAmount:1200000,executeAt:1,createdAt:1,status:'failed',error:'保留金额不足'}]})));
+ render(<SmartTransfers initial={{kind:'records'}} onDone={vi.fn()}/>);
+ expect(await screen.findByText('执行失败')).toBeVisible();
+ await userEvent.click(screen.getByRole('button',{name:'重新安排'}));
+ expect(screen.getByLabelText('转账金额（元）')).toHaveValue('2000');
+ expect(screen.getByLabelText('转账后至少保留（元）')).toHaveValue('12000');
+ expect(screen.getByLabelText('执行方式')).toHaveValue('scheduled');
+});
 it('AA先核对再授权发起，在记录中展示待收而不是已到账',async()=>{
  const user=userEvent.setup(),calls:Record<string,unknown>[]=[];
  const snapshot={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[],aaRequests:[] as unknown[]};
