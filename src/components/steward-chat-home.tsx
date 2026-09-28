@@ -3,6 +3,7 @@ import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, type Bil
 import { StewardReplyContent } from './steward-reply';
 import {TransferFollowUp} from './transfer-follow-up';
 import {TaskDueNotice} from './task-due-notice';
+import {ExpenseNotebook,type ExpenseNotebookHandle} from './expense-notebook';
 import { parseReplyChoices } from '../lib/reply-choices';
 import {memoryContext,parseMemoryProposal} from '../lib/steward-memory';
 import {parseImpression} from '../lib/steward-profile';
@@ -142,6 +143,7 @@ export function StewardChatHome({
   duplicatePreferences = EMPTY_DUPLICATE_PREFERENCES,
   onDuplicatePreference,
 }: Props) {
+  const expenseNotebook=useRef<ExpenseNotebookHandle>(null);
   const referenceTime = now ?? fundingReferenceTime(connections);
   const [taskAttention,setTaskAttention]=useState(false);
   const funding = useMemo(() => buildFundingForecast(connections, referenceTime), [connections, referenceTime]);
@@ -298,6 +300,8 @@ export function StewardChatHome({
     setResolution(null);
     setHistoryOpen(false);
     try {
+      const expenseReply=await expenseNotebook.current?.handle(prompt);
+      if(expenseReply){const id=`assistant-${Date.now()}`;setMessages(current=>[...current,{id,role:'assistant',content:expenseReply}]);setActiveReplyId(id);return;}
       const remembered=memory ? await memory.refresh() : null;
       if(epoch!==contextEpoch.current)throw new Error('记忆已更新，本轮上下文已重置，请重新发送。');
       const bankOnly=isBankOperation(prompt) || (isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null);
@@ -390,6 +394,7 @@ export function StewardChatHome({
           <span>今天</span>
           <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
+        {onOpenGroupAA&&<ExpenseNotebook ref={expenseNotebook} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
         {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
 
