@@ -1,5 +1,5 @@
 import type { ExternalFinancialProvider } from "./financial-connections";
-import {validTransfer,bankRecipients,splitAA,type AAIntent,type TransferIntent,type BankSnapshot} from './bank-transfer';
+import {validTransfer,bankRecipients,splitAA,transferImpact,validBankSnapshot,type AAIntent,type TransferIntent,type BankSnapshot} from './bank-transfer';
 import type { FundingForecast } from "./funding-forecast";
 import type { RecurringCandidate } from "./recurring-payments";
 import type { DuplicateDecision } from "./subscription-insights";
@@ -312,6 +312,18 @@ export const requestStewardReply: StewardReplyFn = async request => {
   const needsBudget=/留够|留出|保留|预留|不影响.*还款|保证.*还款/.test(userContext) && !/(不用|不需要|无需|取消).{0,5}(保留|预留)|不留预算/.test(newestUser?.content??'');
   const verifyBudget=(reply:StewardReply):StewardReply=>needsBudget && (reply.action?.type==='open_transfers' || (reply.action?.type==='prepare_transfer' && reply.action.protectedAmount===undefined))
     ?{text:'这笔安排还缺少保留金额的核对。你希望银行卡至少留下多少钱用于还款和生活费？确认总额后，我再一起计算。'}:reply;
+  const verifyPlan=(reply:StewardReply):StewardReply=>{
+    const checked=verifyBudget(reply);
+    if(checked.action?.type!=='prepare_transfer')return checked;
+    if(!validBankSnapshot(request.bank))return {...checked,text:'我先把安排交给你核对。当前未能读取银行卡余额，核对页会重新检查，尚未付款。'};
+    if(request.bank.frozen)return {text:'这张卡当前已挂失，暂时无法转账。需要先在银行卡管理中处理。'};
+    const impact=transferImpact(request.bank,checked.action);
+    const yuan=(value:number)=>(value/100).toLocaleString('zh-CN',{maximumFractionDigits:2});
+    if(impact.remaining<0 || checked.action.amount>request.bank.limit)return {text:`按当前余额、其他预约和需保留金额计算，这次最多可转 ¥${yuan(impact.available)}。需要调整安排。\n[[choices:我改一下转账金额|先核对保留金额|先不转了]]`};
+    return {...checked,text:impact.protectedAmount || impact.pendingTotal
+      ?`计入这笔转账、其他预约和需保留金额后，银行卡仍可安排 ¥${yuan(impact.remaining)}。核对方案后再授权；这是当前余额测算，资金未冻结。`
+      :'已整理好这笔安排，请核对后授权。尚未付款。'};
+  };
   if (newestUser && newestUser.content.length > 2000) {
     throw new Error("这条问题内容过长，请缩短后再发送。");
   }
@@ -357,11 +369,11 @@ export const requestStewardReply: StewardReplyFn = async request => {
       const data=await repair.json();
       if(repair.ok && typeof data.output_text==='string') {
         const fixed=parseStewardReply(data.output_text,request.subscriptions,request.duplicateGroups);
-        if(fixed.action)return verifyBudget(fixed);
+        if(fixed.action)return verifyPlan(fixed);
         return fixed;
       }
     }catch{/* A manual entry remains available if action repair fails. */}
     return verifyBudget({text:'可以在智能转账里核对收款人、金额和时间，再确认办理。',action:{type:'open_transfers'}});
   }
-  return verifyBudget(result);
+  return verifyPlan(result);
 };
