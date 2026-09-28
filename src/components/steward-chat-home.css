@@ -446,3 +446,6 @@
   .steward-quick-prompts { padding-left: 0; }
   .steward-quick-prompts button { gap: 12px; padding-inline: 8px; }
 }
+.transfer-follow-up { margin: 8px 0 16px; padding: 14px 16px; border-left: 3px solid #248794; border-radius: 4px 12px 12px 4px; background: #edf7f7; }
+.transfer-follow-up p { margin: 0 0 7px; font-size: 13px; line-height: 1.55; }
+.transfer-follow-up p strong { font-size: 15px; }

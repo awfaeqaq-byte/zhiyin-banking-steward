@@ -10,6 +10,7 @@ export function BankTransfer({initial,onDone}:{initial:TransferIntent;onDone:(re
  const [query,setQuery]=useState(''),[scheduled,setScheduled]=useState(!!initial.executeAt),[date,setDate]=useState(initial.executeAt?localTime(initial.executeAt):''),[schedule,setSchedule]=useState<BankSchedule|null>(null);
  const [draft,setDraft]=useState<BankDraft|null>(null),[receipt,setReceipt]=useState<BankReceipt|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false);
  const lock=useRef(false);
+ useEffect(()=>{if(draft)setProtectedAmount(draft.protectedAmount===undefined?'':String(draft.protectedAmount/100));},[draft]);
  function complete(value:BankReceipt){setReceipt(value);setUncertain(false);try{localStorage.removeItem(pendingKey);}catch{/* A repeated receipt is idempotent. */}window.dispatchEvent(new Event('zhiyin-bank-updated'));onDone(value);}
  function scheduledDone(value:BankSchedule){setSchedule(value);setUncertain(false);localStorage.removeItem(pendingKey);window.dispatchEvent(new Event('zhiyin-bank-updated'));}
  useEffect(()=>{

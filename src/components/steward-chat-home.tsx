@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, type BillAnalysis } from '../lib/bill-analysis';
 import { StewardReplyContent } from './steward-reply';
+import {TransferFollowUp} from './transfer-follow-up';
 import { parseReplyChoices } from '../lib/reply-choices';
 import {memoryContext,parseMemoryProposal} from '../lib/steward-memory';
 import {parseImpression} from '../lib/steward-profile';
@@ -177,7 +178,7 @@ export function StewardChatHome({
     if(!bankReceipt)return;
     const id=`bank-${bankReceipt.id}`;
     const name=bankRecipients.find(r=>r.id===bankReceipt.recipientId)?.name || '收款人';
-    const content=`银行沙箱回执：向${name}转账${(bankReceipt.amount/100).toFixed(2)}元已完成。交易后银行卡余额${(bankReceipt.balanceAfter/100).toFixed(2)}元；回执号${bankReceipt.id}。未预留还款预算。`;
+    const content=`向${name}转账${(bankReceipt.amount/100).toFixed(2)}元已完成。交易后银行卡余额${(bankReceipt.balanceAfter/100).toFixed(2)}元；回执号${bankReceipt.id}。${bankReceipt.protectedAmount?`已核对本次保留金额${(bankReceipt.protectedAmount/100).toFixed(2)}元；没有冻结资金或自动还款。`:'本次未设置保留金额。'}`;
     setMessages(current=>current.some(m=>m.id===id)?current:[...current,{id,role:'assistant',content}]);
     setActiveReplyId(id);setActiveBill(null);
   },[bankReceipt]);
@@ -290,16 +291,17 @@ export function StewardChatHome({
       const remembered=memory ? await memory.refresh() : null;
       if(epoch!==contextEpoch.current)throw new Error('记忆已更新，本轮上下文已重置，请重新发送。');
       const bankOnly=isBankOperation(prompt) || (isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null);
-      const snapshot = refreshSubscriptions && !bankOnly ? await refreshSubscriptions() : null;
-      if (snapshot?.error) throw new Error(snapshot.error);
-      const latestConnections = snapshot?.connections || connections;
+      const snapshot = refreshSubscriptions ? await refreshSubscriptions().catch(cause=>({connections:{},error:cause instanceof Error?cause.message:'平台数据不可用'})) : null;
+      if (snapshot?.error && !bankOnly) throw new Error(snapshot.error);
+      const backgroundUnavailable=Boolean(snapshot?.error || (!snapshot && refreshError));
+      const latestConnections = backgroundUnavailable?{}:snapshot?.connections || connections;
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
       const latestInsights = buildSubscriptionInsights(latestConnections, latestTime, duplicatePreferences);
       const latestGroups = subscriptionGroups(latestInsights.items).map(group => ({
         id: duplicateGroupKey(group), titles: group.map(item => item.title),
         kept: duplicatePreferences[duplicateGroupKey(group)]?.decision === 'keep',
       }));
-      const latestSubscriptions = snapshot ? latestInsights.items.map(item => ({
+      const latestSubscriptions = snapshot || backgroundUnavailable ? latestInsights.items.map(item => ({
         key: item.key, provider: item.provider, id: item.id, title: item.title,
         providerName: item.providerName, amount: item.amount, cycle: item.cycle,
         daysUntilCharge: item.daysUntilCharge,
@@ -312,7 +314,10 @@ export function StewardChatHome({
       const billQuestion = billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
       const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(latestConnections,billQuestion,billReferenceTime(latestConnections,latestTime)) : undefined;
       const bankData=isBankRequest(requestMessages)?await bankRequest().catch(()=>null):null;
+      const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
+      const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
       const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+        transferBackground,
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
         memoryContext:remembered?memoryContext(remembered,prompt):'',
         ...(billAnalysis ? {billAnalysis} : {}),
@@ -371,6 +376,7 @@ export function StewardChatHome({
           <span>今天</span>
           <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
+        {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})}/>}
 
         {!activeReplyId && !sending && !error && <section className={`steward-live-summary steward-workbench ${attentionEvent || fundingAttention || pendingRecurring.length ? "has-attention" : "is-quiet"}`} aria-label="管家工作台">
           <div className="steward-presence" aria-label={`${stewardName}在这里`}>
