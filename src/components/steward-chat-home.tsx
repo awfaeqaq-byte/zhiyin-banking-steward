@@ -4,8 +4,9 @@ import { StewardReplyContent } from './steward-reply';
 import { parseReplyChoices } from '../lib/reply-choices';
 import {memoryContext,parseMemoryProposal} from '../lib/steward-memory';
 import {parseImpression} from '../lib/steward-profile';
-import {bankRecipients,bankRequest,validBankSnapshot,type TransferIntent,type BankReceipt} from '../lib/bank-transfer';
-import {isBankRequest} from '../lib/steward-chat';
+import {bankRecipients,bankRequest,validBankSnapshot,type BankReceipt} from '../lib/bank-transfer';
+import type {SmartIntent} from './smart-transfers';
+import {isBankRequest,isBankOperation} from '../lib/steward-chat';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
 import {
   ArrowRight,
@@ -69,7 +70,7 @@ type Props = {
   onToggleReminder: (key: string, enabled: boolean) => void;
   onOpenSubscriptions: () => void;
   onOpenFunding?: () => void;
-  onPrepareTransfer?: (intent:TransferIntent)=>void;
+  onPrepareTransfer?: (intent:SmartIntent)=>void;
   bankReceipt?:BankReceipt|null;
   onPrepareCancel: (provider: ExternalFinancialProvider, subscriptionId: string) => void;
   reply?: StewardReplyFn;
@@ -105,7 +106,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
-  if (action.type === "prepare_transfer" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
+  if (action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
   );
@@ -288,7 +289,8 @@ export function StewardChatHome({
     try {
       const remembered=memory ? await memory.refresh() : null;
       if(epoch!==contextEpoch.current)throw new Error('记忆已更新，本轮上下文已重置，请重新发送。');
-      const snapshot = refreshSubscriptions ? await refreshSubscriptions() : null;
+      const bankOnly=isBankOperation(prompt) || (isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null);
+      const snapshot = refreshSubscriptions && !bankOnly ? await refreshSubscriptions() : null;
       if (snapshot?.error) throw new Error(snapshot.error);
       const latestConnections = snapshot?.connections || connections;
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
@@ -308,7 +310,7 @@ export function StewardChatHome({
         .map(item => ({ ...item, reviewStatus: recurringReviews[item.key] === "confirmed" ? "confirmed" as const : "pending" as const }));
       setRequestPhase('replying');
       const billQuestion = billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
-      const billAnalysis = billQuestion !== null && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(latestConnections,billQuestion,billReferenceTime(latestConnections,latestTime)) : undefined;
+      const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(latestConnections,billQuestion,billReferenceTime(latestConnections,latestTime)) : undefined;
       const bankData=isBankRequest(requestMessages)?await bankRequest().catch(()=>null):null;
       const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
@@ -524,7 +526,9 @@ export function StewardChatHome({
                   {action?.type === "open_funding" && onOpenFunding && !historyOpen && (
                     <button onClick={onOpenFunding}>查看近期资金安排<ArrowRight size={16} /></button>
                   )}
-                  {action?.type==='prepare_transfer' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer(action)}>核对银行转账<ArrowRight size={16}/></button>}
+                  {action?.type==='prepare_transfer' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer(action)}>{action.executeAt?'核对预约转账':'核对银行转账'}<ArrowRight size={16}/></button>}
+                  {action?.type==='prepare_aa' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({...action,kind:'aa'})}>核对AA分摊<ArrowRight size={16}/></button>}
+                  {action?.type==='open_transfers' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({recipientId:'mom',amount:0})}>打开智能转账<ArrowRight size={16}/></button>}
                   {action?.type === "set_reminder" && related && !historyOpen && (
                     <span className="action-complete"><BellRing size={14} />{related.title}提醒已更新</span>
                   )}

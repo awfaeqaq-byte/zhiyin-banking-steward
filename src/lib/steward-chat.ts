@@ -26,6 +26,7 @@ export type StewardSubscription = {
 export type StewardAction =
   | ({type:'prepare_transfer'} & TransferIntent)
   | ({type:'prepare_aa'} & AAIntent)
+  | {type:'open_transfers'}
   | { type: "set_duplicate_preference"; groupId: string; decision: DuplicateDecision }
   | { type: "open_subscriptions" }
   | { type: "open_funding" }
@@ -130,6 +131,7 @@ function fundingContext(forecast: FundingForecast | undefined, question: string)
 
 import { choiceInstructions } from './reply-choices';
 export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约/.test(messages.slice(-4).map(m=>m.content).join(' '));
+export const isBankOperation=(text:string)=>/AA|aa|平摊|均摊|拆分.*收款|(?:给|向).{1,25}(?:转|汇)|预约.*转|定时.*转/.test(text);
 
 export function buildStewardInstructions({
   stewardName,
@@ -144,7 +146,7 @@ export function buildStewardInstructions({
 }: Pick<StewardReplyRequest, "stewardName" | "subscriptions" | "recurringCandidates" | "fundingForecast" | "duplicateGroups" | "billAnalysis" | "memoryContext" | "bank">
   & Partial<Pick<StewardReplyRequest, "messages">>) {
   const question = [...messages].reverse().find(message => message.role === "user")?.content || "";
-  if(!billAnalysis && (!isBillQuestion(question) || /银行|常用卡/.test(question)) && isBankRequest(messages))return [
+  if(isBankOperation(question) || (!billAnalysis && (!isBillQuestion(question) || /银行|常用卡/.test(question)) && isBankRequest(messages)))return [
     `你是${stewardName}，知银的个人银行管家。用户是叶先生。`,
     memoryContext,
     bank?`当前银行沙箱（金额单位为分）：${JSON.stringify({balance:bank.balance,limit:bank.limit,frozen:bank.frozen,controls:bank.controls,recentReceipts:bank.transactions.slice(-3),schedules:bank.schedules?.slice(-10),aaRequests:bank.aaRequests?.slice(-10)})}。其他平台资金不能抵扣此卡支付；完整记录在智能转账的记录页。`:'当前银行数据不可用，不能报告余额或断言交易成功，可以引导核对方案。',
@@ -156,6 +158,7 @@ export function buildStewardInstructions({
     '即时转账格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|收款人id|正整数分]；预约格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|收款人id|正整数分|YYYY-MM-DDTHH:mm:ss+08:00]。2000元=200000分。禁止将预约降级成即时转账。',
     'AA需确认总金额、其他参与人、是否包含用户本人。格式：[ZHIYIN_ACTION:PREPARE_AA|总额分|逗号分隔的其他参与人id|true或false]，true含自己。不确定参与人或含不含自己就问。后端精确分摊尾差；发起只是待收，不代表收到钱，沙箱模拟对方付款才入账。',
     '用户否定、取消或仅询问时不能输出转账动作。取消已有预约或AA时引导智能转账→记录操作。只输出一个动作，成功与否只以系统回执为准，不要照搬历史聊天的成功声明。涉及还款预算应说明不会锁定资金。',
+    '重要：准备方案不等于付款授权。信息完整且用户要求办理时，必须在回复末尾输出上面的动作标记，前端靠标记展示核对按钮。不要只说“请确认”却漏掉标记。授权发生在按钮打开后的核对页，无需在聊天中重复索要确认。正文只用一两句说明，不要Markdown表格，不复述完整金额清单；精确拆分由核对页展示。',
     choiceInstructions,
   ].filter(Boolean).join('\n');
   if (isBillQuestion(question) || billAnalysis) return billInstructions(stewardName, billAnalysis, memoryContext);
@@ -315,5 +318,24 @@ export const requestStewardReply: StewardReplyFn = async request => {
   if (typeof payload.output_text !== "string" || !payload.output_text.trim()) {
     throw new Error("模型没有返回有效内容，请重新发送。");
   }
-  return parseStewardReply(payload.output_text, request.subscriptions, request.duplicateGroups);
+  const result=parseStewardReply(payload.output_text, request.subscriptions, request.duplicateGroups);
+  if(!result.action && newestUser && isBankRequest(request.messages) && /准备|方案|核对|确认/.test(result.text)) {
+    // Repair the missing UI action once. The model still only prepares a draft;
+    // no network request here can authorize a payment.
+    try {
+      const repair=await fetch('/api/zhiyin/steward-reply',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({instructions:`${instructions}\n上次回答未包含动作标记，核对按钮无法展示。重新检查原用户需求：若收款人、金额（预约还需具体时间；AA还需参与人及是否包含自己）完整且用户要求办理，必须输出对应的单个ZHIYIN_ACTION标记；否则只问缺失信息。不要执行付款，不要编造任何字段。`,input}),
+        signal:AbortSignal.timeout(30000),
+      });
+      const data=await repair.json();
+      if(repair.ok && typeof data.output_text==='string') {
+        const fixed=parseStewardReply(data.output_text,request.subscriptions,request.duplicateGroups);
+        if(fixed.action)return fixed;
+        return {...fixed,action:{type:'open_transfers'}};
+      }
+    }catch{/* A manual entry remains available if action repair fails. */}
+    return {text:'可以在智能转账里核对收款人、金额和时间，再确认办理。',action:{type:'open_transfers'}};
+  }
+  return result;
 };

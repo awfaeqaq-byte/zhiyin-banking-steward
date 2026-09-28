@@ -23,7 +23,7 @@ export function createBankStore(file:string) {
   try{const s=read(),result=fn(s);writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});renameSync(file+'.tmp',file);return result;}finally{closeSync(lock);unlinkSync(file+'.lock');}
  }
  return {
-  schedule(id:string,now=Date.now()){return mutate(s=>{guard(s,now);return authorizeSchedule(s,id,now);});},
+  schedule(id:string,now=Date.now()){return mutate(s=>{const existing=s.schedules?.find(item=>item.id===id);if(existing)return existing;guard(s,now);return authorizeSchedule(s,id,now);});},
   cancelSchedule(id:string){return mutate(s=>{const item=s.schedules?.find(x=>x.id===id);if(!item)throw new Error('预约不存在');if(item.status==='cancelled')return item;if(item.status!=='pending')throw new Error('预约已经执行或结束');item.status='cancelled';s.revision++;return item;});},
   runDue(now=Date.now()){
    if(!read().schedules?.some(s=>s.status==='pending' && s.executeAt<=now))return [];

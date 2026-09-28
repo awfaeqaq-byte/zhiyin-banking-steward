@@ -6,6 +6,8 @@ export function useBankAccount(){
  const accept=useCallback((value:unknown)=>{if(!validBankSnapshot(value))throw new Error('银行账户数据不可用');if(!current.current || value.revision>=current.current.revision){current.current=value;setState(value);}return value;},[]);
  const refresh=useCallback(async()=>{try{const next=accept(await bankRequest());setError('');return next;}catch(e){setError(e instanceof Error?e.message:'银行账户加载失败');return null;}},[accept]);
  useEffect(()=>{void refresh();const run=()=>void refresh();window.addEventListener('zhiyin-bank-updated',run);window.addEventListener('zhiyin-phone-foreground',run);return()=>{window.removeEventListener('zhiyin-bank-updated',run);window.removeEventListener('zhiyin-phone-foreground',run);};},[refresh]);
+ const awaitingTransfer=state?.schedules?.some(item=>item.status==='pending')??false;
+ useEffect(()=>{if(!awaitingTransfer)return;const timer=setInterval(()=>void refresh(),3000);return()=>clearInterval(timer);},[awaitingTransfer,refresh]);
  const change=async(settings:Omit<BankSettings,'revision'>)=>{
   if(!current.current || busy)return false;
   setBusy(true);setError('');

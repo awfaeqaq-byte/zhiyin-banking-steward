@@ -433,6 +433,20 @@ describe("知银管家大模型协议", () => {
     )).toEqual({ text: "已经取消。" });
   });
 
+  it('转账模型漏动作时只修复一次，返回核对动作而非直接付款',async()=>{
+    const mock=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({output_text:'已准备方案，请核对。'})}).mockResolvedValueOnce({ok:true,json:async()=>({output_text:'请核对[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|10000]'})});
+    vi.stubGlobal('fetch',mock);
+    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转100元'}]});
+    expect(result.action).toEqual({type:'prepare_transfer',recipientId:'mom',amount:10000});
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock.mock.calls.every(([url])=>url==='/api/zhiyin/steward-reply')).toBe(true);
+  });
+  it('动作修复失败提供手动入口，不编造金额和收款人',async()=>{
+    const mock=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({output_text:'请核对方案。'})}).mockRejectedValueOnce(Error('unavailable'));
+    vi.stubGlobal('fetch',mock);
+    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转100元'}]});
+    expect(result.action).toEqual({type:'open_transfers'});expect(mock).toHaveBeenCalledTimes(2);
+  });
   it("能解析提醒开关和打开订阅中心动作", () => {
     expect(parseStewardReply(
       `已关闭这项提醒。\n[ZHIYIN_ACTION:SET_REMINDER|alipay|sub-video|off]`,

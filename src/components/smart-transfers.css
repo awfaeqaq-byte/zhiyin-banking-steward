@@ -1,0 +1,22 @@
+.smart-transfers{display:grid;gap:18px;min-width:0}
+.smart-tabs{display:flex;gap:4px;background:var(--surface,#edf5f5);padding:4px;border-radius:12px}
+.smart-tabs button{flex:1;border:0;border-radius:9px;padding:10px 6px;font:inherit;color:var(--muted);background:transparent}
+.smart-tabs button[aria-pressed=true]{background:var(--paper,#fff);color:var(--ink);box-shadow:0 1px 5px #183a4010}
+.smart-tabs button:focus-visible,.smart-person:focus-within{outline:2px solid #277888;outline-offset:2px}
+.smart-people{border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.smart-people legend{padding:0 5px;color:var(--muted)}
+.smart-person{display:flex;align-items:center;gap:12px;padding:10px 0;cursor:pointer}
+.smart-person input{accent-color:#277888;width:18px;height:18px;flex:none}
+.smart-person span{display:grid;gap:2px}.smart-person small{color:var(--muted);font-size:12px}
+.smart-preview,.smart-confirm{display:grid;gap:10px;padding:16px;background:#edf7f8;border-radius:12px;color:var(--ink)}
+.smart-preview span{font-size:13px;color:var(--muted)}
+.smart-records{display:grid;gap:14px}.smart-records h3{margin:0;font-size:16px}
+.smart-record{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;min-width:0}
+.smart-record p{margin:0;font-size:13px;color:var(--muted)}
+.smart-record-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.smart-record-heading span{font-size:12px;flex-shrink:0;color:var(--muted)}
+.smart-record-heading button{background:none;border:0;color:#277888;font:inherit;padding:8px}
+.smart-record progress{width:100%;height:5px;accent-color:#277888;border:0}
+.smart-simulation{padding:10px;background:var(--surface,#f5f8f8);border-radius:8px;font-size:13px}
+.smart-simulation summary{cursor:pointer}.smart-simulation button{margin-top:10px;width:100%}
+.smart-record .bank-transfer-facts{font-size:13px}.smart-transfers input[type=datetime-local]{max-width:100%;min-width:0}

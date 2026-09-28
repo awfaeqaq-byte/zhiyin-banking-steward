@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createBankStore} from '../../server/bank-store';
 import {findBankRecipients,splitAA} from './bank-transfer';
-import {parseStewardReply} from './steward-chat';
+import {parseStewardReply,buildStewardInstructions} from './steward-chat';
 const dirs:string[]=[];
 afterEach(()=>{dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true}));});
 const now=Date.parse('2026-09-28T10:00:00+08:00');
@@ -33,7 +33,7 @@ it('预约可以撤销；冻结、余额和限额在执行时再次检查，失�
  const a=bank.prepare({recipientId:'dad',amount:100,executeAt:now+60000},now);bank.schedule(a.id,now+1);bank.cancelSchedule(a.id);bank.runDue(now+60000);
  expect(bank.get().schedules?.[0].status).toBe('cancelled');
  const b=bank.prepare({recipientId:'mom',amount:100,executeAt:now+120000},now);bank.schedule(b.id,now+1);
- bank.configure({revision:bank.get().revision,frozen:true});bank.runDue(now+120000);
+ bank.configure({revision:bank.get().revision,frozen:true});expect(bank.schedule(b.id,now+2).status).toBe('pending');bank.runDue(now+120000);
  expect(bank.get().schedules?.[1].status).toBe('failed');expect(bank.get().transactions).toHaveLength(0);
  expect(()=>bank.prepare({recipientId:'mom',amount:100,executeAt:now-1},now)).toThrow();
 });
@@ -56,4 +56,34 @@ it('AA发起不入账；对方沙箱付款后入账，重复付款幂等，取�
 it('大模型可准备预约与AA，但不直接执行扣款',()=>{
  expect(parseStewardReply('[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|20000|2026-09-30T10:00:00+08:00]',[]).action).toMatchObject({type:'prepare_transfer',executeAt:Date.parse('2026-09-30T10:00:00+08:00')});
  expect(parseStewardReply('[ZHIYIN_ACTION:PREPARE_AA|10000|mom,dad|true]',[]).action).toMatchObject({type:'prepare_aa',amount:10000,recipientIds:['mom','dad'],includeSelf:true});
+});
+it('聚餐花费加AA意图不会误入账单解读',()=>{
+ expect(buildStewardInstructions({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'今天聚餐花了100，和妈妈爸爸三个人AA，包含我'}]})).toContain('PREPARE_AA');
+ for(const marker of ['PREPARE_AA|100|mom,mom|false','PREPARE_AA|100|unknown|true','PREPARE_AA|1|mom,dad|true','PREPARE_TRANSFER|mom|100|nonsense'])expect(parseStewardReply(`[ZHIYIN_ACTION:${marker}]`,[]).action).toBeUndefined();
+});
+it('AA收齐、重复发起与重启恢复，非法输入不可创建或偷改原单',()=>{
+ const bank=setup(),input={requestId:'persist',title:'聚餐',amount:200,recipientIds:['mom','dad'] as const,includeSelf:false};
+ const valid={...input,recipientIds:[...input.recipientIds]};
+ const aa=bank.createAA(valid,now);expect(bank.createAA(valid,now+1)).toEqual(aa);
+ expect(()=>bank.createAA({...valid,amount:300},now)).toThrow(/变化/);
+ expect(()=>bank.createAA({...valid,title:''},now)).toThrow();
+ expect(()=>bank.settleAA('unknown','mom',now)).toThrow();
+ bank.settleAA(aa.id,'mom',now+1);bank.settleAA(aa.id,'dad',now+2);
+ expect(bank.get().aaRequests?.[0].status).toBe('completed');
+ expect(()=>bank.cancelAA(aa.id)).toThrow(/结束/);
+ expect(()=>bank.cancelAA('unknown')).toThrow();
+ const restored=createBankStore(join(dirs.at(-1)!,'bank.json'));
+ expect(restored.get()).toEqual(bank.get());
+ expect(restored.settleAA(aa.id,'dad',now+3).amount).toBe(100);
+});
+it('预约不能用立即确认执行、不能撤销已完成交易，过期方案不可授权',()=>{
+ const bank=setup();
+ const d=bank.prepare({recipientId:'mom',amount:100,executeAt:now+600000},now);
+ expect(()=>bank.confirm(d.id,now+1)).toThrow(/预约/);
+ expect(()=>bank.schedule(d.id,now+300001)).toThrow(/过期/);
+ expect(()=>bank.cancelSchedule('unknown')).toThrow();
+ const a=bank.prepare({recipientId:'mom',amount:100,executeAt:now+60000},now);
+ bank.schedule(a.id,now+1);bank.runDue(now+60000);
+ expect(()=>bank.cancelSchedule(a.id)).toThrow(/结束/);
+ expect(bank.status(a.id).schedule?.status).toBe('completed');
 });

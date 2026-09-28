@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode, type FormEvent } from "re
 import {useStewardMemory} from './lib/use-steward-memory';
 import {MemoryManager} from './components/memory-manager';
 import {useBankAccount} from './lib/use-bank-account';
-import {BankTransfer} from './components/bank-transfer';
-import {bankRecipients,type TransferIntent,type BankReceipt} from './lib/bank-transfer';
+import {SmartTransfers,type SmartIntent} from './components/smart-transfers';
+import {bankRecipients,type BankReceipt} from './lib/bank-transfer';
 import {money as bankMoney} from './lib/native-banking';
 import {
   ArrowDownRight,
@@ -262,7 +262,7 @@ export default function App() {
   const bank=useBankAccount();
   const frozen=bank.state?.frozen ?? false;
   const controls=useMemo(()=>bank.state?.controls || {overseas:false,contactless:true,night:true},[bank.state]);
-  const [bankIntent,setBankIntent]=useState<TransferIntent|null>(null);
+  const [bankIntent,setBankIntent]=useState<SmartIntent|null>(null);
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
   const limit=String((bank.state?.limit ?? 2000000)/100);
@@ -1312,9 +1312,10 @@ export default function App() {
                   <section className="surface bank-ledger" aria-label="银行卡余额与流水">
                     <div className="section-line"><h3>可用余额</h3><button className="text-link" onClick={()=>void bank.refresh()}>刷新账户</button></div>
                     <strong>{bank.state?bankMoney(bank.state.balance):'等待读取账户'}</strong>
-                    <Button disabled={!bank.state || frozen || bank.busy} onClick={()=>setBankIntent({recipientId:'mom',amount:200000})}>即时转账</Button>
+                    <Button disabled={!bank.state || bank.busy} onClick={()=>setBankIntent({recipientId:'mom',amount:0})}>智能转账与AA收款</Button>
                     {bank.error&&<p role="alert">{bank.error}</p>}
                     <h3>银行转账账单</h3>
+                    {!!bank.state?.collections?.length&&<div className="bank-ledger-list">{[...bank.state.collections].reverse().map(c=><details key={c.id}><summary><span>AA收款 · {bankRecipients.find(r=>r.id===c.recipientId)?.name}<small>{new Date(c.completedAt).toLocaleString('zh-CN')}</small></span><strong>+{bankMoney(c.amount)}</strong></summary><p>已到账 · 常用卡8888 · 入账后余额 {bankMoney(c.balanceAfter)}</p><small>回执 {c.id}</small></details>)}</div>}
                     {bank.state?.transactions.length?<div className="bank-ledger-list">{[...bank.state.transactions].reverse().map(t=><details key={t.id}><summary><span>转给{bankRecipients.find(r=>r.id===t.recipientId)?.name}<small>{new Date(t.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(t.amount)}</strong></summary><p>已完成 · 付款卡8888 · 收款尾号{bankRecipients.find(r=>r.id===t.recipientId)?.accountLast4}</p><p>交易后余额 {bankMoney(t.balanceAfter)}</p><small>回执 {t.id}</small></details>)}</div>:<p className="fine-print left">尚无银行沙箱转账记录。</p>}
                     {!!bank.state?.payments?.length&&<div className="bank-ledger-list">{[...bank.state.payments].reverse().map(p=><details key={p.id}><summary><span>{p.merchant}<small>{p.channel==='wechat'?'微信支付':'支付宝'} · {new Date(p.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(p.amount)}</strong></summary><p>付款卡8888 · 交易后余额 {bankMoney(p.balanceAfter)}</p>{p.refundedAt!==undefined&&<p>已原路退款 +{bankMoney(p.amount)} · {new Date(p.refundedAt).toLocaleString('zh-CN')}</p>}<small>关联订单 {p.id}（平台账单与此记录为同一笔消费）</small></details>)}</div>}
                   </section>
@@ -2151,8 +2152,8 @@ export default function App() {
           </div>
         </div>
       </Dialog>
-      <Dialog open={!!bankIntent} onOpenChange={open=>{if(!open)setBankIntent(null);}} title="银行即时转账" description="仅操作沙箱资金；核对后由你授权，不是预约转账。">
-        {bankIntent&&<BankTransfer initial={bankIntent} onDone={setBankReceipt}/>}
+      <Dialog open={!!bankIntent} onOpenChange={open=>{if(!open)setBankIntent(null);}} title="智能转账" description="转账、预约和AA收款 · 常用卡8888 · 沙箱资金">
+        {bankIntent&&<SmartTransfers initial={bankIntent} onDone={setBankReceipt}/>}
       </Dialog>
     </div>
   );
