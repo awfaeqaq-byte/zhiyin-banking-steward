@@ -10,7 +10,7 @@ export function findBankRecipients(query:string){
  return bankRecipients.filter(r=>`${r.name} ${r.remark}`.toLowerCase().includes(text) || (/^\d+$/.test(digits) && r.phone.includes(digits)));
 }
 export type BankRecipientId=typeof bankRecipients[number]['id'];
-export type TransferIntent={recipientId:BankRecipientId;amount:number;executeAt?:number};
+export type TransferIntent={recipientId:BankRecipientId;amount:number;executeAt?:number;protectedAmount?:number};
 export type BankSchedule=TransferIntent & {id:string;executeAt:number;createdAt:number;status:'pending'|'completed'|'cancelled'|'failed';error?:string};
 export type AAIntent={amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
 export type AAShare={recipientId:BankRecipientId|'self';amount:number;paidAt?:number};
@@ -22,7 +22,15 @@ export function splitAA(amount:number,recipientIds:readonly string[],includeSelf
  if(amount<ids.length)throw new Error('每人至少分摊1分');
  return ids.map((recipientId,i)=>({recipientId,amount:Math.floor(amount/ids.length)+(i<amount%ids.length?1:0)}));
 }
-export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number};
+export type TransferImpact={pendingTotal:number;protectedAmount:number;available:number;remaining:number};
+export function transferImpact(s:BankSnapshot,intent:TransferIntent,excludeId?:string):TransferImpact{
+ const pending=(s.schedules??[]).filter(item=>item.status==='pending' && item.id!==excludeId);
+ const pendingTotal=pending.reduce((sum,item)=>sum+item.amount,0);
+ const protectedAmount=Math.max(intent.protectedAmount??0,...pending.map(item=>item.protectedAmount??0));
+ const available=Math.max(0,Math.min(s.limit,s.balance-pendingTotal-protectedAmount));
+ return {pendingTotal,protectedAmount,available,remaining:s.balance-pendingTotal-protectedAmount-intent.amount};
+}
+export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number;impact?:TransferImpact};
 export type BankReceipt=TransferIntent & {id:string;completedAt:number;balanceAfter:number};
 export type BankControls={overseas:boolean;contactless:boolean;night:boolean};
 export type BankPayment={id:string;channel:'wechat'|'alipay';amount:number;merchant:string};
@@ -43,7 +51,7 @@ export function validBankSnapshot(v:unknown):v is BankSnapshot {
 export function validTransfer(value:unknown):value is TransferIntent {
  if(!value || typeof value!=='object')return false;
  const v=value as TransferIntent;
- return bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0 && (v.executeAt===undefined || (Number.isSafeInteger(v.executeAt) && v.executeAt>0));
+ return bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0 && (v.executeAt===undefined || (Number.isSafeInteger(v.executeAt) && v.executeAt>0)) && (v.protectedAmount===undefined || (Number.isSafeInteger(v.protectedAmount) && v.protectedAmount>=0));
 }
 export async function bankRequest<T>(body?:object):Promise<T> {
  const response=await fetch('/api/zhiyin/bank',{cache:'no-store',signal:AbortSignal.timeout(8000),...(body?{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1'},body:JSON.stringify(body)}:{})});

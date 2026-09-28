@@ -1,9 +1,14 @@
-import {bankRecipients,splitAA,type AAIntent,type AARequest,type BankDraft,type BankSnapshot,type BankSchedule,type BankRecipientId} from '../src/lib/bank-transfer';
+import {bankRecipients,splitAA,transferImpact,type TransferIntent,type AAIntent,type AARequest,type BankDraft,type BankSnapshot,type BankSchedule,type BankRecipientId} from '../src/lib/bank-transfer';
 
 export type SmartState=BankSnapshot & {drafts:BankDraft[];received:Record<string,number>;participantBalances?:Record<string,number>};
 export function checkExecution(s:SmartState,amount:number){
  if(amount>s.balance || amount>s.limit)throw new Error('余额或限额不足');
  if(s.transactions.length>=5000)throw new Error('沙箱账本已满');
+}
+export function checkTransferBudget(s:SmartState,intent:TransferIntent,excludeId?:string){
+ const impact=transferImpact(s,intent,excludeId);
+ if(impact.remaining<0)throw new Error(`扣除其他预约及需保留金额后，最多可转${(impact.available/100).toFixed(2)}元。请调整转账金额或核对保留金额。`);
+ return impact;
 }
 export function authorizeSchedule(s:SmartState,id:string,now:number):BankSchedule{
  const existing=s.schedules?.find(item=>item.id===id);if(existing)return existing;
@@ -11,8 +16,9 @@ export function authorizeSchedule(s:SmartState,id:string,now:number):BankSchedul
  if(!draft || !draft.executeAt || draft.executeAt<=now || draft.expiresAt<=now)throw new Error('预约时间或方案已过期，请重新核对');
  if(draft.revision!==s.revision)throw new Error('账户已变化，请重新核对');
  checkExecution(s,draft.amount);
+ checkTransferBudget(s,draft);
  if((s.schedules?.length??0)>=1000)throw new Error('预约数量已达上限');
- const schedule:BankSchedule={id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,createdAt:now,status:'pending'};
+ const schedule:BankSchedule={id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending'};
  (s.schedules??=[]).push(schedule);s.drafts=s.drafts.filter(d=>d.id!==id);s.revision++;
  return schedule;
 }
@@ -20,9 +26,9 @@ export function executeDue(s:SmartState,now:number,guard:(s:SmartState,now:numbe
  const due=(s.schedules??[]).filter(item=>item.status==='pending' && item.executeAt<=now).sort((a,b)=>a.executeAt-b.executeAt || a.createdAt-b.createdAt);
  for(const item of due){
   try{
-   guard(s,now);checkExecution(s,item.amount);
+   guard(s,now);checkExecution(s,item.amount);checkTransferBudget(s,item,item.id);
    s.balance-=item.amount;s.received[item.recipientId]=(s.received[item.recipientId]??0)+item.amount;
-   s.transactions.push({id:item.id,recipientId:item.recipientId,amount:item.amount,executeAt:item.executeAt,completedAt:now,balanceAfter:s.balance});
+   s.transactions.push({id:item.id,recipientId:item.recipientId,amount:item.amount,executeAt:item.executeAt,...(item.protectedAmount===undefined?{}:{protectedAmount:item.protectedAmount}),completedAt:now,balanceAfter:s.balance});
    item.status='completed';
   }catch(error){item.status='failed';item.error=error instanceof Error?error.message:'预约执行失败';}
   s.revision++;

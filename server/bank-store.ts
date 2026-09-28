@@ -2,7 +2,7 @@ import {existsSync,readFileSync,writeFileSync,renameSync,openSync,closeSync,unli
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {validBankPayment,type BankPayment,type BankPaymentReceipt} from '../src/lib/bank-transfer';
 import {validTransfer,validBankSnapshot,type TransferIntent,type BankDraft,type BankReceipt,type BankSnapshot,type BankSettings} from '../src/lib/bank-transfer';
-import {authorizeSchedule,executeDue,createAA,settleAA,type SmartState} from './smart-bank';
+import {authorizeSchedule,executeDue,createAA,settleAA,checkTransferBudget,type SmartState} from './smart-bank';
 import type {AAIntent,BankRecipientId} from '../src/lib/bank-transfer';
 type State=SmartState & {version:1};
 const initial=():State=>({version:1,revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],drafts:[],received:{mom:0,dad:0}});
@@ -70,7 +70,8 @@ export function createBankStore(file:string) {
    if(input.executeAt!==undefined && (input.executeAt<=now || input.executeAt>now+366*86400000))throw new Error('预约时间须在未来一年内');
    if(input.amount>s.limit)throw new Error(`超过沙箱单笔限额${s.limit/100}元`);
    if(input.amount>s.balance)throw new Error('付款账户余额不足，不会使用其他平台资金');
-   const draft={recipientId:input.recipientId,amount:input.amount,...(input.executeAt===undefined?{}:{executeAt:input.executeAt}),id:crypto.randomUUID(),revision:s.revision,balance:s.balance,createdAt:now,expiresAt:now+300000};
+   const impact=checkTransferBudget(s,input);
+   const draft={recipientId:input.recipientId,amount:input.amount,...(input.executeAt===undefined?{}:{executeAt:input.executeAt}),...(input.protectedAmount===undefined?{}:{protectedAmount:input.protectedAmount}),impact,id:crypto.randomUUID(),revision:s.revision,balance:s.balance,createdAt:now,expiresAt:now+300000};
    s.drafts=[...s.drafts.filter(d=>d.expiresAt>now).slice(-19),draft];return draft;
   });},
   confirm(id:string,now=Date.now()):BankReceipt {return mutate(s=>{
@@ -81,9 +82,10 @@ export function createBankStore(file:string) {
    if(draft.expiresAt<=now)throw new Error('方案已过期，请重新核对');
    if(draft.revision!==s.revision)throw new Error('账户余额已变化，请重新核对');
    if(draft.amount>s.balance || draft.amount>s.limit)throw new Error('余额或限额不足');
+   checkTransferBudget(s,draft);
    if(s.transactions.length>=5000)throw new Error('沙箱账本已满，请联系开发者归档');
    s.balance-=draft.amount;s.received[draft.recipientId]=(s.received[draft.recipientId]??0)+draft.amount;s.revision++;
-   const receipt={id:draft.id,recipientId:draft.recipientId,amount:draft.amount,completedAt:now,balanceAfter:s.balance};
+   const receipt={id:draft.id,recipientId:draft.recipientId,amount:draft.amount,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),completedAt:now,balanceAfter:s.balance};
    s.transactions.push(receipt);s.drafts=s.drafts.filter(d=>d.id!==id);return receipt;
   });},
  };
