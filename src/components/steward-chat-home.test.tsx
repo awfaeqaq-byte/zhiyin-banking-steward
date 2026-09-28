@@ -26,6 +26,29 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('转账规划读取最新授权账单和续费，平台失败时不使用旧快照作保证',async()=>{
+    const user=userEvent.setup();
+    const reply=vi.fn<StewardReplyFn>(async()=>({text:'需要留多少还款预算？'}));
+    const refresh=vi.fn(async()=>({connections:{},error:'平台暂时不可用'}));
+    vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]})));
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{alipay}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply} refreshSubscriptions={refresh}/>);
+    await user.type(screen.getByRole('textbox'),'给妈妈转2000，留够还款的钱');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByText('需要留多少还款预算？');
+    expect(refresh).toHaveBeenCalled();
+    expect(reply.mock.calls[0][0]).toMatchObject({bank:{balance:4230000},subscriptions:[],transferBackground:expect.stringContaining('未能更新')});
+    expect(reply.mock.calls[0][0].fundingForecast?.accounts).toHaveLength(0);
+  });
+  it('已有预约失败时管家展示真实结果并支持收起，不会代用户重试',async()=>{
+    const open=vi.fn();
+    vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify({revision:2,balance:10000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[],schedules:[{id:'follow',recipientId:'mom',amount:200000,executeAt:Date.now()-1000,createdAt:1,status:'failed',error:'余额不足'}]})));
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onPrepareTransfer={open}/>);
+    const notice=await screen.findByRole('region',{name:'转账进展'});
+    expect(notice).toHaveTextContent('余额不足');expect(notice).toHaveTextContent('未扣款');
+    await userEvent.click(within(notice).getByRole('button',{name:'查看安排'}));
+    expect(open).toHaveBeenCalledWith({kind:'records'});
+    await userEvent.click(within(notice).getByRole('button',{name:'知道了'}));
+    expect(screen.queryByRole('region',{name:'转账进展'})).not.toBeInTheDocument();
+  });
   it('开启画像后自动保存有原话依据的暂定理解，页面不露出模型标记',async()=>{
     const user=userEvent.setup();let state=updateMemory(emptyMemory(),{type:'enabled',enabled:true,revision:0});
     state=updateMemory(state,{type:'profile',profileAction:'enable',enabled:true,revision:state.revision});
