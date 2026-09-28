@@ -3,6 +3,14 @@
  * 服务宫格标签 + 页面级 UI 字符串
  */
 export const strings = {
+  aa_total_collection:'总收款',aa_collected_amount:'已收',aa_unpaid_amount:'未付',
+  aa_by_person:'按人填金额',aa_prepared:'知银已填写',aa_participants:'参与人',aa_amount:'承担金额',
+  aa_back:'返回',aa_choose:'选择一个微信群',aa_collection:'群收款',aa_group_preview:'演示群 · 支持智能AA',
+  aa_consent_title:'向知银共享所选群成员',aa_consent_description:'只共享你选择的这个群的成员标识、昵称和身份备注，用于配置AA；不读取群聊天记录或整个好友列表。你可随时撤销授权。',
+  aa_authorize:'授权此群并返回知银',aa_sandbox:'沙箱演示群 · 非真实微信连接',aa_confirm:'确认发起群收款',aa_confirm_hint:'仅向下列参与人发起收款；未选中的群成员无需付款。',
+  aa_self:'自己承担',aa_to_collect:'向其他成员收取',aa_publish:'确认发起并返回知银',aa_no_debit:'发起不扣款，只有收到成员付款后，微信零钱和账单才会增加。',
+  aa_members:'群成员',aa_revoke:'撤销向知银共享成员',aa_empty:'还没有群收款。请从知银「微信群智能AA」配置并发起。',aa_completed:'已收齐',aa_cancelled:'已停止收款',aa_pending:'等待付款',aa_paid:'已付',aa_unpaid:'未付',
+  aa_test_tools:'沙箱测试工具',aa_test_hint:'模拟成员付款会真实增加本沙箱的微信零钱并计入账单，不涉及真实资金。',aa_simulate:'模拟付款',aa_stop_hint:'停止后不再接受新付款，已到账资金不会退回。',aa_stop:'确认停止收款',aa_stale:'群成员或授权已变化，请返回知银重新选择。',aa_invalid:'收款方案无效，请返回修改。',
   // ============================================================================
   // [common] - 通用高频字符串
   // ============================================================================

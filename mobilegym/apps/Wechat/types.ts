@@ -380,6 +380,7 @@ export type WechatWalletData = {
 };
 
 export interface AppData {
+  groupAA?: import('./group-aa/backend').WechatGroupAAState;
   user: User;
   settings: UserSettings;
   contacts: ContactItem[];

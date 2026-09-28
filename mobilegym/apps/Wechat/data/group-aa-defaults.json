@@ -1,0 +1,4 @@
+[
+ {"id":"group-weekend","name":"周末饭搭子（演示群）","revision":1,"members":[{"id":"self","name":"我","self":true},{"id":"group-li","name":"李娜","note":"朋友"},{"id":"group-wang","name":"小王","note":"群成员 · 非好友"},{"id":"group-chen","name":"陈晨","note":"群成员 · 非好友"}]},
+ {"id":"group-trip","name":"周末出游（演示群）","revision":1,"members":[{"id":"self","name":"我","self":true},{"id":"trip-li","name":"李娜","note":"朋友"},{"id":"trip-wang-a","name":"小王","note":"摄影师 · 非好友"},{"id":"trip-wang-b","name":"小王","note":"司机 · 非好友"}]}
+]

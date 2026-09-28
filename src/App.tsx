@@ -42,6 +42,7 @@ import {
   Target,
   TrendingUp,
   UserRound,
+  Users,
   Wallet,
   X,
   CalendarDays,
@@ -60,6 +61,7 @@ import { type DuplicatePreferences, type DuplicateDecision } from "./lib/subscri
 import { fundingReferenceTime } from "./lib/funding-forecast";
 import { FundingPlan } from "./components/funding-plan";
 import {TaskCalendar} from './components/task-calendar';
+import {GroupAA} from './components/group-aa';
 import type {ReminderDraft} from './lib/task-calendar';
 import { useSubscriptionSync } from "./lib/use-subscription-sync";
 import type { RecurringReviews, RecurringReviewStatus } from "./components/recurring-subscription-review";
@@ -93,6 +95,7 @@ type Page =
   | "connections"
   | "funding"
   | "tasks"
+  | "group-aa"
   | "subscriptions";
 type Modal =
   | "steward"
@@ -1435,6 +1438,7 @@ export default function App() {
                         : "自动识别、提醒与取消"}
                       onClick={() => go("subscriptions")} />
                     <Row icon={CalendarDays} title="任务日历" subtitle="提醒、预约转账与续费安排" onClick={()=>go('tasks')}/>
+                    <Row icon={Users} title="微信群智能AA" subtitle="选择群成员，按费用灵活分摊" onClick={()=>go('group-aa')}/>
                     <Row icon={Settings2} title="设置"
                       subtitle={`使用模式 · ${mode === "classic" ? "经典款" : "AI 原生"}`}
                       onClick={() => go("settings")} />
@@ -1586,6 +1590,7 @@ export default function App() {
             </>
           )}
           {page === 'tasks' && <><Heading title="任务日历"/><TaskCalendar initialDate={taskDate} schedules={bank.state?.schedules??[]} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={()=>setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(`${source}:${id}`);go('subscriptions');}}/></>}
+          {page === 'group-aa' && <><Heading title="微信群智能AA"/><GroupAA/></>}
           {page === "funding" && (
             <>
               <Heading title="近期资金安排" subtitle="分开核对每个账户，留足接下来的续费" />
@@ -1611,6 +1616,7 @@ export default function App() {
               onOpenSubscriptions={() => go("subscriptions")}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
+              onOpenGroupAA={()=>go('group-aa')}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
               onPrepareTransfer={setBankIntent}
               bankReceipt={bankReceipt}

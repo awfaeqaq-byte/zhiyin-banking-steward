@@ -27,6 +27,7 @@ export type StewardSubscription = {
 export type StewardAction =
   | ({type:'prepare_task'} & ReminderDraft)
   | {type:'open_tasks'}
+  | {type:'open_group_aa'}
   | ({type:'prepare_transfer'} & TransferIntent)
   | ({type:'prepare_aa'} & AAIntent)
   | {type:'open_transfers'}
@@ -328,6 +329,7 @@ export function parseStewardReply(
 
 export const requestStewardReply: StewardReplyFn = async request => {
   const newestUser = [...request.messages].reverse().find(message => message.role === "user");
+  if(/群收款|微信群.*(?:AA|aa|分摊|收款)|(?:AA|aa|分摊).*微信群/.test(newestUser?.content??''))return {text:'可以，从已有微信群选择参与人，再把费用和分摊规则告诉我。点选和文字都能调整同一份方案，核对后再去微信发起。',action:{type:'open_group_aa'}};
   const userContext=request.messages.filter(m=>m.role==='user').slice(-4).map(m=>m.content).join('\n');
   const needsBudget=/留够|留出|保留|预留|不影响.*还款|保证.*还款/.test(userContext) && !/(不用|不需要|无需|取消).{0,5}(保留|预留)|不留预算/.test(newestUser?.content??'');
   const verifyBudget=(reply:StewardReply):StewardReply=>needsBudget && (reply.action?.type==='open_transfers' || (reply.action?.type==='prepare_transfer' && reply.action.protectedAmount===undefined))

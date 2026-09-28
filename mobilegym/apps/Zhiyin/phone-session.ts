@@ -2,6 +2,7 @@ type Status = 'loading' | 'ready' | 'error';
 type FinancialProvider = 'alipay' | 'wechat_pay';
 type FinancialScope = 'balance' | 'transactions' | 'autopay';
 type Options = {
+  groupAA?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   origin: string;
   peer: () => Window | null;
   onStatus: (status: Status) => void;
@@ -55,6 +56,11 @@ export function createPhoneSession(options: Options) {
         ready = true;
         clearTimeout(loadTimer);
         options.onStatus('ready');
+      }
+      if(data.type==='group-aa-request'&&typeof data.requestId==='string'&&data.requestId.length<=80&&options.isActive()&&options.groupAA&&!financeRequests.has(data.requestId)){
+        const id=data.requestId;financeRequests.add(id);
+        const payload={groupId:data.groupId,revision:data.revision,plan:data.plan,id:data.id};
+        void options.groupAA(data.operation,payload).then(result=>{if(!disposed)send({type:'group-aa-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'group-aa-result',requestId:id,status:'error',message:e instanceof Error?e.message:'群收款失败'});}).finally(()=>financeRequests.delete(id));
       }
       if (
         data.type === 'contacts-request' && typeof data.requestId === 'string' &&

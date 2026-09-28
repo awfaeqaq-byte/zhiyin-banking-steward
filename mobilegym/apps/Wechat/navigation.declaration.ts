@@ -10,6 +10,8 @@ export const NAVIGATION_DECLARATION = {
   app: 'wechat',
 
   routes: [
+    {path:'/group-aa',component:'GroupAAPage',params:{},entryPoint:'deepLink',scrollContainers:MAIN_SCROLL,uiStates:[{id:'groupAA.consent.base',search:{},description:'Sandbox group consent and confirmation',actions:[{id:'wechat.groupAA.authorize.submit',label:'Share selected group',behavior:'submit',scope:'item',paramsSchema:{groupId:'string'}},{id:'wechat.groupAA.publish.submit',label:'Publish collection',behavior:'submit'}]}],queryParams:{},description:'Sandbox group AA consent'},
+    {path:'/group-aa/:groupId',component:'GroupAAPage',params:{groupId:'string'},entryPoint:'none',scrollContainers:MAIN_SCROLL,uiStates:[{id:'groupAA.detail.base',search:{},description:'Sandbox group collections',actions:[{id:'wechat.groupAA.revoke.submit',label:'Revoke sharing',behavior:'submit',scope:'item',paramsSchema:{groupId:'string'}},{id:'wechat.groupAA.payment.submit',label:'Simulate receipt',behavior:'submit',scope:'item',paramsSchema:{collectionId:'string',memberId:'string'}},{id:'wechat.groupAA.cancel.submit',label:'Stop collection',behavior:'submit',scope:'item',paramsSchema:{collectionId:'string'}}]}],queryParams:{},description:'Sandbox group and receipt records'},
     // =========================
     // Main tabs
     // =========================
@@ -1944,6 +1946,7 @@ export const NAVIGATION_DECLARATION = {
   ],
 
   transitions: [
+    {id:'wechat.groupAA.open',from:['/','/groups','/group-aa'],to:'/group-aa/:groupId',search:{},searchParams:{},params:{groupId:'string'},mode:'push',label:'Open sandbox group',ui:{placement:'content',icon:'group',gesture:'tap'}},
     // =========================
     // WeChat Pay service and ledger
     // =========================

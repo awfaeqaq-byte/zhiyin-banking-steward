@@ -8,6 +8,7 @@ import { ChatSession } from '../types';
 import * as TimeService from '../../../os/TimeService';
 import { useWechatGestures } from '../hooks/useWechatGestures';
 import { useWechatStrings } from '../hooks/useWechatStrings';
+import {GroupAAChatRows} from './GroupAA';
 
 const ChatList: React.FC = () => {
   const { bindTap } = useWechatGestures();
@@ -98,6 +99,7 @@ const ChatList: React.FC = () => {
           <p className="text-(--app-settings-group-title-size) text-(--app-c-tw-text-gray-400) truncate pr-4">9月记账日报已生成</p>
         </div>
       </div>
+      <GroupAAChatRows/>
       {sortedChats.map((chat) => (
         <div
           key={chat.id}

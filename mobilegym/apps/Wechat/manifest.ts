@@ -36,6 +36,7 @@ export const manifest: AppManifest = {
     PERMISSIONS.WRITE_EXTERNAL_STORAGE,
   ],
   intentFilters: [
+    {action:'ACTION_GROUP_AA',scheme:'weixin',route:'/group-aa',description:'Sandbox group member consent and group collection confirmation'},
     {
       action: 'ACTION_FINANCIAL_DATA_CONSENT',
       scheme: 'weixin',

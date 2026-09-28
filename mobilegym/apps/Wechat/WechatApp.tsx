@@ -103,6 +103,7 @@ import WechatTrustDevicePage from './pages/auth/TrustDevice';
 import WechatDeviceManagementPage from './pages/auth/DeviceManagement';
 import { PaymentConfirmationPage } from './pages/pay/PaymentConfirmationPage';
 import { DataAuthorizationPage } from './pages/pay/DataAuthorizationPage';
+import {GroupAAPage} from './pages/GroupAA';
 import { ShareForwardPage } from './pages/share/ShareForwardPage';
 import { useAppNavigate } from './navigation';
 import { useWechatGestures } from './hooks/useWechatGestures';
@@ -501,6 +502,8 @@ const WechatLayout: React.FC = () => {
         <Route path="/auth/devices" element={<WechatDeviceManagementPage />} />
         <Route path="/pay/confirmation" element={<PaymentConfirmationPage />} />
         <Route path="/pay/data-authorization" element={<DataAuthorizationPage />} />
+        <Route path="/group-aa" element={<GroupAAPage />} />
+        <Route path="/group-aa/:groupId" element={<GroupAAPage />} />
         <Route path="/share/forward" element={<ShareForwardPage />} />
         <Route path="/" element={<AuthGuard><Layout /></AuthGuard>}>
           <Route index element={<ChatList />} />

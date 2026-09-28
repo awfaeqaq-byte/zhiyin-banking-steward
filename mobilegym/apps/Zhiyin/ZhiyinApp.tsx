@@ -5,6 +5,7 @@ import { useAppNavigationHandler } from '@/os/hooks/useAppNavigationHandler';
 import { useTriggerGestures } from '@/os/hooks/useTriggerGestures';
 import { useAppStrings } from '@/os/useAppStrings';
 import { createPhoneSession } from './phone-session';
+import {accessGroupAA} from './group-aa-access';
 import { loadZhiyinContacts } from './contact-access';
 import { loadFinancialSource } from './finance-access';
 import { requestPartnerAuthorization } from './partner-authorization';
@@ -36,6 +37,7 @@ function ZhiyinFrame() {
       peer: () => frame.current?.contentWindow ?? null,
       onStatus: setStatus, onExit: goHome, isActive: () => active.current,
       loadContacts: loadZhiyinContacts,
+      groupAA:accessGroupAA,
       loadFinancialSource,
       authorizeFinancialSource: requestPartnerAuthorization,
       hasFinancialAuthorization: hasFinancialGrant,

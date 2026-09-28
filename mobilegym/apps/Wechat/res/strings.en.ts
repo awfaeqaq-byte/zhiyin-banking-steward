@@ -5,6 +5,9 @@
 import type { StringKey } from './strings';
 
 export const stringsEn: Partial<Record<StringKey, string>> = {
+  aa_total_collection:'Total',aa_collected_amount:'Received',aa_unpaid_amount:'Unpaid',
+  aa_by_person:'Amount per person',aa_prepared:'Prepared by Zhiyin',aa_participants:'Participants',aa_amount:'Share',
+  aa_back:'Back',aa_choose:'Choose a WeChat group',aa_collection:'Group collection',aa_group_preview:'Demo group · Smart split',aa_consent_title:'Share selected group members with Zhiyin',aa_consent_description:'Only this group’s member IDs, names and identity notes are shared for splitting bills. Chat history and your friend list are not shared. You may revoke access at any time.',aa_authorize:'Allow this group and return',aa_sandbox:'Sandbox group · Not connected to real WeChat',aa_confirm:'Confirm group collection',aa_confirm_hint:'Only the listed participants will be asked to pay.',aa_self:'Your share',aa_to_collect:'Collect from others',aa_publish:'Publish and return to Zhiyin',aa_no_debit:'Publishing does not debit money. Your sandbox balance and ledger increase only upon receipt.',aa_members:'Members',aa_revoke:'Revoke member sharing',aa_empty:'No collections yet. Configure one in Zhiyin’s Smart Group Split.',aa_completed:'Collected',aa_cancelled:'Stopped',aa_pending:'Awaiting payment',aa_paid:'Paid',aa_unpaid:'Unpaid',aa_test_tools:'Sandbox test tools',aa_test_hint:'Simulated receipts update this sandbox’s wallet and ledger. No real money is involved.',aa_simulate:'Simulate payment',aa_stop_hint:'Stopping prevents further payments. Existing receipts are not refunded.',aa_stop:'Confirm stop',aa_stale:'Membership or access changed. Return to Zhiyin and select again.',aa_invalid:'Invalid plan. Return to edit.',
   // ============================================================================
   // [common] - 通用高频字符串
   // ============================================================================
