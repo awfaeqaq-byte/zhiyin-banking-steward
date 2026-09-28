@@ -6,6 +6,12 @@ const group = { id:'g',name:'聚餐群',revision:1,members:[
   {id:'wang',name:'小王',gender:'male' as const},
 ]};
 afterEach(()=>vi.unstubAllGlobals());
+it('clarifies missing gender only for participating members before a model can guess',async()=>{
+  const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+  const reply=await requestGroupAAPlan({...group,members:group.members.map(m=>m.id==='li'?{...m,gender:'unknown'}:m)},{title:'聚餐',items:[]},'600元，女生a一半',[],['self','li','wang']);
+  expect(reply.plan).toBeUndefined();expect(reply.message).toContain('李娜');expect(reply.message).toContain('未填写性别');
+  expect(fetcher).not.toHaveBeenCalled();
+});
 it('accepts explicit profile data but rejects invalid genders and unsafe avatar URLs',()=>{
   expect(validAAGroup(group)).toBe(true);
   expect(validAAGroup({...group,members:group.members.map(m=>({...m,gender:'guessed'}))})).toBe(false);
