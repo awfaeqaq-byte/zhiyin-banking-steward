@@ -160,6 +160,7 @@ export function StewardChatHome({
     [disabledReminders, insights.items],
   );
   const [messages, setMessages] = useState<DisplayMessage[]>(readMessages);
+  const [transferAttention,setTransferAttention]=useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [memoryDecisions,setMemoryDecisions]=useState<Record<string,string>>({});
@@ -376,7 +377,7 @@ export function StewardChatHome({
           <span>今天</span>
           <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
-        {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})}/>}
+        {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
 
         {!activeReplyId && !sending && !error && <section className={`steward-live-summary steward-workbench ${attentionEvent || fundingAttention || pendingRecurring.length ? "has-attention" : "is-quiet"}`} aria-label="管家工作台">
           <div className="steward-presence" aria-label={`${stewardName}在这里`}>
@@ -393,6 +394,7 @@ export function StewardChatHome({
                   ? `账单里有 ${pendingRecurring.length} 项付款呈现周期规律，需要你核对是否属于订阅。`
                   : attentionEvent
                   ? "有件事想和你确认一下。"
+                  : transferAttention ? '这笔安排有新进展，可以查看或告诉我想怎么调整。'
                   : sourceLabel
                     ? "今天没有需要你处理的事。"
                     : `连接微信支付或支付宝后，${stewardName}只会在有需要时提醒你。`)}</p>
