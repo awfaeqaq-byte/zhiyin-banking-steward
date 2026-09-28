@@ -131,6 +131,33 @@ it("选群确认参与人后，首页短句追加并能纠正上一笔，记录�
     await ref.current!.handle("刚才说错了，45元");
   });
   expect(state.books[0].entries[0].amount).toBe(4500);
+  model.mockResolvedValue({
+    action: "add",
+    entry: {
+      title: "饮料",
+      amount: 1600,
+      payerId: "me",
+      fixed: [],
+      shares: [
+        { memberId: "me", weight: 1 },
+        { memberId: "li", weight: 1 },
+      ],
+    },
+  });
+  await act(async () => {
+    expect(await ref.current!.handle("饮料16，最后一起算")).toContain("记下了");
+  });
+  expect(state.books[0].entries).toHaveLength(2);
+  expect(
+    screen.getByRole("button", { name: /去微信确认收款/ }),
+  ).toBeInTheDocument();
+  model.mockResolvedValue({ action: "review" });
+  await act(async () => {
+    expect(
+      await ref.current!.handle("烧烤236，小王没吃，记完一起算"),
+    ).toContain("还没有记入");
+  });
+  expect(state.books[0].entries).toHaveLength(2);
   expect(bridge).toHaveBeenCalledTimes(1);
 });
 it("微信回执丢失后锁定费用，核对找到原收款即恢复，不会再建一笔", async () => {

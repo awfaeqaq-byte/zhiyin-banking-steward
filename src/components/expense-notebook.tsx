@@ -25,6 +25,7 @@ import {
   expenseRequest,
   requestExpenseReply,
   type ExpenseReply,
+  isExpenseReviewPrompt,
 } from "../lib/expense-service";
 import "./expense-notebook.css";
 export type ExpenseNotebookHandle = {
@@ -111,11 +112,15 @@ export const ExpenseNotebook = forwardRef<
   async function interpret(b: ExpenseBook, prompt: string) {
     // Opening the review is not a financial execution and must not depend on
     // whether the model mistakes the existing collection bridge for a payment.
-    const result: ExpenseReply =
-      /群收款|一起算|结算|查看.*记录/.test(prompt) &&
-      !/不要|不用|别|取消/.test(prompt)
-        ? { action: "review" as const }
-        : await requestExpenseReply(b, prompt, history.current);
+    const result: ExpenseReply = isExpenseReviewPrompt(prompt)
+      ? { action: "review" as const }
+      : await requestExpenseReply(b, prompt, history.current);
+    if (
+      /群收款|一起算|结算/.test(prompt) &&
+      /\d|[一二两三四五六七八九十百千万]+[元块]/.test(prompt) &&
+      !["add", "edit"].includes(result.action)
+    )
+      return "这句话同时提到了消费和结算，这笔还没有记入。请先单独告诉我消费金额和分摊方式，记好后再一起结算。";
     if (result.action === "unrelated") return null;
     let text = result.message || "请补充这笔消费的信息。";
     if (result.action === "review") {
@@ -152,6 +157,16 @@ export const ExpenseNotebook = forwardRef<
       setReview(false);
       setExpanded(false);
       setNotice("");
+      if (
+        /群收款|一起算|结算/.test(prompt) &&
+        !/不要|不用|别|取消/.test(prompt)
+      ) {
+        const updated = current.current.books.find((x) => x.id === b.id)!;
+        setSelected(updated.entries.filter((e) => !e.batchId).map((e) => e.id));
+        setReview(true);
+        setExpanded(true);
+        text += " 已展开结算，去微信前请核对。";
+      }
     }
     if (result.action === "delete") {
       const target = b.entries.find((e) => e.id === result.entryId);
@@ -378,18 +393,20 @@ export const ExpenseNotebook = forwardRef<
                   <div className="expense-row" key={e.id}>
                     <div className="expense-row-main">
                       {review && !e.batchId && (
-                        <input
-                          type="checkbox"
-                          aria-label={`结算${e.title}`}
-                          checked={selected.includes(e.id)}
-                          onChange={(v) =>
-                            setSelected(
-                              v.target.checked
-                                ? [...selected, e.id]
-                                : selected.filter((id) => id !== e.id),
-                            )
-                          }
-                        />
+                        <label className="expense-row-choice">
+                          <input
+                            type="checkbox"
+                            aria-label={`结算${e.title}`}
+                            checked={selected.includes(e.id)}
+                            onChange={(v) =>
+                              setSelected(
+                                v.target.checked
+                                  ? [...selected, e.id]
+                                  : selected.filter((id) => id !== e.id),
+                              )
+                            }
+                          />
+                        </label>
                       )}
                       <span>
                         <strong>{e.title}</strong>

@@ -9,9 +9,16 @@ import {
   parseExpenseReply,
   requestExpenseReply,
   expenseRequest,
+  isExpenseReviewPrompt,
 } from "./expense-service";
 import type { ExpenseBook } from "./expense-notebook";
 afterEach(() => vi.restoreAllMocks());
+it("只有纯结算语句走快捷查看，混合消费不得被漏掉", () => {
+  expect(isExpenseReviewPrompt("帮我群收款一下今天的消费")).toBe(true);
+  expect(isExpenseReviewPrompt("饮料16，最后一起算")).toBe(false);
+  expect(isExpenseReviewPrompt("烧烤236，小王没吃，记完一起算")).toBe(false);
+  expect(isExpenseReviewPrompt("不要结算")).toBe(false);
+});
 it("保存断线重试保持同一个请求标识，后端不会重复追加", async () => {
   const fetcher = vi
     .spyOn(globalThis, "fetch")

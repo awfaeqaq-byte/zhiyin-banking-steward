@@ -56,6 +56,14 @@ export type ExpenseReply = {
   entryId?: string;
   message?: string;
 };
+export function isExpenseReviewPrompt(prompt: string) {
+  return (
+    /群收款|一起算|结算|查看.*记录/.test(prompt) &&
+    /^(?:(?:请|帮我|给我|把|一下吧|一下|吧|今天|今日|今晚|本次|这次|这些|全部|的|消费|记录|账目|账单|费用|先|都|看看|查看|明细|做个|发起|发|帮忙|一起算|结算|群收款)|[，。！？\s])+$/.test(
+      prompt,
+    )
+  );
+}
 export function parseExpenseReply(output: string): ExpenseReply {
   let data: ExpenseReply;
   try {
@@ -135,7 +143,7 @@ export async function requestExpenseReply(
       body: JSON.stringify({
         instructions:
           instructions +
-          ' 严格输出JSON对象，不输出Markdown、自然语言收据或解释。示例：{"action":"add","entry":{"title":"卤味","amount":4200,"payerId":"实际本人id","fixed":[],"shares":[{"memberId":"实际id","weight":1}]}}。' +
+          ' 严格输出JSON对象，不输出Markdown、自然语言收据或解释。如果一句话既有新消费又说最后一起算，优先返回add保存消费，不得只返回review遗漏消费；系统保存后会展开结算。示例：{"action":"add","entry":{"title":"卤味","amount":4200,"payerId":"实际本人id","fixed":[],"shares":[{"memberId":"实际id","weight":1}]}}。' +
           `本次活动已由用户确认：默认垫付人id=${book.defaultPayerId}，默认参与人ids=${JSON.stringify(book.participants)}。用户未另说时必须直接使用这些默认值，不许再问谁垫付、谁参与。又买饮料16：新增1600分、默认垫付人和默认参与人均摊（不是沿用上一笔特殊分配）。烧烤236某人没吃：新增23600分、默认垫付人，默认参与人排除指定人。纠正上一笔：修改原id和金额，保留该笔其他字段。`,
         input: [
           ...contextMessages,

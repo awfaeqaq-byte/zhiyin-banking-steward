@@ -96,6 +96,15 @@
   align-items: center;
   gap: 10px;
 }
+.expense-row-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  margin-left: -12px;
+}
 .expense-row-main > span {
   flex: 1;
   min-width: 0;
@@ -110,7 +119,7 @@
 .expense-row summary {
   cursor: pointer;
   color: var(--teal-dark);
-  min-height: 32px;
+  min-height: 44px;
   padding-top: 5px;
 }
 .expense-row-actions {
