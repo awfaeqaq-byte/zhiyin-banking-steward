@@ -20,6 +20,8 @@ import {
   simulateGroupAAPayment,
   cancelGroupAA,
   readGroupAA,
+  sendGroupAAMessage,
+  updateGroupAASettings,
 } from "../apps/Wechat/group-aa/backend";
 const plan = {
   title: "聚餐",
@@ -43,6 +45,28 @@ beforeEach(() => {
   };
 });
 describe("sandbox group collections", () => {
+  it('supplies explicit member profiles and migrates old grants without losing money records',()=>{
+    const fresh=initialGroupAA();
+    expect(fresh.groups[0].members.find(m=>m.id==='group-li')).toMatchObject({gender:'female',avatar:expect.stringContaining('avatar_30')});
+    holder.state.groupAA={groups:fresh.groups.map(g=>({...g,members:g.members.map(({avatar,gender,...m}:any)=>m)})),grants:['group-weekend'],collections:[{id:'keep'}]};
+    const migrated=readGroupAA();
+    expect(migrated.grants).toEqual([]);
+    expect(migrated.collections).toEqual([{id:'keep'}]);
+    expect(migrated.groups[0].members.find(m=>m.id==='group-li')?.gender).toBe('female');
+    expect(holder.state.wallet.balanceCents).toBe(1000);
+    expect(grantGroupAA('group-weekend').members[1].gender).toBe('female');
+    expect(readGroupAA().grants).toEqual(['group-weekend']);
+  });
+  it('persists ordinary group messages and settings independently from financial actions',()=>{
+    sendGroupAAMessage('group-weekend','今晚一起吃饭');
+    expect(readGroupAA().messages?.['group-weekend'].at(-1)).toMatchObject({memberId:'self',text:'今晚一起吃饭'});
+    expect(()=>sendGroupAAMessage('missing','hello')).toThrow();
+    expect(()=>sendGroupAAMessage('group-weekend','  ')).toThrow();
+    updateGroupAASettings('group-weekend',{muted:true});
+    expect(readGroupAA().settings?.['group-weekend'].muted).toBe(true);
+    expect(holder.state.wallet.balanceCents).toBe(1000);
+    expect(readGroupAA().collections).toHaveLength(0);
+  });
   it("shares one selected group only and allows revocation", () => {
     expect(readGroupAA().grants).toEqual([]);
     expect(grantGroupAA("group-weekend").members).toHaveLength(4);
