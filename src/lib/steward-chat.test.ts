@@ -452,6 +452,14 @@ describe("知银管家大模型协议", () => {
     const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转2000，留够信用卡还款的钱'}]});
     expect(result.action).toBeUndefined();expect(result.text).toContain('保留');
   });
+  it('办理前资金结论由账本计算，覆盖模型错误算术并对缺口给出选项',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({output_text:'转账后30300元[ZHIYIN_ACTION:PREPARE_GUARDED_TRANSFER|mom|200000|now|1200000]'})}));
+    const request={stewardName:'宁宁',subscriptions:[],messages:[{role:'user' as const,content:'给妈妈转2000，保留12000'}],bank:{revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}};
+    const result=await requestStewardReply(request);
+    expect(result.text).not.toContain('30300');expect(result.text).toContain('28,300');
+    const shortfall=await requestStewardReply({...request,bank:{...request.bank,balance:1300000}});
+    expect(shortfall.action).toBeUndefined();expect(shortfall.text).toContain('1,000');expect(shortfall.text).toContain('[[choices:');
+  });
   it("能解析提醒开关和打开订阅中心动作", () => {
     expect(parseStewardReply(
       `已关闭这项提醒。\n[ZHIYIN_ACTION:SET_REMINDER|alipay|sub-video|off]`,
