@@ -132,7 +132,7 @@ function fundingContext(forecast: FundingForecast | undefined, question: string)
 }
 
 import { choiceInstructions } from './reply-choices';
-export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)/.test(messages.slice(-4).map(m=>m.content).join(' '));
+export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)|(?:之前|上次).{0,15}安排.{0,15}(?:钱|款)/.test(messages.slice(-4).map(m=>m.content).join(' '));
 export const isBankOperation=(text:string)=>/AA|aa|平摊|均摊|拆分.*收款|(?:给|向).{1,25}(?:转|汇)|预约.*转|定时.*转/.test(text);
 
 export function buildStewardInstructions({
