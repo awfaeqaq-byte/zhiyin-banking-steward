@@ -4,60 +4,65 @@ import { useActivityContext } from "@/os/ActivityContext";
 import { useWechatStore } from "../state";
 import { useWechatGestures } from "../hooks/useWechatGestures";
 import { useWechatStrings } from "../hooks/useWechatStrings";
-import { IcNavBack, IcContacts } from "../res/icons";
+import { IcNavBack } from "../res/icons";
 import {
-  initialGroupAA,
+  normalizeGroupAA,
   grantGroupAA,
-  revokeGroupAA,
   publishGroupAA,
   simulateGroupAAPayment,
   cancelGroupAA,
 } from "../group-aa/backend";
 import { calculateGroupAA, type AAPlan } from "../../../../src/lib/group-aa";
 import "./group-aa.css";
+import { GroupMosaic, MemberAvatar } from "./GroupChat";
 
 const money = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
 export function GroupAAChatRows() {
   const stored = useWechatStore((s) => s.groupAA);
-  const state = useMemo(() => stored ?? initialGroupAA(), [stored]);
+  const state = useMemo(() => normalizeGroupAA(stored), [stored]);
   const { bindTap } = useWechatGestures();
   const t = useWechatStrings();
   return (
     <>
-      {state.groups.map((group) => {
-        const latest = state.collections.find((c) => c.groupId === group.id);
-        return (
-          <button
-            key={group.id}
-            className="wx-aa-chat-row"
-            {...bindTap("wechat.groupAA.open", {
-              params: { groupId: group.id },
-            })}
-          >
-            <span className="wx-aa-icon">
-              <IcContacts size={26} />
-            </span>
-            <span>
-              <strong>{group.name}</strong>
-              <small>
-                {latest
-                  ? `${t.aa_collection} · ${latest.plan.title}`
-                  : t.aa_group_preview}
-              </small>
-            </span>
-          </button>
-        );
-      })}
+      {[...state.groups]
+        .sort(
+          (a, b) =>
+            Number(!!state.settings?.[b.id]?.pinned) -
+            Number(!!state.settings?.[a.id]?.pinned),
+        )
+        .map((group) => {
+          const latest = state.collections.find((c) => c.groupId === group.id);
+          return (
+            <button
+              key={group.id}
+              className="wx-aa-chat-row"
+              {...bindTap("wechat.groupAA.open", {
+                params: { groupId: group.id },
+              })}
+            >
+              <GroupMosaic members={group.members} />
+              <span>
+                <strong>{group.name}</strong>
+                <small>
+                  {latest
+                    ? `${t.aa_collection} · ${latest.plan.title}`
+                    : (state.messages?.[group.id]?.at(-1)?.text ??
+                      t.aa_group_preview)}
+                </small>
+              </span>
+            </button>
+          );
+        })}
     </>
   );
 }
 export function GroupAAPage() {
-  const { groupId } = useParams();
+  const { groupId, collectionId } = useParams();
   const { activityId } = useActivityContext();
   const { bindTap, bindBack } = useWechatGestures();
   const t = useWechatStrings();
   const stored = useWechatStore((s) => s.groupAA);
-  const state = useMemo(() => stored ?? initialGroupAA(), [stored]);
+  const state = useMemo(() => normalizeGroupAA(stored), [stored]);
   const [error, setError] = useState("");
   const request = useMemo(
     () => window.__OS__?.getIntentPayload?.(activityId)?.data,
@@ -101,11 +106,7 @@ export function GroupAAPage() {
           <IcNavBack size={24} />
         </button>
         <h1>
-          {choosing
-            ? t.aa_choose
-            : publishing
-              ? t.aa_confirm
-              : (group?.name ?? t.aa_collection)}
+          {choosing ? t.aa_choose : publishing ? t.aa_confirm : t.aa_collection}
         </h1>
       </header>
       <main data-scroll-container="main" data-scroll-direction="vertical">
@@ -136,7 +137,10 @@ export function GroupAAPage() {
           </>
         ) : publishing ? (
           <>
-            <div className="wx-aa-mode"><strong>{t.aa_by_person}</strong><span>{t.aa_prepared}</span></div>
+            <div className="wx-aa-mode">
+              <strong>{t.aa_by_person}</strong>
+              <span>{t.aa_prepared}</span>
+            </div>
             <p className="wx-aa-muted">{t.aa_confirm_hint}</p>
             {invalid ? (
               <p role="alert">{invalid}</p>
@@ -146,13 +150,21 @@ export function GroupAAPage() {
                 <section>
                   <h3>{group.name}</h3>
                   <p>{(request.plan as AAPlan).title}</p>
-                  <div className="wx-aa-participant-title"><span>{t.aa_participants} ({calculation.members.length})</span><span>{t.aa_amount}</span></div>
+                  <div className="wx-aa-participant-title">
+                    <span>
+                      {t.aa_participants} ({calculation.members.length})
+                    </span>
+                    <span>{t.aa_amount}</span>
+                  </div>
                   {calculation.members.map((m) => (
                     <div className="wx-aa-line" key={m.id}>
-                      <span>
-                        {m.name}
-                        {m.self ? ` · ${t.aa_self}` : ""}
-                        <small>{m.note}</small>
+                      <span className="wx-aa-person">
+                        <MemberAvatar member={m} />
+                        <span>
+                          {m.name}
+                          {m.self ? ` · ${t.aa_self}` : ""}
+                          <small>{m.note}</small>
+                        </span>
                       </span>
                       <b>{money(m.amount)}</b>
                     </div>
@@ -189,35 +201,11 @@ export function GroupAAPage() {
           </>
         ) : group ? (
           <>
-            <p className="wx-aa-muted">{t.aa_sandbox}</p>
-            <section>
-              <h2>{t.aa_members}</h2>
-              {group.members.map((m) => (
-                <div className="wx-aa-line" key={m.id}>
-                  <span>{m.name}</span>
-                  <small>{m.note ?? t.aa_self}</small>
-                </div>
-              ))}
-              {state.grants.includes(group.id) && (
-                <button
-                  className="wx-aa-link"
-                  {...bindTap(
-                    { kind: "action", id: "wechat.groupAA.revoke.submit" },
-                    {
-                      params: { groupId: group.id },
-                      onTrigger: () => perform(() => revokeGroupAA(group.id)),
-                    },
-                  )}
-                >
-                  {t.aa_revoke}
-                </button>
-              )}
-            </section>
             {!state.collections.some((c) => c.groupId === group.id) && (
               <p className="wx-aa-muted">{t.aa_empty}</p>
             )}
             {state.collections
-              .filter((c) => c.groupId === group.id)
+              .filter((c) => c.groupId === group.id && c.id === collectionId)
               .map((c) => (
                 <section key={c.id}>
                   <h2>{c.plan.title}</h2>
@@ -229,9 +217,30 @@ export function GroupAAPage() {
                         : t.aa_pending}{" "}
                   </p>
                   <div className="wx-aa-money-summary">
-                    <span><small>{t.aa_total_collection}</small><b>{money(c.collectAmount)}</b></span>
-                    <span><small>{t.aa_collected_amount}</small><b>{money(c.members.filter(m=>!m.self&&m.paid).reduce((sum,m)=>sum+m.amount,0))}</b></span>
-                    <span><small>{t.aa_unpaid_amount}</small><b>{money(c.members.filter(m=>!m.self&&!m.paid).reduce((sum,m)=>sum+m.amount,0))}</b></span>
+                    <span>
+                      <small>{t.aa_total_collection}</small>
+                      <b>{money(c.collectAmount)}</b>
+                    </span>
+                    <span>
+                      <small>{t.aa_collected_amount}</small>
+                      <b>
+                        {money(
+                          c.members
+                            .filter((m) => !m.self && m.paid)
+                            .reduce((sum, m) => sum + m.amount, 0),
+                        )}
+                      </b>
+                    </span>
+                    <span>
+                      <small>{t.aa_unpaid_amount}</small>
+                      <b>
+                        {money(
+                          c.members
+                            .filter((m) => !m.self && !m.paid)
+                            .reduce((sum, m) => sum + m.amount, 0),
+                        )}
+                      </b>
+                    </span>
                   </div>
                   {c.members
                     .filter((m) => !m.self)

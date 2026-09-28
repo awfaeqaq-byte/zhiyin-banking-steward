@@ -141,7 +141,11 @@
   overflow-y: auto;
   border-top: 1px solid var(--line);
 }
-.aa-selected-count{font-size:12px;color:var(--muted);margin:0 0 8px}
+.aa-selected-count {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
 .aa-members > label {
   display: flex;
   align-items: center;
@@ -329,4 +333,10 @@
   .aa-avatar {
     display: none;
   }
+}
+.aa-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
 }

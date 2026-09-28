@@ -1,0 +1,12 @@
+{
+  "group-weekend": [
+    {"id":"weekend-1","memberId":"group-li","text":"周五晚上一起吃饭吗？","createdAt":1789998000000},
+    {"id":"weekend-2","memberId":"group-wang","text":"可以呀，我下班直接过去。","createdAt":1789998060000},
+    {"id":"weekend-3","memberId":"self","text":"好，我先订位置，吃完再算。","createdAt":1789998120000},
+    {"id":"weekend-4","memberId":"group-li","text":"好，等你发地址～","createdAt":1789998180000}
+  ],
+  "group-trip": [
+    {"id":"trip-1","memberId":"trip-li","text":"车票和住宿到时候一起算吧。","createdAt":1789998000000},
+    {"id":"trip-2","memberId":"trip-wang-a","text":"没问题，大家把费用记一下。","createdAt":1789998060000}
+  ]
+}

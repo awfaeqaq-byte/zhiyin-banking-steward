@@ -1,6 +1,7 @@
 import { useWechatStore } from "../state";
 import * as TimeService from "@/os/TimeService";
 import defaults from "../data/group-aa-defaults.json";
+import defaultMessages from "../data/group-aa-messages.json";
 import {
   calculateGroupAA,
   type AAGroup,
@@ -8,17 +9,101 @@ import {
   type AACollection,
 } from "../../../../src/lib/group-aa";
 export type WechatGroupAAState = {
+  profileVersion?: number;
   groups: AAGroup[];
   grants: string[];
   collections: AACollection[];
+  messages?: Record<
+    string,
+    { id: string; memberId: string; text: string; createdAt: number }[]
+  >;
+  settings?: Record<string, { muted?: boolean; pinned?: boolean }>;
 };
 export const initialGroupAA = (): WechatGroupAAState => ({
-  groups: structuredClone(defaults),
+  profileVersion: 2,
+  groups: structuredClone(defaults) as AAGroup[],
   grants: [],
   collections: [],
+  messages: structuredClone(defaultMessages),
+  settings: {},
 });
+/** Pure migration: old consent never silently expands to profile sharing. */
+export function normalizeGroupAA(
+  stored?: WechatGroupAAState,
+): WechatGroupAAState {
+  if (!stored) return initialGroupAA();
+  if (stored.profileVersion === 2) return stored;
+  return {
+    ...stored,
+    profileVersion: 2,
+    grants: [],
+    messages: stored.messages ?? structuredClone(defaultMessages),
+    settings: stored.settings ?? {},
+    groups: stored.groups.map((g) => ({
+      ...g,
+      revision: g.revision + 1,
+      members: g.members.map((m) => {
+        const fixture = defaults
+          .find((d) => d.id === g.id)
+          ?.members.find((d) => d.id === m.id);
+        return {
+          ...m,
+          avatar: m.avatar ?? fixture?.avatar,
+          gender:
+            m.gender ??
+            (fixture?.gender as "male" | "female" | "unknown" | undefined) ??
+            "unknown",
+        };
+      }),
+    })),
+  };
+}
 export const readGroupAA = () =>
-  useWechatStore.getState().groupAA ?? initialGroupAA();
+  normalizeGroupAA(useWechatStore.getState().groupAA);
+export function sendGroupAAMessage(groupId: string, text: string) {
+  const state = readGroupAA();
+  const self = state.groups
+    .find((g) => g.id === groupId)
+    ?.members.find((m) => m.self);
+  if (!self || typeof text !== "string" || !text.trim() || text.length > 2000)
+    throw new Error("请输入2000字以内的群消息");
+  const messages = state.messages ?? {};
+  useWechatStore.setState({
+    groupAA: {
+      ...state,
+      messages: {
+        ...messages,
+        [groupId]: [
+          ...(messages[groupId] ?? []),
+          {
+            id: crypto.randomUUID(),
+            memberId: self.id,
+            text: text.trim(),
+            createdAt: TimeService.now(),
+          },
+        ],
+      },
+    },
+  });
+}
+export function updateGroupAASettings(
+  groupId: string,
+  patch: { muted?: boolean; pinned?: boolean },
+) {
+  const state = readGroupAA();
+  if (
+    !state.groups.some((g) => g.id === groupId) ||
+    Object.values(patch).some((v) => typeof v !== "boolean")
+  )
+    throw new Error("群设置无效");
+  const settings = state.settings ?? {};
+  useWechatStore.setState({
+    groupAA: {
+      ...state,
+      settings: { ...settings, [groupId]: { ...settings[groupId], ...patch } },
+    },
+  });
+}
 export function grantGroupAA(id: string) {
   const state = readGroupAA();
   const group = state.groups.find((g) => g.id === id);

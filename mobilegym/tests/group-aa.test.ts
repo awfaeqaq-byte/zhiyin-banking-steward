@@ -45,27 +45,66 @@ beforeEach(() => {
   };
 });
 describe("sandbox group collections", () => {
-  it('supplies explicit member profiles and migrates old grants without losing money records',()=>{
-    const fresh=initialGroupAA();
-    expect(fresh.groups[0].members.find(m=>m.id==='group-li')).toMatchObject({gender:'female',avatar:expect.stringContaining('avatar_30')});
-    holder.state.groupAA={groups:fresh.groups.map(g=>({...g,members:g.members.map(({avatar,gender,...m}:any)=>m)})),grants:['group-weekend'],collections:[{id:'keep'}]};
-    const migrated=readGroupAA();
+  it("supplies explicit member profiles and migrates old grants without losing money records", () => {
+    const fresh = initialGroupAA();
+    expect(
+      fresh.groups[0].members.find((m) => m.id === "group-li"),
+    ).toMatchObject({
+      gender: "female",
+      avatar: expect.stringContaining("avatar_30"),
+    });
+    holder.state.groupAA = {
+      groups: fresh.groups.map((g) => ({
+        ...g,
+        members: g.members.map(({ avatar, gender, ...m }: any) => m),
+      })),
+      grants: ["group-weekend"],
+      collections: [{ id: "keep" }],
+    };
+    const migrated = readGroupAA();
     expect(migrated.grants).toEqual([]);
-    expect(migrated.collections).toEqual([{id:'keep'}]);
-    expect(migrated.groups[0].members.find(m=>m.id==='group-li')?.gender).toBe('female');
+    expect(migrated.collections).toEqual([{ id: "keep" }]);
+    expect(
+      migrated.groups[0].members.find((m) => m.id === "group-li")?.gender,
+    ).toBe("female");
     expect(holder.state.wallet.balanceCents).toBe(1000);
-    expect(grantGroupAA('group-weekend').members[1].gender).toBe('female');
-    expect(readGroupAA().grants).toEqual(['group-weekend']);
+    expect(grantGroupAA("group-weekend").members[1].gender).toBe("female");
+    expect(readGroupAA().grants).toEqual(["group-weekend"]);
   });
-  it('persists ordinary group messages and settings independently from financial actions',()=>{
-    sendGroupAAMessage('group-weekend','今晚一起吃饭');
-    expect(readGroupAA().messages?.['group-weekend'].at(-1)).toMatchObject({memberId:'self',text:'今晚一起吃饭'});
-    expect(()=>sendGroupAAMessage('missing','hello')).toThrow();
-    expect(()=>sendGroupAAMessage('group-weekend','  ')).toThrow();
-    updateGroupAASettings('group-weekend',{muted:true});
-    expect(readGroupAA().settings?.['group-weekend'].muted).toBe(true);
+  it("persists ordinary group messages and settings independently from financial actions", () => {
+    sendGroupAAMessage("group-weekend", "今晚一起吃饭");
+    expect(readGroupAA().messages?.["group-weekend"].at(-1)).toMatchObject({
+      memberId: "self",
+      text: "今晚一起吃饭",
+    });
+    expect(() => sendGroupAAMessage("missing", "hello")).toThrow();
+    expect(() => sendGroupAAMessage("group-weekend", "  ")).toThrow();
+    expect(() =>
+      sendGroupAAMessage("group-weekend", "x".repeat(2001)),
+    ).toThrow();
+    expect(() => updateGroupAASettings("missing", { muted: true })).toThrow();
+    expect(() =>
+      updateGroupAASettings("group-weekend", { muted: "yes" as any }),
+    ).toThrow();
+    updateGroupAASettings("group-weekend", { muted: true });
+    expect(readGroupAA().settings?.["group-weekend"].muted).toBe(true);
     expect(holder.state.wallet.balanceCents).toBe(1000);
     expect(readGroupAA().collections).toHaveLength(0);
+  });
+  it("preserves explicit custom profiles and only enriches known demo IDs during migration", () => {
+    const state = initialGroupAA();
+    delete state.profileVersion;
+    state.groups[0].members[1].gender = "unknown";
+    state.groups[0].members.push({ id: "custom", name: "小明" });
+    holder.state.groupAA = state;
+    const migrated = readGroupAA();
+    expect(migrated.groups[0].members[1].gender).toBe("unknown");
+    expect(migrated.groups[0].members.at(-1)).toMatchObject({
+      id: "custom",
+      gender: "unknown",
+    });
+    expect(migrated.groups[0].revision).toBe(2);
+    expect(state.groups[0].revision).toBe(1);
   });
   it("shares one selected group only and allows revocation", () => {
     expect(readGroupAA().grants).toEqual([]);

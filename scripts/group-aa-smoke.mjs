@@ -60,6 +60,11 @@ try {
   await page.waitForSelector('[data-action="wechat.groupAA.authorize.submit"]');
   await page.click('[data-action="wechat.groupAA.authorize.submit"]');
   await frame.waitForSelector(".aa-members");
+  assert.equal(await frame.$$eval(".aa-avatar img", (imgs) => imgs.length), 4);
+  await page.screenshot({
+    path: resolve(screenshots, "group-profiles-mobile.png"),
+    fullPage: true,
+  });
   await clickText(frame, ".aa-members-heading button", "全选");
   await clickText(frame, "button", "添加费用");
   await frame.type('[aria-label="费用1金额"]', "600");
@@ -94,6 +99,45 @@ try {
   await page.evaluate(() =>
     window.__OS__.openApp("wechat", "/group-aa/group-weekend"),
   );
+  await page.waitForSelector(".wx-group-collection");
+  await page.screenshot({
+    path: resolve(screenshots, "group-chat-mobile.png"),
+    fullPage: true,
+  });
+  await page.click('[data-trigger="wechat.groupAA.info.open"]');
+  await page.waitForSelector(".wx-group-members-grid");
+  await page.screenshot({
+    path: resolve(screenshots, "group-info-mobile.png"),
+    fullPage: true,
+  });
+  await page.click('[data-action="wechat.groupAA.mute.toggle"]');
+  assert.equal(
+    await page.$eval('[data-action="wechat.groupAA.mute.toggle"]', (e) =>
+      e.getAttribute("aria-checked"),
+    ),
+    "true",
+  );
+  await page.click('.wx-group-info [data-trigger="system.back"]');
+  await page.waitForSelector(".wx-group-composer input");
+  await page.type(".wx-group-composer input", "收款发好了，大家看一下");
+  await page.click('[data-action="wechat.groupAA.message.submit"]');
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".wx-group-chat main")
+      ?.textContent.includes("收款发好了，大家看一下"),
+  );
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForNetworkIdle();
+  assert.ok(
+    await page.$eval('[data-trigger="wechat.groupAA.collection.open"]', (e) => {
+      const r = e.getBoundingClientRect();
+      return e.contains(
+        document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+      );
+    }),
+    "Collection card must be reachable after closing the keyboard",
+  );
+  await page.click('[data-trigger="wechat.groupAA.collection.open"]');
   await page.waitForSelector(".wx-aa-page details");
   await page.click(".wx-aa-page details summary");
   await page.waitForFunction(
@@ -125,7 +169,12 @@ try {
   assert.equal(wallet.entries.length, 1);
   assert.equal(wallet.entries[0].amountCents, 15000);
   assert.equal(wallet.balance - balanceBefore, 15000);
-  assert.deepEqual(await page.$$eval('.wx-aa-money-summary b',els=>els.map(e=>e.textContent)),['¥450.00','¥150.00','¥300.00']);
+  assert.deepEqual(
+    await page.$$eval(".wx-aa-money-summary b", (els) =>
+      els.map((e) => e.textContent),
+    ),
+    ["¥450.00", "¥150.00", "¥300.00"],
+  );
   await page.screenshot({
     path: resolve(screenshots, "aa-wechat-progress.png"),
     fullPage: true,
@@ -149,6 +198,11 @@ try {
   await page.waitForNetworkIdle();
   await page.evaluate(() => window.__OS__.openApp("zhiyin"));
   await page.waitForFunction(() => !!document.querySelector("iframe"));
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll("iframe")).some((f) =>
+      f.contentDocument?.querySelector("button"),
+    ),
+  );
   frame = page.frames().find((f) => f.url().includes("/zhiyin/index"));
   if (!(await frame.$(".aa-records"))) {
     await clickText(frame, "button", "我的");
@@ -177,13 +231,41 @@ try {
     1,
   );
   assert.equal(persisted.wallet.balanceCents, wallet.balance);
-  await page.evaluate(()=>window.__OS__.openApp('wechat','/group-aa/group-weekend'));
-  await page.waitForSelector('.wx-aa-page details summary');await page.click('.wx-aa-page details summary');
+  await page.evaluate(() =>
+    window.__OS__.openApp("wechat", "/group-aa/group-weekend"),
+  );
+  await page.waitForSelector(".wx-group-collection");
+  await page.screenshot({
+    path: resolve(screenshots, "group-chat-desktop.png"),
+    fullPage: true,
+  });
+  await page.click('[data-trigger="wechat.groupAA.info.open"]');
+  await page.waitForSelector(".wx-group-members-grid");
+  await page.screenshot({
+    path: resolve(screenshots, "group-info-desktop.png"),
+    fullPage: true,
+  });
+  await page.click('.wx-group-info [data-trigger="system.back"]');
+  await page.waitForSelector(".wx-group-collection");
+  await page.click('[data-trigger="wechat.groupAA.collection.open"]');
+  await page.waitForSelector(".wx-aa-page details summary");
+  await page.click(".wx-aa-page details summary");
   await page.click('[data-action="wechat.groupAA.payment.submit"]');
-  await page.waitForFunction(()=>document.querySelectorAll('[data-action="wechat.groupAA.payment.submit"]').length===1);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('[data-action="wechat.groupAA.payment.submit"]')
+        .length === 1,
+  );
   await page.click('[data-action="wechat.groupAA.payment.submit"]');
-  await page.waitForFunction(()=>document.querySelector('.wx-aa-status')?.textContent.includes('已收齐'));
-  assert.deepEqual(await page.$$eval('.wx-aa-money-summary b',els=>els.map(e=>e.textContent)),['¥450.00','¥450.00','¥0.00']);
+  await page.waitForFunction(() =>
+    document.querySelector(".wx-aa-status")?.textContent.includes("已收齐"),
+  );
+  assert.deepEqual(
+    await page.$$eval(".wx-aa-money-summary b", (els) =>
+      els.map((e) => e.textContent),
+    ),
+    ["¥450.00", "¥450.00", "¥0.00"],
+  );
   console.log(
     JSON.stringify({
       result: "PASS",

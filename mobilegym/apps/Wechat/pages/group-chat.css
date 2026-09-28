@@ -1,0 +1,308 @@
+.wx-group-chat header {
+  border-bottom: 1px solid #ddd;
+}
+.wx-group-chat h1 {
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.wx-group-chat main {
+  padding: 4px 12px 20px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c4c4c4 transparent;
+}
+.wx-group-avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #d9dfdb;
+  color: #37483e;
+  font-size: 16px;
+}
+.wx-group-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wx-group-mosaic {
+  width: 48px;
+  height: 48px;
+  padding: 3px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  background: #ddd;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.wx-group-mosaic .wx-group-avatar {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 1px;
+  font-size: 10px;
+}
+.wx-group-time {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: #727272;
+  margin: 20px 0;
+}
+.wx-group-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0;
+}
+.wx-group-message.is-self {
+  flex-direction: row-reverse;
+}
+.wx-group-message-body {
+  max-width: calc(100% - 70px);
+  min-width: 0;
+}
+.wx-group-sender {
+  display: block;
+  color: #6d6d6d;
+  font-size: 12px;
+  line-height: 16px;
+  margin: 0 0 5px 1px;
+}
+.wx-group-bubble {
+  position: relative;
+  background: #fff;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.wx-group-bubble::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 14px;
+  border-width: 5px 5px 5px 0;
+  border-style: solid;
+  border-color: transparent #fff transparent transparent;
+}
+.is-self .wx-group-bubble {
+  background: #95ec69;
+}
+.is-self .wx-group-bubble::before {
+  left: auto;
+  right: -5px;
+  border-width: 5px 0 5px 5px;
+  border-color: transparent transparent transparent #95ec69;
+}
+.wx-group-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 22px;
+  background: #f7f7f7;
+  border-top: 1px solid #ddd;
+  flex-shrink: 0;
+}
+.wx-group-composer input {
+  min-width: 0;
+  flex: 1;
+  height: 40px;
+  border: 0;
+  border-radius: 5px;
+  background: #fff;
+  padding: 8px 10px;
+  font-size: 16px;
+  caret-color: #078345;
+}
+.wx-group-composer button {
+  min-width: 60px;
+  min-height: 40px;
+  border-radius: 5px;
+  background: #078345;
+  color: white;
+  font-size: 14px;
+  padding: 8px;
+}
+.wx-group-composer button:disabled {
+  background: #e3e3e3;
+  color: #686868;
+}
+.wx-group-collection {
+  position: relative;
+  display: block;
+  text-align: left;
+  width: 250px;
+  max-width: 100%;
+  border-radius: 4px;
+  background: #078345;
+  color: white;
+  overflow-wrap: anywhere;
+}
+.wx-group-collection::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 14px;
+  border-width: 5px 0 5px 5px;
+  border-style: solid;
+  border-color: transparent transparent transparent #078345;
+}
+.wx-group-collection-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 12px;
+}
+.wx-group-receipt-icon {
+  width: 40px;
+  height: 40px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.wx-group-collection strong {
+  font-size: 17px;
+  display: block;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.wx-group-collection-main > span > span {
+  font-size: 13px;
+  display: block;
+  margin-top: 2px;
+}
+.wx-group-collection > small {
+  display: block;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-top: 1px solid #ffffff35;
+}
+.wx-group-collection.is-stopped {
+  background: #63766a;
+}
+.wx-group-collection.is-stopped::after {
+  border-left-color: #63766a;
+}
+.wx-group-info header {
+  background: #fff;
+}
+.wx-group-info main {
+  padding: 0 0 28px;
+}
+.wx-group-members-grid {
+  background: #fff;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 22px 14px;
+  gap: 18px 8px;
+}
+.wx-group-members-grid > div {
+  min-width: 0;
+  text-align: center;
+}
+.wx-group-members-grid .wx-group-avatar {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 8px;
+}
+.wx-group-members-grid span:not(.wx-group-avatar) {
+  display: block;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wx-group-members-grid small {
+  display: block;
+  font-size: 10px;
+  color: #707070;
+  margin-top: 3px;
+}
+.wx-group-info-block {
+  background: #fff;
+  margin-top: 10px;
+  padding: 0 16px;
+}
+.wx-group-info-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 16px;
+}
+.wx-group-info-row:last-child {
+  border-bottom: 0;
+}
+.wx-group-info-row > span:last-child:not(.wx-group-switch) {
+  color: #707070;
+  text-align: right;
+  font-size: 14px;
+}
+.wx-group-switch {
+  width: 46px;
+  height: 28px;
+  background: #ddd;
+  border-radius: 16px;
+  padding: 2px;
+  display: block;
+  flex-shrink: 0;
+}
+.wx-group-switch::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  display: block;
+  transition: transform 0.18s ease-out;
+}
+.wx-group-switch.is-on {
+  background: #078345;
+}
+.wx-group-switch.is-on::before {
+  transform: translateX(18px);
+}
+.wx-group-disclosure {
+  padding: 0 18px;
+}
+.wx-group-chat button:focus-visible,
+.wx-group-info button:focus-visible,
+.wx-group-composer input:focus-visible {
+  outline: 2px solid #078345;
+  outline-offset: 3px;
+}
+.wx-group-chat ::selection,
+.wx-group-info ::selection {
+  background: #b8eac9;
+  color: #173a21;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wx-group-switch::before {
+    transition: none;
+  }
+}
+/* The mobile sandbox console floats over the home-indicator zone. Keep send reachable. */
+@media (max-width: 600px) {
+  .wx-group-composer {
+    padding-bottom: 64px;
+  }
+}

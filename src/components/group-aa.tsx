@@ -238,7 +238,14 @@ export function GroupAA() {
                 </button>
               </span>
             </div>
-            <p className="aa-selected-count">已选 {selected.length} 人{selected.some(id=>group.members.find(m=>m.id===id)?.self)?'（含自己）':''}</p>
+            <p className="aa-selected-count">
+              已选 {selected.length} 人
+              {selected.some(
+                (id) => group.members.find((m) => m.id === id)?.self,
+              )
+                ? "（含自己）"
+                : ""}
+            </p>
             <label className="aa-search">
               <Search size={16} />
               <input
@@ -268,7 +275,17 @@ export function GroupAA() {
                       }
                     />
                     <span className="aa-avatar" aria-hidden="true">
-                      {m.name.slice(0, 1)}
+                      {m.avatar ? (
+                        <img
+                          src={m.avatar}
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        m.name.slice(0, 1)
+                      )}
                     </span>
                     <span>
                       {m.self ? "我（自己）" : m.name}
@@ -276,6 +293,7 @@ export function GroupAA() {
                         {m.self
                           ? "可参与分摊，不向自己收款"
                           : m.note || "群成员"}
+                        {` · ${m.gender === "female" ? "女" : m.gender === "male" ? "男" : "性别未填写"}`}
                       </small>
                     </span>
                   </label>
