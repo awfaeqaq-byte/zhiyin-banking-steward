@@ -6,7 +6,7 @@ import {BankTransfer} from './bank-transfer';
 import {Button} from './ui/button';
 import './smart-transfers.css';
 
-export type SmartIntent=TransferIntent | (AAIntent & {kind:'aa'});
+export type SmartIntent=TransferIntent | (AAIntent & {kind:'aa'}) | {kind:'records'};
 const person=(id:string)=>id==='self'?'我自己':bankRecipients.find(r=>r.id===id)?.name || id;
 const dateLabel=(value:number)=>new Date(value).toLocaleString('zh-CN');
 const statusLabel={pending:'等待执行',completed:'已完成',failed:'执行失败',cancelled:'已撤销'};
@@ -51,7 +51,9 @@ function AAForm({initial,onCreated}:{initial?:AAIntent;onCreated:()=>void}){
 }
 
 export function SmartTransfers({initial,onDone}:{initial:SmartIntent;onDone:(receipt:BankReceipt)=>void}){
- const [tab,setTab]=useState<'transfer'|'aa'|'records'>('kind' in initial?'aa':'transfer');
+ const [tab,setTab]=useState<'transfer'|'aa'|'records'>('kind' in initial?initial.kind:'transfer');
+ const [transfer,setTransfer]=useState<TransferIntent>('kind' in initial?{recipientId:'mom',amount:0}:initial);
+ const [transferKey,setTransferKey]=useState(0);
  const bank=useBankAccount();
  const refresh=bank.refresh;
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -65,8 +67,8 @@ export function SmartTransfers({initial,onDone}:{initial:SmartIntent;onDone:(rec
  }
  return <div className="smart-transfers">
   <nav className="smart-tabs" aria-label="转账功能">{([['transfer','转账'],['aa','AA收款'],['records','记录']] as const).map(([key,label])=><button key={key} aria-pressed={tab===key} disabled={busy} onClick={()=>{setTab(key);setConfirmation(null);setError('');}}>{label}</button>)}</nav>
-  <div hidden={tab!=='transfer'}><BankTransfer initial={'kind' in initial?{recipientId:'mom',amount:0}:initial} onDone={onDone}/></div>
-  <div hidden={tab!=='aa'}><AAForm initial={'kind' in initial?initial:undefined} onCreated={()=>{setTab('records');void bank.refresh();}}/></div>
+  <div hidden={tab!=='transfer'}><BankTransfer key={transferKey} initial={transfer} onDone={onDone}/></div>
+  <div hidden={tab!=='aa'}><AAForm initial={'kind' in initial && initial.kind==='aa'?initial:undefined} onCreated={()=>{setTab('records');void bank.refresh();}}/></div>
   {tab==='records'&&<section className="smart-records" aria-label="转账与收款记录">
    <div className="smart-record-heading"><h3>预约转账</h3><button disabled={busy} onClick={()=>void bank.refresh()}>刷新</button></div>
    {!bank.state&&<p role="status">{bank.error || '正在读取记录…'}</p>}
@@ -74,6 +76,8 @@ export function SmartTransfers({initial,onDone}:{initial:SmartIntent;onDone:(rec
    {[...(bank.state?.schedules??[])].reverse().map(item=><article className="smart-record" key={item.id}>
     <div className="smart-record-heading"><strong>{person(item.recipientId)} · {money(item.amount)}</strong><span>{statusLabel[item.status]}</span></div>
     <p>{dateLabel(item.executeAt)}</p>{item.error&&<p role="status">{item.error}。未扣款，请重新安排。</p>}
+    {!!item.protectedAmount&&<p>转账后至少保留 {money(item.protectedAmount)}</p>}
+    {item.status==='failed'&&<Button variant="secondary" disabled={busy} onClick={()=>{setTransfer({recipientId:item.recipientId,amount:item.amount,protectedAmount:item.protectedAmount,executeAt:Date.now()+3600000});setTransferKey(key=>key+1);setTab('transfer');}}>重新安排</Button>}
     {item.status==='pending'&&<Button variant="secondary" disabled={busy} onClick={()=>setConfirmation({label:`撤销给${person(item.recipientId)}的${money(item.amount)}预约？`,body:{type:'cancel-schedule',id:item.id}})}>撤销预约</Button>}
    </article>)}
    <h3>AA收款</h3>

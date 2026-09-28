@@ -14,7 +14,7 @@ it('管家带来的保留金额可核对修改，执行前展示资金影响',as
  expect(screen.getByLabelText('转账后至少保留（元）')).toHaveValue('12000');
  await user.click(screen.getByRole('button',{name:'核对即时转账'}));
  expect(await screen.findByText('其他待执行预约')).toBeVisible();
- expect(screen.getByText('¥26,300')).toBeVisible();
+ expect(screen.getByRole('region',{name:'转账资金影响'})).toHaveTextContent('¥26,300');
  expect(calls.find(c=>c.type==='prepare')).toMatchObject({protectedAmount:1200000});
  expect(calls.some(c=>c.type==='confirm')).toBe(false);
 });
