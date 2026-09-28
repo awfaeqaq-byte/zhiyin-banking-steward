@@ -48,6 +48,7 @@ it('接受带资金约束的模型方案；拒绝非法参数；提供查询记�
   expect(parseStewardReply(`[ZHIYIN_ACTION:PREPARE_GUARDED_TRANSFER|${marker}]`,[]).action).toBeUndefined();
  expect(parseStewardReply('[ZHIYIN_ACTION:OPEN_TRANSFER_RECORDS]',[]).action).toEqual({type:'open_transfer_records'});
  expect(isBankRequest([{role:'user',content:'之前安排给妈妈的那笔钱怎么样了'}])).toBe(true);
+ expect(isBankRequest([{role:'user',content:'之前安排给妈妈的钱怎么样了'}])).toBe(true);
 });
 it('转账规划使用续费测算，同时明确还款数据缺失以及账户不混算',()=>{
  const text=buildStewardInstructions({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转2000，帮我留够还款和续费'}],
