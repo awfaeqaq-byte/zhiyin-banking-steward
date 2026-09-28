@@ -1,5 +1,5 @@
 import type { ExternalFinancialProvider } from "./financial-connections";
-import {validTransfer,type TransferIntent,type BankSnapshot} from './bank-transfer';
+import {validTransfer,bankRecipients,splitAA,type AAIntent,type TransferIntent,type BankSnapshot} from './bank-transfer';
 import type { FundingForecast } from "./funding-forecast";
 import type { RecurringCandidate } from "./recurring-payments";
 import type { DuplicateDecision } from "./subscription-insights";
@@ -25,6 +25,7 @@ export type StewardSubscription = {
 
 export type StewardAction =
   | ({type:'prepare_transfer'} & TransferIntent)
+  | ({type:'prepare_aa'} & AAIntent)
   | { type: "set_duplicate_preference"; groupId: string; decision: DuplicateDecision }
   | { type: "open_subscriptions" }
   | { type: "open_funding" }
@@ -128,7 +129,7 @@ function fundingContext(forecast: FundingForecast | undefined, question: string)
 }
 
 import { choiceInstructions } from './reply-choices';
-export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为/.test(messages.slice(-4).map(m=>m.content).join(' '));
+export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约/.test(messages.slice(-4).map(m=>m.content).join(' '));
 
 export function buildStewardInstructions({
   stewardName,
@@ -146,13 +147,15 @@ export function buildStewardInstructions({
   if(!billAnalysis && (!isBillQuestion(question) || /银行|常用卡/.test(question)) && isBankRequest(messages))return [
     `你是${stewardName}，知银的个人银行管家。用户是叶先生。`,
     memoryContext,
-    bank?`当前银行沙箱（金额单位为分）：${JSON.stringify({balance:bank.balance,limit:bank.limit,frozen:bank.frozen,controls:bank.controls,recentReceipts:bank.transactions.slice(-3)})}。其他平台资金不能抵扣此卡支付；只列最近三笔，完整账单在银行卡页。`:'当前银行数据不可用，不能报告余额或断言交易成功，可以引导核对方案。',
-    '本轮处理银行沙箱即时转账。只能准备方案，不能执行或声称已转账、已冻结或预留资金。账户余额、挂失、限额须由后端核对，不要猜数字。',
-    '已登记收款人只有妈妈（id=mom，尾号6621）和爸爸（id=dad，尾号7316）；不能把通讯录手机号当银行卡号，其他收款人需说明暂不支持。',
+    bank?`当前银行沙箱（金额单位为分）：${JSON.stringify({balance:bank.balance,limit:bank.limit,frozen:bank.frozen,controls:bank.controls,recentReceipts:bank.transactions.slice(-3),schedules:bank.schedules?.slice(-10),aaRequests:bank.aaRequests?.slice(-10)})}。其他平台资金不能抵扣此卡支付；完整记录在智能转账的记录页。`:'当前银行数据不可用，不能报告余额或断言交易成功，可以引导核对方案。',
+    '本轮处理银行沙箱智能转账和AA收款。只能准备方案，不能执行或声称已转账、已冻结或预留资金。账户余额、挂失、限额须由后端核对，不要猜数字。',
+    `已登记银行沙箱收款人：${JSON.stringify(bankRecipients)}。按姓名、手机号、备注匹配；手机号只用于查找已登记账户，不能当银行卡号；有多个人匹配时先给选项，不能擅自选人。`,
     '用户指定微信或支付宝转账时，不得替换为银行卡转账；说明这里只能准备银行转账，请用户明确选择。',
     '根据用户当前意图与上下文提取收款人和金额；指代不清先问。已明确金额和收款人的即时转账可以生成方案，让用户在核对页修改和授权。',
-    '用户要求下周、预约或定时执行时，说明目前仅支持即时转账，询问是否改为现在，不要输出动作；涉及留够还款等未明确预算时先询问金额，说明本版不会锁定或预留资金。用户否定、取消或仅询问时不能输出转账动作。',
-    '格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|mom或dad|正整数分]。2000元=200000分。只输出一个动作，禁止重复执行；成功与否只以系统银行回执为准。不要照搬历史聊天的成功声明。',
+    `当前北京时间：${new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'})}。预约须明确日期和时刻，只有“下周五”等缺少时刻时先询问；只支持单次预约，暂不支持每周循环。预约不会冻结余额，到期检查余额、限额及夜间保护，失败记录原因。`,
+    '即时转账格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|收款人id|正整数分]；预约格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|收款人id|正整数分|YYYY-MM-DDTHH:mm:ss+08:00]。2000元=200000分。禁止将预约降级成即时转账。',
+    'AA需确认总金额、其他参与人、是否包含用户本人。格式：[ZHIYIN_ACTION:PREPARE_AA|总额分|逗号分隔的其他参与人id|true或false]，true含自己。不确定参与人或含不含自己就问。后端精确分摊尾差；发起只是待收，不代表收到钱，沙箱模拟对方付款才入账。',
+    '用户否定、取消或仅询问时不能输出转账动作。取消已有预约或AA时引导智能转账→记录操作。只输出一个动作，成功与否只以系统回执为准，不要照搬历史聊天的成功声明。涉及还款预算应说明不会锁定资金。',
     choiceInstructions,
   ].filter(Boolean).join('\n');
   if (isBillQuestion(question) || billAnalysis) return billInstructions(stewardName, billAnalysis, memoryContext);
@@ -231,8 +234,13 @@ export function parseStewardReply(
 
   const parts = markers.at(-1)?.[1].split("|") || [];
   if(parts[0]==='PREPARE_TRANSFER'){
-    const intent={recipientId:parts[1],amount:Number(parts[2])};
-    return markers.length===1 && parts.length===3 && /^\d+$/.test(parts[2]) && validTransfer(intent)?{...result,action:{type:'prepare_transfer',...intent}}:result;
+    const intent={recipientId:parts[1],amount:Number(parts[2]),...(parts.length===4?{executeAt:Date.parse(parts[3])}:{})};
+    const timeValid=parts.length===3 || (parts.length===4 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00$/.test(parts[3]));
+    return markers.length===1 && timeValid && /^\d+$/.test(parts[2]) && validTransfer(intent)?{...result,action:{type:'prepare_transfer',...intent}}:result;
+  }
+  if(parts[0]==='PREPARE_AA'){
+    if(markers.length!==1 || parts.length!==4 || !/^\d+$/.test(parts[1]) || !['true','false'].includes(parts[3]))return result;
+    try{const ids=parts[2].split(',');splitAA(Number(parts[1]),ids,parts[3]==='true');return {...result,action:{type:'prepare_aa',amount:Number(parts[1]),recipientIds:ids as AAIntent['recipientIds'],includeSelf:parts[3]==='true'}};}catch{return result;}
   }
   if (parts[0] === "DUPLICATE" && parts.length === 3 && ["keep", "later", "review"].includes(parts[2])
     && duplicateGroups.some(group => group.id === parts[1])) {

@@ -1,12 +1,33 @@
-export const bankRecipients=[{id:'mom',name:'妈妈',accountLast4:'6621'},{id:'dad',name:'爸爸',accountLast4:'7316'}] as const;
+export const bankRecipients=[
+ {id:'mom',name:'妈妈',accountLast4:'6621',phone:'13800006621',remark:'母亲 家人'},
+ {id:'dad',name:'爸爸',accountLast4:'7316',phone:'13800007316',remark:'父亲 家人'},
+ {id:'zhangsan',name:'张三',accountLast4:'8000',phone:'13800138000',remark:'同事 产品经理'},
+ {id:'lisi',name:'李四',accountLast4:'1111',phone:'15600001111',remark:'同事'},
+ {id:'wangwu',name:'王五',accountLast4:'5678',phone:'13912345678',remark:'朋友'},
+] as const;
+export function findBankRecipients(query:string){
+ const text=query.trim().toLowerCase(),digits=text.replace(/[\s+-]/g,'').replace(/^86(?=1\d{10}$)/,'');
+ return bankRecipients.filter(r=>`${r.name} ${r.remark}`.toLowerCase().includes(text) || (/^\d+$/.test(digits) && r.phone.includes(digits)));
+}
 export type BankRecipientId=typeof bankRecipients[number]['id'];
-export type TransferIntent={recipientId:BankRecipientId;amount:number};
+export type TransferIntent={recipientId:BankRecipientId;amount:number;executeAt?:number};
+export type BankSchedule=TransferIntent & {id:string;executeAt:number;createdAt:number;status:'pending'|'completed'|'cancelled'|'failed';error?:string};
+export type AAIntent={amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
+export type AAShare={recipientId:BankRecipientId|'self';amount:number;paidAt?:number};
+export type AARequest=AAIntent & {id:string;title:string;createdAt:number;status:'pending'|'completed'|'cancelled';shares:AAShare[]};
+export type AACollection={id:string;requestId:string;recipientId:BankRecipientId;amount:number;completedAt:number;balanceAfter:number};
+export function splitAA(amount:number,recipientIds:readonly string[],includeSelf:boolean):AAShare[]{
+ if(!Number.isSafeInteger(amount) || amount>5000000 || !recipientIds.length || recipientIds.length>20 || new Set(recipientIds).size!==recipientIds.length || recipientIds.some(id=>!bankRecipients.some(r=>r.id===id)))throw new Error('请核对AA金额与参与人');
+ const ids: Array<BankRecipientId|'self'>=[...(includeSelf?['self' as const]:[]),...recipientIds as BankRecipientId[]];
+ if(amount<ids.length)throw new Error('每人至少分摊1分');
+ return ids.map((recipientId,i)=>({recipientId,amount:Math.floor(amount/ids.length)+(i<amount%ids.length?1:0)}));
+}
 export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number};
 export type BankReceipt=TransferIntent & {id:string;completedAt:number;balanceAfter:number};
 export type BankControls={overseas:boolean;contactless:boolean;night:boolean};
 export type BankPayment={id:string;channel:'wechat'|'alipay';amount:number;merchant:string};
 export type BankPaymentReceipt=BankPayment & {completedAt:number;balanceAfter:number;refundedAt?:number;refundBalanceAfter?:number};
-export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[]};
+export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[]};
 export function validBankPayment(value:unknown):value is BankPayment {
  if(!value || typeof value!=='object')return false;
  const p=value as BankPayment;
@@ -22,7 +43,7 @@ export function validBankSnapshot(v:unknown):v is BankSnapshot {
 export function validTransfer(value:unknown):value is TransferIntent {
  if(!value || typeof value!=='object')return false;
  const v=value as TransferIntent;
- return bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0;
+ return bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0 && (v.executeAt===undefined || (Number.isSafeInteger(v.executeAt) && v.executeAt>0));
 }
 export async function bankRequest<T>(body?:object):Promise<T> {
  const response=await fetch('/api/zhiyin/bank',{cache:'no-store',signal:AbortSignal.timeout(8000),...(body?{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1'},body:JSON.stringify(body)}:{})});
