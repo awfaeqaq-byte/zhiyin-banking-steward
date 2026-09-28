@@ -173,7 +173,7 @@ export function buildStewardInstructions({
     ...(bank.aaRequests??[]).slice().reverse().map(s=>`AA：${JSON.stringify(s)}`),
    ]:[];
    const background=[transferBackground.slice(0,350),fundingContext(fundingForecast,question),memoryContext.slice(0,350)].filter(Boolean);
-   const remaining=4000-instructions.length-2;
+   const remaining=3650-instructions.length-2;
    const taskText=fitRecords(records,Math.min(850,Math.floor(remaining*.5)),'转账记录','当前无可用转账记录。','转账记录页');
    return [instructions,taskText,fitRecords(background,remaining-taskText.length-1,'资金背景','资金背景不可用。','资金安排页')].join('\n');
   }
@@ -308,6 +308,10 @@ export function parseStewardReply(
 
 export const requestStewardReply: StewardReplyFn = async request => {
   const newestUser = [...request.messages].reverse().find(message => message.role === "user");
+  const userContext=request.messages.filter(m=>m.role==='user').slice(-4).map(m=>m.content).join('\n');
+  const needsBudget=/留够|留出|保留|预留|不影响.*还款|保证.*还款/.test(userContext) && !/(不用|不需要|无需|取消).{0,5}(保留|预留)|不留预算/.test(newestUser?.content??'');
+  const verifyBudget=(reply:StewardReply):StewardReply=>needsBudget && (reply.action?.type==='open_transfers' || (reply.action?.type==='prepare_transfer' && reply.action.protectedAmount===undefined))
+    ?{text:'这笔安排还缺少保留金额的核对。你希望银行卡至少留下多少钱用于还款和生活费？确认总额后，我再一起计算。'}:reply;
   if (newestUser && newestUser.content.length > 2000) {
     throw new Error("这条问题内容过长，请缩短后再发送。");
   }
@@ -341,7 +345,7 @@ export const requestStewardReply: StewardReplyFn = async request => {
     throw new Error("模型没有返回有效内容，请重新发送。");
   }
   const result=parseStewardReply(payload.output_text, request.subscriptions, request.duplicateGroups);
-  if(!result.action && newestUser && isBankRequest(request.messages) && /准备|方案|核对|确认/.test(result.text)) {
+  if(!result.action && newestUser && isBankRequest(request.messages) && /准备|方案|核对|确认/.test(result.text) && !/[？?]|请问|多少|几点/.test(result.text)) {
     // Repair the missing UI action once. The model still only prepares a draft;
     // no network request here can authorize a payment.
     try {
@@ -353,11 +357,11 @@ export const requestStewardReply: StewardReplyFn = async request => {
       const data=await repair.json();
       if(repair.ok && typeof data.output_text==='string') {
         const fixed=parseStewardReply(data.output_text,request.subscriptions,request.duplicateGroups);
-        if(fixed.action)return fixed;
-        return {...fixed,action:{type:'open_transfers'}};
+        if(fixed.action)return verifyBudget(fixed);
+        return fixed;
       }
     }catch{/* A manual entry remains available if action repair fails. */}
-    return {text:'可以在智能转账里核对收款人、金额和时间，再确认办理。',action:{type:'open_transfers'}};
+    return verifyBudget({text:'可以在智能转账里核对收款人、金额和时间，再确认办理。',action:{type:'open_transfers'}});
   }
-  return result;
+  return verifyBudget(result);
 };
