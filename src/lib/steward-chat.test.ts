@@ -447,6 +447,11 @@ describe("知银管家大模型协议", () => {
     const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转100元'}]});
     expect(result.action).toEqual({type:'open_transfers'});expect(mock).toHaveBeenCalledTimes(2);
   });
+  it('模型漏掉用户的保留条件时不展示普通转账按钮',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({output_text:'请核对[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|200000]'})}));
+    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转2000，留够信用卡还款的钱'}]});
+    expect(result.action).toBeUndefined();expect(result.text).toContain('保留');
+  });
   it("能解析提醒开关和打开订阅中心动作", () => {
     expect(parseStewardReply(
       `已关闭这项提醒。\n[ZHIYIN_ACTION:SET_REMINDER|alipay|sub-video|off]`,
