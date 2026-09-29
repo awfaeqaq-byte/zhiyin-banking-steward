@@ -15,6 +15,20 @@ import {
   type ExpenseCommand,
 } from "../lib/expense-notebook";
 afterEach(() => vi.restoreAllMocks());
+it('AA工作区恢复自己的追问上下文，读取共享偏好而不读取另一活动',async()=>{
+  const group={id:'g',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true}]};
+  const state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'book',title:'晚餐',group,participants:['me'],defaultPayerId:'me',revision:0,requestId:'create'});
+  localStorage.setItem('zhiyin-expense-active','other');
+  vi.spyOn(service,'expenseRequest').mockResolvedValue(state);
+  const model=vi.spyOn(service,'requestExpenseReply').mockResolvedValue({action:'clarify',message:'哪瓶饮料？'});
+  const ref=createRef<ExpenseNotebookHandle>();
+  render(<ExpenseNotebook ref={ref} activityKey="dinner" initialBookId="book" initialHistory={[{role:'user',content:'两瓶饮料一瓶给李娜'}]} getMemoryContext={async()=> '喜欢简短说明'} onPrompt={vi.fn()}/>);
+  await screen.findByRole('button',{name:/晚餐/});
+  await act(async()=>{await ref.current!.handle('刚才那瓶3元');});
+  expect(model.mock.calls[0][0].id).toBe('book');
+  expect(model.mock.calls[0][2]).toEqual([{role:'user',content:'两瓶饮料一瓶给李娜'}]);
+  expect(model.mock.calls[0][3]?.memoryContext).toContain('喜欢简短说明');
+});
 it('查收款使用微信实付回执，支持本人提醒、前台更新和结清归档', async()=>{
   const group={id:'g',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'},{id:'wang',name:'小王'}]};
   let state=emptyExpenseState();
