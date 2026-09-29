@@ -39,13 +39,16 @@ const startPattern =
   /随手记|零散消费|记个账|帮我记|开始记|新活动|我先[付垫]|最后一起算|先垫付/;
 export const ExpenseNotebook = forwardRef<
   ExpenseNotebookHandle,
-  { onPrompt: (text: string) => void }
->(function ExpenseNotebook({ onPrompt }, ref) {
+  { onPrompt: (text: string) => void; activityKey?:string; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string }
+>(function ExpenseNotebook({ onPrompt,activityKey,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁' }, ref) {
+  const activeKey=activityKey?`zhiyin-expense-active-${activityKey}`:'zhiyin-expense-active';
+  const memoryEpoch=useRef(0);
+  useEffect(()=>{const reset=()=>{memoryEpoch.current++;history.current=[];};window.addEventListener('zhiyin-memory-context-reset',reset);return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);},[]);
   const [state, setState] = useState<ExpenseState>(emptyExpenseState);
   const current = useRef(state),
     busyRef = useRef(false);
   const [active, setActive] = useState(
-    () => localStorage.getItem("zhiyin-expense-active") || "",
+    () => initialBookId || localStorage.getItem(activeKey) || "",
   );
   const [setup, setSetup] = useState(false),
     [pending, setPending] = useState(""),
@@ -66,9 +69,10 @@ export const ExpenseNotebook = forwardRef<
     setState(s);
     return s;
   }
-  function activate(id: string) {
+  async function activate(id: string) {
+    if(id&&onBookSelected)await onBookSelected(id);
     setActive(id);
-    localStorage.setItem("zhiyin-expense-active", id);
+    localStorage.setItem(activeKey, id);
     history.current = [];
     setReview(false);
     setExpanded(false);
@@ -140,11 +144,14 @@ export const ExpenseNotebook = forwardRef<
     };
   }, []);
   async function interpret(b: ExpenseBook, prompt: string) {
+    const remembered=getMemoryContext?await getMemoryContext(prompt):'';
+    const epoch=memoryEpoch.current;
     // Opening the review is not a financial execution and must not depend on
     // whether the model mistakes the existing collection bridge for a payment.
     const result: ExpenseReply = isExpenseReviewPrompt(prompt)
       ? { action: "review" as const }
-      : await requestExpenseReply(b, prompt, history.current);
+      : await requestExpenseReply(b, prompt, history.current,{memoryContext:remembered,stewardName});
+    if(epoch!==memoryEpoch.current)throw new Error('记忆已更新，本轮未保存，请重新交代。');
     if (
       /群收款|一起算|结算/.test(prompt) &&
       /\d|[一二两三四五六七八九十百千万]+[元块]/.test(prompt) &&
@@ -216,7 +223,7 @@ export const ExpenseNotebook = forwardRef<
     async handle(prompt) {
       if (busyRef.current) throw new Error("上一笔记录正在处理，请稍后再说");
       if (
-        startPattern.test(prompt) &&
+        (startPattern.test(prompt)||Boolean(activityKey&&!book)) &&
         (!book || /新活动|重新开始/.test(prompt))
       ) {
         setPending(prompt);
@@ -238,7 +245,7 @@ export const ExpenseNotebook = forwardRef<
         } finally {busyRef.current=false;setBusy(false);}
       }
       if (/^(结束记录|暂停记账|停止记账)$/.test(prompt)) {
-        activate("");
+        await activate("");
         return "先收起了，记录还在。下次从“继续记录”打开即可。";
       }
       // Do not intercept ordinary banking requests just because an activity exists.
@@ -277,7 +284,7 @@ export const ExpenseNotebook = forwardRef<
         participants: people,
         defaultPayerId: self.id,
       });
-      activate(id);
+      await activate(id);
       setSetup(false);
       setExpanded(true);
       setNotice("已开始，直接在下面告诉我每笔消费。");
@@ -378,7 +385,7 @@ export const ExpenseNotebook = forwardRef<
               <select
                 aria-label="继续记录"
                 value=""
-                onChange={(e) => activate(e.target.value)}
+                onChange={(e) => {const id=e.target.value;void run(()=>activate(id));}}
               >
                 <option value="">继续记录…</option>
                 {state.books.map((b) => (

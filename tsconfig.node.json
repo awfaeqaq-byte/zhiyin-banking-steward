@@ -9,5 +9,5 @@
     "types": ["node"],
     "strict": true
   },
-  "include": ["vite.config.ts", "server/**/*.ts", "src/lib/steward-memory.ts", "src/lib/steward-profile.ts", "src/lib/bank-transfer.ts", "src/lib/task-calendar.ts", "src/lib/financial-connections.ts", "src/lib/expense-notebook.ts", "src/lib/expense-follow-up.ts", "src/lib/group-aa.ts"]
+  "include": ["vite.config.ts", "server/**/*.ts", "src/lib/workspaces.ts", "src/lib/steward-memory.ts", "src/lib/steward-profile.ts", "src/lib/bank-transfer.ts", "src/lib/task-calendar.ts", "src/lib/financial-connections.ts", "src/lib/expense-notebook.ts", "src/lib/expense-follow-up.ts", "src/lib/group-aa.ts"]
 }

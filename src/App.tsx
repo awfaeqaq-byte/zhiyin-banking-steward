@@ -56,7 +56,7 @@ import { Switch } from "./components/ui/switch";
 import { DataConnections } from "./components/data-connections";
 import { PhoneContactPicker } from "./components/phone-contact-picker";
 import { SubscriptionCenter } from "./components/subscription-center";
-import { StewardChatHome } from "./components/steward-chat-home";
+import { StewardWorkspaces } from "./components/steward-workspaces";
 import { type DuplicatePreferences, type DuplicateDecision } from "./lib/subscription-insights";
 import { fundingReferenceTime } from "./lib/funding-forecast";
 import { FundingPlan } from "./components/funding-plan";
@@ -1600,7 +1600,7 @@ export default function App() {
             </>
           )}
           {mode === "native" && page === "home" && (
-            <StewardChatHome
+            <StewardWorkspaces
               memory={memory}
               duplicatePreferences={duplicatePreferences}
               onDuplicatePreference={changeDuplicatePreference}

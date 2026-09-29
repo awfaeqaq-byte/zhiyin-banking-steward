@@ -15,7 +15,7 @@ it('创建两个同类任务，切回后只恢复自己的对话，不复用旧�
   });
   const user = userEvent.setup(); const reply = vi.fn(async () => ({ text: '这是本次专属答复。' }));
   localStorage.setItem('zhiyin-steward-chat-v3', JSON.stringify([{ id: 'old', role: 'user', content: '不应混入的旧任务' }]));
-  render(<StewardWorkspaces stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+  render(<StewardWorkspaces route={async(text,tasks,id)=>({parts:[{taskId:id,kind:'general',title:tasks.find(t=>t.id===id)!.title,text}]})} stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
   await user.click(await screen.findByRole('button', { name: '任务窗口' }));
   await user.type(screen.getByLabelText('任务名称'), '今晚聚餐');
   await user.click(screen.getByRole('button', { name: '开始任务' }));
