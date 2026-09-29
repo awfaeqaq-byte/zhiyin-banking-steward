@@ -15,6 +15,8 @@ import {
 import {
   emptyExpenseState,
   entryAllocations,
+  isDefaultExpenseSplit,
+  expenseSplitSummary,
   settlementPlan,
   type ExpenseOperation,
   type ExpenseState,
@@ -153,7 +155,7 @@ export const ExpenseNotebook = forwardRef<
       const allocations = entryAllocations(b.group, entry).filter(
         (m) => m.amount > 0,
       );
-      text = `${result.action === "edit" ? "已更正" : "记下了"}：${entry.title} ${money(entry.amount)}。${allocations.length <= 4 ? allocations.map((m) => `${m.self ? "你" : m.name} ${money(m.amount)}`).join("，") : `共 ${allocations.length} 人分摊，可展开明细核对`}。`;
+      text = `${result.action === "edit" ? "已更正" : "记下了"}：${entry.title} ${money(entry.amount)}。${isDefaultExpenseSplit(b, entry) ? "按这次参与人平分" : allocations.length <= 4 ? allocations.map((m) => `${m.self ? "你" : m.name} ${money(m.amount)}`).join("，") : `共 ${allocations.length} 人分摊，可展开明细核对`}。`;
       setReview(false);
       setExpanded(false);
       setNotice("");
@@ -488,8 +490,14 @@ export const ExpenseNotebook = forwardRef<
                 )}
                 {review && (
                   <div className="expense-review">
-                    <h3>这次一起算</h3>
+                    <h3>这样分可以吗？</h3>
                     <p>仅结算上方勾选的消费，未选记录留待下次。</p>
+                    {expenseSplitSummary(book, selected).equalCount > 0 && (
+                      <p>{expenseSplitSummary(book, selected).equalCount} 笔按{expenseSplitSummary(book, selected).people}平分。</p>
+                    )}
+                    {expenseSplitSummary(book, selected).exceptions.map(e => (
+                      <p key={e.id}><strong>{e.title}</strong>：{e.text}</p>
+                    ))}
                     {totals && (
                       <>
                         <p>
@@ -508,12 +516,13 @@ export const ExpenseNotebook = forwardRef<
                           className="expense-primary"
                           onClick={() => void submitSettlement()}
                         >
-                          去微信确认收款 {money(totals.collectAmount)}
+                          没问题，去微信确认收款 {money(totals.collectAmount)}
                           <ArrowUpRight size={16} />
                         </button>
                       </>
                     )}
                     {reviewError && <p role="alert">{reviewError}</p>}
+                    <button onClick={() => onPrompt("调整这次分摊：")}>调整分摊</button>
                     <button onClick={() => setReview(false)}>继续记录</button>
                   </div>
                 )}

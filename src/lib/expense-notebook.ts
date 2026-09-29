@@ -39,6 +39,33 @@ export type ExpenseState = {
   books: ExpenseBook[];
   applied: { id: string; body: string }[];
 };
+export function isDefaultExpenseSplit(book: ExpenseBook, entry: ExpenseInput) {
+  return entry.fixed.length === 0 &&
+    entry.shares.length === book.participants.length &&
+    book.participants.every(id => entry.shares.some(s => s.memberId === id)) &&
+    entry.shares.every(s => s.weight === entry.shares[0]?.weight);
+}
+
+/** Describe actual stored allocations, never a model-generated financial summary. */
+export function expenseSplitSummary(book: ExpenseBook, selected: string[]) {
+  const entries = book.entries.filter(e => !e.batchId && selected.includes(e.id));
+  const name = (id: string) => {
+    const member = book.group.members.find(m => m.id === id);
+    return member?.self ? "你" : member?.name || id;
+  };
+  return {
+    people: book.participants.map(name).join("、"),
+    equalCount: entries.filter(e => isDefaultExpenseSplit(book, e)).length,
+    exceptions: entries.filter(e => !isDefaultExpenseSplit(book, e)).map(e => {
+      const included = new Set([...e.fixed, ...e.shares].map(s => s.memberId));
+      const excluded = book.participants.filter(id => !included.has(id));
+      const amounts = entryAllocations(book.group, e)
+        .filter(m => included.has(m.id))
+        .map(m => `${name(m.id)} ¥${(m.amount / 100).toFixed(2)}`).join("，");
+      return { id: e.id, title: e.title, text: `${amounts}${excluded.length ? `；${excluded.map(name).join("、")}不参与` : ""}` };
+    }),
+  };
+}
 type Operation =
   | {
       type: "create";
