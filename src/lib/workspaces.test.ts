@@ -15,6 +15,13 @@ describe('独立任务工作区',()=>{
     expect(s.items[0].status).toBe('archived');
     expect(()=>apply({type:'turn',id:'missing',user:'hi',assistant:'hi',memoryRevision:0})).toThrow();
   });
+  it('待处理交代持久保存，完成对应轮次后移除，不能串清另一个请求',()=>{
+    let s=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'a',title:'AA',kind:'aa',revision:0,requestId:'create'});
+    s=changeWorkspaces(s,{type:'enqueue',id:'a',token:'pending',text:'饮料18',revision:s.revision,requestId:'q'});
+    expect(s.items[0].pending).toEqual([{token:'pending',text:'饮料18'}]);
+    s=changeWorkspaces(s,{type:'turn',id:'a',token:'pending',user:'饮料18',assistant:'已记录',memoryRevision:0,revision:s.revision,requestId:'finish'});
+    expect(s.items[0].pending).toEqual([]);
+  });
   it('路由只能引用已知任务、原文片段；混合请求必须覆盖全部原文',()=>{
     const s=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'dinner',kind:'aa',title:'今晚聚餐',revision:0,requestId:'create'});
     const prompt='明天给妈妈转500，刚才饮料改成16';

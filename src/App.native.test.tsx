@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import * as phoneBridge from "./lib/phone-bridge";
 import App from "./App";
 import type { ConnectedFinancialSource } from "./lib/financial-connections";
+import {emptyWorkspaces,changeWorkspaces} from './lib/workspaces';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -84,9 +85,13 @@ it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页"
   vi.spyOn(phoneBridge, "refreshFinancialSource").mockResolvedValue({ status: "granted", source: alipay });
   localStorage.setItem("zhiyin-mode", '"native"');
   localStorage.setItem("zhiyin-connections", JSON.stringify({ alipay }));
-  const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async url=>new Response(JSON.stringify(String(url).endsWith('/memory')?{version:1,revision:0,enabled:false,items:[]}:{
+  let workspaces=emptyWorkspaces();
+  const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url,init)=>{
+    if(String(url).endsWith('/workspaces')){if(init?.body)workspaces=changeWorkspaces(workspaces,JSON.parse(String(init.body)));return new Response(JSON.stringify(workspaces));}
+    if(String(init?.body).includes('任务分流器'))return new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'subscriptions',title:'优酷续费',text:'帮我取消优酷会员续费'}]})}));
+    return new Response(JSON.stringify(String(url).endsWith('/memory')?{version:1,revision:0,enabled:false,items:[]}:{
     output_text: "可以，我先带你核对优酷续费，确认后才会取消。\n[ZHIYIN_ACTION:PREPARE_CANCEL|alipay|ali-video]",
-  }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  }), { status: 200, headers: { "Content-Type": "application/json" } });});
   const user = userEvent.setup();
   render(<App />);
 

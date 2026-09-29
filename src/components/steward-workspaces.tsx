@@ -89,6 +89,6 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       {!state.items.some(w => archived ? w.status === 'archived' : w.status === 'active') && <p>{archived ? '还没有收起的任务。' : '直接交代我一件事，也可以先起个名字。'}</p>}
       <form className="workspace-create" onSubmit={e => { e.preventDefault(); void create(); }}><label>任务名称<input required maxLength={60} value={title} onChange={e => setTitle(e.target.value)} placeholder="例如：周末旅行 AA"/></label><label>任务类型<select value={kind} onChange={e => setKind(e.target.value as WorkspaceKind)}>{workspaceKinds.map(k => <option key={k} value={k}>{workspaceLabels[k]}</option>)}</select></label><button type="submit" disabled={blocked || !title.trim()}><Plus size={17}/>开始任务</button></form>
       <p className="workspace-footnote">收起只整理对话，不取消预约、不结束收款。历史答复不是实时回执。</p>
-    </section> : loaded && <StewardChatHome {...props} key={work?.id || 'lobby'} workspace={work || null} onRoutePrompt={arrange} externalBusy={blocked} injectedPrompt={injected?.id === work?.id ? injected : undefined} onTurnComplete={completed} onWorkspaceBook={async expenseBookId => { if (work) await save({ type: 'link', id: work.id, expenseBookId }); }}/ >}
+    </section> : <StewardChatHome {...props} key={work?.id || 'lobby'} workspace={work || null} onRoutePrompt={arrange} externalBusy={blocked || !loaded} injectedPrompt={injected?.id === work?.id ? injected : undefined} onTurnComplete={completed} onWorkspaceBook={async expenseBookId => { if (work) await save({ type: 'link', id: work.id, expenseBookId }); }}/ >}
   </div>;
 }
