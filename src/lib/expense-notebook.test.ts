@@ -4,6 +4,7 @@ import {
   changeExpenses,
   settlementPlan,
   entryAllocations,
+  expenseSplitSummary,
   type ExpenseCommand,
   type ExpenseState,
 } from "./expense-notebook";
@@ -48,6 +49,22 @@ const entry = (title = "饮料", amount = 1000) => ({
   ],
 });
 describe("零散消费账本", () => {
+  it("结算批量确认相同权重的全员平分，单笔例外单列且只包含选中记录", () => {
+    const b = opened().books[0];
+    b.entries = [
+      { ...entry("饮料", 1800), id: "a", at },
+      { ...entry("卤味", 4200), shares: entry().shares.map(s => ({ ...s, weight: 2 })), id: "b", at },
+      { ...entry("烧烤", 23600), shares: entry().shares.slice(0, 2), id: "c", at },
+      { ...entry("旧消费"), id: "old", at, batchId: "settled" },
+    ];
+    const summary = expenseSplitSummary(b, ["a", "b", "c", "old"]);
+    expect(summary.equalCount).toBe(2);
+    expect(summary.people).toBe("你、李娜、小王");
+    expect(summary.exceptions).toHaveLength(1);
+    expect(summary.exceptions[0].text).toContain("小王不参与");
+    expect(summary.exceptions[0].text).toContain("李娜 ¥118.00");
+    expect(expenseSplitSummary(b, ["a"]).exceptions).toEqual([]);
+  });
   it("追加相同消费不去重，纠正只改指定记录，单笔例外不污染默认人选", () => {
     let s = opened();
     s = apply(s, { type: "add", bookId: "b", entryId: "one", entry: entry() });

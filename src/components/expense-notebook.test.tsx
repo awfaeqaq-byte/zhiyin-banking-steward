@@ -119,7 +119,7 @@ it("选群确认参与人后，首页短句追加并能纠正上一笔，记录�
   await userEvent.click(screen.getByRole("button", { name: "开始记录" }));
   await waitFor(() => expect(state.books).toHaveLength(1));
   await act(async () => {
-    expect(await ref.current!.handle("卤味42")).toContain("42.00");
+    expect(await ref.current!.handle("卤味42")).toContain("按这次参与人平分");
   });
   expect(state.books[0].entries).toHaveLength(1);
   model.mockResolvedValue({
@@ -148,6 +148,8 @@ it("选群确认参与人后，首页短句追加并能纠正上一笔，记录�
     expect(await ref.current!.handle("饮料16，最后一起算")).toContain("记下了");
   });
   expect(state.books[0].entries).toHaveLength(2);
+  expect(screen.getByText(/2 笔按你、李娜平分/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "调整分摊" })).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: /去微信确认收款/ }),
   ).toBeInTheDocument();
