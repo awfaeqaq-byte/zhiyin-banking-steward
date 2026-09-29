@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { vi, it, expect, afterEach } from 'vitest';
 import { StewardWorkspaces } from './steward-workspaces';
 import { changeWorkspaces, emptyWorkspaces } from '../lib/workspaces';
+import type {StewardReplyRequest} from '../lib/steward-chat';
 afterEach(() => vi.restoreAllMocks());
 it('创建两个同类任务，切回后只恢复自己的对话，不复用旧首页聊天', async () => {
   let state = emptyWorkspaces();
@@ -31,4 +32,21 @@ it('创建两个同类任务，切回后只恢复自己的对话，不复用旧�
   await user.click(screen.getByRole('button', { name: '任务窗口' }));
   await user.click(screen.getByRole('button', { name: /打开今晚聚餐/ }));
   expect(await screen.findByText('这是本次专属答复。')).toBeInTheDocument();
+});
+it('混合交代逐项处理，第二个任务不会拿到第一个任务的聊天',async()=>{
+  let state=emptyWorkspaces();
+  vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{
+    if(String(url).includes('/workspaces')){if(init?.body)state=changeWorkspaces(state,JSON.parse(String(init.body)));return new Response(JSON.stringify(state));}
+    return new Response(JSON.stringify({}));
+  });
+  const reply=vi.fn(async(_request:StewardReplyRequest)=>({text:'已整理，请核对。'}));
+  const route=vi.fn(async()=>({parts:[{taskId:null,kind:'general' as const,title:'晚餐记录',text:'饮料18'},{taskId:null,kind:'general' as const,title:'出行安排',text:'明天去杭州'}]}));
+  render(<StewardWorkspaces route={route} stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+  const user=userEvent.setup();await user.type(await screen.findByRole('textbox'),'饮料18，明天去杭州');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+  await screen.findByRole('button',{name:'继续：出行安排'});
+  expect(reply).toHaveBeenCalledTimes(1);
+  await user.click(screen.getByRole('button',{name:'继续：出行安排'}));
+  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+  expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'明天去杭州'}]);
+  await waitFor(()=>expect(state.items.every(w=>w.messages.length===2)).toBe(true));
 });

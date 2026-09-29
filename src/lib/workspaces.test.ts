@@ -24,4 +24,19 @@ describe('独立任务工作区',()=>{
     expect(()=>validateRoutes({parts:[{...parts[0],text:'转1000'}]},prompt,s.items)).toThrow();
     expect(()=>validateRoutes({parts:[{...parts[0],taskId:'fake',text:prompt}]},prompt,s.items)).toThrow();
   });
+  it('拒绝非法版本与归档写入，压缩历史只保留原话，记忆版本变化后不回灌旧条件',()=>{
+    let s=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'a',title:'AA',kind:'aa',revision:0,requestId:'create'});
+    for(let i=0;i<25;i++)s=changeWorkspaces(s,{type:'turn',id:'a',user:`饮料${i}`,assistant:'模型说已付款但这不是凭据',memoryRevision:0,requestId:`t${i}`,revision:s.revision});
+    expect(s.items[0].messages).toHaveLength(40);expect(s.items[0].summary).toContain('饮料0');expect(s.items[0].summary).not.toContain('已付款');
+    s=changeWorkspaces(s,{type:'turn',id:'a',user:'新偏好',assistant:'收到',memoryRevision:1,requestId:'new',revision:s.revision});
+    expect(workspaceContext(s.items[0],1)).not.toContain('饮料');
+    expect(()=>changeWorkspaces(s,{type:'rename',id:'a',title:'',revision:s.revision,requestId:'invalid'})).toThrow();
+    s=changeWorkspaces(s,{type:'link',id:'a',expenseBookId:'book',revision:s.revision,requestId:'link'});
+    expect(s.items[0].expenseBookId).toBe('book');
+    s=changeWorkspaces(s,{type:'rename',id:'a',title:'旅游',revision:s.revision,requestId:'rename'});
+    expect(s.items[0].title).toBe('旅游');
+    s=changeWorkspaces(s,{type:'status',id:'a',status:'archived',revision:s.revision,requestId:'archive'});
+    expect(()=>changeWorkspaces(s,{type:'turn',id:'a',user:'hi',assistant:'hi',memoryRevision:1,requestId:'blocked',revision:s.revision})).toThrow('先继续');
+    expect(validateRoutes({parts:[],clarification:'是哪次活动？'},'改16',s.items)).toEqual({parts:[],clarification:'是哪次活动？'});
+  });
 });
