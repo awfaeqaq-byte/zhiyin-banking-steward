@@ -8,12 +8,50 @@ import {
 } from "./expense-notebook";
 import * as service from "../lib/expense-service";
 import * as aa from "../lib/group-aa";
+import * as tasks from '../lib/task-calendar';
 import {
   changeExpenses,
   emptyExpenseState,
   type ExpenseCommand,
 } from "../lib/expense-notebook";
 afterEach(() => vi.restoreAllMocks());
+it('查收款使用微信实付回执，支持本人提醒、前台更新和结清归档', async()=>{
+  const group={id:'g',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'},{id:'wang',name:'小王'}]};
+  let state=emptyExpenseState();
+  const apply=(op:object)=>state=changeExpenses(state,{...op,bookId:'book',revision:state.revision,requestId:crypto.randomUUID()} as ExpenseCommand);
+  apply({type:'create',title:'今晚聚餐',group,participants:['me','li','wang'],defaultPayerId:'me'});
+  apply({type:'add',entryId:'e',entry:{title:'晚饭',amount:9000,payerId:'me',fixed:[],shares:group.members.map(m=>({memberId:m.id,weight:1}))}});
+  apply({type:'prepare',batchId:'batch',entryIds:['e']});
+  apply({type:'published',batchId:'batch',collectionId:'batch'});
+  const plan=state.books[0].batches[0].plan;
+  let collection:aa.AACollection={...aa.calculateGroupAA(group,plan),id:'batch',groupId:'g',groupName:'饭搭子',createdAt:Date.now(),plan,status:'pending',members:aa.calculateGroupAA(group,plan).members.map(m=>({...m,paid:m.id!=='wang'}))};
+  localStorage.setItem('zhiyin-expense-active','book');
+  vi.spyOn(service,'expenseRequest').mockImplementation(async(op,revision)=>{
+    if(op)state=changeExpenses(state,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);
+    return state;
+  });
+  const bridge=vi.spyOn(aa,'groupAARequest').mockImplementation(async()=>({collections:[collection]}));
+  const model=vi.spyOn(service,'requestExpenseReply').mockResolvedValue({action:'unrelated'});
+  let calendar:tasks.TaskState={revision:0,tasks:[]};
+  vi.spyOn(tasks,'taskRequest').mockImplementation(async command=>{
+    if(command)calendar=tasks.updateTasks(calendar,command);
+    return calendar;
+  });
+  const ref=createRef<ExpenseNotebookHandle>();
+  render(<ExpenseNotebook ref={ref} onPrompt={vi.fn()}/>);
+  await screen.findByRole('button',{name:/今晚聚餐/});
+  await act(async()=>{expect(await ref.current!.handle('今晚那笔收齐了吗？')).toContain('小王 ¥30.00');});
+  expect(model).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button',{name:'明天提醒我'}));
+  expect(calendar.tasks).toHaveLength(1);
+  expect(calendar.tasks[0].status).toBe('pending');
+  collection={...collection,status:'completed',members:collection.members.map(m=>({...m,paid:true}))};
+  await act(async()=>{window.dispatchEvent(new Event('zhiyin-phone-foreground'));});
+  await waitFor(()=>expect(calendar.tasks[0].status).toBe('completed'));
+  expect(screen.getAllByText(/已结清归档/).length).toBeGreaterThan(0);
+  expect(bridge.mock.calls.every(c=>c[0]==='records')).toBe(true);
+  expect(state.books[0].batches[0].receipt?.status).toBe('completed');
+});
 it("可以修改活动名称、暂停再继续，无关问题交还普通管家", async () => {
   let state = emptyExpenseState();
   vi.spyOn(service, "expenseRequest").mockImplementation(
