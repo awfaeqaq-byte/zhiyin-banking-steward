@@ -222,6 +222,9 @@ export const ExpenseNotebook = forwardRef<
   useImperativeHandle(ref, () => ({
     async handle(prompt) {
       if (busyRef.current) throw new Error("上一笔记录正在处理，请稍后再说");
+      // Routing may arrive before the initial fetch paints the linked activity.
+      const book=active?(await load()).books.find(b=>b.id===active):undefined;
+      if(active&&!book)throw new Error('没有找到此任务关联的活动，请重新选择账本。');
       if (
         (startPattern.test(prompt)||Boolean(activityKey&&!book)) &&
         (!book || /新活动|重新开始/.test(prompt))
