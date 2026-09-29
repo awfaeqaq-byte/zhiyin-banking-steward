@@ -3,7 +3,9 @@ import {
   validAAGroup,
   type AAGroup,
   type AAPlan,
+  type AACollection,
 } from "./group-aa";
+import {collectionProgress} from './expense-follow-up';
 export type ExpenseInput = {
   title: string;
   amount: number;
@@ -22,6 +24,7 @@ export type ExpenseBatch = {
   plan: AAPlan;
   status: "prepared" | "published";
   collectionId?: string;
+  receipt?: AACollection;
   at: number;
 };
 export type ExpenseBook = {
@@ -67,6 +70,7 @@ export function expenseSplitSummary(book: ExpenseBook, selected: string[]) {
   };
 }
 type Operation =
+  | { type: "sync-collections"; bookId: string; collections: AACollection[] }
   | {
       type: "create";
       bookId: string;
@@ -127,6 +131,7 @@ export function validExpenseState(value: unknown): value is ExpenseState {
           Array.isArray(b.batches) &&
           b.batches.every((batch) => {
             calculateGroupAA(b.group, batch.plan);
+            if(batch.receipt) collectionProgress(b,batch,batch.receipt);
             return (
               typeof batch.id === "string" &&
               ["prepared", "published"].includes(batch.status) &&
@@ -361,6 +366,19 @@ export function changeExpenses(
         assert(command.collectionId === batch.id, "收款结果与本次结算不一致");
         batch.status = "published";
         batch.collectionId = command.collectionId;
+      }
+    } else if(command.type === 'sync-collections') {
+      assert(Array.isArray(command.collections)&&command.collections.length<=book.batches.length,'收款记录格式无效');
+      assert(new Set(command.collections.map(c=>c?.id)).size===command.collections.length,'收款回执重复');
+      for(const c of command.collections) {
+        const batch=book.batches.find(b=>b.id===c?.id&&b.status==='published');
+        assert(batch,'收款回执不属于本次已发布结算');
+        collectionProgress(book,batch,c);
+      }
+      for(const batch of book.batches.filter(b=>b.status==='published')) {
+        const receipt=command.collections.find(c=>c.id===batch.id);
+        if(receipt)batch.receipt=receipt;
+        else delete batch.receipt;
       }
     } else throw new Error("不支持的记录操作");
   }

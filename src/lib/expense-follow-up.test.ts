@@ -1,7 +1,8 @@
 import {describe,it,expect,vi,afterEach} from 'vitest';
 import {changeExpenses,emptyExpenseState,type ExpenseCommand} from './expense-notebook';
 import {calculateGroupAA,type AACollection} from './group-aa';
-import {collectionProgress,expenseActivityClosed,expenseProgressText,remindExpenseTomorrow,finishExpenseReminder} from './expense-follow-up';
+import {collectionProgress,expenseActivityClosed,expenseProgressText} from './expense-follow-up';
+import {remindExpenseTomorrow,finishExpenseReminder} from './expense-reminder';
 import * as tasks from './task-calendar';
 export function followUpFixture() {
   const group={id:'g',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'},{id:'wang',name:'小王'}]};
