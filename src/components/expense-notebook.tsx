@@ -10,7 +10,6 @@ import {
   calculateGroupAA,
   groupAARequest,
   type AAGroup,
-  type AACollection,
 } from "../lib/group-aa";
 import {
   emptyExpenseState,
@@ -30,6 +29,8 @@ import {
   isExpenseReviewPrompt,
 } from "../lib/expense-service";
 import "./expense-notebook.css";
+import {collectionProgress,expenseActivityClosed,expenseProgressText} from '../lib/expense-follow-up';
+import {remindExpenseTomorrow,finishExpenseReminder} from '../lib/expense-reminder';
 export type ExpenseNotebookHandle = {
   handle: (prompt: string) => Promise<string | null>;
 };
@@ -57,8 +58,7 @@ export const ExpenseNotebook = forwardRef<
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
-  const [records, setRecords] = useState<AACollection[]>([]),
-    [removing, setRemoving] = useState("");
+  const [removing, setRemoving] = useState("");
   const history = useRef<{ role: "user" | "assistant"; content: string }[]>([]);
   const book = state.books.find((b) => b.id === active);
   function accept(s: ExpenseState) {
@@ -72,7 +72,6 @@ export const ExpenseNotebook = forwardRef<
     history.current = [];
     setReview(false);
     setExpanded(false);
-    setRecords([]);
   }
   async function load() {
     return accept(await expenseRequest());
@@ -80,6 +79,32 @@ export const ExpenseNotebook = forwardRef<
   async function save(op: ExpenseOperation) {
     return accept(await expenseRequest(op, current.current.revision));
   }
+  async function refreshProgress(b:ExpenseBook) {
+    const result=await groupAARequest('records',{groupId:b.group.id});
+    if(!Array.isArray(result.collections))throw new Error('未取得微信收款记录，请稍后重试');
+    await load();
+    const latest=current.current.books.find(x=>x.id===b.id)!;
+    const collections=result.collections.filter(c=>latest.batches.some(batch=>batch.id===c.id&&batch.status==='published'));
+    collections.forEach(c=>collectionProgress(latest,latest.batches.find(batch=>batch.id===c.id)!,c));
+    const previous=latest.batches.flatMap(batch=>batch.receipt?[batch.receipt]:[]);
+    const next=JSON.stringify(previous)===JSON.stringify(collections)?latest:
+      (await save({type:'sync-collections',bookId:b.id,collections})).books.find(x=>x.id===b.id)!;
+    try { await finishExpenseReminder(next); }
+    catch { setNotice('收款进度已更新，但日历提醒未能自动结束，请到日历核对。'); }
+    return next;
+  }
+  const refreshRef=useRef<()=>void>(()=>{});
+  refreshRef.current=()=>{
+    if(!book?.batches.some(b=>b.status==='published')||busyRef.current)return;
+    if(window.frameElement && !window.frameElement.getClientRects().length)return;
+    void run(async()=>{await refreshProgress(book);});
+  };
+  useEffect(()=>{
+    const refresh=()=>refreshRef.current();
+    const timer=setInterval(()=>{if(document.visibilityState==='visible')refresh();},30000);
+    window.addEventListener('zhiyin-phone-foreground',refresh);
+    return ()=>{clearInterval(timer);window.removeEventListener('zhiyin-phone-foreground',refresh);};
+  },[]);
   async function run(fn: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -198,6 +223,17 @@ export const ExpenseNotebook = forwardRef<
         return "好，我帮你把零散消费记在一起。先选择微信群和这次参与人，默认由你垫付；单笔有例外直接告诉我。";
       }
       if (!book || setup) return null;
+      const asksProgress=/收齐|谁.*(?:没付|未付|付了)|收款.*进度|还差谁|还差多少/.test(prompt);
+      const asksReminder=/^(?:那就|那|帮我)?明天(?:上午9点)?提醒我(?:看看)?(?:收款|查收款|查看收款|看收款进度)?[。！! ]*$/.test(prompt);
+      if(asksProgress||asksReminder){
+        busyRef.current=true;setBusy(true);setError('');
+        try {
+          setExpanded(true);
+          if(!book.batches.length)return '这次活动还没有发起群收款。';
+          const latest=await refreshProgress(book);
+          return asksReminder?await remindExpenseTomorrow(latest):expenseProgressText(latest);
+        } finally {busyRef.current=false;setBusy(false);}
+      }
       if (/^(结束记录|暂停记账|停止记账)$/.test(prompt)) {
         activate("");
         return "先收起了，记录还在。下次从“继续记录”打开即可。";
@@ -261,10 +297,6 @@ export const ExpenseNotebook = forwardRef<
       batchId: batch.id,
       collectionId: response.collection.id,
     });
-    setRecords((r) => [
-      response.collection!,
-      ...r.filter((c) => c.id !== batch.id),
-    ]);
     setReview(false);
     setNotice("群收款已发起，等待成员付款；不是已经到账。");
   }
@@ -294,7 +326,6 @@ export const ExpenseNotebook = forwardRef<
       });
       if (!Array.isArray(result.collections))
         throw new Error("未取得微信记录，暂不解锁");
-      setRecords(result.collections);
       const found = result.collections.find((c) => c.id === batch.id);
       await load();
       if (found) {
@@ -349,7 +380,7 @@ export const ExpenseNotebook = forwardRef<
                 <option value="">继续记录…</option>
                 {state.books.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.title}
+                    {b.title}{expenseActivityClosed(b) ? ' · 已结清归档' : ''}
                   </option>
                 ))}
               </select>
@@ -367,9 +398,9 @@ export const ExpenseNotebook = forwardRef<
               <span>
                 <strong>{book.title}</strong>
                 <small>
-                  {outstanding.length
+                  {expenseActivityClosed(book) ? '已结清归档 · 明细保留' : outstanding.length
                     ? `${outstanding.length} 笔待结算 · ${money(outstanding.reduce((n, e) => n + e.amount, 0))}`
-                    : "随时告诉我下一笔消费"}
+                    : book.batches.length ? '群收款跟进 · 展开查看' : "随时告诉我下一笔消费"}
                 </small>
               </span>
               <ChevronDown size={17} />
@@ -559,21 +590,21 @@ export const ExpenseNotebook = forwardRef<
                       <>
                         <p>
                           {(() => {
-                            const c = records.find((r) => r.id === batch.id);
+                            const c = batch.receipt;
                             return c
                               ? c.status === "cancelled"
                                 ? "微信已取消；未自动重新收费"
-                                : `${money(c.members.filter((m) => !m.self && m.paid).reduce((n, m) => n + m.amount, 0))} / ${money(c.collectAmount)} 已收`
+                                : collectionProgress(book,batch,c).complete ? '已收齐 · 分摊依据已保留' : `${money(collectionProgress(book,batch,c).paid)} / ${money(c.collectAmount)} 已收（上次核对）`
                               : "收款进度以微信回执为准";
                           })()}
                         </p>
+                        {batch.receipt && !collectionProgress(book,batch,batch.receipt).cancelled && collectionProgress(book,batch,batch.receipt).members.map(m=>(
+                          <div className="expense-person" key={m.id}><span>{m.name}</span><span>{money(m.amount)} · {m.paid?'已付':'未付'}</span></div>
+                        ))}
                         <button
                           onClick={() =>
                             void run(async () => {
-                              const r = await groupAARequest("records", {
-                                groupId: book.group.id,
-                              });
-                              setRecords(r.collections ?? []);
+                              await refreshProgress(book);
                             })
                           }
                         >
@@ -583,6 +614,12 @@ export const ExpenseNotebook = forwardRef<
                     )}
                   </div>
                 ))}
+                {book.batches.some(b=>b.status==='published') && !expenseActivityClosed(book) && (
+                  <button onClick={()=>void run(async()=>{
+                    const latest=await refreshProgress(book);
+                    setNotice(await remindExpenseTomorrow(latest));
+                  })}>明天提醒我</button>
+                )}
               </div>
             )}
           </>
