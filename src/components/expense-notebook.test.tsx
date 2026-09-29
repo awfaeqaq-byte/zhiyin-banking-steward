@@ -48,6 +48,7 @@ it('查收款使用微信实付回执，支持本人提醒、前台更新和结�
   collection={...collection,status:'completed',members:collection.members.map(m=>({...m,paid:true}))};
   await act(async()=>{window.dispatchEvent(new Event('zhiyin-phone-foreground'));});
   await waitFor(()=>expect(calendar.tasks[0].status).toBe('completed'));
+  expect(screen.queryByText(/已安排明天上午9点/)).not.toBeInTheDocument();
   expect(screen.getAllByText(/已结清归档/).length).toBeGreaterThan(0);
   expect(bridge.mock.calls.every(c=>c[0]==='records')).toBe(true);
   expect(state.books[0].batches[0].receipt?.status).toBe('completed');
