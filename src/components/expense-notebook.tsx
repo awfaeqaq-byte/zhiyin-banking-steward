@@ -39,8 +39,8 @@ const startPattern =
   /随手记|零散消费|记个账|帮我记|开始记|新活动|我先[付垫]|最后一起算|先垫付/;
 export const ExpenseNotebook = forwardRef<
   ExpenseNotebookHandle,
-  { onPrompt: (text: string) => void; activityKey?:string; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string }
->(function ExpenseNotebook({ onPrompt,activityKey,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁' }, ref) {
+  { onPrompt: (text: string) => void; activityKey?:string; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
+>(function ExpenseNotebook({ onPrompt,activityKey,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
   const activeKey=activityKey?`zhiyin-expense-active-${activityKey}`:'zhiyin-expense-active';
   const memoryEpoch=useRef(0);
   useEffect(()=>{const reset=()=>{memoryEpoch.current++;history.current=[];};window.addEventListener('zhiyin-memory-context-reset',reset);return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);},[]);
@@ -62,7 +62,7 @@ export const ExpenseNotebook = forwardRef<
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState("");
-  const history = useRef<{ role: "user" | "assistant"; content: string }[]>([]);
+  const history = useRef<{ role: "user" | "assistant"; content: string }[]>(initialHistory.slice(-6));
   const book = state.books.find((b) => b.id === active);
   function accept(s: ExpenseState) {
     current.current = s;

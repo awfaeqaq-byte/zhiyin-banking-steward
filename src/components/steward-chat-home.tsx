@@ -417,7 +417,7 @@ export function StewardChatHome({
           <span>今天</span>
           <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
-        {onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook key={workspace?.id || 'legacy'} ref={expenseNotebook} activityKey={workspace?.id} initialBookId={workspace?.expenseBookId} onBookSelected={onWorkspaceBook} getMemoryContext={async prompt=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,prompt):'';}} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
+        {onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook key={workspace?.id || 'legacy'} ref={expenseNotebook} activityKey={workspace?.id} initialBookId={workspace?.expenseBookId} initialHistory={workspace?.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision||0))} onBookSelected={onWorkspaceBook} getMemoryContext={async prompt=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,prompt):'';}} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
         {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
 
