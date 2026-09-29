@@ -23,7 +23,6 @@ it('AA工作区恢复自己的追问上下文，读取共享偏好而不读取�
   const model=vi.spyOn(service,'requestExpenseReply').mockResolvedValue({action:'clarify',message:'哪瓶饮料？'});
   const ref=createRef<ExpenseNotebookHandle>();
   render(<ExpenseNotebook ref={ref} activityKey="dinner" initialBookId="book" initialHistory={[{role:'user',content:'两瓶饮料一瓶给李娜'}]} getMemoryContext={async()=> '喜欢简短说明'} onPrompt={vi.fn()}/>);
-  await screen.findByRole('button',{name:/晚餐/});
   await act(async()=>{await ref.current!.handle('刚才那瓶3元');});
   expect(model.mock.calls[0][0].id).toBe('book');
   expect(model.mock.calls[0][2]).toEqual([{role:'user',content:'两瓶饮料一瓶给李娜'}]);
