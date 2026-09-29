@@ -26,6 +26,11 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('进入具体任务后不再挤入首页订阅信息',()=>{
+    render(<StewardChatHome workspace={{id:'dinner',kind:'aa',title:'今晚聚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0}} stewardName="宁宁" stewardImage="/n.png" connections={{alipay}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}/>);
+    expect(screen.getByRole('heading',{name:'今晚聚餐'})).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'哪些会员快扣费了？'})).not.toBeInTheDocument();
+  });
   it('转账规划读取最新授权账单和续费，平台失败时不使用旧快照作保证',async()=>{
     const user=userEvent.setup();
     const reply=vi.fn<StewardReplyFn>(async()=>({text:'需要留多少还款预算？'}));
