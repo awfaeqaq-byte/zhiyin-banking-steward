@@ -59,7 +59,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       }
       select(items[0].id); setQueue(items.slice(1)); setInjected(items[0]);
       setNotice(items.length > 1 ? `已分到 ${items.length} 个任务，逐项整理；付款仍需你确认。` : '');
-    } catch (e) { setError(e instanceof Error ? e.message : '未能整理任务'); setNotice('原请求未执行。可以重试，或打开任务窗口手动选择。'); }
+    } catch (e) { setError(e instanceof Error ? e.message : '未能整理任务'); setNotice('原请求未执行。可以重试，或打开任务窗口手动选择。'); throw e; }
     finally { setBusy(false); }
   }
   async function completed(user: string, assistant: string, revision: number, failed: boolean) {

@@ -287,7 +287,7 @@ export function StewardChatHome({
   async function sendPrompt(text: string, continueBill = false, bypassRoute = false) {
     const prompt = text.trim();
     if (!prompt || sending) return;
-    if(onRoutePrompt&&!bypassRoute){if(!externalBusy){await onRoutePrompt(prompt);setInput('');}return;}
+    if(onRoutePrompt&&!bypassRoute){if(!externalBusy){try{await onRoutePrompt(prompt);setInput('');}catch{/* Workspace shows the error. Keep the original input for retry. */}}return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
     const userMessage: DisplayMessage = {
