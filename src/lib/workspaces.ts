@@ -3,11 +3,13 @@ export const workspaceKinds = ['general', 'aa', 'transfer', 'subscriptions', 'bi
 export type WorkspaceKind = typeof workspaceKinds[number];
 export const workspaceLabels: Record<WorkspaceKind, string> = { general: '日常交代', aa: 'AA 记账', transfer: '转账安排', subscriptions: '订阅管理', bills: '账单分析', reminder: '日程提醒' };
 export type WorkspaceMessage = { id: string; role: 'user' | 'assistant'; content: string; memoryRevision: number };
-export type Workspace = { id: string; kind: WorkspaceKind; title: string; status: 'active' | 'archived'; updatedAt: number; messages: WorkspaceMessage[]; summary: string; memoryRevision: number; expenseBookId?: string };
+export type Workspace = { id: string; kind: WorkspaceKind; title: string; status: 'active' | 'archived'; updatedAt: number; messages: WorkspaceMessage[]; summary: string; memoryRevision: number; expenseBookId?: string; pending?: {token:string;text:string}[] };
 export type WorkspaceState = { version: 1; revision: number; items: Workspace[]; requests: string[] };
 export type WorkspaceOperation =
   | { type: 'create'; id: string; title: string; kind: WorkspaceKind }
-  | { type: 'turn'; id: string; user: string; assistant: string; memoryRevision: number }
+  | { type: 'turn'; id: string; user: string; assistant: string; memoryRevision: number; token?:string }
+  | { type: 'enqueue'; id: string; text: string; token:string }
+  | { type: 'discard'; id: string; token:string }
   | { type: 'status'; id: string; status: 'active' | 'archived' }
   | { type: 'rename'; id: string; title: string }
   | { type: 'link'; id: string; expenseBookId: string };
@@ -25,6 +27,7 @@ export function validWorkspaces(value: unknown): value is WorkspaceState {
     && s.items.every(w => w && idOk(w.id) && workspaceKinds.includes(w.kind) && typeof w.title === 'string' && w.title.length <= 60
       && ['active', 'archived'].includes(w.status) && Number.isFinite(w.updatedAt) && Number.isSafeInteger(w.memoryRevision)
       && typeof w.summary === 'string' && w.summary.length <= 6000 && (!w.expenseBookId || idOk(w.expenseBookId))
+      && (!w.pending || (Array.isArray(w.pending) && w.pending.length<=20 && w.pending.every(p=>p&&idOk(p.token)&&typeof p.text==='string'&&p.text.length<=2000)))
       && Array.isArray(w.messages) && w.messages.length <= 40 && w.messages.every(m => m && idOk(m.id) && ['user', 'assistant'].includes(m.role) && typeof m.content === 'string' && m.content.length <= 12000 && Number.isSafeInteger(m.memoryRevision)));
 }
 export function changeWorkspaces(state: WorkspaceState, command: WorkspaceCommand): WorkspaceState {
@@ -41,7 +44,11 @@ export function changeWorkspaces(state: WorkspaceState, command: WorkspaceComman
     if (command.type === 'status') {
       if (!['active', 'archived'].includes(command.status)) throw new Error('任务状态无效');
       current.status = command.status;
-    } else if (command.type === 'rename') current.title = checkedText(command.title, 60);
+    } else if (command.type === 'enqueue') {
+      if(current.status!=='active'||!idOk(command.token)||(current.pending?.length||0)>=20)throw new Error('暂时不能添加交代，请先处理已有请求');
+      if(!current.pending?.some(p=>p.token===command.token))current.pending=[...(current.pending||[]),{token:command.token,text:checkedText(command.text,2000)}];
+    } else if(command.type==='discard')current.pending=(current.pending||[]).filter(p=>p.token!==command.token);
+    else if (command.type === 'rename') current.title = checkedText(command.title, 60);
     else if (command.type === 'link') {
       if (!idOk(command.expenseBookId) || current.kind !== 'aa') throw new Error('账本关联无效');
       current.expenseBookId = command.expenseBookId;
@@ -56,6 +63,7 @@ export function changeWorkspaces(state: WorkspaceState, command: WorkspaceComman
       const dropped = current.messages.slice(0, -40).filter(m => m.role === 'user' && m.memoryRevision === command.memoryRevision);
       current.summary = [current.summary, ...dropped.map(m => m.content)].filter(Boolean).join('\n').slice(-6000);
       current.messages = current.messages.slice(-40);
+      if(command.token)current.pending=(current.pending||[]).filter(p=>p.token!==command.token);
     } else throw new Error('不支持的任务操作');
     current.updatedAt = Date.now();
   }
