@@ -17,3 +17,9 @@ it('分流器只接受合法原话路由，服务失败不自行猜测执行',as
   expect((await routeWorkspacePrompt('改成16',[],'','饮料')).clarification).toBe('哪次活动？');
   fetcher.mockResolvedValueOnce(new Response(JSON.stringify({error:'模型暂不可用'}),{status:502}));await expect(routeWorkspacePrompt('饮料18',[],'')).rejects.toThrow('模型暂不可用');
 });
+it('分流输出遗漏时只重试分流，不执行遗漏后的半份请求',async()=>{
+  const good={parts:[{taskId:null,kind:'aa',title:'晚饭',text:'饮料18'},{taskId:null,kind:'transfer',title:'转账',text:'给妈妈转500'}]};
+  const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce(new Response(JSON.stringify({output_text:JSON.stringify({parts:good.parts.slice(0,1)})}))).mockResolvedValueOnce(new Response(JSON.stringify({output_text:JSON.stringify(good)})));
+  expect((await routeWorkspacePrompt('饮料18，给妈妈转500',[],'')).parts).toHaveLength(2);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
