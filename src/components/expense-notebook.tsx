@@ -89,7 +89,10 @@ export const ExpenseNotebook = forwardRef<
     const previous=latest.batches.flatMap(batch=>batch.receipt?[batch.receipt]:[]);
     const next=JSON.stringify(previous)===JSON.stringify(collections)?latest:
       (await save({type:'sync-collections',bookId:b.id,collections})).books.find(x=>x.id===b.id)!;
-    try { await finishExpenseReminder(next); }
+    try {
+      await finishExpenseReminder(next);
+      if(expenseActivityClosed(next))setNotice('已收齐，活动已结清归档；相关收款提醒已结束。');
+    }
     catch { setNotice('收款进度已更新，但日历提醒未能自动结束，请到日历核对。'); }
     return next;
   }
