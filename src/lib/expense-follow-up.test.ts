@@ -58,4 +58,25 @@ describe('收款跟进',()=>{
     await finishExpenseReminder(book);expect(state.tasks[0].status).toBe('completed');
     expect(request).toHaveBeenCalled();
   });
+  it('取消或缺失回执不设提醒；手动取消提醒后可再设且不重复',async()=>{
+    const {book,collection}=followUpFixture();
+    let state:tasks.TaskState={revision:0,tasks:[]};
+    const now=Date.now();
+    vi.spyOn(tasks,'taskRequest').mockImplementation(async command=>{
+      if(command)state=tasks.updateTasks(state,command,now);
+      return state;
+    });
+    expect(await remindExpenseTomorrow(book)).toContain('暂不添加');
+    book.batches[0].receipt={...collection,status:'cancelled'};
+    expect(await remindExpenseTomorrow(book)).toContain('暂不添加');
+    book.batches[0].receipt=collection;
+    await remindExpenseTomorrow(book,now);
+    state=tasks.updateTasks(state,{type:'status',id:state.tasks[0].id,revision:state.revision,status:'cancelled'},now);
+    await remindExpenseTomorrow(book,now);await remindExpenseTomorrow(book,now);
+    expect(state.tasks.filter(t=>t.status==='pending')).toHaveLength(1);
+    book.batches[0].receipt={...collection,status:'completed',members:collection.members.map(m=>({...m,paid:true}))};
+    expect(await remindExpenseTomorrow(book)).toContain('已经收齐');
+    await finishExpenseReminder(book);
+    expect(state.tasks.filter(t=>t.status==='pending')).toHaveLength(0);
+  });
 });
