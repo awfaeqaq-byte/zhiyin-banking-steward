@@ -50,3 +50,26 @@ it('混合交代逐项处理，第二个任务不会拿到第一个任务的聊�
   expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'明天去杭州'}]);
   await waitFor(()=>expect(state.items.every(w=>w.messages.length===2)).toBe(true));
 });
+it('归档可恢复、待办可重开和放弃，分流失败不执行业务',async()=>{
+  let state=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'dinner',kind:'general',title:'今晚聚餐',revision:0,requestId:'1'});
+  state=changeWorkspaces(state,{type:'enqueue',id:'dinner',token:'q',text:'饮料18',revision:1,requestId:'2'});
+  vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,init)=>{if(init?.body)state=changeWorkspaces(state,JSON.parse(String(init.body)));return new Response(JSON.stringify(state));});
+  const route=vi.fn(async()=>{throw new Error('暂时无法分配');}); const reply=vi.fn(async()=>({text:'已记录'}));const user=userEvent.setup();
+  render(<StewardWorkspaces route={route} reply={reply} stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}/>);
+  await user.click(await screen.findByRole('button',{name:'任务窗口'}));
+  await user.click(screen.getByRole('button',{name:'收起今晚聚餐'}));
+  await user.click(screen.getByRole('button',{name:'已收起'}));
+  await user.click(await screen.findByRole('button',{name:'打开今晚聚餐'}));
+  await screen.findByText('待处理：饮料18');
+  await user.click(screen.getByRole('button',{name:'不再处理'}));
+  await waitFor(()=>expect(state.items[0].pending).toEqual([]));
+  await user.type(screen.getByRole('textbox'),'做点别的');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+  await screen.findByRole('alert');expect(reply).not.toHaveBeenCalled();
+  expect(screen.getByRole('textbox')).toHaveValue('做点别的');
+  await user.click(screen.getByRole('button',{name:'回到首页'}));
+  await user.click(screen.getByRole('button',{name:'任务窗口'}));
+  await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button',{name:'进行中'}));
+  await user.click(screen.getByRole('button',{name:'打开今晚聚餐'}));
+  await user.type(screen.getByRole('textbox'),'简单一点');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+  await screen.findByText('已记录');expect(route).toHaveBeenCalledTimes(1);
+});
