@@ -204,7 +204,7 @@ export const ExpenseNotebook = forwardRef<
       }
       // Do not intercept ordinary banking requests just because an activity exists.
       if (
-        !/\d|一半|半份|平分|均摊|[aA]{2}|收款|结算|记下|记录|刚才|上一笔|那笔|没吃|没喝|删除|算一下/.test(
+        !/\d|一半|半份|平分|均摊|分摊|[aA]{2}|收款|结算|记下|记录|刚才|上一笔|那笔|没吃|没喝|删除|算一下/.test(
           prompt,
         ) &&
         history.current.at(-1)?.role !== "assistant"
@@ -321,6 +321,7 @@ export const ExpenseNotebook = forwardRef<
     }
   }
   const outstanding = book?.entries.filter((e) => !e.batchId) ?? [];
+  const splitSummary = book && review ? expenseSplitSummary(book, selected) : null;
   return (
     <section
       className="expense-notebook"
@@ -492,10 +493,10 @@ export const ExpenseNotebook = forwardRef<
                   <div className="expense-review">
                     <h3>这样分可以吗？</h3>
                     <p>仅结算上方勾选的消费，未选记录留待下次。</p>
-                    {expenseSplitSummary(book, selected).equalCount > 0 && (
-                      <p>{expenseSplitSummary(book, selected).equalCount} 笔按{expenseSplitSummary(book, selected).people}平分。</p>
+                    {splitSummary && splitSummary.equalCount > 0 && (
+                      <p>{splitSummary.equalCount} 笔按{splitSummary.people}平分。</p>
                     )}
-                    {expenseSplitSummary(book, selected).exceptions.map(e => (
+                    {splitSummary?.exceptions.map(e => (
                       <p key={e.id}><strong>{e.title}</strong>：{e.text}</p>
                     ))}
                     {totals && (
