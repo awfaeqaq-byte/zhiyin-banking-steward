@@ -155,7 +155,7 @@ export function StewardChatHome({
   const referenceTime = now ?? fundingReferenceTime(connections);
   const [taskAttention,setTaskAttention]=useState(false);
   const funding = useMemo(() => buildFundingForecast(connections, referenceTime), [connections, referenceTime]);
-  const fundingAttention = !refreshError && !refreshing && onOpenFunding
+  const fundingAttention = !workspace && !refreshError && !refreshing && onOpenFunding
     ? funding.accounts.find(account => account.status === "shortfall") : undefined;
   const fundingNeedsSettlementCheck = Boolean(fundingAttention?.charges.some(charge => charge.chargeAt < funding.from));
   const insights = useMemo(
@@ -163,7 +163,7 @@ export function StewardChatHome({
     [connections, referenceTime, duplicatePreferences],
   );
   const recurringCandidates = useMemo(() => buildRecurringCandidates(connections, referenceTime), [connections, referenceTime]);
-  const pendingRecurring = recurringCandidates.filter(item => !recurringReviews[item.key] || recurringReviews[item.key] === "pending");
+  const pendingRecurring = workspace?[]:recurringCandidates.filter(item => !recurringReviews[item.key] || recurringReviews[item.key] === "pending");
   const subscriptions = useMemo<StewardSubscription[]>(
     () => insights.items.map(item => ({
       key: item.key,
@@ -233,6 +233,7 @@ export function StewardChatHome({
   );
   const sourceLabel = authorizedSourceNames.join("、");
   const attentionEvent = useMemo<AttentionEvent | undefined>(() => {
+    if(workspace)return undefined;
     const urgentItem = insights.items.find(item =>
       item.urgency === "urgent"
       && !item.flags.includes("possible_duplicate")
@@ -254,7 +255,7 @@ export function StewardChatHome({
     return duplicateGroup
       ? { type: "duplicate", primary: duplicateGroup[0], related: duplicateGroup.slice(1) }
       : undefined;
-  }, [disabledReminders, insights.items]);
+  }, [disabledReminders, insights.items,workspace]);
   const attentionItem = attentionEvent?.primary;
   const decisionItems = attentionEvent?.type === 'duplicate' ? [attentionEvent.primary,...attentionEvent.related] : [];
   const decisionKey = duplicateGroupKey(decisionItems);
@@ -428,8 +429,8 @@ export function StewardChatHome({
           <div className="steward-work-content">
             <div className="steward-live-heading">
               <div>
-                <h1 id="steward-home-title" aria-label={heading}>{heading}</h1>
-                <p>{refreshError || (fundingAttention
+                <h1 id="steward-home-title" aria-label={workspace?.title||heading}>{workspace?.title||heading}</h1>
+                <p>{workspace?'这件事想怎么安排？直接告诉我，我们接着处理。':refreshError || (fundingAttention
                   ? fundingNeedsSettlementCheck ? "若到期款项仍需支付，余额可能不足。先确认是否已支付，避免重复付款。" : "各平台余额不能自动互相抵扣，先核对这一个账户的续费安排。"
                   : pendingRecurring.length && !attentionEvent
                   ? `账单里有 ${pendingRecurring.length} 项付款呈现周期规律，需要你核对是否属于订阅。`
@@ -528,7 +529,7 @@ export function StewardChatHome({
           </div>
         </section>}
 
-        {messages.length === 0 && (
+        {messages.length === 0 && !workspace && (
           <div className="steward-quick-prompts" aria-label="快捷提问">
             {["哪些会员快扣费了？", "帮我检查重复订阅", "接下来一周的钱够续费吗？"].map(prompt => (
               <button key={prompt} onClick={() => void sendPrompt(prompt)} disabled={sending}>
