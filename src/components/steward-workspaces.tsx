@@ -5,7 +5,8 @@ import {
   useState,
   type ComponentProps,
 } from "react";
-import { ChevronDown, ArrowLeft, Archive, Layers, Plus } from "lucide-react";
+import { ChevronDown, Archive, Layers, Plus, ArrowUpRight, Check } from "lucide-react";
+import { Dialog } from "./ui/dialog";
 import { StewardChatHome } from "./steward-chat-home";
 import {
   emptyWorkspaces,
@@ -43,6 +44,7 @@ export function StewardWorkspaces({
     [kind, setKind] = useState<WorkspaceKind>("general");
   const [manual, setManual] = useState(false),
     [archived, setArchived] = useState(false);
+  const [management,setManagement] = useState(false);
   const [queue, setQueue] = useState<Queued[]>([]);
   const [injected, setInjected] = useState<Queued>();
   const clarify = useRef("");
@@ -78,6 +80,7 @@ export function StewardWorkspaces({
     setActive(id);
     localStorage.setItem("zhiyin-workspace-active", id);
     setOpen(false);
+    setManagement(false);
     setNotice("");
   }
   async function run(fn: () => Promise<void>) {
@@ -277,23 +280,9 @@ export function StewardWorkspaces({
             </div>
           </div>
         ))}
-      {open ? (
+      <Dialog open={open} onOpenChange={value=>{setOpen(value);if(!value)setManagement(false);}} title="手头的事情" description="挑一件继续，之前的交代留在各自任务里。" className="workspace-dialog">
         <section className="workspace-list" aria-label="任务窗口列表">
-          <div className="workspace-list-heading">
-            <h2>一件事，一个窗口</h2>
-            <button aria-label="返回对话" onClick={() => setOpen(false)}>
-              <ArrowLeft size={18} />
-            </button>
-          </div>
-          <p>切换时保留各自记录。长期偏好共享，临时安排只留在当前任务。</p>
-          <label className="workspace-routing">
-            <input
-              type="checkbox"
-              checked={!manual}
-              onChange={(e) => setManual(!e.target.checked)}
-            />
-            让{props.stewardName}自动分配到对应任务
-          </label>
+          <button className="workspace-new-intent" disabled={blocked} onClick={()=>select("")}><Plus size={18} aria-hidden="true"/><span><strong>交代一件新事情</strong><small>直接说，{props.stewardName}来整理</small></span><ArrowUpRight size={18} aria-hidden="true"/></button>
           <div className="workspace-tabs">
             <button aria-pressed={!archived} onClick={() => setArchived(false)}>
               进行中
@@ -325,15 +314,9 @@ export function StewardWorkspaces({
                     }
                     disabled={blocked}
                   >
-                    <strong>{w.title}</strong>
-                    <small>
-                      {workspaceLabels[w.kind]}
-                      {w.pending?.length
-                        ? ` · ${w.pending.length} 条待处理`
-                        : w.messages.length
-                          ? ` · ${w.messages.filter((m) => m.role === "user").length} 条交代`
-                          : " · 尚未开始"}
-                    </small>
+                    <span className="workspace-item-heading"><strong>{w.title}</strong>{active===w.id&&<span className="workspace-current"><Check size={13} aria-hidden="true"/>当前</span>}</span>
+                    <small className="workspace-preview">{w.pending?.[0]?.text || [...w.messages].reverse().find(m=>m.role==='user')?.content || '还没交代细节，打开后告诉我。'}</small>
+                    <span className="workspace-resume">{w.status==='archived'?'恢复并继续':w.pending?.length?'有交代等你继续':'接着处理'}<ArrowUpRight size={14} aria-hidden="true"/></span>
                   </button>
                   {w.status === "active" && (
                     <button
@@ -363,9 +346,14 @@ export function StewardWorkspaces({
             <p>
               {archived
                 ? "还没有收起的任务。"
-                : "直接交代我一件事，也可以先起个名字。"}
+                : "还没有进行中的事情。直接说想做什么，我来整理。"}
             </p>
           )}
+          <details className="workspace-management" open={management}>
+          <summary onClick={e=>{e.preventDefault();setManagement(v=>!v);}}>更多管理</summary>
+          {management&&<>
+          <label className="workspace-routing"><input type="checkbox" checked={!manual} onChange={e=>setManual(!e.target.checked)}/>让{props.stewardName}自动分配到对应任务</label>
+          <p>通常不用建立窗口。需要时，也可以自己命名。</p>
           <form
             className="workspace-create"
             onSubmit={(e) => {
@@ -404,8 +392,10 @@ export function StewardWorkspaces({
           <p className="workspace-footnote">
             收起只整理对话，不取消预约、不结束收款。历史答复不是实时回执。
           </p>
+          </>}
+          </details>
         </section>
-      ) : (
+      </Dialog>
         <StewardChatHome
           {...props}
           bankReceipt={
@@ -433,7 +423,6 @@ export function StewardWorkspaces({
             if (work) await save({ type: "link", id: work.id, expenseBookId });
           }}
         />
-      )}
     </div>
   );
 }

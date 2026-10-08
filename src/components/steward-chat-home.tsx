@@ -10,6 +10,7 @@ import {parseImpression} from '../lib/steward-profile';
 import {bankRecipients,bankRequest,validBankSnapshot,type BankReceipt} from '../lib/bank-transfer';
 import type {SmartIntent} from './smart-transfers';
 import type {OccasionPlan} from '../lib/occasion-plans';
+import {OccasionPlanner} from './occasion-planner';
 import {isBankRequest,isBankOperation,isTaskRequest,isOccasionRequest} from '../lib/steward-chat';
 import {taskRequest,calendarEvents,localTaskTime,type ReminderDraft} from '../lib/task-calendar';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
@@ -407,14 +408,15 @@ export function StewardChatHome({
   const sendRef=useRef(sendPrompt);sendRef.current=sendPrompt;
   const consumed=useRef('');
   useEffect(()=>{
-    if(injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void sendRef.current(injectedPrompt.text,false,true);}
-  },[injectedPrompt]);
+    if(workspace?.kind!=='occasion'&&injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void sendRef.current(injectedPrompt.text,false,true);}
+  },[injectedPrompt,workspace?.kind]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     void sendPrompt(input);
   }
 
+  if(workspace?.kind==='occasion')return <div className="steward-chat-home steward-occasion-task"><OccasionPlanner embedded stewardName={stewardName} initialPlanId={workspace.id} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onRoutePrompt={onRoutePrompt} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);}}/></div>;
   return (
     <div className={`steward-chat-home steward-desk ${sending ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
@@ -536,7 +538,7 @@ export function StewardChatHome({
 
         {messages.length === 0 && !workspace && (
           <div className="steward-quick-prompts" aria-label="快捷提问">
-            {["哪些会员快扣费了？", "帮我检查重复订阅", "接下来一周的钱够续费吗？"].map(prompt => (
+            {["帮我看看这个月的支出", "记一下今天的AA消费", "帮我准备爱人的生日"].map(prompt => (
               <button key={prompt} onClick={() => void sendPrompt(prompt)} disabled={sending}>
                 <span>{prompt}</span><ArrowUpRight size={16} aria-hidden="true" />
               </button>
