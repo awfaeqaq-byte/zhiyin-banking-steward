@@ -2,6 +2,7 @@ type Status = 'loading' | 'ready' | 'error';
 type FinancialProvider = 'alipay' | 'wechat_pay';
 type FinancialScope = 'balance' | 'transactions' | 'autopay';
 type Options = {
+  occasionFood?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   groupAA?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   origin: string;
   peer: () => Window | null;
@@ -56,6 +57,10 @@ export function createPhoneSession(options: Options) {
         ready = true;
         clearTimeout(loadTimer);
         options.onStatus('ready');
+      }
+      if(data.type==='occasion-food-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['prepare','open','records'].includes(data.operation)&&options.isActive()&&options.occasionFood&&!financeRequests.has(data.requestId)){
+        const id=data.requestId;financeRequests.add(id);
+        void options.occasionFood(data.operation,{planId:data.planId,productId:data.productId,orderId:data.orderId}).then(result=>{if(!disposed)send({type:'occasion-food-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'occasion-food-result',requestId:id,status:'error',message:e instanceof Error?e.message:'无法核对外卖订单'});}).finally(()=>financeRequests.delete(id));
       }
       if(data.type==='group-aa-request'&&typeof data.requestId==='string'&&data.requestId.length<=80&&options.isActive()&&options.groupAA&&!financeRequests.has(data.requestId)){
         const id=data.requestId;financeRequests.add(id);

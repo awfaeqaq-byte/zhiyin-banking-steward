@@ -2,7 +2,7 @@ import {netFetch} from '../../../os/NetworkService';
 
 export type FundingSource = 'balance'|'bank_8888';
 export interface BankFundingBackend {
-  pay(input:{id:string;channel:'wechat'|'alipay';amount:number;merchant:string}):Promise<unknown>;
+  pay(input:{id:string;channel:'wechat'|'alipay';amount:number;merchant:string;occasionId?:string}):Promise<unknown>;
   refund(id:string):Promise<unknown>;
 }
 async function request(body:object) {

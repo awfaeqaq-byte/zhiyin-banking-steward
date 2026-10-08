@@ -156,8 +156,9 @@ export function bankMiddleware(store:ReturnType<typeof createBankStore>) {
    if(req.method==='GET')return send(200,store.get());
    if(req.method!=='POST')return send(405,{error:'不支持的方法'});
    if(req.headers['x-zhiyin-bank']!=='1' || !req.headers['content-type']?.startsWith('application/json'))return send(403,{error:'请求格式无效'});
-   let body='';for await(const chunk of req){body+=chunk.toString();if(Buffer.byteLength(body)>2048)return send(413,{error:'请求过大'});}
+   let body='';for await(const chunk of req){body+=chunk.toString();if(Buffer.byteLength(body)>8192)return send(413,{error:'请求过大'});}
    const data=JSON.parse(body);
+   if(data?.type!=='save-occasion'&&Buffer.byteLength(body)>2048)return send(413,{error:'请求过大'});
    if(data?.type==='save-occasion')return send(200,store.saveOccasion(data));
    if(data?.type==='reserve-occasion'&&data.authorized===true)return send(200,store.reserveOccasion(data.id,data.revision));
    if(data?.type==='cancel-occasion'&&data.authorized===true)return send(200,store.cancelOccasion(data.id,data.revision));

@@ -31,7 +31,7 @@ export function PaymentPage() {
   const [chosenMethod, setMethod] = useState<FoodDeliveryPaymentMethod>('wechat_pay');
   const method=order?.pendingBankMethod??chosenMethod;
   const [chosenFunding,setFunding]=useState<FundingSource>('balance');
-  const fundingSource=order?.pendingBankMethod?'bank_8888':chosenFunding;
+  const fundingSource=order?.pendingBankMethod||order?.occasionId?'bank_8888':chosenFunding;
   const [isPaying, setIsPaying] = useState(false);
   const [error, setError] = useState('');
   const payingRef = useRef(false);
@@ -118,7 +118,8 @@ export function PaymentPage() {
           </div>
         </section>
 
-        <fieldset className="mt-3 bg-white rounded-[16px] p-4" disabled={isPaying || Boolean(order?.pendingBankMethod)}>
+        {order?.occasionId&&<section className="mt-3 bg-white rounded-[16px] p-4"><h2 className="text-[14px] font-bold">{s.occasion_review}</h2><p className="text-[12px] mt-2">{order.lines.map(l=>l.dishName).join('、')}</p><p className="text-[12px] mt-1">{order.address} · {order.contact}</p><p className="text-[12px] mt-1">{s.occasion_delivery} {new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium',timeStyle:'short'}).format(order.deliveryAt)}</p>{order.note&&<p className="text-[12px] mt-1">{order.note}</p>}<p className="text-[11px] mt-2 text-[#666]">{s.occasion_budget_hint}</p></section>}
+        <fieldset className="mt-3 bg-white rounded-[16px] p-4" disabled={isPaying || Boolean(order?.pendingBankMethod) || Boolean(order?.occasionId)}>
           <legend className="sr-only">{s.funding_title}</legend>
           <h2 className="text-[14px] font-bold mb-2">{s.funding_title}</h2>
           <button type="button" aria-pressed={fundingSource==='balance'} className="min-h-12 w-full flex items-center justify-between text-[14px] disabled:opacity-60" {...bindAction('fooddelivery.payment.funding.select.balance',{},()=>setFunding('balance'))}>

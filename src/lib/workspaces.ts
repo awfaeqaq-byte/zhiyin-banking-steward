@@ -6,6 +6,7 @@ export const workspaceKinds = [
   "subscriptions",
   "bills",
   "reminder",
+  "occasion",
 ] as const;
 export type WorkspaceKind = (typeof workspaceKinds)[number];
 export const workspaceLabels: Record<WorkspaceKind, string> = {
@@ -15,6 +16,7 @@ export const workspaceLabels: Record<WorkspaceKind, string> = {
   subscriptions: "订阅管理",
   bills: "账单分析",
   reminder: "日程提醒",
+  occasion: "生活筹备",
 };
 export type WorkspaceMessage = {
   id: string;

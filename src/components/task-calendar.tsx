@@ -4,13 +4,14 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {CalendarDays,ChevronLeft,ChevronRight,Plus,Check,ArrowUpRight,Clock3,X} from 'lucide-react';
 import {calendarDays,calendarEvents,dayKey,timeLabel,localTaskTime,taskRequest,type CalendarEvent,type ReminderDraft,type TaskState,type TaskCommand} from '../lib/task-calendar';
 import type {BankSchedule} from '../lib/bank-transfer';
+import type {OccasionPlan} from '../lib/occasion-plans';
 import {formatCny,type ConnectedFinancialSource} from '../lib/financial-connections';
 import './task-calendar.css';
 
-type Props={schedules:BankSchedule[];sources:ConnectedFinancialSource[];bankError?:string;sourceError?:string;draft?:ReminderDraft|null;initialDate?:number;onDraftConsumed:()=>void;onOpenTransfers:()=>void;onOpenSubscription:(source:string,id:string)=>void};
+type Props={schedules:BankSchedule[];sources:ConnectedFinancialSource[];occasions?:OccasionPlan[];onOpenOccasion?:(id:string)=>void;bankError?:string;sourceError?:string;draft?:ReminderDraft|null;initialDate?:number;onDraftConsumed:()=>void;onOpenTransfers:()=>void;onOpenSubscription:(source:string,id:string)=>void};
 const statuses:Record<string,string>={pending:'待处理',completed:'已完成',cancelled:'已取消',failed:'执行失败'};
-const kinds={reminder:'提醒',transfer:'银行预约',renewal:'订阅续费'};
-export function TaskCalendar({schedules,sources,bankError,sourceError,draft,initialDate,onDraftConsumed,onOpenTransfers,onOpenSubscription}:Props){
+const kinds={reminder:'提醒',transfer:'银行预约',renewal:'订阅续费',occasion:'生活筹备'};
+export function TaskCalendar({schedules,sources,occasions,onOpenOccasion,bankError,sourceError,draft,initialDate,onDraftConsumed,onOpenTransfers,onOpenSubscription}:Props){
  const [selected,setSelected]=useState(dayKey(draft?.dueAt??initialDate??Date.now()));
  const [month,setMonth]=useState(selected.slice(0,7));
  const [state,setState]=useState<TaskState|null>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
@@ -19,7 +20,7 @@ export function TaskCalendar({schedules,sources,bankError,sourceError,draft,init
  const newId=useRef(crypto.randomUUID());
  async function refresh(){try{const next=await taskRequest();setState(prev=>prev&&prev.revision>next.revision?prev:next);setError('');}catch(e){setError(e instanceof Error?e.message:'加载失败，请重试');}}
  useEffect(()=>{void refresh();const refreshOnFocus=()=>void refresh();window.addEventListener('focus',refreshOnFocus);window.addEventListener('zhiyin-phone-foreground',refreshOnFocus);return()=>{window.removeEventListener('focus',refreshOnFocus);window.removeEventListener('zhiyin-phone-foreground',refreshOnFocus);};},[]);
- const events=useMemo(()=>calendarEvents(state?.tasks??[],schedules,sources),[state,schedules,sources]);
+ const events=useMemo(()=>calendarEvents(state?.tasks??[],schedules,sources,occasions),[state,schedules,sources,occasions]);
  const dayEvents=events.filter(e=>dayKey(e.dueAt)===selected);
  const today=dayKey(Date.now());
  function pickDay(day:string){setSelected(day);setMonth(day.slice(0,7));setDetail(null);}
@@ -45,6 +46,7 @@ export function TaskCalendar({schedules,sources,bankError,sourceError,draft,init
     {dayEvents.map(event=><article className={`task-event ${event.status}`} key={event.id}>
      <button className="task-event-summary" aria-expanded={detail===event.id} onClick={()=>setDetail(detail===event.id?null:event.id)}><time>{timeLabel(event.dueAt)}</time><span><strong>{event.title}</strong><small>{kinds[event.kind]} · {event.kind==='renewal'&&event.dueAt<Date.now()?'扣费结果待核实':event.status==='pending'&&event.dueAt<Date.now()&&event.kind==='reminder'?'待你处理':event.kind==='transfer'&&event.status==='pending'?'等待执行':statuses[event.status]}</small></span><span className="task-event-end">{event.amount!==undefined?formatCny(event.amount):<Clock3 size={17}/>}<ChevronRight size={16}/></span></button>
      {detail===event.id&&<div className="task-event-detail"><p>{event.note||'到时在知银内提醒你，不会自动执行资金操作。'}</p>{event.kind==='reminder'&&event.status==='pending'&&<div className="task-actions"><button disabled={busy} onClick={()=>status(event.id,'completed')}><Check size={16}/>标记完成</button><button disabled={busy} onClick={()=>startEdit(event)}>修改</button><button disabled={busy} onClick={()=>setCancelId(event.id)}>取消提醒</button></div>}{event.kind==='transfer'&&<button onClick={onOpenTransfers}>管理预约转账<ArrowUpRight size={16}/></button>}{event.kind==='renewal'&&<button onClick={()=>onOpenSubscription(event.source!,event.sourceId!)}>查看订阅<ArrowUpRight size={16}/></button>}{cancelId===event.id&&<div className="task-cancel">取消后将不再提醒。<button disabled={busy} onClick={()=>status(event.id,'cancelled')}>确认取消</button><button disabled={busy} onClick={()=>setCancelId(null)}>保留</button></div>}</div>}
+     {detail===event.id&&event.kind==='occasion'&&onOpenOccasion&&<div className="task-event-detail"><button onClick={()=>onOpenOccasion(event.sourceId!)}>核对筹备安排<ArrowUpRight size={16}/></button></div>}
     </article>)}
    </div>
   </div>

@@ -94,6 +94,7 @@ function applyPayment(
   if(order.fundingSource && order.fundingSource!==funding)throw new Error('订单付款账户不一致');
   if(!['wechat_pay','alipay'].includes(method) || !['balance','bank_8888'].includes(funding))throw new Error('付款方式无效');
   if(!Number.isSafeInteger(order.payable) || order.payable<=0)throw new Error('订单金额无效');
+  if(order.occasionId&&funding!=='bank_8888')throw new Error('筹备订单须使用对应预留预算的银行卡');
   if (order.paymentMethod && order.paymentMethod !== method) {
     throw new Error(`订单已使用${PAYMENT_LABEL[order.paymentMethod]}`);
   }
@@ -276,7 +277,7 @@ function createPaymentBackend(read:()=>FoodDeliveryPaymentSnapshot,commit:(s:Foo
         const snapshot=read();const {order,index}=findOrder(snapshot,orderId);
         const bankPaymentId=order.bankPaymentId??`fooddelivery:${crypto.randomUUID()}`;
         snapshot.orders[index]={...order,pendingBankMethod:method,bankPaymentId};commit(snapshot);
-        try{await bank.pay({id:bankPaymentId,channel:method==='wechat_pay'?'wechat':'alipay',amount:order.payable,merchant:merchantName(order)});}
+        try{await bank.pay({id:bankPaymentId,channel:method==='wechat_pay'?'wechat':'alipay',amount:order.payable,merchant:merchantName(order),...(order.occasionId?{occasionId:order.occasionId}:{})});}
         catch(error){
           if(error instanceof Error && error.name==='BankRejection'){
             const latest=read();const target=findOrder(latest,orderId);latest.orders[target.index]={...target.order,pendingBankMethod:undefined};commit(latest);

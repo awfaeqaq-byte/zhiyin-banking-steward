@@ -1,4 +1,7 @@
 export const strings = {
+  occasion_review:'知银已整理的筹备订单',
+  occasion_delivery:'预约送达',
+  occasion_budget_hint:'使用常用卡8888的本次预留预算，核对后再付款；退款原路退回。配送为沙箱模拟。',
   app_name: '好食送',
   home_location: '配送至 · 江湾金融中心',
   home_greeting: '中午好，想吃点什么？',

@@ -6,6 +6,7 @@ import { useTriggerGestures } from '@/os/hooks/useTriggerGestures';
 import { useAppStrings } from '@/os/useAppStrings';
 import { createPhoneSession } from './phone-session';
 import {accessGroupAA} from './group-aa-access';
+import {accessOccasionFood} from './occasion-food-access';
 import { loadZhiyinContacts } from './contact-access';
 import { loadFinancialSource } from './finance-access';
 import { requestPartnerAuthorization } from './partner-authorization';
@@ -38,6 +39,7 @@ function ZhiyinFrame() {
       onStatus: setStatus, onExit: goHome, isActive: () => active.current,
       loadContacts: loadZhiyinContacts,
       groupAA:accessGroupAA,
+      occasionFood:accessOccasionFood,
       loadFinancialSource,
       authorizeFinancialSource: requestPartnerAuthorization,
       hasFinancialAuthorization: hasFinancialGrant,

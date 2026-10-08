@@ -27,7 +27,7 @@ it('用户核对草稿、独立确认预留、刷新恢复；取消释放资金�
   expect(screen.getByText('尚未预留资金')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'预留这笔预算'}));
   expect(bank.get().occasions![0].status).toBe('draft');
-  fireEvent.click(screen.getByRole('button',{name:'确认预留 ¥1,000.00'}));
+  fireEvent.click(screen.getByRole('button',{name:/^确认预留 ¥1,000(?:\.00)?$/}));
   await screen.findByText('预算已预留');expect(bank.get().balance).toBe(4230000);
   cleanup();render(<OccasionPlanner stewardName="宁宁"/>);fireEvent.click(await screen.findByRole('button',{name:/生日筹备/}));
   expect(await screen.findByText('预算已预留')).toBeInTheDocument();

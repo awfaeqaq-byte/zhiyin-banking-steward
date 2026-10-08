@@ -23,6 +23,9 @@ export type CartLine = {
 export type FoodDeliveryPaymentMethod = 'wechat_pay' | 'alipay';
 
 export type OrderRecord = {
+  occasionId?:string;
+  deliveryAt?:number;
+  note?:string;
   id: string;
   storeId: string;
   lines: CartLine[];

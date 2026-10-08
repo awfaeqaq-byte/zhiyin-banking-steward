@@ -28,6 +28,7 @@ export type StewardAction =
   | ({type:'prepare_task'} & ReminderDraft)
   | {type:'open_tasks'}
   | {type:'open_group_aa'}
+  | {type:'open_occasions'}
   | ({type:'prepare_transfer'} & TransferIntent)
   | ({type:'prepare_aa'} & AAIntent)
   | {type:'open_transfers'}
@@ -69,6 +70,12 @@ export type StewardReplyRequest = {
 export type StewardReplyFn = (request: StewardReplyRequest) => Promise<StewardReply>;
 
 const actionPattern = /\n?\[ZHIYIN_ACTION:([^\]]+)]/g;
+export function isOccasionRequest(messages:StewardChatMessage[]) {
+  const users=messages.filter(m=>m.role==='user');
+  const latest=users.at(-1)?.content??'';
+  const matches=(text:string)=>/生日|纪念日|生活筹备|筹备安排/.test(text)&&/准备|安排|筹备|预算|蛋糕|鲜花|取消|查看/.test(text);
+  return matches(latest)|| (matches(users.at(-2)?.content??'')&&latest.length<60&&/^(改|换|预算|提前|送到|地址|取消|查看|低甜|不要|\d)/.test(latest));
+}
 const statementDate = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit",
 });
@@ -159,6 +166,7 @@ export function buildStewardInstructions({
 }: Pick<StewardReplyRequest, "stewardName" | "subscriptions" | "recurringCandidates" | "fundingForecast" | "duplicateGroups" | "billAnalysis" | "memoryContext" | "bank" | "transferBackground" | "taskContext">
   & Partial<Pick<StewardReplyRequest, "messages">>) {
   const question = [...messages].reverse().find(message => message.role === "user")?.content || "";
+  if(isOccasionRequest(messages))return `你是${stewardName}。生活筹备需要在独立方案中核对日期、预算、商品、地址。只说明可以帮忙整理并给出[ZHIYIN_ACTION:OPEN_OCCASIONS]，不要声称已预留、下单或付款。`;
   if(isTaskRequest(messages)&&(!isBankOperation(question)||/提醒我|提醒一下我/.test(question)))return [
    `你是${stewardName}，叶先生的个人银行管家。当前北京时间：${new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'})}。`,
    '你可以准备单次提醒或查看任务日历。提醒不会转账、扣费或取消订阅。不要把用户要求执行金融操作替换为提醒。只有明确提醒内容、日期和时刻，才输出[ZHIYIN_ACTION:PREPARE_TASK|任务标题|YYYY-MM-DDTHH:mm:ss+08:00]。标题80字以内，不能含竖线或方括号；时间必须未来。缺少时刻先问，不能猜测。用户点击核对并保存后才创建，现在不得说已保存或届时一定系统推送。暂不支持循环提醒。',
@@ -269,6 +277,7 @@ export function parseStewardReply(
 
   const parts = markers.at(-1)?.[1].split("|") || [];
   if(parts[0]==='OPEN_TASKS')return markers.length===1&&parts.length===1?{...result,action:{type:'open_tasks'}}:result;
+  if(parts[0]==='OPEN_OCCASIONS')return markers.length===1&&parts.length===1?{...result,action:{type:'open_occasions'}}:result;
   if(parts[0]==='PREPARE_TASK'){
    const draft={title:parts[1],dueAt:Date.parse(parts[2])};
    return markers.length===1&&parts.length===3&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00$/.test(parts[2])&&validReminderDraft(draft)&&draft.dueAt>Date.now()?{...result,action:{type:'prepare_task',...draft},text:'我整理好了这条提醒，核对时间和内容后保存。尚未创建任务。'}:result;
@@ -328,6 +337,7 @@ export function parseStewardReply(
 }
 
 export const requestStewardReply: StewardReplyFn = async request => {
+  if(isOccasionRequest(request.messages))return {text:'可以，把日期、预算和偏好交给我整理。我们先核对筹备方案，再单独确认预留资金和外卖订单。',action:{type:'open_occasions'}};
   const newestUser = [...request.messages].reverse().find(message => message.role === "user");
   if(/群收款|微信群.*(?:AA|aa|分摊|收款)|(?:AA|aa|分摊).*微信群/.test(newestUser?.content??''))return {text:'可以，从已有微信群选择参与人，再把费用和分摊规则告诉我。点选和文字都能调整同一份方案，核对后再去微信发起。',action:{type:'open_group_aa'}};
   const userContext=request.messages.filter(m=>m.role==='user').slice(-4).map(m=>m.content).join('\n');

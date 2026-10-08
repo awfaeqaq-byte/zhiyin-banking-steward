@@ -9,7 +9,7 @@ import {memoryContext,parseMemoryProposal} from '../lib/steward-memory';
 import {parseImpression} from '../lib/steward-profile';
 import {bankRecipients,bankRequest,validBankSnapshot,type BankReceipt} from '../lib/bank-transfer';
 import type {SmartIntent} from './smart-transfers';
-import {isBankRequest,isBankOperation,isTaskRequest} from '../lib/steward-chat';
+import {isBankRequest,isBankOperation,isTaskRequest,isOccasionRequest} from '../lib/steward-chat';
 import {taskRequest,calendarEvents,localTaskTime,type ReminderDraft} from '../lib/task-calendar';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
 import {
@@ -83,6 +83,7 @@ type Props = {
   onOpenFunding?: () => void;
   onOpenTasks?:(date?:number)=>void;
   onOpenGroupAA?:()=>void;
+  onOpenOccasions?:(prompt?:string,planId?:string)=>void;
   onPrepareTask?:(draft:ReminderDraft)=>void;
   onPrepareTransfer?: (intent:SmartIntent)=>void;
   bankReceipt?:BankReceipt|null;
@@ -120,7 +121,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
-  if (action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
+  if (action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
   );
@@ -138,6 +139,7 @@ export function StewardChatHome({
   onOpenFunding,
   onOpenTasks,
   onOpenGroupAA,
+  onOpenOccasions,
   onPrepareTask,
   onPrepareTransfer,
   bankReceipt,
@@ -319,7 +321,7 @@ export function StewardChatHome({
       if(expenseReply){outcome=expenseReply;const id=`assistant-${Date.now()}`;setMessages(current=>[...current,{id,role:'assistant',content:expenseReply}]);setActiveReplyId(id);return;}
       const bankOnly=isBankOperation(prompt) || (isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null);
       const snapshot = refreshSubscriptions ? await refreshSubscriptions().catch(cause=>({connections:{},error:cause instanceof Error?cause.message:'平台数据不可用'})) : null;
-      if (snapshot?.error && !bankOnly && !isTaskRequest(requestMessages)) throw new Error(snapshot.error);
+      if (snapshot?.error && !bankOnly && !isTaskRequest(requestMessages) && !isOccasionRequest(requestMessages) && workspace?.kind!=='occasion') throw new Error(snapshot.error);
       const backgroundUnavailable=Boolean(snapshot?.error || (!snapshot && refreshError));
       const latestConnections = backgroundUnavailable?{}:snapshot?.connections || connections;
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
@@ -346,7 +348,7 @@ export function StewardChatHome({
       const taskContext=tasks?`日程记录（最多20项，未列出不代表没有；时间为北京时间）：${JSON.stringify(taskEvents.filter(t=>t.status==='pending'||t.status==='failed').slice(0,20).map(t=>({title:t.title,time:localTaskTime(t.dueAt),kind:t.kind,status:t.status}))).slice(0,2200)}${!bankData?'；银行安排未能更新':''}${backgroundUnavailable?'；平台续费未能更新':''}`:'提醒数据未能读取，不能断言没有任务。';
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
-      const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+      const response = workspace?.kind==='occasion'?{text:'这件事已放在生活筹备里。打开同一份方案，继续调整日期、预算或商品；预留和付款需要单独确认。',action:{type:'open_occasions' as const}}:await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         transferBackground,
         taskContext,
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
@@ -583,6 +585,7 @@ export function StewardChatHome({
                   {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records'})}>查看转账安排<ArrowRight size={16}/></button>}
                   {action?.type==='open_tasks'&&onOpenTasks&&!historyOpen&&<button onClick={()=>onOpenTasks()}>打开任务日历<ArrowRight size={16}/></button>}
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}
+                  {action?.type==='open_occasions'&&onOpenOccasions&&!historyOpen&&<button onClick={()=>onOpenOccasions(lastPrompt,workspace?.kind==='occasion'?workspace.id:undefined)}>核对生活筹备<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask(action)}>核对并保存提醒<ArrowRight size={16}/></button>}
                   {action?.type === "set_reminder" && related && !historyOpen && (
                     <span className="action-complete"><BellRing size={14} />{related.title}提醒已更新</span>

@@ -62,6 +62,9 @@ import { fundingReferenceTime } from "./lib/funding-forecast";
 import { FundingPlan } from "./components/funding-plan";
 import {TaskCalendar} from './components/task-calendar';
 import {GroupAA} from './components/group-aa';
+import {OccasionPlanner} from './components/occasion-planner';
+import {availableBankFunds,heldOccasionBudget} from './lib/occasion-plans';
+import {memoryContext} from './lib/steward-memory';
 import type {ReminderDraft} from './lib/task-calendar';
 import { useSubscriptionSync } from "./lib/use-subscription-sync";
 import type { RecurringReviews, RecurringReviewStatus } from "./components/recurring-subscription-review";
@@ -96,6 +99,7 @@ type Page =
   | "funding"
   | "tasks"
   | "group-aa"
+  | "occasions"
   | "subscriptions";
 type Modal =
   | "steward"
@@ -271,6 +275,7 @@ export default function App() {
   const [bankIntent,setBankIntent]=useState<SmartIntent|null>(null);
   const [taskDraft,setTaskDraft]=useState<ReminderDraft|null>(null);
   const [taskDate,setTaskDate]=useState<number>();
+  const [occasionEntry,setOccasionEntry]=useState<{prompt?:string;id?:string}>({});
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
   const limit=String((bank.state?.limit ?? 2000000)/100);
@@ -1320,7 +1325,8 @@ export default function App() {
                   </div>
                   <section className="surface bank-ledger" aria-label="银行卡余额与流水">
                     <div className="section-line"><h3>可用余额</h3><button className="text-link" onClick={()=>void bank.refresh()}>刷新账户</button></div>
-                    <strong>{bank.state?bankMoney(bank.state.balance):'等待读取账户'}</strong>
+                    <strong>{bank.state?bankMoney(availableBankFunds(bank.state)):'等待读取账户'}</strong>
+                    {bank.state&&heldOccasionBudget(bank.state)>0&&<p>账户余额 {bankMoney(bank.state.balance)} · 生活筹备预留 {bankMoney(heldOccasionBudget(bank.state))}</p>}
                     <Button disabled={!bank.state || bank.busy} onClick={()=>setBankIntent({recipientId:'mom',amount:0})}>智能转账与AA收款</Button>
                     {bank.error&&<p role="alert">{bank.error}</p>}
                     <h3>银行转账账单</h3>
@@ -1439,6 +1445,7 @@ export default function App() {
                       onClick={() => go("subscriptions")} />
                     <Row icon={CalendarDays} title="任务日历" subtitle="提醒、预约转账与续费安排" onClick={()=>go('tasks')}/>
                     <Row icon={Users} title="微信群智能AA" subtitle="选择群成员，按费用灵活分摊" onClick={()=>go('group-aa')}/>
+                    <Row icon={CalendarDays} title="生活筹备" subtitle="重要日子、预算与外卖订单" onClick={()=>{setOccasionEntry({});go('occasions');}}/>
                     <Row icon={Settings2} title="设置"
                       subtitle={`使用模式 · ${mode === "classic" ? "经典款" : "AI 原生"}`}
                       onClick={() => go("settings")} />
@@ -1589,8 +1596,9 @@ export default function App() {
               />
             </>
           )}
-          {page === 'tasks' && <><Heading title="任务日历"/><TaskCalendar initialDate={taskDate} schedules={bank.state?.schedules??[]} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={()=>setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(`${source}:${id}`);go('subscriptions');}}/></>}
+          {page === 'tasks' && <><Heading title="任务日历"/><TaskCalendar initialDate={taskDate} schedules={bank.state?.schedules??[]} occasions={bank.state?.occasions??[]} onOpenOccasion={id=>{setOccasionEntry({id});go('occasions');}} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={()=>setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(`${source}:${id}`);go('subscriptions');}}/></>}
           {page === 'group-aa' && <><Heading title="微信群智能AA"/><GroupAA/></>}
+          {page === 'occasions' && <><Heading title="生活筹备"/><OccasionPlanner stewardName={steward.name} initialPrompt={occasionEntry.prompt} initialPlanId={occasionEntry.id} getMemoryContext={async prompt=>{const current=await memory.refresh();return current?memoryContext(current,prompt):'';}} onOpenCalendar={date=>{setTaskDate(date);go('tasks');}}/></>}
           {page === "funding" && (
             <>
               <Heading title="近期资金安排" subtitle="分开核对每个账户，留足接下来的续费" />
@@ -1617,6 +1625,7 @@ export default function App() {
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
               onOpenGroupAA={()=>go('group-aa')}
+              onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
               onPrepareTransfer={setBankIntent}
               bankReceipt={bankReceipt}
