@@ -4,6 +4,9 @@ import { vi, it, expect, afterEach } from 'vitest';
 import { StewardWorkspaces } from './steward-workspaces';
 import { changeWorkspaces, emptyWorkspaces } from '../lib/workspaces';
 import type { StewardReplyRequest } from '../lib/steward-chat';
+import * as expenseService from '../lib/expense-service';
+import * as groupAA from '../lib/group-aa';
+import { changeExpenses, emptyExpenseState, type ExpenseCommand } from '../lib/expense-notebook';
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 const props = { stewardName:'宁宁', stewardImage:'/n.png', connections:{}, disabledReminders:[], onToggleReminder:vi.fn(), onOpenSubscriptions:vi.fn(), onPrepareCancel:vi.fn() };
@@ -114,4 +117,43 @@ it('刷新恢复统一聊天，但不把整段首页对话串到新的后台任�
   expect(await screen.findByText('昨天已整理。')).toBeInTheDocument();
   await say('今天查余额'); await screen.findByText('新的事情收到。');
   expect(reply.mock.calls[0][0].messages).toEqual([{role:'user',content:'今天查余额'}]);
+});
+
+it('AA选群是必要核对，名称自动整理；回到AA后继续同一本后台账本',async()=>{
+  const api=server();
+  let expenses=emptyExpenseState();
+  vi.spyOn(expenseService,'expenseRequest').mockImplementation(async(op,revision)=>{
+    if(op)expenses=changeExpenses(expenses,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);
+    return expenses;
+  });
+  vi.spyOn(groupAA,'groupAARequest').mockResolvedValue({group:{id:'dinner-group',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜',gender:'female'}]}});
+  const model=vi.spyOn(expenseService,'requestExpenseReply').mockImplementation(async(book,text)=>({action:'add',entries:[{title:text==='饮料18'?'饮料':'午餐',amount:text==='饮料18'?1800:38800,payerId:'me',fixed:[],shares:book.participants.map(memberId=>({memberId,weight:1}))}],message:'消费记好了。'}));
+  render(<StewardWorkspaces {...props} onOpenGroupAA={vi.fn()} reply={async()=>({text:'另一件事收到。'})} route={async(text,tasks)=>{
+    const kind=text==='聊点别的'?'general' as const:'aa' as const;
+    return {parts:[{taskId:tasks.find(w=>w.kind===kind)?.id||null,kind,title:kind==='aa'?'今天聚餐AA':'日常交代',text}]};
+  }}/>);
+  const input=await say('饮料18');
+  await screen.findByRole('button',{name:'从微信选择群'});
+  expect(screen.queryByRole('textbox',{name:'活动名称'})).not.toBeInTheDocument();
+  const user=userEvent.setup();await user.click(screen.getByRole('button',{name:'从微信选择群'}));await user.click(await screen.findByRole('checkbox',{name:'李娜'}));await user.click(screen.getByRole('button',{name:'开始记录'}));
+  await waitFor(()=>expect(expenses.books[0].entries).toHaveLength(1));
+  await waitFor(()=>expect(api.state().items[0].expenseBookId).toBe(expenses.books[0].id));
+  await say('聊点别的');await screen.findByText('另一件事收到。');
+  await say('午餐388平分');await waitFor(()=>expect(expenses.books[0].entries).toHaveLength(2));
+  expect(expenses.books).toHaveLength(1);expect(expenses.books[0].title).toBe('今天聚餐AA');
+  expect(model.mock.calls[1][0].id).toBe(expenses.books[0].id);
+  expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
+});
+
+it('混合请求的转账方案仍可核对，后续回复不吃掉它；同一任务修改后旧按钮失效',async()=>{
+  server();
+  const onPrepareTransfer=vi.fn();
+  render(<StewardWorkspaces {...props} onPrepareTransfer={onPrepareTransfer} reply={async request=>request.messages.at(-1)!.content==='查另一件事'?{text:'另一件事查好了。'}:{text:'转账方案待核对。',action:{type:'prepare_transfer',recipientId:'mom',amount:request.messages.at(-1)!.content==='改成300'?30000:20000}}} route={async(text,tasks)=>text==='转200，查另一件事'?{parts:[{taskId:null,kind:'general',title:'转账方案',text:'转200'},{taskId:null,kind:'general',title:'另一件事',text:'查另一件事'}]}:{parts:[{taskId:tasks.find(w=>w.title==='转账方案')!.id,kind:'general',title:'转账方案',text}]}}/>);
+  await say('转200，查另一件事');await screen.findByText('另一件事查好了。');
+  expect(onPrepareTransfer).not.toHaveBeenCalled();
+  expect(screen.getByRole('button',{name:'核对银行转账'})).toBeEnabled();
+  await say('改成300');await waitFor(()=>expect(screen.getAllByText('转账方案待核对。')).toHaveLength(2));
+  expect(screen.getAllByRole('button',{name:'核对银行转账'})).toHaveLength(1);
+  await userEvent.click(screen.getByRole('button',{name:'核对银行转账'}));
+  expect(onPrepareTransfer.mock.calls[0][0].amount).toBe(30000);
 });
