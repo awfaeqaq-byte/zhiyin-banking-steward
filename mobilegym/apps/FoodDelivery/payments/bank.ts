@@ -21,7 +21,7 @@ async function request(body:object) {
 export const bankFunding:BankFundingBackend={
   async pay(payment){
     const data=await request({type:'payment',authorized:true,payment});
-    if(!data || data.id!==payment.id || data.channel!==payment.channel || data.amount!==payment.amount || data.merchant!==payment.merchant || !Number.isFinite(data.completedAt) || !Number.isSafeInteger(data.balanceAfter))throw new Error('银行回执无法核对，请重试原付款');
+    if(!data || data.id!==payment.id || data.channel!==payment.channel || data.amount!==payment.amount || data.merchant!==payment.merchant || data.occasionId!==payment.occasionId || !Number.isFinite(data.completedAt) || !Number.isSafeInteger(data.balanceAfter))throw new Error('银行回执无法核对，请重试原付款');
     if(data.refundedAt!==undefined)throw new Error('该订单已退款，不能再次付款，请新建订单');
     return data;
   },
