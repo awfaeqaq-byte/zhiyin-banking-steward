@@ -32,9 +32,9 @@ it('自然语言建议填入可编辑方案；保存、手动改预算和商品�
   fireEvent.click(await screen.findByRole('button',{name:'准备一个生日'}));
   fireEvent.change(screen.getByLabelText('交给宁宁整理'),{target:{value:'爱人生日，预算1000'}});fireEvent.click(screen.getByRole('button',{name:'整理筹备需求'}));
   await screen.findByText('低甜蛋糕已整理，地址请核对。');expect(memory).toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button',{name:'换成巧克力'}));await waitFor(()=>expect(screen.getByLabelText('交给宁宁整理')).toHaveValue(''));
+  expect(screen.queryByRole('button',{name:'换成巧克力'})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'保存筹备方案'}));await screen.findByText('尚未预留资金');
-  fireEvent.click(screen.getByText('筹备详情 · 可调整'));fireEvent.click(screen.getByRole('button',{name:'调整商品'}));
+  fireEvent.click(screen.getByText('手动编辑'));fireEvent.click(screen.getByRole('button',{name:'调整商品'}));
   fireEvent.change(screen.getByLabelText('预算（元）'),{target:{value:'1200'}});fireEvent.click(screen.getByRole('checkbox',{name:/时令鲜花/}));fireEvent.click(screen.getByRole('button',{name:'保存修改'}));
   await waitFor(()=>expect(bank.get().occasions![0].budget).toBe(120000));
   fireEvent.click(screen.getByRole('button',{name:'预留这笔预算'}));fireEvent.click(screen.getByRole('button',{name:/确认预留 ¥1,200/}));await screen.findByText('预算已预留');
@@ -44,6 +44,15 @@ it('自然语言建议填入可编辑方案；保存、手动改预算和商品�
   fireEvent.click(screen.getByRole('button',{name:'所有安排'}));await screen.findByRole('button',{name:/生日筹备/});
   fireEvent.click(screen.getByRole('button',{name:'新建安排'}));expect(screen.getByLabelText('为谁准备')).toHaveValue('');
  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+it('初版先补眼前缺少的时间，不摊开完整表单，也不把模型问题当答案发送', async()=>{
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>({ok:true,json:async()=>url.includes('steward-reply')?{output_text:'{"text":"先确定生日时间，再安排配送。","patch":{"recipient":"爱人"},"questions":["希望哪天送达？"]}'}:{revision:0,balance:100000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}})));
+ const {container}=render(<OccasionPlanner stewardName="宁宁" initialPrompt="给爱人准备生日"/>);
+ await screen.findByText('先确定生日时间，再安排配送。');
+ expect(container.querySelector('.occasion-arrangement')).not.toHaveAttribute('open');
+ expect(screen.getByRole('region',{name:'下一步需要确认'})).toHaveTextContent('希望什么时候送达？');
+ expect(screen.queryByRole('button',{name:'希望哪天送达？'})).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'保存筹备方案'})).toBeDisabled();
 });
 it('已有订单的任务在首次打开时也不能被模型悄悄改金额；到货核对后完成释放余款',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'occasion-lock-')),bank=createBankStore(join(dir,'bank.json'));

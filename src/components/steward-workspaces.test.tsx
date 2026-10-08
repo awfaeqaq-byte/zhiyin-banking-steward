@@ -44,6 +44,7 @@ it("创建两个同类任务，切回后只恢复自己的对话，不复用旧�
     />,
   );
   await user.click(await screen.findByRole("button", { name: "任务窗口" }));
+  await user.click(screen.getByText("更多管理"));
   await user.type(screen.getByLabelText("任务名称"), "今晚聚餐");
   await user.click(screen.getByRole("button", { name: "开始任务" }));
   await user.type(
@@ -63,6 +64,7 @@ it("创建两个同类任务，切回后只恢复自己的对话，不复用旧�
     ]),
   );
   await user.click(screen.getByRole("button", { name: "任务窗口" }));
+  await user.click(screen.getByText("更多管理"));
   await user.clear(screen.getByLabelText("任务名称"));
   await user.type(screen.getByLabelText("任务名称"), "周末旅行");
   await user.click(screen.getByRole("button", { name: "开始任务" }));
@@ -181,6 +183,7 @@ it("归档可恢复、待办可重开和放弃，分流失败不执行业务", a
   expect(screen.getByRole("textbox")).toHaveValue("做点别的");
   await user.click(screen.getByRole("button", { name: "回到首页" }));
   await user.click(screen.getByRole("button", { name: "任务窗口" }));
+  await user.click(screen.getByText("更多管理"));
   await user.click(screen.getByRole("checkbox"));
   await user.click(screen.getByRole("button", { name: "进行中" }));
   await user.click(screen.getByRole("button", { name: "打开今晚聚餐" }));
@@ -188,4 +191,17 @@ it("归档可恢复、待办可重开和放弃，分流失败不执行业务", a
   await user.click(screen.getByRole("button", { name: "发送给宁宁" }));
   await screen.findByText("已记录");
   expect(route).toHaveBeenCalledTimes(1);
+});
+it("切换抽屉不卸载当前输入，默认不用创建表单，关闭后保留现场", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify(emptyWorkspaces())));
+  render(<StewardWorkspaces stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}/>);
+  const user = userEvent.setup();
+  const input = await screen.findByRole("textbox");
+  await user.type(input, "还没说完的安排");
+  await user.click(screen.getByRole("button", {name:"任务窗口"}));
+  expect(await screen.findByRole("dialog", {name:"手头的事情"})).toBeInTheDocument();
+  expect(input).toBeInTheDocument();
+  expect(screen.queryByRole("textbox", {name:"任务名称"})).not.toBeInTheDocument();
+  await user.keyboard("{Escape}");
+  expect(screen.getByRole("textbox")).toHaveValue("还没说完的安排");
 });
