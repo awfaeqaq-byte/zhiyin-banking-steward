@@ -48,6 +48,12 @@ export type OrderRecord = {
   refundedAt?: number;
 };
 
+export function getOrderPaymentDisplay(order: Pick<OrderRecord, 'fundingSource'>, channel: string, bankLabel: string) {
+  return order.fundingSource === 'bank_8888'
+    ? { paymentLabel: `${channel} · ${bankLabel}`, refundLabel: bankLabel }
+    : { paymentLabel: channel, refundLabel: channel };
+}
+
 export function addCartItem(lines: CartLine[], item: CartLine): CartLine[] {
   const existing = lines.find(line => line.storeId === item.storeId && line.dishId === item.dishId);
   if (!existing) return [...lines, { ...item }];
