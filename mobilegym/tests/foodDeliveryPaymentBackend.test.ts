@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createOrder, type CartLine } from '../apps/FoodDelivery/orderModel';
+import {buildOccasionFoodOrder} from '../apps/Zhiyin/occasion-food';
+import type {OccasionPlan} from '../../src/lib/occasion-plans';
 import {
   createMemoryFoodDeliveryPaymentBackend,
   type FoodDeliveryPaymentSnapshot,
@@ -32,6 +34,17 @@ function seed(overrides: Partial<FoodDeliveryPaymentSnapshot> = {}): FoodDeliver
 }
 
 describe('外卖跨应用真实支付后端', () => {
+  it.each(['wechat_pay','alipay'] as const)('筹备订单通过%s绑定同一预算；幂等支付和原路退款，不能偷换微信零钱',async method=>{
+    const plan:OccasionPlan={id:'birthday',status:'reserved',title:'生日',recipient:'爱人',budget:100000,prepareAt:NOW,deliverAt:NOW+86400000,address:'测试地址',contact:'叶先生',note:'低甜',productIds:['cake-light'],createdAt:NOW,updatedAt:NOW,orders:[{productId:'cake-light',orderId:'ZY-birthday-cake-light',paymentId:'occasion:birthday:cake-light',amount:20600,merchant:'好食送 · 生日精选',createdAt:NOW}]};
+    const inputs:Array<{id:string;occasionId?:string;amount:number}>=[],refunds:string[]=[];
+    const backend=createMemoryFoodDeliveryPaymentBackend(seed({orders:[buildOccasionFoodOrder(plan,plan.orders[0])]}),{async pay(p){inputs.push(p);},async refund(id){refunds.push(id);}});
+    await expect(backend.pay(plan.orders[0].orderId,method,NOW,'balance')).rejects.toThrow(/预算/);
+    await backend.pay(plan.orders[0].orderId,method,NOW,'bank_8888');await backend.pay(plan.orders[0].orderId,method,NOW,'bank_8888');
+    expect(inputs).toHaveLength(1);expect(inputs[0]).toMatchObject({id:'occasion:birthday:cake-light',occasionId:'birthday',amount:20600});
+    await backend.refund(plan.orders[0].orderId,'取消',NOW+1);await backend.refund(plan.orders[0].orderId,'取消',NOW+2);expect(refunds).toEqual(['occasion:birthday:cake-light']);
+    const data=await backend.getSnapshot();expect(data.wechat.wallet.balanceCents).toBe(20000);expect(data.alipay.balance.total).toBe(200);
+    expect(method==='wechat_pay'?data.wechat.payLedger.transactions.length:data.alipay.transferRecords.length).toBe(2);
+  });
   it.each(['wechat_pay', 'alipay'] as const)('通过%s使用银行卡只扣银行卡，退款也不增加平台余额', async method => {
     let bankBalance = 10000;
     const receipts = new Set<string>();
