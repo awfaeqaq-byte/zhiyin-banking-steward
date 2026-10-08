@@ -69,6 +69,8 @@ type AttentionEvent =
   };
 
 type Props = {
+  seamless?: boolean;
+  conversationNotice?: {id:string;text:string};
   workspace?: Workspace | null;
   onRoutePrompt?: (text:string)=>Promise<void>;
   externalBusy?: boolean;
@@ -102,19 +104,21 @@ type Props = {
 };
 
 const storageKey = "zhiyin-steward-chat-v3";
+const conversationKey = "zhiyin-steward-conversation-v1";
 
-function readMessages(): DisplayMessage[] {
+function readMessages(key=storageKey): DisplayMessage[] {
   try {
-    const value = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    return Array.isArray(value) ? value.slice(-30) : [];
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value.filter(m=>m&&typeof m.id==='string'&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-30).map(m=>({id:m.id,role:m.role,content:m.content})) : [];
   } catch {
     return [];
   }
 }
 
-function writeMessages(messages: DisplayMessage[]) {
+function writeMessages(messages: DisplayMessage[],key=storageKey) {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(messages.slice(-30)));
+    // Restored conversation is history, never a restored execution/authorization control.
+    localStorage.setItem(key, JSON.stringify(messages.slice(-30).map(({id,role,content})=>({id,role,content}))));
   } catch {
     // Conversation persistence is optional in restricted browser contexts.
   }
@@ -131,6 +135,7 @@ function actionSubscription(
 }
 
 export function StewardChatHome({
+  seamless=false, conversationNotice,
   workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,
   memory,
   stewardName,
@@ -161,7 +166,7 @@ export function StewardChatHome({
   const referenceTime = now ?? fundingReferenceTime(connections);
   const [taskAttention,setTaskAttention]=useState(false);
   const funding = useMemo(() => buildFundingForecast(connections, referenceTime), [connections, referenceTime]);
-  const fundingAttention = !workspace && !refreshError && !refreshing && onOpenFunding
+  const fundingAttention = (seamless || !workspace) && !refreshError && !refreshing && onOpenFunding
     ? funding.accounts.find(account => account.status === "shortfall") : undefined;
   const fundingNeedsSettlementCheck = Boolean(fundingAttention?.charges.some(charge => charge.chargeAt < funding.from));
   const insights = useMemo(
@@ -169,7 +174,7 @@ export function StewardChatHome({
     [connections, referenceTime, duplicatePreferences],
   );
   const recurringCandidates = useMemo(() => buildRecurringCandidates(connections, referenceTime), [connections, referenceTime]);
-  const pendingRecurring = workspace?[]:recurringCandidates.filter(item => !recurringReviews[item.key] || recurringReviews[item.key] === "pending");
+  const pendingRecurring = workspace&&!seamless?[]:recurringCandidates.filter(item => !recurringReviews[item.key] || recurringReviews[item.key] === "pending");
   const subscriptions = useMemo<StewardSubscription[]>(
     () => insights.items.map(item => ({
       key: item.key,
@@ -184,7 +189,7 @@ export function StewardChatHome({
     })),
     [disabledReminders, insights.items],
   );
-  const [messages, setMessages] = useState<DisplayMessage[]>(()=>workspace===undefined?readMessages():workspace?.messages || []);
+  const [messages, setMessages] = useState<DisplayMessage[]>(()=>seamless?readMessages(conversationKey):workspace===undefined?readMessages():workspace?.messages || []);
   const [transferAttention,setTransferAttention]=useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -198,7 +203,7 @@ export function StewardChatHome({
   const [error, setError] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>workspace?.messages.at(-1)?.id || null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?null:workspace?.messages.at(-1)?.id || null);
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
   useEffect(()=>{
     if(!bankReceipt)return;
@@ -239,7 +244,7 @@ export function StewardChatHome({
   );
   const sourceLabel = authorizedSourceNames.join("、");
   const attentionEvent = useMemo<AttentionEvent | undefined>(() => {
-    if(workspace)return undefined;
+    if(workspace&&!seamless)return undefined;
     const urgentItem = insights.items.find(item =>
       item.urgency === "urgent"
       && !item.flags.includes("possible_duplicate")
@@ -261,12 +266,12 @@ export function StewardChatHome({
     return duplicateGroup
       ? { type: "duplicate", primary: duplicateGroup[0], related: duplicateGroup.slice(1) }
       : undefined;
-  }, [disabledReminders, insights.items,workspace]);
+  }, [disabledReminders, insights.items,workspace,seamless]);
   const attentionItem = attentionEvent?.primary;
   const decisionItems = attentionEvent?.type === 'duplicate' ? [attentionEvent.primary,...attentionEvent.related] : [];
   const decisionKey = duplicateGroupKey(decisionItems);
   const showDecision = decisionItems.length > 1 && resolution?.key !== decisionKey;
-  const displayedMessages = historyOpen ? messages : messages.filter(message => message.id === activeReplyId);
+  const displayedMessages = seamless || historyOpen ? messages : messages.filter(message => message.id === activeReplyId);
   const duplicateExplanation = attentionEvent?.type === "duplicate"
     ? `与${attentionEvent.related.map(item => item.title).join("、")}同属${attentionItem?.category} · 来自${Array.from(new Set([
       attentionEvent.primary.providerName,
@@ -277,7 +282,13 @@ export function StewardChatHome({
     ? `${stewardName}发现了需要你确认的订阅`
     : "下午好，叶先生。";
 
-  useEffect(() => {if(workspace===undefined)writeMessages(messages);}, [messages,workspace]);
+  useEffect(() => {if(seamless || workspace===undefined)writeMessages(messages,seamless?conversationKey:storageKey);}, [messages,workspace,seamless]);
+  useEffect(()=>{
+    if(!conversationNotice)return;
+    const id=`notice-${conversationNotice.id}`;
+    setMessages(current=>current.some(m=>m.id===id)?current:[...current,{id,role:'assistant',content:conversationNotice.text}]);
+    setActiveReplyId(id);setActiveBill(null);
+  },[conversationNotice]);
   useEffect(() => {
     if (!resolution) return;
     const timer = window.setTimeout(() => setResolution(null), 6500);
@@ -285,16 +296,21 @@ export function StewardChatHome({
   }, [resolution]);
   useEffect(() => {
     if (!activeReplyId && !sending && !error && !historyOpen) return;
-    const target = activeReplyId && !historyOpen && !error ? responseStart.current : transcriptEnd.current;
+    const target = !seamless && activeReplyId && !historyOpen && !error ? responseStart.current : transcriptEnd.current;
     if (typeof target?.scrollIntoView === "function") {
       target.scrollIntoView({ block: "nearest" });
     }
-  }, [activeReplyId, sending, error, historyOpen]);
+  }, [activeReplyId, sending, error, historyOpen,externalBusy,seamless]);
 
   async function sendPrompt(text: string, continueBill = false, bypassRoute = false) {
     const prompt = text.trim();
     if (!prompt || sending) return;
-    if(onRoutePrompt&&!bypassRoute){if(!externalBusy){try{await onRoutePrompt(prompt);setInput('');}catch{/* Workspace shows the error. Keep the original input for retry. */}}return;}
+    if(onRoutePrompt&&!bypassRoute){if(!externalBusy){
+      // Record the user's original sentence once, not each backstage routing fragment.
+      if(seamless)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:prompt}]);
+      setActiveReplyId(null);setActiveBill(null);setError('');setLastPrompt(prompt);
+      try{await onRoutePrompt(prompt);setInput('');}catch{/* Keep original input for retry; coordinator displays the error. */}
+    }return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
     const userMessage: DisplayMessage = {
@@ -303,11 +319,11 @@ export function StewardChatHome({
       content: prompt,
     };
     let cutoff='';try{cutoff=localStorage.getItem('zhiyin-steward-context-cutoff') || '';}catch{/* Optional storage. */}
-    const contextMessages=workspace!==undefined ? (workspace?.memoryRevision===usedRevision?messages:[]) : messages.slice(cutoff?messages.findIndex(message=>message.id===cutoff)+1:0);
+    const contextMessages=workspace!==undefined ? (workspace?.memoryRevision===usedRevision?(seamless?workspace.messages.filter(m=>m.memoryRevision===usedRevision):messages):[]) : messages.slice(cutoff?messages.findIndex(message=>message.id===cutoff)+1:0);
     const requestMessages = [...contextMessages, userMessage]
       .slice(-24)
       .map(({ role, content }) => ({ role, content }));
-    setMessages(current => [...current, userMessage]);
+    if(!seamless||!bypassRoute)setMessages(current => [...current, userMessage]);
     setInput("");
     setLastPrompt(prompt);
     setError("");
@@ -352,7 +368,7 @@ export function StewardChatHome({
       const taskContext=tasks?`日程记录（最多20项，未列出不代表没有；时间为北京时间）：${JSON.stringify(taskEvents.filter(t=>t.status==='pending'||t.status==='failed').slice(0,20).map(t=>({title:t.title,time:localTaskTime(t.dueAt),kind:t.kind,status:t.status}))).slice(0,2200)}${!bankData?'；银行安排未能更新':''}${backgroundUnavailable?'；平台续费未能更新':''}`:'提醒数据未能读取，不能断言没有任务。';
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
-      const response = workspace?.kind==='occasion'?{text:'这件事已放在生活筹备里。打开同一份方案，继续调整日期、预算或商品；预留和付款需要单独确认。',action:{type:'open_occasions' as const}}:await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+      const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         transferBackground,
         taskContext,
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
@@ -416,9 +432,8 @@ export function StewardChatHome({
     void sendPrompt(input);
   }
 
-  if(workspace?.kind==='occasion')return <div className="steward-chat-home steward-occasion-task"><OccasionPlanner embedded stewardName={stewardName} initialPlanId={workspace.id} initialHistory={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onRoutePrompt={onRoutePrompt} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);}}/></div>;
   return (
-    <div className={`steward-chat-home steward-desk ${sending ? 'is-working' : ''}`}>
+    <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${sending || externalBusy ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
         <div className="steward-thread-context" aria-label="演示环境">
           <span>今天</span>
@@ -428,7 +443,7 @@ export function StewardChatHome({
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
         {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice occasions={occasionPlans} onOccasion={onOpenOccasions?id=>onOpenOccasions(undefined,id):undefined} onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
 
-        {!activeReplyId && !sending && !error && <section className={`steward-live-summary steward-workbench ${attentionEvent || fundingAttention || pendingRecurring.length ? "has-attention" : "is-quiet"}`} aria-label="管家工作台">
+        {!activeReplyId && !sending && !error && (!seamless||!messages.length) && <section className={`steward-live-summary steward-workbench ${attentionEvent || fundingAttention || pendingRecurring.length ? "has-attention" : "is-quiet"}`} aria-label="管家工作台">
           <div className="steward-presence" aria-label={`${stewardName}在这里`}>
             <div className="steward-portrait"><img src={stewardImage} alt={stewardName} /><span aria-hidden="true" /></div>
             <span>{sending ? '正在为你处理' : '我在这里，随时交代我。'}</span>
@@ -436,8 +451,8 @@ export function StewardChatHome({
           <div className="steward-work-content">
             <div className="steward-live-heading">
               <div>
-                <h1 id="steward-home-title" aria-label={workspace?.title||heading}>{workspace?.title||heading}</h1>
-                <p>{workspace?'这件事想怎么安排？直接告诉我，我们接着处理。':refreshError || (fundingAttention
+                <h1 id="steward-home-title" aria-label={!seamless&&workspace?.title||heading}>{!seamless&&workspace?.title||heading}</h1>
+                <p>{workspace&&!seamless?'这件事想怎么安排？直接告诉我，我们接着处理。':refreshError || (fundingAttention
                   ? fundingNeedsSettlementCheck ? "若到期款项仍需支付，余额可能不足。先确认是否已支付，避免重复付款。" : "各平台余额不能自动互相抵扣，先核对这一个账户的续费安排。"
                   : pendingRecurring.length && !attentionEvent
                   ? `账单里有 ${pendingRecurring.length} 项付款呈现周期规律，需要你核对是否属于订阅。`
@@ -536,7 +551,7 @@ export function StewardChatHome({
           </div>
         </section>}
 
-        {messages.length === 0 && !workspace && (
+        {messages.length === 0 && (seamless||!workspace) && (
           <div className="steward-quick-prompts" aria-label="快捷提问">
             {(fundingAttention?["接下来一周的钱够续费吗？","帮我看看这个月的支出"]:attentionEvent?.type==='duplicate'?["帮我检查重复订阅","这两个会员我都需要"]:["帮我看看这个月的支出", "记一下今天的AA消费", "帮我准备爱人的生日"]).map(prompt => (
               <button key={prompt} onClick={() => void sendPrompt(prompt)} disabled={sending}>
@@ -546,14 +561,14 @@ export function StewardChatHome({
           </div>
         )}
 
-        {(activeReplyId || sending) && !historyOpen && <p className="reply-request">{[...messages].reverse().find(message=>message.role==='user')?.content}</p>}
+        {!seamless && (activeReplyId || sending) && !historyOpen && <p className="reply-request">{[...messages].reverse().find(message=>message.role==='user')?.content}</p>}
         <div ref={responseStart} className="reply-start" aria-hidden="true" />
         <div id="steward-records" className={`steward-transcript ${historyOpen ? 'history-open' : 'current-response'} ${displayedMessages.length ? "" : "empty"}`} aria-live="polite">
           {displayedMessages.map(message => {
             const sourceText=messages.slice(0,messages.findIndex(item=>item.id===message.id)).reverse().find(item=>item.role==='user')?.content || '';
             const proposed=message.role==='assistant'?parseMemoryProposal(message.content,sourceText):{text:message.content,proposal:null};
             const parsed=message.role==='assistant' ? parseReplyChoices(proposed.text) : {text:message.content,choices:[]};
-            const action = message.action;
+            const action = !seamless || message.id===activeReplyId ? message.action : undefined;
             const related = action ? actionSubscription(action, subscriptions) : undefined;
             return (
               <div className={`steward-message ${message.role}`} key={message.id}>
@@ -561,7 +576,7 @@ export function StewardChatHome({
                   {historyOpen && <small>{message.role === 'user' ? '你' : stewardName}</small>}
                   <StewardReplyContent content={parsed.text} bill={!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>
                   {!historyOpen && memory?.state.enabled && memory.error && <p className="memory-help" role="status">本次未能读取长期记忆，可到个人中心重试。</p>}
-                  {!historyOpen && memory?.state.enabled && proposed.proposal && <div className="memory-candidate">
+                  {!historyOpen && (!seamless||message.id===activeReplyId) && memory?.state.enabled && proposed.proposal && <div className="memory-candidate">
                     {memoryDecisions[message.id]?<p role="status">{memoryDecisions[message.id]}</p>:<>
                       <p>要我记住这一点吗？</p><p>{proposed.proposal.text}</p>
                       <div className="memory-actions"><button disabled={memory.busy} onClick={async()=>{
@@ -595,18 +610,22 @@ export function StewardChatHome({
                   {action?.type === "set_reminder" && related && !historyOpen && (
                     <span className="action-complete"><BellRing size={14} />{related.title}提醒已更新</span>
                   )}
-                  {!historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
+                  {!seamless && !historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
                 </div>
               </div>
             );
           })}
-          {sending && (
+          {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
-              <div className="desk-working" role="status"><LoaderCircle className="spin" size={17} />{requestPhase === 'checking' ? '正在核对授权数据…' : `${stewardName}正在整理回复…`}</div>
+              <div className="desk-working" role="status"><LoaderCircle className="spin" size={17} />{!sending?'正在为你处理…':requestPhase === 'checking' ? '正在核对授权数据…' : `${stewardName}正在整理回复…`}</div>
             </div>
           )}
         </div>
-        {messages.length > 0 && <button className="desk-history-toggle" aria-expanded={historyOpen} aria-controls="steward-records" onClick={()=>setHistoryOpen(!historyOpen)}><History size={16} />对话记录 · {messages.length}<ChevronDown size={15} /></button>}
+        {!seamless && messages.length > 0 && <button className="desk-history-toggle" aria-expanded={historyOpen} aria-controls="steward-records" onClick={()=>setHistoryOpen(!historyOpen)}><History size={16} />对话记录 · {messages.length}<ChevronDown size={15} /></button>}
+        {workspace?.kind==='occasion'&&<OccasionPlanner key={workspace.id} embedded conversation={seamless} stewardName={stewardName} initialPlanId={workspace.id} initialHistory={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{
+          if(seamless){const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current,{id,role:'assistant',content:answer}]);setActiveReplyId(id);setActiveBill(null);}
+          await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);
+        }}/>}
 
         {error && (
           <div className="steward-chat-error" role="alert">
