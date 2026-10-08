@@ -115,8 +115,37 @@ it('刷新恢复统一聊天，但不把整段首页对话串到新的后台任�
   const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>(async()=>({text:'新的事情收到。'}));
   render(<StewardWorkspaces {...props} reply={reply} route={async text=>({parts:[{taskId:null,kind:'general',title:'新事情',text}]})}/>);
   expect(await screen.findByText('昨天已整理。')).toBeInTheDocument();
+  expect(screen.queryByText('0',{exact:true})).not.toBeInTheDocument();
   await say('今天查余额'); await screen.findByText('新的事情收到。');
   expect(reply.mock.calls[0][0].messages).toEqual([{role:'user',content:'今天查余额'}]);
+});
+
+it('一次交代AA和另一件事，选群核对不会被后一项隐藏，完成后仍记到正确后台账本',async()=>{
+  const api=server();let expenses=emptyExpenseState();
+  vi.spyOn(expenseService,'expenseRequest').mockImplementation(async(op,revision)=>{if(op)expenses=changeExpenses(expenses,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);return expenses;});
+  vi.spyOn(groupAA,'groupAARequest').mockResolvedValue({group:{id:'group',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]}});
+  vi.spyOn(expenseService,'requestExpenseReply').mockResolvedValue({action:'add',entry:{title:'饮料',amount:1800,payerId:'me',fixed:[],shares:[{memberId:'me',weight:1},{memberId:'li',weight:1}]}});
+  render(<StewardWorkspaces {...props} onOpenGroupAA={vi.fn()} reply={async()=>({text:'另一件事已整理。'})} route={async()=>({parts:[{taskId:null,kind:'aa',title:'今日AA',text:'饮料18'},{taskId:null,kind:'general',title:'其他事情',text:'聊点别的'}]})}/>);
+  await say('饮料18，聊点别的');await screen.findByText('另一件事已整理。');
+  const user=userEvent.setup();await user.click(screen.getByRole('button',{name:'从微信选择群'}));await user.click(await screen.findByRole('checkbox',{name:'李娜'}));await user.click(screen.getByRole('button',{name:'开始记录'}));
+  await waitFor(()=>expect(expenses.books[0].entries).toHaveLength(1));
+  await waitFor(()=>expect(api.state().items.find(w=>w.kind==='aa')!.expenseBookId).toBe(expenses.books[0].id));
+  expect(api.state().items.find(w=>w.kind==='general')!.expenseBookId).toBeUndefined();
+  await screen.findByText('记下了：饮料 ¥18.00。按这次参与人平分。');
+});
+
+it('后台遗留的未处理交代不能在刷新时重放；历史聊天不恢复付款按钮',async()=>{
+  const api=server();
+  await fetch('/api/zhiyin/workspaces',{method:'POST',body:JSON.stringify({type:'create',id:'old',title:'未完成事项',kind:'general',revision:0,requestId:'create'})});
+  await fetch('/api/zhiyin/workspaces',{method:'POST',body:JSON.stringify({type:'enqueue',id:'old',token:'pending',text:'转200给妈妈',revision:1,requestId:'enqueue'})});
+  localStorage.setItem('zhiyin-workspace-active','old');
+  localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'old-reply',role:'assistant',content:'旧转账方案。',action:{type:'prepare_transfer',recipientId:'mom',amount:20000}}]));
+  const reply=vi.fn(async()=>({text:'新回复'}));const route=vi.fn();
+  render(<StewardWorkspaces {...props} reply={reply} route={route} onPrepareTransfer={vi.fn()}/>);
+  await screen.findByText('旧转账方案。');
+  expect(route).not.toHaveBeenCalled();expect(reply).not.toHaveBeenCalled();
+  expect(api.state().items[0].pending).toHaveLength(1);
+  expect(screen.queryByRole('button',{name:'核对银行转账'})).not.toBeInTheDocument();
 });
 
 it('AA选群是必要核对，名称自动整理；回到AA后继续同一本后台账本',async()=>{
