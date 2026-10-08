@@ -1,0 +1,218 @@
+% !TEX program = xelatex
+% Overleaf: Compiler = XeLaTeX, Main document = main.tex
+\documentclass[UTF8,11pt,a4paper,fontset=fandol]{ctexart}
+
+\usepackage[a4paper,top=2.2cm,bottom=2.15cm,left=2.25cm,right=2.25cm,headheight=22pt]{geometry}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\definecolor{Navy}{HTML}{102A56}
+\definecolor{Blue}{HTML}{376FF6}
+\definecolor{Teal}{HTML}{18A7B5}
+\definecolor{Orange}{HTML}{E2763C}
+\definecolor{Ink}{HTML}{1D2738}
+\definecolor{Muted}{HTML}{68758A}
+\definecolor{Line}{HTML}{DCE3EE}
+
+\hypersetup{colorlinks=true,linkcolor=Navy,urlcolor=Blue,pdftitle={知银项目赛方公开资料与个人意见整理},pdfauthor={知银项目组}}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.35em}
+\setlist[itemize]{leftmargin=1.7em,itemsep=0.35em,topsep=0.35em}
+\setlist[enumerate]{leftmargin=1.9em,itemsep=0.35em,topsep=0.35em}
+\captionsetup{font=small,labelfont=bf,textfont={color=Muted},skip=6pt}
+
+\titleformat{\section}{\Large\bfseries\color{Navy}}{\colorbox{Blue}{\color{white}\strut\thesection}}{0.75em}{}
+\titleformat{\subsection}{\large\bfseries\color{Ink}}{\thesubsection}{0.7em}{}
+\titlespacing*{\section}{0pt}{2.0em}{0.8em}
+\titlespacing*{\subsection}{0pt}{1.4em}{0.55em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{Muted}知银 AI Banking Agent}
+\fancyhead[R]{\small\color{Muted}赛方公开资料与个人意见整理}
+\fancyfoot[C]{\small\color{Muted}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{Line}\leaders\hrule height \headrulewidth\hfill}}
+
+\newcommand{\officialtag}{\textcolor{Blue}{\bfseries【赛方原话】}}
+\newcommand{\figuretag}{\textcolor{Teal}{\bfseries【赛方公开图片】}}
+\newcommand{\livetag}{\textcolor{Teal}{\bfseries【赛方直播截图】}}
+\newcommand{\mytag}{\textcolor{Orange}{\bfseries【我的意见】}}
+\newcommand{\referencetag}{\textcolor{Muted}{\bfseries【参考资料】}}
+\newenvironment{officialquote}{\begin{quote}\color{Navy}\itshape\setlength{\leftskip}{0.8em}\noindent}{\end{quote}}
+\newcommand{\sourcefigure}[4][0.84\textwidth]{%
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#1,height=.72\textheight,keepaspectratio]{#2}
+    \caption{#3}
+    {\footnotesize\color{Muted}#4\par}
+  \end{figure}
+}
+
+\begin{document}
+
+\begin{titlepage}
+  \pagecolor{Navy}\color{white}
+  \vspace*{2.1cm}
+  {\large\color{Teal}2026 深圳国际金融科技大赛人工智能赛道\par}
+  \vspace{1.2cm}
+  {\fontsize{30}{42}\selectfont\bfseries 知银项目\par}
+  \vspace{0.35cm}
+  {\fontsize{25}{36}\selectfont\bfseries 赛方公开资料与个人意见整理\par}
+  \vspace{1.0cm}
+  {\large 依据现有 Word 笔记重新编排\par}
+  \vfill
+  \begin{minipage}{0.90\textwidth}\color{white!86}\sloppy
+    本文仅重新整理已经收集的公开文字、图片和个人批注，不额外扩展项目方案。正文分别标注“赛方原话”“赛方公开图片”“赛方直播截图”“我的意见”和“参考资料”，便于后续讨论与引用。
+  \end{minipage}
+  \vspace{1.5cm}
+  {\small 版本日期：2026 年 9 月\par}
+\end{titlepage}
+\pagecolor{white}\color{black}
+
+\section*{文档说明}
+\addcontentsline{toc}{section}{文档说明}
+本文件用于把原始 Word 中的信息重新排顺，并把公开材料与个人判断分开。它不是项目实施方案，也不把个人判断写成赛方要求。
+
+\noindent\begin{tabularx}{\textwidth}{>{\bfseries}p{4.8cm} X}
+\toprule
+标记 & 含义 \\
+\midrule
+\officialtag & 原始笔记中明确注明为“公众号原话”的文字，保持原意和措辞。\\
+\figuretag\newline\livetag & 来自赛方公众号或赛方直播的截图，图片下方注明对应来源。\\
+\mytag & 原始笔记中的个人理解、优先级判断和后续想法，经过语句整理但不新增观点。\\
+\referencetag & 原始笔记收录、但没有留下具体出处的课件或案例截图；不作为赛方原话引用。\\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.8em}
+{\small\tableofcontents}
+\clearpage
+
+\section{AI Banking Agent 的产品导向}
+
+\subsection{账单分析不应停留在异常识别}
+\sourcefigure{source-assets/source-01.jpg}{账单分析的标准流程示例}{\figuretag\ 来源：赛方公众号文章《AI 银行，只能是更聪明的客服吗？》相关配图。}
+\mytag\ 这张图的重点不只是让 AI 判断支出异常、识别账单，而是要体现 AI 的“管家”职能。产品需要展示综合处理能力和规划能力：理解用户想解决的问题，申请必要授权，调用信息，规划步骤，解释结果，并给出下一步选项。
+
+\subsection{任务规划需要体现完整过程}
+\sourcefigure[0.92\textwidth]{source-assets/source-02.jpg}{任务规划与用户确认边界示意}{\figuretag\ 来源：赛方公众号文章《AI 银行，只能是更聪明的客服吗？》相关配图。}
+\mytag\ 这张图进一步说明了“管家”能力应如何呈现：先明确目标和所需信息，再安排步骤、执行当前步骤，并判断是否可以继续。涉及关键操作时，应停下来等待用户确认。
+
+\subsection{授权边界}
+\officialtag
+\begin{officialquote}
+一个可靠的 AI Banking Agent，需要知道什么时候可以继续，什么时候必须停下来等待授权。把这条边界设计清楚，与把任务做得更快同样重要。
+\end{officialquote}
+\sourcefigure[0.70\textwidth]{source-assets/source-03.jpg}{发现异常后的处理选项与人工确认}{\figuretag\ 来源：赛方公众号文章《AI 银行，只能是更聪明的客服吗？》相关配图。}
+\mytag\ 我认为这里需要重点关注授权边界。系统不仅要能完成任务，还要明确哪些步骤可以继续、哪些操作必须暂停，并由用户作出最终确认。
+
+\subsection{事实 推测与待核实事项要分开}
+\officialtag
+\begin{officialquote}
+AI 银行的价值，不是让用户无条件接受一个答案，而是帮助用户在信息更完整的情况下作出自己的决定。
+\end{officialquote}
+\sourcefigure[0.70\textwidth]{source-assets/source-04.jpg}{已知事实 可能原因和需要核实事项的分层表达}{\figuretag\ 来源：赛方公众号文章《AI 银行，只能是更聪明的客服吗？》相关配图。}
+\mytag\ AI 只能依据已有事实作出推测，不能把推测直接写成确定结论。回答页面可以分成三块：先列出已经确认的事实，再说明基于现有数据推测出的可能原因，最后列出仍需向用户确认或进一步核实的事项。
+
+\subsection{设计具体任务时需要回答四个问题}
+\officialtag\ 赛方公众号提出，设计具体任务时应回答：
+\begin{enumerate}
+  \item 用户会用哪一句话发起这项任务？
+  \item 完成任务需要哪些信息和授权？
+  \item AI 需要依次完成哪些步骤？
+  \item 在哪些节点必须停下来等待用户确认？
+\end{enumerate}
+\officialtag
+\begin{officialquote}
+当入口、步骤和边界被说明白，一个笼统的功能想法才会成为可以验证和继续打磨的方案。
+\end{officialquote}
+\officialtag
+\begin{officialquote}
+不同专业也可以在这条任务链中找到自己的位置。计算机专业的同学可以研究意图理解与任务规划；金融、经管专业的同学可以判断业务逻辑和风险；产品、设计与传播专业的同学可以优化交互、信息呈现和用户理解。
+\end{officialquote}
+\sourcefigure[0.70\textwidth]{source-assets/source-05.jpg}{AI 银行提案的四项任务定义问题}{\figuretag\ 来源：赛方公众号文章《AI 银行，只能是更聪明的客服吗？》相关配图。}
+\mytag\ 这部分可以直接作为功能设计的工作顺序：先写清发起方式、所需信息、执行步骤和确认节点，再进入功能实现。它也可以作为检查清单，避免只做出页面而没有完整任务链。
+
+\section{赛方公开材料中的场景提示}
+
+\subsection{AI 普惠青年提案展示的方向}
+\sourcefigure[0.70\textwidth]{source-assets/source-06.jpg}{AI 银行 智能风控 普惠信贷 跨境金融和适老化金融}{\figuretag\ 来源：赛方公众号“\,We 来金融 AI 普惠青年提案”相关公开图片。}
+\mytag\ 这张图集中展示了多个可用场景。后续梳理项目内容时，需要逐项检查这些方向与现有功能是否有对应关系，而不是只围绕单一的银行客服场景展开。
+
+\sourcefigure[0.70\textwidth]{source-assets/source-07.jpg}{公开材料呈现的金融难题}{\figuretag\ 来源：赛方公众号“\,We 来金融 AI 普惠青年提案”相关公开图片。}
+\mytag\ 图中再次出现了小店现金流问题。我认为小店相关场景应当纳入项目，并作为需要明确呈现的重点场景之一。
+
+\subsection{小店经营场景}
+\sourcefigure[0.70\textwidth]{source-assets/source-08.jpg}{同一家小店面临的两类问题}{\figuretag\ 来源：赛方公众号文章《一家小店的账本，能读出哪些金融问题？》相关配图。}
+\mytag\ 对小店场景，可以优先处理店主更直接的问题，例如账单分析、款项何时到账以及接下来是否有足够现金支付。金融机构关注的交易真实性和经营稳定性可以排在后面，不必作为第一阶段的重点。
+
+\sourcefigure[0.70\textwidth]{source-assets/source-09.jpg}{销售记录与可用现金并不等同}{\figuretag\ 来源：赛方公众号文章《一家小店的账本，能读出哪些金融问题？》相关配图。}
+\mytag\ 对更复杂的小店经营场景，我认为可以进一步设计“摊贩模式”，使场景更贴近日常经营者的实际资金流和操作方式。
+
+\section{评审规则与我的理解}
+\sourcefigure[0.86\textwidth]{source-assets/source-10.jpg}{人工智能赛道评审规则截图}{\livetag\ 来源：大赛直播第一场。图中给出的权重为任务完成率 40\%，安全合规性 30\%，创新性及交互体验 30\%。}
+
+\subsection{任务完成率 40\%}
+\textbf{赛方图片中的说明：}考察金融场景任务的完成情况、多步骤任务规划合理性及工具调用正确性、系统完整性。
+
+\mytag\ 我认为答辩时需要把任务工作流程、Agent 的工具调用链路以及每一步的判断依据展示清楚，让评委能够看到任务是怎样完成的，而不只是看到最终页面。
+
+\subsection{安全合规性 30\%}
+\textbf{赛方图片中的说明：}考察对诱导转账、信息套取、越权操作和 Prompt 注入等风险的防御能力，以及敏感操作确认和风险提示。
+
+\mytag\ 安全部分需要安排批量攻击测试，观察 Agent 面对不同攻击输入时的反应。同时，大额转账和诈骗诱导应当单独设计针对性测试。
+
+\subsection{创新性及交互体验 30\%}
+\textbf{赛方图片中的说明：}考察场景新颖性、真实问题解决度、对话轮次效率、追问能力、错误恢复、口语化输入和超范围兜底。
+
+\mytag\ 场景方面可以考虑适老模式和小店经营模式，但公开材料已经给出过提示，因此还需要继续寻找更有新意的具体场景，争取创意奖。基础功能完成后，口语化输入应作为必须补上的能力。结合微众银行已有的数字员工，也可以考虑把 AI 管家接入微信、企业微信或飞书，作为新的使用入口。
+
+\section{架构与技术参考材料}
+本节图片存在于原始 Word 中，但原始笔记没有记录完整出处。因此它们只能作为技术参考，不能直接标注为赛方要求或赛方原话。
+
+\sourcefigure[0.92\textwidth]{source-assets/source-11.jpg}{智能客服全流程参考图}{\referencetag\ 原始笔记未记录具体出处，不作为赛方表述。}
+\sourcefigure[0.92\textwidth]{source-assets/source-12.jpg}{多智能体对抗辩论体系参考图}{\referencetag\ 原始笔记未记录具体出处，不作为赛方表述。}
+\mytag\ 在系统架构上，可以考虑是否接入多 Agent；最终由宁宁汇总并作出取舍。
+
+\sourcefigure[0.92\textwidth]{source-assets/source-13.jpg}{商户交易指标参考图}{\referencetag\ 原始笔记未记录具体出处，不作为赛方表述。}
+\mytag\ 这张图可以作为商户数据维度的参考，但不用展开得过细。
+
+\sourcefigure[0.92\textwidth]{source-assets/source-16.jpg}{端侧智能与反欺诈参考图}{\referencetag\ 原始笔记未记录具体出处，不作为赛方表述。}
+\mytag\ 这张图提到了实时反欺诈、隐私保护和端侧风控，可在整理反诈相关内容时作为参考。
+
+\section{作品交付与项目管理}
+\sourcefigure[0.92\textwidth]{source-assets/source-14.jpg}{做成 做稳 讲清的作品策略}{\livetag\ 来源：大赛直播第一场。}
+\sourcefigure[0.92\textwidth]{source-assets/source-15.jpg}{项目管理与现场表达建议}{\livetag\ 来源：大赛直播第一场。}
+\mytag\ 这两张图主要用于整理项目规划和管理。公开直播给出的顺序是先“做成”，再“做稳”，最后“讲清”；管理上强调明确分工、持续迭代、提交前冻结以及模拟答辩。后续可以据此检查团队安排和交付准备。
+
+\section{个人意见汇总}
+以下内容只对前文已经出现的个人批注重新归纳，不增加新的项目方案。
+\begin{enumerate}
+  \item \textbf{产品表达：}不能只展示账单识别或异常判断，要体现 AI 管家的综合处理和任务规划能力。
+  \item \textbf{任务边界：}把已知事实、可能原因和待核实事项分开；关键操作必须停下来等待用户确认。
+  \item \textbf{功能设计顺序：}先写清用户如何发起任务、需要什么信息和授权、AI 依次做什么、在哪里必须确认。
+  \item \textbf{场景优先级：}小店现金流是明确需要覆盖的场景；小店场景可先做店主侧问题，金融机构侧内容后置；复杂场景可考虑摊贩模式。
+  \item \textbf{任务完成展示：}把任务流程、工具调用链路和判断依据展示清楚。
+  \item \textbf{安全测试：}进行批量攻击测试，并重点覆盖大额转账与诈骗诱导。
+  \item \textbf{创新与交互：}继续寻找更有新意的具体场景；基础功能完成后补入口语化输入，并考虑微信、企业微信或飞书等入口。
+  \item \textbf{架构讨论：}可以考虑多 Agent，但是否采用以及如何组合由宁宁最终汇总。
+  \item \textbf{项目管理：}参考赛方直播中的“做成、做稳、讲清”和分工、迭代、冻结、模拟答辩建议。
+\end{enumerate}
+
+\section*{来源说明}
+\addcontentsline{toc}{section}{来源说明}
+本文件依据用户提供的 Word 笔记《1.docx》重新编排。原始笔记中能够确认的公开来源包括：赛方公众号文章《AI 银行，只能是更聪明的客服吗？》、公众号“\,We 来金融 AI 普惠青年提案”相关图片、公众号文章《一家小店的账本，能读出哪些金融问题？》以及大赛直播第一场截图。原始笔记未附网页链接、发布日期和访问日期，正式对外引用前仍需补齐这些信息。
+
+\end{document}
