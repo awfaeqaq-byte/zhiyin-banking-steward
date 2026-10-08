@@ -1,0 +1,6 @@
+interface:
+  display_name: "知银 AI 原生交互"
+  short_description: "按知银的管家原则设计新功能，少填表、多选择、按需追问并持续维护任务现场"
+  default_prompt: "使用 $zhiyin-ai-native-ui 为这个知银新功能设计并实现初版，优先减少用户填写和切换页面，保留必要授权。"
+policy:
+  allow_implicit_invocation: true

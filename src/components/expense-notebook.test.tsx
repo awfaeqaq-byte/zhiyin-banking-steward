@@ -56,7 +56,7 @@ it('查收款使用微信实付回执，支持本人提醒、前台更新和结�
   await act(async()=>{expect(await ref.current!.handle('今晚那笔收齐了吗？')).toContain('小王 ¥30.00');});
   expect(model).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button',{name:'明天提醒我'}));
-  expect(calendar.tasks).toHaveLength(1);
+  await waitFor(()=>expect(calendar.tasks).toHaveLength(1));
   expect(calendar.tasks[0].status).toBe('pending');
   collection={...collection,status:'completed',members:collection.members.map(m=>({...m,paid:true}))};
   await act(async()=>{window.dispatchEvent(new Event('zhiyin-phone-foreground'));});

@@ -466,7 +466,8 @@ describe("宁宁真实对话首页", () => {
       reply={vi.fn(async () => ({ text: "可以，先连接支付账户来核对。" }))}
     />);
 
-    await user.click(screen.getByRole("button", { name: "帮我检查重复订阅" }));
+    await user.type(screen.getByRole("textbox"), "帮我检查重复订阅");
+    await user.click(screen.getByRole("button", { name: "发送给宁宁" }));
     await screen.findByText("可以，先连接支付账户来核对。");
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
     expect(scrollIntoView.mock.calls.every(([options]) => options.behavior !== "smooth")).toBe(true);
@@ -482,7 +483,8 @@ describe("宁宁真实对话首页", () => {
       stewardName="宁宁" stewardImage="/ningning.png" connections={{}} disabledReminders={[]}
       onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}
     />);
-    await user.click(screen.getByRole("button", { name: "帮我检查重复订阅" }));
+    await user.type(screen.getByRole("textbox"), "帮我检查重复订阅");
+    await user.click(screen.getByRole("button", { name: "发送给宁宁" }));
     await waitFor(() => expect(reply).toHaveBeenCalledOnce());
     scrollIntoView.mockClear();
 

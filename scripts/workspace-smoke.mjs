@@ -35,7 +35,7 @@ try{
   await page.waitForSelector('.workspace-bar');
   if(!await page.$('.workspace-list'))await click('任务窗口');
   await page.screenshot({path:'.impeccable/review/workspace-desktop.png',fullPage:true});
-  await click('返回对话');
+  await click('关闭');
   await page.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
   await page.waitForSelector('.workspace-bar');
   await page.screenshot({path:'.impeccable/review/workspace-conversation.png',fullPage:true});

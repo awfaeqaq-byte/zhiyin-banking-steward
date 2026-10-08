@@ -12,8 +12,8 @@ import './occasion-planner.css';
 const blank=():OccasionDraft=>({title:'生日筹备',recipient:'',budget:100000,prepareAt:0,deliverAt:0,address:'',contact:'',note:'',productIds:['cake-light','flowers-roses']});
 const labels={draft:'待确认预算',reserved:'筹备中',cancelled:'已取消',completed:'已完成'};
 const date=(time:number)=>time?new Date(time).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'待补充';
-type Props={stewardName:string;initialPrompt?:string;initialPlanId?:string;getMemoryContext?:(prompt:string)=>Promise<string>;onOpenCalendar?:(date:number)=>void;embedded?:boolean;injectedPrompt?:{token:string;text:string};onRoutePrompt?:(text:string)=>Promise<void>;externalBusy?:boolean;onConversationTurn?:(user:string,answer:string,failed:boolean)=>Promise<void>};
-export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',getMemoryContext,onOpenCalendar,embedded=false,injectedPrompt,onRoutePrompt,externalBusy=false,onConversationTurn}:Props){
+type Props={stewardName:string;initialPrompt?:string;initialPlanId?:string;getMemoryContext?:(prompt:string)=>Promise<string>;onOpenCalendar?:(date:number)=>void;embedded?:boolean;injectedPrompt?:{token:string;text:string};initialHistory?:Array<{role:'user'|'assistant';content:string}>;onRoutePrompt?:(text:string)=>Promise<void>;externalBusy?:boolean;onConversationTurn?:(user:string,answer:string,failed:boolean)=>Promise<void>};
+export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',getMemoryContext,onOpenCalendar,embedded=false,injectedPrompt,initialHistory,onRoutePrompt,externalBusy=false,onConversationTurn}:Props){
  const [state,setState]=useState<BankSnapshot|null>(null),[selected,setSelected]=useState<string|null>(null),[draft,setDraft]=useState<OccasionDraft>(blank),[editing,setEditing]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false),[prompt,setPrompt]=useState('');
  const [advice,setAdvice]=useState(''),[options,setOptions]=useState<string[]>([]),[confirm,setConfirm]=useState<'reserve'|'cancel'|'complete'|null>(null);
  const [foodOrders,setFoodOrders]=useState<Record<string,string>>({});
@@ -42,9 +42,10 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
  },[draft,getMemoryContext,locked,onConversationTurn]);
  useEffect(()=>{if(!state||started.current)return;started.current=true;const existing=state.occasions?.find(p=>p.id===initialPlanId);if(existing){select(existing);if(initialPrompt)void advise(initialPrompt,existing);}else if(initialPrompt){setEditing(true);void advise(initialPrompt,blank());}else if(embedded){setEditing(true);}
   if(initialPlanId&&!existing?.orders.length&&!['cancelled','completed'].includes(existing?.status??''))try{const cached=JSON.parse(sessionStorage.getItem(`zhiyin-occasion-draft:${initialPlanId}`)||'null');const defaults=blank();if(cached&&Object.entries(defaults).every(([key,value])=>Array.isArray(value)?Array.isArray(cached[key])&&cached[key].every((id:string)=>occasionProducts.some(p=>p.id===id)):typeof cached[key]===typeof value&&(typeof value!=='number'||Number.isFinite(cached[key]))))setDraft(cached);}catch{/* A damaged draft must not replace verified account data. */}
+  if(initialHistory)turns.current=initialHistory.slice(-8);
   setReady(true);
- },[state,initialPlanId,initialPrompt,advise,embedded]);
- useEffect(()=>{if(initialPlanId&&ready)sessionStorage.setItem(`zhiyin-occasion-draft:${initialPlanId}`,JSON.stringify(draft));},[draft,initialPlanId,ready]);
+ },[state,initialPlanId,initialPrompt,advise,embedded,initialHistory]);
+ useEffect(()=>{if(initialPlanId&&ready)try{sessionStorage.setItem(`zhiyin-occasion-draft:${initialPlanId}`,JSON.stringify(draft));}catch{/* Storage may be unavailable; explicit server saves remain usable. */}},[draft,initialPlanId,ready]);
  const adviseRef=useRef(advise);adviseRef.current=advise;
  useEffect(()=>{if(ready&&injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void adviseRef.current(injectedPrompt.text);}},[ready,injectedPrompt]);
  async function change(body:object){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const next=accept(await occasionRequest(body));setConfirm(null);const p=next.occasions?.find(x=>x.id===id.current);if(p)select(p);return next;}catch(e){setError(e instanceof Error?e.message:'保存失败，请刷新后重试');try{accept(await occasionRequest());}catch{/* Keep the form for retry. */}}finally{lock.current=false;setBusy(false);}}
@@ -62,7 +63,7 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
   {!state&&!error&&<p role="status">正在读取安排…</p>}
   {!editing&&state&&<><div className="occasion-list">{[...(state.occasions??[])].reverse().map(p=><button key={p.id} onClick={()=>select(p)}><Gift size={22}/><span><strong>{p.title}</strong><small>{p.recipient} · {date(p.deliverAt)}送达</small></span><span>{labels[p.status]}<ArrowUpRight size={17}/></span></button>)}</div>{!state.occasions?.length&&<div className="occasion-empty"><Gift size={34}/><h2>下一件想交给{stewardName}的事</h2><p>生日、纪念日，先说你的想法。预算与订单都可以慢慢核对。</p><button className="occasion-primary" onClick={create}>准备一个生日</button></div>}</>}
   {editing&&<>
-   <div className="occasion-heading"><h2>{plan?.title||'准备一个重要的日子'}</h2>{plan&&<span>{labels[plan.status]}</span>}</div>
+   <div className="occasion-heading"><h2>{plan?.title||(draft.title!=='生日筹备'?draft.title:draft.recipient?`${draft.recipient}的生日筹备`:'准备一个重要的日子')}</h2>{plan&&<span>{labels[plan.status]}</span>}</div>
    <form className="occasion-talk" onSubmit={e=>{e.preventDefault();if(onRoutePrompt){const text=prompt;void onRoutePrompt(text).then(()=>setPrompt('')).catch(e=>setError(e instanceof Error?e.message:'暂时未能整理，请重试'));}else void advise(prompt);}}><label htmlFor="occasion-prompt">交给{stewardName}整理</label><div><input id="occasion-prompt" maxLength={2000} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="说你的想法，或直接说哪里要改…"/><button className="occasion-primary" disabled={busy||externalBusy||!prompt.trim()} aria-label="整理筹备需求">{busy||externalBusy?<LoaderCircle className="occasion-spin" size={18}/>:<Send size={18}/>}</button></div></form>
    {advice&&<div className="occasion-advice" aria-live="polite"><p>{advice}</p>{!!options.length&&<div className="occasion-questions">{options.map(o=><p key={o}>{o}</p>)}</div>}</div>}
    <div className="occasion-plan-overview" aria-label="当前筹备方案">

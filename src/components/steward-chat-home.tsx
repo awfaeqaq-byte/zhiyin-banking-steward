@@ -416,7 +416,7 @@ export function StewardChatHome({
     void sendPrompt(input);
   }
 
-  if(workspace?.kind==='occasion')return <div className="steward-chat-home steward-occasion-task"><OccasionPlanner embedded stewardName={stewardName} initialPlanId={workspace.id} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onRoutePrompt={onRoutePrompt} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);}}/></div>;
+  if(workspace?.kind==='occasion')return <div className="steward-chat-home steward-occasion-task"><OccasionPlanner embedded stewardName={stewardName} initialPlanId={workspace.id} initialHistory={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onRoutePrompt={onRoutePrompt} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);}}/></div>;
   return (
     <div className={`steward-chat-home steward-desk ${sending ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
@@ -538,7 +538,7 @@ export function StewardChatHome({
 
         {messages.length === 0 && !workspace && (
           <div className="steward-quick-prompts" aria-label="快捷提问">
-            {["帮我看看这个月的支出", "记一下今天的AA消费", "帮我准备爱人的生日"].map(prompt => (
+            {(fundingAttention?["接下来一周的钱够续费吗？","帮我看看这个月的支出"]:attentionEvent?.type==='duplicate'?["帮我检查重复订阅","这两个会员我都需要"]:["帮我看看这个月的支出", "记一下今天的AA消费", "帮我准备爱人的生日"]).map(prompt => (
               <button key={prompt} onClick={() => void sendPrompt(prompt)} disabled={sending}>
                 <span>{prompt}</span><ArrowUpRight size={16} aria-hidden="true" />
               </button>

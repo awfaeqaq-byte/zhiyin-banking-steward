@@ -205,3 +205,22 @@ it("切换抽屉不卸载当前输入，默认不用创建表单，关闭后保�
   await user.keyboard("{Escape}");
   expect(screen.getByRole("textbox")).toHaveValue("还没说完的安排");
 });
+it("筹备在当前任务展开，切走再回来恢复未保存方案，不执行资金操作",async()=>{
+ let state=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'birthday',kind:'occasion',title:'爱人生日',revision:0,requestId:'a'});
+ state=changeWorkspaces(state,{type:'create',id:'other',kind:'general',title:'别的事情',revision:1,requestId:'b'});
+ localStorage.setItem('zhiyin-workspace-active','birthday');
+ const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{
+  if(String(url).includes('/workspaces')){if(init?.body)state=changeWorkspaces(state,JSON.parse(String(init.body)));return new Response(JSON.stringify(state));}
+  if(String(url).includes('/steward-reply'))return new Response(JSON.stringify({output_text:'{"text":"预算改为800，蛋糕先保留。","patch":{"recipient":"爱人","budget":80000,"productIds":["cake-light"]}}'}));
+  return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));
+ });
+ render(<StewardWorkspaces route={async text=>({parts:[{taskId:'birthday',kind:'occasion',title:'爱人生日',text}]})} stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}/>);
+ const user=userEvent.setup();
+ await user.type(await screen.findByLabelText('交给宁宁整理'),'预算800，只要蛋糕');await user.click(screen.getByRole('button',{name:'整理筹备需求'}));
+ await screen.findByText('预算改为800，蛋糕先保留。');await waitFor(()=>expect(state.items[0].messages).toHaveLength(2));
+ expect(screen.queryByRole('button',{name:'核对生活筹备'})).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'任务窗口'}));await user.click(screen.getByRole('button',{name:'打开别的事情'}));
+ await user.click(screen.getByRole('button',{name:'任务窗口'}));await user.click(screen.getByRole('button',{name:'打开爱人生日'}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'修改预算'})).toHaveTextContent('¥800'));
+ expect(fetcher.mock.calls.filter(([url,init])=>String(url).includes('/bank')&&init?.body)).toHaveLength(0);
+});
