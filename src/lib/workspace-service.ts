@@ -56,7 +56,7 @@ export async function routeWorkspacePrompt(
 ) {
   const index = tasks
     .filter((t) => t.status === "active")
-    .map((t) => ({ id: t.id, kind: t.kind, title: t.title }));
+    .map((t) => ({ id: t.id, kind: t.kind, title: t.title, lastInstruction:[...t.messages].reverse().find(m=>m.role==='user')?.content.slice(0,300), pending:t.pending?.map(p=>p.text.slice(0,300)) }));
   const indexText = JSON.stringify(index);
   const input = Array.from(
     { length: Math.ceil(indexText.length / 1500) },
@@ -90,7 +90,7 @@ export async function routeWorkspacePrompt(
     });
     const data = await response.json();
     if (!response.ok || typeof data.output_text !== "string")
-      throw new Error(data.error || "暂时无法整理任务，请手动选择任务后继续");
+      throw new Error(data.error || "暂时没理解清楚，请重试或说得具体一点");
     try {
       return validateRoutes(
         JSON.parse(
@@ -111,5 +111,5 @@ export async function routeWorkspacePrompt(
       });
     }
   }
-  throw new Error("未能可靠整理任务，请手动选择任务后重试");
+  throw new Error("暂时没理解清楚，请重试或说得具体一点");
 }

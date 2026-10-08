@@ -266,6 +266,11 @@
 }
 
 .steward-message.user { justify-content: flex-end; }
+.seamless-conversation .steward-transcript {flex:0;gap:18px;padding:4px 0 12px;}
+.seamless-conversation .steward-message.user .steward-brief {width:fit-content;max-width:90%;padding:10px 14px;border:0;border-radius:14px 14px 4px 14px;background:var(--pale,#eaf4f3);font-size:14px;}
+.seamless-conversation .steward-message.assistant .steward-brief {padding:4px 0;border:0;gap:8px;}
+.seamless-conversation .steward-message.user p {margin:0;line-height:1.65;}
+.seamless-conversation .desk-working {padding:8px 0;}
 .steward-message > img { width: 34px; height: 34px; }
 
 .steward-brief {

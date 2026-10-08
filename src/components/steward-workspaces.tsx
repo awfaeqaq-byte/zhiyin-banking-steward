@@ -20,6 +20,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
   const queue = useRef<Queued[]>([]);
   const executing = useRef<Queued>();
   const lock = useRef(false);
+  const saveTail = useRef<Promise<unknown>>(Promise.resolve());
   const clarify = useRef("");
   const receiptOwner = useRef(localStorage.getItem("zhiyin-transfer-workspace") || "");
   const work = state.items.find(w => w.id === active && w.status === "active");
@@ -30,11 +31,15 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
   useEffect(() => { void load(); }, [load]);
 
   function say(text:string) { setConversationNotice({id:crypto.randomUUID(),text}); }
-  async function save(operation: WorkspaceOperation) {
-    const latest = await workspaceRequest();
-    const next = await workspaceRequest(operation, latest.revision);
-    setState(next);
-    return next;
+  function save(operation: WorkspaceOperation) {
+    // A group-selection callback may finish while another task's reply is being saved.
+    const operationResult=saveTail.current.then(async()=>{
+      const latest=await workspaceRequest();
+      const next=await workspaceRequest(operation,latest.revision);
+      setState(next);return next;
+    });
+    saveTail.current=operationResult.catch(()=>undefined);
+    return operationResult;
   }
   function dispatch(item:Queued) {
     executing.current = item;

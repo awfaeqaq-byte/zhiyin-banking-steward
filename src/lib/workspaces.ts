@@ -255,7 +255,7 @@ export function validateRoutes(
 ): { parts: WorkspaceRoute[]; clarification?: string } {
   const data = value as { parts?: WorkspaceRoute[]; clarification?: string };
   if (!data || !Array.isArray(data.parts) || data.parts.length > 4)
-    throw new Error("未能可靠分配任务，请重试或手动选择任务");
+    throw new Error("暂时没理解清楚，请重试或说得具体一点");
   if (data.clarification)
     return { parts: [], clarification: checkedText(data.clarification, 300) };
   if (!data.parts.length) throw new Error("没有找到需要处理的任务");
@@ -274,7 +274,7 @@ export function validateRoutes(
         (w) => w.id === p.taskId && w.kind === p.kind && w.status === "active",
       )
     )
-      throw new Error("任务指向无效，请重新选择");
+      throw new Error("之前的交代已变化，请重新说明要处理哪件事");
   }
   if (normalized(prompt.slice(cursor)))
     throw new Error("任务拆分遗漏了原话，请分开交代");

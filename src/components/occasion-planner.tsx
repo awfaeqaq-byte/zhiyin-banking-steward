@@ -36,10 +36,11 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
    const currentPlan=current as Partial<OccasionPlan>;
    const cannotEdit=locked||!!currentPlan.orders?.length||currentPlan.status==='cancelled'||currentPlan.status==='completed';
    if(result.patch&&Object.keys(result.patch).length&&!cannotEdit)setDraft(d=>({...d,...result.patch}));
-   if(cannotEdit&&result.patch&&Object.keys(result.patch).length)setAdvice(result.text+' 当前已有订单或安排已结束，修改请先处理原订单再重新安排。');
+   if(cannotEdit&&result.patch&&Object.keys(result.patch).length){answer=result.text+' 当前已有订单或安排已结束，修改请先处理原订单再重新安排。';setAdvice(answer);}
+   if(conversation&&result.questions?.length)answer=[answer,...result.questions.filter(question=>!answer.includes(question))].join('\n');
    turns.current=[...turns.current,{role:'user' as const,content:text},{role:'assistant' as const,content:result.text}].slice(-8);setPrompt('');
   }catch(e){answer=e instanceof Error?e.message:'暂时无法整理，请重试';failed=true;setError(answer);}finally{try{await onConversationTurn?.(text,answer,failed);}finally{lock.current=false;setBusy(false);}}
- },[draft,getMemoryContext,locked,onConversationTurn]);
+ },[draft,getMemoryContext,locked,onConversationTurn,conversation]);
  useEffect(()=>{if(!state||started.current)return;started.current=true;const existing=state.occasions?.find(p=>p.id===initialPlanId);if(existing){select(existing);if(initialPrompt)void advise(initialPrompt,existing);}else if(initialPrompt){setEditing(true);void advise(initialPrompt,blank());}else if(embedded){setEditing(true);}
   if(initialPlanId&&!existing?.orders.length&&!['cancelled','completed'].includes(existing?.status??''))try{const cached=JSON.parse(sessionStorage.getItem(`zhiyin-occasion-draft:${initialPlanId}`)||'null');const defaults=blank();if(cached&&Object.entries(defaults).every(([key,value])=>Array.isArray(value)?Array.isArray(cached[key])&&cached[key].every((id:string)=>occasionProducts.some(p=>p.id===id)):typeof cached[key]===typeof value&&(typeof value!=='number'||Number.isFinite(cached[key]))))setDraft(cached);}catch{/* A damaged draft must not replace verified account data. */}
   if(initialHistory)turns.current=initialHistory.slice(-8);
@@ -57,6 +58,7 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
  const missing=!draft.recipient?'recipient':!draft.deliverAt||!draft.prepareAt?'time':!draft.address||!draft.contact?'shipping':null;
  const step=editStep||missing;
  const orderLabels:Record<string,string>={PENDING_PAYMENT:'待付款',ACCEPTED:'商家已接单',PREPARING:'准备中',READY_FOR_DELIVERY:'待配送',DELIVERY_ASSIGNED:'已分配骑手',DELIVERING:'配送中',COMPLETED:'已送达',REFUNDED:'已退款',CANCELLED:'已取消'};
+ const Review=conversation?'details':'div';
  return <section className={`occasion-planner ${embedded?'occasion-embedded':''}`} aria-label="生活筹备">
   {!embedded&&<div className="occasion-toolbar">{editing?<button disabled={busy} onClick={()=>{setEditing(false);setConfirm(null);}}><ArrowLeft size={18}/>所有安排</button>:<p>把重要的日子，提前安排好。</p>}<button disabled={busy||!state} onClick={create}><Plus size={18}/>新建安排</button></div>}
   {error&&<div className="occasion-error" role="alert">{error}<button disabled={busy} onClick={()=>void refresh()}>刷新账户</button></div>}
@@ -64,6 +66,9 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
   {!editing&&state&&<><div className="occasion-list">{[...(state.occasions??[])].reverse().map(p=><button key={p.id} onClick={()=>select(p)}><Gift size={22}/><span><strong>{p.title}</strong><small>{p.recipient} · {date(p.deliverAt)}送达</small></span><span>{labels[p.status]}<ArrowUpRight size={17}/></span></button>)}</div>{!state.occasions?.length&&<div className="occasion-empty"><Gift size={34}/><h2>下一件想交给{stewardName}的事</h2><p>生日、纪念日，先说你的想法。预算与订单都可以慢慢核对。</p><button className="occasion-primary" onClick={create}>准备一个生日</button></div>}</>}
   {editing&&<>
    <div className="occasion-heading"><h2>{plan?.title||(draft.title!=='生日筹备'?draft.title:draft.recipient?`${draft.recipient}的生日筹备`:'准备一个重要的日子')}</h2>{plan&&<span>{labels[plan.status]}</span>}</div>
+   {conversation&&<div className="occasion-conversation-summary"><p><strong>{draft.recipient||'对象待确认'}</strong><span>预算 {formatCny(draft.budget)}</span></p><p>{occasionProducts.filter(p=>draft.productIds.includes(p.id)).map(p=>p.name).join(' + ')||'商品待选择'} · 合计 {formatCny(occasionQuote(draft))}</p><small>{plan?labels[plan.status]:missing==='recipient'?'还需要确认准备对象':missing==='time'?'送达与筹备时间待补充':missing==='shipping'?'收货信息待补充':'方案待核对，尚未预留或付款'}</small></div>}
+   <Review className="occasion-review">
+   {conversation&&<summary>核对方案与授权<span>完整安排、商品与资金</span></summary>}
    {!conversation&&<form className="occasion-talk" onSubmit={e=>{e.preventDefault();if(onRoutePrompt){const text=prompt;void onRoutePrompt(text).then(()=>setPrompt('')).catch(e=>setError(e instanceof Error?e.message:'暂时未能整理，请重试'));}else void advise(prompt);}}><label htmlFor="occasion-prompt">交给{stewardName}整理</label><div><input id="occasion-prompt" maxLength={2000} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="说你的想法，或直接说哪里要改…"/><button className="occasion-primary" disabled={busy||externalBusy||!prompt.trim()} aria-label="整理筹备需求">{busy||externalBusy?<LoaderCircle className="occasion-spin" size={18}/>:<Send size={18}/>}</button></div></form>}
    {!conversation&&advice&&<div className="occasion-advice" aria-live="polite"><p>{advice}</p>{!!options.length&&<div className="occasion-questions">{options.map(o=><p key={o}>{o}</p>)}</div>}</div>}
    <div className="occasion-plan-overview" aria-label="当前筹备方案">
@@ -95,6 +100,7 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
     {confirm&&<div className="occasion-confirm" role="region" aria-label="确认资金安排"><strong>{confirm==='reserve'?'确认预留这笔资金？':confirm==='cancel'?'取消本次筹备？':'确认完成安排？'}</strong><p>{confirm==='reserve'?`预留 ${formatCny(plan.budget)} 后，其他付款不能使用这笔预算。银行卡总余额不会减少，实际支付时才扣款。`:confirm==='cancel'?'释放尚未使用的预算。已付款订单不会自动退款，请在外卖订单中单独处理；未付款订单将无法继续使用这笔预算。':'请确认商品已收到，完成后释放剩余预算。'}</p><button className="occasion-primary" disabled={busy} onClick={()=>void change({type:confirm==='reserve'?'reserve-occasion':confirm==='cancel'?'cancel-occasion':'complete-occasion',id:plan.id,revision:state.revision,authorized:true})}>{confirm==='reserve'?`确认预留 ${formatCny(plan.budget)}`:confirm==='cancel'?'确认取消并释放余款':'确认完成并释放余款'}</button><button disabled={busy} onClick={()=>setConfirm(null)}>返回核对</button></div>}
    </section>}
    {locked&&plan?.orders.length!==0&&<p className="occasion-footnote"><Check size={15}/>已有订单绑定这份方案。需要修改时，先处理原订单，再重新安排。</p>}
+   </Review>
   </>}
  </section>;
 }
