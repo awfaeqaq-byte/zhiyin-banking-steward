@@ -78,4 +78,11 @@ describe('筹备任务与真实预留预算',()=>{
   const body=JSON.parse(fetchMock.mock.calls[0][1].body);expect(body.instructions).toContain('不能');expect(body.input.map((m:{content:string})=>m.content).join('')).toContain('用户喜欢简洁表达');
   fetchMock.mockResolvedValue({ok:true,json:async()=>({output_text:'{"text":"已付款","patch":{"productIds":["invented"]}}'})});await expect(requestOccasionAdvice('帮我选',draft,'')).rejects.toThrow(/商品/);
  });
+ it('记忆和较长建议按代理限制分段，总请求仍在32KiB以内',async()=>{
+  const mock=vi.fn(async(_url:string,init:RequestInit)=>{
+   const body=JSON.parse(init.body as string);expect(body.input.every((m:{content:string})=>m.content.length<=2000)).toBe(true);expect(Buffer.byteLength(init.body as string)).toBeLessThan(32768);
+   return {ok:true,json:async()=>({output_text:'{"text":"请核对日期"}'})};
+  });vi.stubGlobal('fetch',mock);
+  await requestOccasionAdvice('生日'.repeat(1000),{...draft,note:'甜'.repeat(500)},'偏好'.repeat(2500),Array.from({length:8},(_,i)=>({role:i%2?'assistant' as const:'user' as const,content:'筹备'.repeat(1500)})));
+ });
 });
