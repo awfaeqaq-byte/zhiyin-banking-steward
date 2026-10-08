@@ -10,7 +10,7 @@ const now=Date.parse('2026-10-08T10:00:00+08:00');
 const draft:OccasionDraft={title:'爱人生日',recipient:'爱人',budget:100000,prepareAt:Date.parse('2026-10-18T10:00:00+08:00'),deliverAt:Date.parse('2026-10-20T18:00:00+08:00'),address:'江湾金融中心 A 座',contact:'叶先生 13800001234',note:'蛋糕不要太甜',productIds:['cake-light','flowers-roses']};
 const dirs:string[]=[];
 function fixture(){const dir=mkdtempSync(join(tmpdir(),'occasion-test-'));dirs.push(dir);const file=join(dir,'bank.json');return {bank:createBankStore(file),file};}
-afterEach(()=>{vi.unstubAllGlobals();dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true}));});
+afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true}));});
 describe('筹备任务与真实预留预算',()=>{
  it('草稿不占资金；确认后保护预算；其他付款、即时和预约转账不能花掉它',()=>{
   const {bank}=fixture();bank.saveOccasion({id:'birthday',revision:0,draft},now);
@@ -84,5 +84,14 @@ describe('筹备任务与真实预留预算',()=>{
    return {ok:true,json:async()=>({output_text:'{"text":"请核对日期"}'})};
   });vi.stubGlobal('fetch',mock);
   await requestOccasionAdvice('生日'.repeat(1000),{...draft,note:'甜'.repeat(500)},'偏好'.repeat(2500),Array.from({length:8},(_,i)=>({role:i%2?'assistant' as const:'user' as const,content:'筹备'.repeat(1500)})));
+ });
+ it('模型填写北京时间日期由程序转换，拒绝过去送达、日期溢出及倒序安排',async()=>{
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(now);
+  const mock=vi.fn().mockResolvedValue({ok:true,json:async()=>({output_text:JSON.stringify({text:'10月20日送达',patch:{prepareAt:'2026-10-18T10:00',deliverAt:'2026-10-20T18:00'}})})});vi.stubGlobal('fetch',mock);
+  const result=await requestOccasionAdvice('10月20日生日，提前两天准备',{},'');expect(result.patch).toEqual({prepareAt:draft.prepareAt,deliverAt:draft.deliverAt});
+  for(const patch of [{deliverAt:1737302400000},{deliverAt:'2026-02-30T18:00'},{prepareAt:'2026-10-21T10:00',deliverAt:'2026-10-20T18:00'},{deliverAt:'2028-10-20T18:00'}]){
+   mock.mockResolvedValue({ok:true,json:async()=>({output_text:JSON.stringify({text:'方案好了',patch})})});
+   await expect(requestOccasionAdvice('帮我安排',draft,'')).rejects.toThrow(/日期|时间/);
+  }
  });
 });
