@@ -28,8 +28,10 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
  useEffect(()=>{void refresh();const run=()=>void refresh();window.addEventListener('zhiyin-phone-foreground',run);window.addEventListener('zhiyin-bank-updated',run);return()=>{window.removeEventListener('zhiyin-phone-foreground',run);window.removeEventListener('zhiyin-bank-updated',run);};},[refresh]);
  const advise=useCallback(async(text:string,current=draft)=>{if(!text.trim()||lock.current)return;lock.current=true;setBusy(true);setError('');setPrompt(text);
   try{const memory=getMemoryContext?await getMemoryContext(text):'';const result=await requestOccasionAdvice(text,current,memory,turns.current);setAdvice(result.text);setOptions(result.questions??[]);
-   if(result.patch&&Object.keys(result.patch).length&&!locked)setDraft(d=>({...d,...result.patch}));
-   if(locked&&result.patch&&Object.keys(result.patch).length)setAdvice(result.text+' 当前已有订单，修改请先处理原订单再重新安排。');
+   const currentPlan=current as Partial<OccasionPlan>;
+   const cannotEdit=locked||!!currentPlan.orders?.length||currentPlan.status==='cancelled'||currentPlan.status==='completed';
+   if(result.patch&&Object.keys(result.patch).length&&!cannotEdit)setDraft(d=>({...d,...result.patch}));
+   if(cannotEdit&&result.patch&&Object.keys(result.patch).length)setAdvice(result.text+' 当前已有订单或安排已结束，修改请先处理原订单再重新安排。');
    turns.current=[...turns.current,{role:'user' as const,content:text},{role:'assistant' as const,content:result.text}].slice(-8);setPrompt('');
   }catch(e){setError(e instanceof Error?e.message:'暂时无法整理，请重试');}finally{lock.current=false;setBusy(false);}
  },[draft,getMemoryContext,locked]);
