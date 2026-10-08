@@ -4,7 +4,15 @@ import {validBankPayment,type BankPayment,type BankPaymentReceipt} from '../src/
 import {validTransfer,validBankSnapshot,type TransferIntent,type BankDraft,type BankReceipt,type BankSnapshot,type BankSettings} from '../src/lib/bank-transfer';
 import {authorizeSchedule,executeDue,createAA,settleAA,checkTransferBudget,type SmartState} from './smart-bank';
 import type {AAIntent,BankRecipientId} from '../src/lib/bank-transfer';
+import {availableBankFunds, heldOccasionBudget, occasionTotals, occasionProducts, validateOccasionDraft, validOccasionId, type OccasionDraft, type OccasionOrder, type OccasionPlan} from '../src/lib/occasion-plans';
 type State=SmartState & {version:1};
+function snapshot(s:State):BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[],occasions=[]}=s;return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections,occasions};}
+function occasion(s:State,id:string){const plan=s.occasions?.find(p=>p.id===id);if(!plan)throw new Error('筹备安排不存在');return plan;}
+function checkOccasionFunds(s:State,amount:number,excludeId?:string){
+ const pending=(s.schedules??[]).filter(p=>p.status==='pending');
+ const obligations=pending.reduce((sum,p)=>sum+p.amount,0)+Math.max(0,...pending.map(p=>p.protectedAmount??0));
+ if(s.balance-heldOccasionBudget(s,excludeId)-obligations<amount)throw new Error('扣除已有预约和预留后资金不足，请调整预算');
+}
 const initial=():State=>({version:1,revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],drafts:[],received:{mom:0,dad:0}});
 function guard(s:SmartState,now:number){
  if(s.frozen)throw new Error('付款卡已挂失，请先恢复沙箱卡');
@@ -23,6 +31,44 @@ export function createBankStore(file:string) {
   try{const s=read(),result=fn(s);writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});renameSync(file+'.tmp',file);return result;}finally{closeSync(lock);unlinkSync(file+'.lock');}
  }
  return {
+  saveOccasion(input:{id:string;revision:number;draft:OccasionDraft},now=Date.now()){return mutate(s=>{
+   if(input.revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
+   if(!validOccasionId(input.id))throw new Error('安排编号无效');validateOccasionDraft(input.draft,now);
+   const plans=s.occasions??=[];const old=plans.find(p=>p.id===input.id);
+   if(old&&old.status!=='draft'&&old.status!=='reserved')throw new Error('安排已结束，请新建');
+   if(old?.orders.length)throw new Error('已准备订单，修改需取消当前安排后重新核对；已付款订单请单独退款');
+   if(!old&&plans.length>=100)throw new Error('筹备安排已达上限');
+   if(old?.status==='reserved')checkOccasionFunds(s,input.draft.budget,old.id);
+   const plan:OccasionPlan={...input.draft,id:input.id,productIds:[...input.draft.productIds],title:input.draft.title.trim(),status:old?.status??'draft',orders:[],createdAt:old?.createdAt??now,updatedAt:now};
+   s.occasions=old?plans.map(p=>p.id===plan.id?plan:p):[...plans,plan];s.revision++;return snapshot(s);
+  });},
+  reserveOccasion(id:string,revision:number,now=Date.now()){return mutate(s=>{
+   const plan=occasion(s,id);if(plan.status==='reserved')return snapshot(s);
+   if(revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
+   if(plan.status!=='draft')throw new Error('安排已经结束');validateOccasionDraft(plan,now);guard(s,now);checkOccasionFunds(s,plan.budget);
+   plan.status='reserved';plan.updatedAt=now;s.revision++;return snapshot(s);
+  });},
+  cancelOccasion(id:string,revision:number,now=Date.now()){return mutate(s=>{
+   const plan=occasion(s,id);if(plan.status==='cancelled')return snapshot(s);
+   if(revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
+   if(plan.status==='completed')throw new Error('安排已完成');plan.status='cancelled';plan.updatedAt=now;s.revision++;return snapshot(s);
+  });},
+  completeOccasion(id:string,revision:number,now=Date.now()){return mutate(s=>{
+   const plan=occasion(s,id);if(plan.status==='completed')return snapshot(s);
+   if(revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
+   if(plan.status!=='reserved'||!plan.orders.length||plan.orders.some(o=>!s.payments?.some(p=>p.id===o.paymentId&&p.refundedAt===undefined)))throw new Error('还有商品未付款或已退款，请先核对订单');
+   if(plan.orders.length!==plan.productIds.length)throw new Error('还有商品未准备订单');
+   plan.status='completed';plan.updatedAt=now;s.revision++;return snapshot(s);
+  });},
+  prepareOccasionOrder(id:string,productId:string,revision:number,now=Date.now()):OccasionOrder{return mutate(s=>{
+   const plan=occasion(s,id);if(plan.status!=='reserved')throw new Error('请先确认预留预算，安排不能已经结束');
+   if(plan.deliverAt<=now)throw new Error('送达时间已过，请取消后重新安排');
+   const existing=plan.orders.find(o=>o.productId===productId);if(existing)return existing;
+   if(revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
+   const product=occasionProducts.find(p=>p.id===productId&&p.available);if(!product||!plan.productIds.includes(productId))throw new Error('商品不在本次安排中');
+   const order={productId,orderId:`ZY-${id}-${productId}`,paymentId:`occasion:${id}:${productId}`,amount:product.price+product.deliveryFee,merchant:product.merchant,createdAt:now};
+   plan.orders.push(order);plan.updatedAt=now;s.revision++;return order;
+  });},
   schedule(id:string,now=Date.now()){return mutate(s=>{const existing=s.schedules?.find(item=>item.id===id);if(existing)return existing;guard(s,now);return authorizeSchedule(s,id,now);});},
   cancelSchedule(id:string){return mutate(s=>{const item=s.schedules?.find(x=>x.id===id);if(!item)throw new Error('预约不存在');if(item.status==='cancelled')return item;if(item.status!=='pending')throw new Error('预约已经执行或结束');item.status='cancelled';s.revision++;return item;});},
   runDue(now=Date.now()){
@@ -37,15 +83,27 @@ export function createBankStore(file:string) {
    const payments=s.payments??=[];
    const existing=payments.find(p=>p.id===input.id);
    if(existing){
-    if(existing.amount!==input.amount || existing.channel!==input.channel || existing.merchant!==input.merchant)throw new Error('同一订单的付款信息不一致');
+    if(existing.amount!==input.amount || existing.channel!==input.channel || existing.merchant!==input.merchant || existing.occasionId!==input.occasionId)throw new Error('同一订单的付款信息不一致');
+    if(existing.occasionId&&existing.refundedAt!==undefined)throw new Error('订单已退款，不能再次付款');
     return existing;
    }
    guard(s,now);
    if(input.amount>s.limit)throw new Error('超过银行卡单笔限额');
    if(input.amount>s.balance)throw new Error('银行卡余额不足，不会改用其他账户');
+   if(input.occasionId!==undefined){
+    const plan=occasion(s,input.occasionId),order=plan.orders.find(o=>o.paymentId===input.id);
+    if(plan.status!=='reserved')throw new Error('安排已取消或结束，不能付款');
+    if(!order||order.amount!==input.amount||order.merchant!==input.merchant)throw new Error('付款与筹备订单不一致');
+    if(plan.deliverAt<=now)throw new Error('送达时间已过，请重新核对安排');
+    if(input.amount>occasionTotals(plan,s).held)throw new Error('本次预留预算不足');
+    if(s.balance-heldOccasionBudget(s,plan.id)<input.amount)throw new Error('银行卡可用资金不足');
+   }else{
+    if(input.id.startsWith('occasion:'))throw new Error('缺少筹备任务关联');
+    if(input.amount>availableBankFunds(s))throw new Error('扣除已预留预算后，可用余额不足');
+   }
    if(payments.length>=5000)throw new Error('沙箱账本已满');
    s.balance-=input.amount;s.revision++;
-   const receipt={id:input.id,channel:input.channel,amount:input.amount,merchant:input.merchant,completedAt:now,balanceAfter:s.balance};
+   const receipt={...input,completedAt:now,balanceAfter:s.balance};
    payments.push(receipt);return receipt;
   });},
   refundPayment(id:string,now=Date.now()):BankPaymentReceipt {return mutate(s=>{
@@ -57,12 +115,12 @@ export function createBankStore(file:string) {
    return payment;
   });},
   status(id:string){const s=read();return {receipt:s.transactions.find(r=>r.id===id),draft:s.drafts.find(d=>d.id===id),schedule:s.schedules?.find(d=>d.id===id)};},
-  get():BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[]}=read();return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections};},
+  get():BankSnapshot {return snapshot(read());},
   configure(input:BankSettings){return mutate(s=>{
    if(input.revision!==s.revision)throw new Error('账户已变化，请刷新后重试');
    const next={...s,...(input.limit===undefined?{}:{limit:input.limit}),...(input.frozen===undefined?{}:{frozen:input.frozen}),...(input.controls===undefined?{}:{controls:input.controls})};
    if(!validBankSnapshot(next))throw new Error('银行卡设置无效，限额范围100—50,000元');
-   s.limit=next.limit;s.frozen=next.frozen;s.controls=next.controls;s.revision++;return {revision:s.revision,balance:s.balance,limit:s.limit,frozen:s.frozen,controls:s.controls,transactions:s.transactions,payments:s.payments??[]};
+   s.limit=next.limit;s.frozen=next.frozen;s.controls=next.controls;s.revision++;return snapshot(s);
   });},
   prepare(input:TransferIntent|unknown,now=Date.now()):BankDraft {return mutate(s=>{
    guard(s,now);
@@ -100,6 +158,11 @@ export function bankMiddleware(store:ReturnType<typeof createBankStore>) {
    if(req.headers['x-zhiyin-bank']!=='1' || !req.headers['content-type']?.startsWith('application/json'))return send(403,{error:'请求格式无效'});
    let body='';for await(const chunk of req){body+=chunk.toString();if(Buffer.byteLength(body)>2048)return send(413,{error:'请求过大'});}
    const data=JSON.parse(body);
+   if(data?.type==='save-occasion')return send(200,store.saveOccasion(data));
+   if(data?.type==='reserve-occasion'&&data.authorized===true)return send(200,store.reserveOccasion(data.id,data.revision));
+   if(data?.type==='cancel-occasion'&&data.authorized===true)return send(200,store.cancelOccasion(data.id,data.revision));
+   if(data?.type==='complete-occasion'&&data.authorized===true)return send(200,store.completeOccasion(data.id,data.revision));
+   if(data?.type==='prepare-occasion-order'&&data.authorized===true)return send(200,store.prepareOccasionOrder(data.id,data.productId,data.revision));
    if(data?.type==='schedule' && data.authorized===true && typeof data.draftId==='string')return send(200,store.schedule(data.draftId));
    if(data?.type==='cancel-schedule' && data.authorized===true && typeof data.id==='string')return send(200,store.cancelSchedule(data.id));
    if(data?.type==='create-aa' && data.authorized===true)return send(200,store.createAA(data));
