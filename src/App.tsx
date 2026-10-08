@@ -1626,6 +1626,7 @@ export default function App() {
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
               onOpenGroupAA={()=>go('group-aa')}
               onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
+              occasionPlans={bank.state?.occasions}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
               onPrepareTransfer={setBankIntent}
               bankReceipt={bankReceipt}

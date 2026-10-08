@@ -9,6 +9,7 @@ import {memoryContext,parseMemoryProposal} from '../lib/steward-memory';
 import {parseImpression} from '../lib/steward-profile';
 import {bankRecipients,bankRequest,validBankSnapshot,type BankReceipt} from '../lib/bank-transfer';
 import type {SmartIntent} from './smart-transfers';
+import type {OccasionPlan} from '../lib/occasion-plans';
 import {isBankRequest,isBankOperation,isTaskRequest,isOccasionRequest} from '../lib/steward-chat';
 import {taskRequest,calendarEvents,localTaskTime,type ReminderDraft} from '../lib/task-calendar';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
@@ -84,6 +85,7 @@ type Props = {
   onOpenTasks?:(date?:number)=>void;
   onOpenGroupAA?:()=>void;
   onOpenOccasions?:(prompt?:string,planId?:string)=>void;
+  occasionPlans?:OccasionPlan[];
   onPrepareTask?:(draft:ReminderDraft)=>void;
   onPrepareTransfer?: (intent:SmartIntent)=>void;
   bankReceipt?:BankReceipt|null;
@@ -140,6 +142,7 @@ export function StewardChatHome({
   onOpenTasks,
   onOpenGroupAA,
   onOpenOccasions,
+  occasionPlans,
   onPrepareTask,
   onPrepareTransfer,
   bankReceipt,
@@ -421,7 +424,7 @@ export function StewardChatHome({
         </div>
         {onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook key={workspace?.id || 'legacy'} ref={expenseNotebook} activityKey={workspace?.id} initialBookId={workspace?.expenseBookId} initialHistory={workspace?.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision||0))} onBookSelected={onWorkspaceBook} getMemoryContext={async prompt=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,prompt):'';}} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
-        {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
+        {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice occasions={occasionPlans} onOccasion={onOpenOccasions?id=>onOpenOccasions(undefined,id):undefined} onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
 
         {!activeReplyId && !sending && !error && <section className={`steward-live-summary steward-workbench ${attentionEvent || fundingAttention || pendingRecurring.length ? "has-attention" : "is-quiet"}`} aria-label="管家工作台">
           <div className="steward-presence" aria-label={`${stewardName}在这里`}>

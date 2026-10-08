@@ -1,7 +1,7 @@
 /* Existing-world Operate extension: a compact editable arrangement above a merchant list.
  * Dates separate preparation from delivery; the budget rail shows held, spent and remaining.
  * Users review changes, authorize funds, then inspect the same order in the food app. */
-import {useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowLeft,ArrowUpRight,CalendarDays,Check,Gift,LoaderCircle,Plus,Send,ShieldCheck} from 'lucide-react';
 import {availableBankFunds,heldOccasionBudget,occasionProducts,occasionQuote,occasionTotals,occasionRequest,requestOccasionAdvice,validateOccasionDraft,type OccasionDraft,type OccasionPlan} from '../lib/occasion-plans';
 import {validBankSnapshot,type BankSnapshot} from '../lib/bank-transfer';
@@ -21,19 +21,19 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
  const plan=state?.occasions?.find(p=>p.id===selected),totals=plan&&state?occasionTotals(plan,state):null;
  const locked=!!plan?.orders.length||plan?.status==='cancelled'||plan?.status==='completed';
  const dirty=plan?JSON.stringify(draft)!==JSON.stringify({title:plan.title,recipient:plan.recipient,budget:plan.budget,prepareAt:plan.prepareAt,deliverAt:plan.deliverAt,address:plan.address,contact:plan.contact,note:plan.note,productIds:plan.productIds}):true;
- function accept(value:BankSnapshot){if(!validBankSnapshot(value))throw new Error('账户数据无法核对，请重试');setState(prev=>!prev||value.revision>=prev.revision?value:prev);return value;}
- async function refresh(){try{accept(await occasionRequest());setError('');}catch(e){setError(e instanceof Error?e.message:'加载失败，请重试');}}
+ const accept=useCallback((value:BankSnapshot)=>{if(!validBankSnapshot(value))throw new Error('账户数据无法核对，请重试');setState(prev=>!prev||value.revision>=prev.revision?value:prev);return value;},[]);
+ const refresh=useCallback(async()=>{try{accept(await occasionRequest());setError('');}catch(e){setError(e instanceof Error?e.message:'加载失败，请重试');}},[accept]);
  function select(p:OccasionPlan){id.current=p.id;setSelected(p.id);setDraft({title:p.title,recipient:p.recipient,budget:p.budget,prepareAt:p.prepareAt,deliverAt:p.deliverAt,address:p.address,contact:p.contact,note:p.note,productIds:[...p.productIds]});setEditing(true);setConfirm(null);setAdvice('');setOptions([]);turns.current=[];setError('');}
  function create(){id.current=crypto.randomUUID();setSelected(null);setDraft(blank());setEditing(true);setAdvice('');setError('');setConfirm(null);turns.current=[];}
- useEffect(()=>{void refresh();const run=()=>void refresh();window.addEventListener('zhiyin-phone-foreground',run);window.addEventListener('zhiyin-bank-updated',run);return()=>{window.removeEventListener('zhiyin-phone-foreground',run);window.removeEventListener('zhiyin-bank-updated',run);};},[]);
- async function advise(text:string,current=draft){if(!text.trim()||lock.current)return;lock.current=true;setBusy(true);setError('');setPrompt(text);
+ useEffect(()=>{void refresh();const run=()=>void refresh();window.addEventListener('zhiyin-phone-foreground',run);window.addEventListener('zhiyin-bank-updated',run);return()=>{window.removeEventListener('zhiyin-phone-foreground',run);window.removeEventListener('zhiyin-bank-updated',run);};},[refresh]);
+ const advise=useCallback(async(text:string,current=draft)=>{if(!text.trim()||lock.current)return;lock.current=true;setBusy(true);setError('');setPrompt(text);
   try{const memory=getMemoryContext?await getMemoryContext(text):'';const result=await requestOccasionAdvice(text,current,memory,turns.current);setAdvice(result.text);setOptions(result.questions??[]);
    if(result.patch&&Object.keys(result.patch).length&&!locked)setDraft(d=>({...d,...result.patch}));
    if(locked&&result.patch&&Object.keys(result.patch).length)setAdvice(result.text+' 当前已有订单，修改请先处理原订单再重新安排。');
    turns.current=[...turns.current,{role:'user' as const,content:text},{role:'assistant' as const,content:result.text}].slice(-8);setPrompt('');
   }catch(e){setError(e instanceof Error?e.message:'暂时无法整理，请重试');}finally{lock.current=false;setBusy(false);}
- }
- useEffect(()=>{if(!state||started.current)return;started.current=true;const existing=state.occasions?.find(p=>p.id===initialPlanId);if(existing){select(existing);if(initialPrompt)void advise(initialPrompt,existing);}else if(initialPrompt){setEditing(true);void advise(initialPrompt,blank());}},[state]);
+ },[draft,getMemoryContext,locked]);
+ useEffect(()=>{if(!state||started.current)return;started.current=true;const existing=state.occasions?.find(p=>p.id===initialPlanId);if(existing){select(existing);if(initialPrompt)void advise(initialPrompt,existing);}else if(initialPrompt){setEditing(true);void advise(initialPrompt,blank());}},[state,initialPlanId,initialPrompt,advise]);
  async function change(body:object){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const next=accept(await occasionRequest(body));setConfirm(null);const p=next.occasions?.find(x=>x.id===id.current);if(p)select(p);return next;}catch(e){setError(e instanceof Error?e.message:'保存失败，请刷新后重试');try{accept(await occasionRequest());}catch{/* Keep the form for retry. */}}finally{lock.current=false;setBusy(false);}}
  async function save(){if(!state)return;try{validateOccasionDraft(draft,Date.now());await change({type:'save-occasion',id:id.current,revision:state.revision,draft});}catch(e){setError(e instanceof Error?e.message:'请核对安排');}}
  async function food(productId:string){if(!plan||lock.current)return;lock.current=true;setBusy(true);setError('');try{await occasionFoodRequest('prepare',{planId:plan.id,productId});accept(await occasionRequest());}catch(e){setError(e instanceof Error?e.message:'订单未能准备，请重试');}finally{lock.current=false;setBusy(false);}}
