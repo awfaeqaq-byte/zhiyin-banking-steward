@@ -96,10 +96,13 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
     <StewardChatHome {...props}
       seamless
+      contextWorkspaces={state.items}
+      onBackgroundBook={async(id,expenseBookId)=>{await save({type:'link',id,expenseBookId});}}
+      onBackgroundTurn={async(id,user,assistant,memoryRevision)=>{await save({type:'turn',id,user,assistant,memoryRevision});}}
       conversationNotice={conversationNotice}
-      bankReceipt={receiptOwner.current===work?.id?props.bankReceipt:null}
-      onPrepareTransfer={props.onPrepareTransfer ? intent=>{
-        receiptOwner.current=work?.id || "";
+      bankReceipt={props.bankReceipt}
+      onPrepareTransfer={props.onPrepareTransfer ? (intent,workspaceId)=>{
+        receiptOwner.current=workspaceId || work?.id || "";
         localStorage.setItem("zhiyin-transfer-workspace",receiptOwner.current);
         props.onPrepareTransfer?.(intent);
       }:undefined}

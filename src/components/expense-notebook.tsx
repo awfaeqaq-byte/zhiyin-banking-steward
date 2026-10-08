@@ -39,8 +39,8 @@ const startPattern =
   /随手记|零散消费|记个账|帮我记|开始记|新活动|我先[付垫]|最后一起算|先垫付/;
 export const ExpenseNotebook = forwardRef<
   ExpenseNotebookHandle,
-  { onPrompt: (text: string) => void; activityKey?:string; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
->(function ExpenseNotebook({ onPrompt,activityKey,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
+  { onPrompt: (text: string) => void; activityKey?:string; activityTitle?:string; conversation?:boolean; onRecorded?:(prompt:string,text:string)=>Promise<void>; onNeedsInput?:(needs:boolean)=>void; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
+>(function ExpenseNotebook({ onPrompt,activityKey,activityTitle,conversation=false,onRecorded,onNeedsInput,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
   const activeKey=activityKey?`zhiyin-expense-active-${activityKey}`:'zhiyin-expense-active';
   const memoryEpoch=useRef(0);
   useEffect(()=>{const reset=()=>{memoryEpoch.current++;history.current=[];};window.addEventListener('zhiyin-memory-context-reset',reset);return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);},[]);
@@ -54,7 +54,7 @@ export const ExpenseNotebook = forwardRef<
     [pending, setPending] = useState(""),
     [group, setGroup] = useState<AAGroup | null>(null),
     [people, setPeople] = useState<string[]>([]),
-    [title, setTitle] = useState("今晚聚餐");
+    [title, setTitle] = useState(activityTitle || "今晚聚餐");
   const [expanded, setExpanded] = useState(false),
     [review, setReview] = useState(false),
     [selected, setSelected] = useState<string[]>([]),
@@ -64,6 +64,7 @@ export const ExpenseNotebook = forwardRef<
   const [removing, setRemoving] = useState("");
   const history = useRef<{ role: "user" | "assistant"; content: string }[]>(initialHistory.slice(-6));
   const book = state.books.find((b) => b.id === active);
+  useEffect(()=>{onNeedsInput?.(setup);},[setup,onNeedsInput]);
   function accept(s: ExpenseState) {
     current.current = s;
     setState(s);
@@ -249,7 +250,7 @@ export const ExpenseNotebook = forwardRef<
       }
       if (/^(结束记录|暂停记账|停止记账)$/.test(prompt)) {
         await activate("");
-        return "先收起了，记录还在。下次从“继续记录”打开即可。";
+        return conversation ? "好，先暂停记账，记录还在。以后直接告诉我要继续这次活动就行。" : "先收起了，记录还在。下次从“继续记录”打开即可。";
       }
       // Do not intercept ordinary banking requests just because an activity exists.
       if (
@@ -292,7 +293,14 @@ export const ExpenseNotebook = forwardRef<
       setExpanded(true);
       setNotice("已开始，直接在下面告诉我每笔消费。");
       // Keep the initiating request visible so its expense is never silently dropped.
-      if (/\d/.test(pending)) onPrompt(pending);
+      if (/\d/.test(pending)) {
+        if(conversation) {
+          const created=current.current.books.find(b=>b.id===id)!;
+          // Selecting the participants completes the missing record data, not a payment authorization.
+          const text=await interpret(created,pending);
+          if(text) {setNotice('');await onRecorded?.(pending,text);}
+        } else onPrompt(pending);
+      }
     });
   }
   async function publish(batch: ExpenseBatch, b: ExpenseBook) {
@@ -373,7 +381,7 @@ export const ExpenseNotebook = forwardRef<
       aria-busy={busy}
     >
       <fieldset disabled={busy}>
-        {!book && !setup && (
+        {!conversation && !book && !setup && (
           <div className="expense-launch">
             <button
               onClick={() => {
@@ -642,14 +650,14 @@ export const ExpenseNotebook = forwardRef<
             <h3>把这次消费记在一起</h3>
             <p>选好参与人，接下来只要说消费。默认由你垫付，单笔可单独说明。</p>
             {pending && <p className="expense-original">你的交代：{pending}</p>}
-            <label>
+            {!conversation&&<label>
               活动名称
               <input
                 maxLength={60}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
-            </label>
+            </label>}
             <button
               onClick={() =>
                 void run(async () => {

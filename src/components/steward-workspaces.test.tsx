@@ -127,7 +127,7 @@ it('AA选群是必要核对，名称自动整理；回到AA后继续同一本后
     return expenses;
   });
   vi.spyOn(groupAA,'groupAARequest').mockResolvedValue({group:{id:'dinner-group',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜',gender:'female'}]}});
-  const model=vi.spyOn(expenseService,'requestExpenseReply').mockImplementation(async(book,text)=>({action:'add',entries:[{title:text==='饮料18'?'饮料':'午餐',amount:text==='饮料18'?1800:38800,payerId:'me',fixed:[],shares:book.participants.map(memberId=>({memberId,weight:1}))}],message:'消费记好了。'}));
+  const model=vi.spyOn(expenseService,'requestExpenseReply').mockImplementation(async(book,text)=>({action:'add',entry:{title:text==='饮料18'?'饮料':'午餐',amount:text==='饮料18'?1800:38800,payerId:'me',fixed:[],shares:book.participants.map(memberId=>({memberId,weight:1}))},message:'消费记好了。'}));
   render(<StewardWorkspaces {...props} onOpenGroupAA={vi.fn()} reply={async()=>({text:'另一件事收到。'})} route={async(text,tasks)=>{
     const kind=text==='聊点别的'?'general' as const:'aa' as const;
     return {parts:[{taskId:tasks.find(w=>w.kind===kind)?.id||null,kind,title:kind==='aa'?'今天聚餐AA':'日常交代',text}]};
