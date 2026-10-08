@@ -34,6 +34,7 @@ it('自然语言建议填入可编辑方案；保存、手动改预算和商品�
   await screen.findByText('低甜蛋糕已整理，地址请核对。');expect(memory).toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button',{name:'换成巧克力'}));await waitFor(()=>expect(screen.getByLabelText('交给宁宁整理')).toHaveValue(''));
   fireEvent.click(screen.getByRole('button',{name:'保存筹备方案'}));await screen.findByText('尚未预留资金');
+  fireEvent.click(screen.getByText('筹备详情 · 可调整'));fireEvent.click(screen.getByRole('button',{name:'调整商品'}));
   fireEvent.change(screen.getByLabelText('预算（元）'),{target:{value:'1200'}});fireEvent.click(screen.getByRole('checkbox',{name:/时令鲜花/}));fireEvent.click(screen.getByRole('button',{name:'保存修改'}));
   await waitFor(()=>expect(bank.get().occasions![0].budget).toBe(120000));
   fireEvent.click(screen.getByRole('button',{name:'预留这笔预算'}));fireEvent.click(screen.getByRole('button',{name:/确认预留 ¥1,200/}));await screen.findByText('预算已预留');

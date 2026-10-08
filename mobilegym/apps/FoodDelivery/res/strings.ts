@@ -1,5 +1,6 @@
 export const strings = {
   occasion_review:'知银已整理的筹备订单',
+  occasion_channel:'付款渠道 · 使用常用卡8888',
   occasion_delivery:'预约送达',
   occasion_budget_hint:'使用常用卡8888的本次预留预算，核对后再付款；退款原路退回。配送为沙箱模拟。',
   app_name: '好食送',

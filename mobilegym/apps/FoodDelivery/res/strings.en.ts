@@ -2,6 +2,7 @@ import type { FoodDeliveryStringKey } from './strings';
 
 export const stringsEn: Partial<Record<FoodDeliveryStringKey, string>> = {
   occasion_review:'Prepared by Zhiyin',
+  occasion_channel:'Payment channel · bank card 8888',
   occasion_delivery:'Scheduled delivery',
   occasion_budget_hint:'Uses this arrangement’s reserved funds on card 8888. Review before paying. Refunds return to the card. Delivery is simulated.',
   app_name: 'GoodBite',

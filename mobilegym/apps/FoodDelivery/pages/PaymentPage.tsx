@@ -103,7 +103,7 @@ export function PaymentPage() {
                   <span className="ml-3 min-w-0">
                     <span className="block text-[14px] font-bold text-[#202126]">{option.name}</span>
                     <span className={`mt-1 block text-[11px] ${enough ? 'text-[#777]' : 'text-[#d93857]'}`}>
-                      可用余额 {formatMoney(option.balanceCents)}{enough || fundingSource==='bank_8888' ? '' : ' · 余额不足'}
+                      {order?.occasionId?s.occasion_channel:<>可用余额 {formatMoney(option.balanceCents)}{enough || fundingSource==='bank_8888' ? '' : ' · 余额不足'}</>}
                     </span>
                   </span>
                   <span
@@ -122,9 +122,9 @@ export function PaymentPage() {
         <fieldset className="mt-3 bg-white rounded-[16px] p-4" disabled={isPaying || Boolean(order?.pendingBankMethod) || Boolean(order?.occasionId)}>
           <legend className="sr-only">{s.funding_title}</legend>
           <h2 className="text-[14px] font-bold mb-2">{s.funding_title}</h2>
-          <button type="button" aria-pressed={fundingSource==='balance'} className="min-h-12 w-full flex items-center justify-between text-[14px] disabled:opacity-60" {...bindAction('fooddelivery.payment.funding.select.balance',{},()=>setFunding('balance'))}>
+          {!order?.occasionId&&<button type="button" aria-pressed={fundingSource==='balance'} className="min-h-12 w-full flex items-center justify-between text-[14px] disabled:opacity-60" {...bindAction('fooddelivery.payment.funding.select.balance',{},()=>setFunding('balance'))}>
             <span>{s.funding_balance}</span>{fundingSource==='balance'&&<Check size={18} className="text-[#ff2d55]"/>}
-          </button>
+          </button>}
           <button type="button" aria-pressed={fundingSource==='bank_8888'} className="min-h-12 w-full flex items-center justify-between text-[14px] border-t border-[#eee] disabled:opacity-60" {...bindAction('fooddelivery.payment.funding.select.bank',{},()=>setFunding('bank_8888'))}>
             <span>{s.funding_bank}</span>{fundingSource==='bank_8888'&&<Check size={18} className="text-[#ff2d55]"/>}
           </button>
