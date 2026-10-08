@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import * as orderModel from '../apps/FoodDelivery/orderModel';
 
 const paymentSource = readFileSync(
   new URL('../apps/FoodDelivery/pages/PaymentPage.tsx', import.meta.url),
@@ -11,6 +12,18 @@ const trackingSource = readFileSync(
 );
 
 describe('外卖支付界面契约', () => {
+  it('银行卡订单显示渠道和资金账户，退款去向为银行卡而非平台余额', () => {
+    for (const channel of ['微信支付', '支付宝']) {
+      expect(orderModel.getOrderPaymentDisplay({ fundingSource: 'bank_8888' }, channel, '常用卡 · 8888')).toEqual({
+        paymentLabel: `${channel} · 常用卡 · 8888`, refundLabel: '常用卡 · 8888',
+      });
+      expect(orderModel.getOrderPaymentDisplay({ fundingSource: 'balance' }, channel, '常用卡 · 8888')).toEqual({
+        paymentLabel: channel, refundLabel: channel,
+      });
+    }
+    expect(trackingSource).toContain('getOrderPaymentDisplay');
+    expect(trackingSource).toContain('refundLabel');
+  });
   it('付款账户与支付渠道分开选择，待核对订单恢复原方式',()=>{
     expect(paymentSource).toContain('fundingSource');
     expect(paymentSource).toContain('pendingBankMethod');
