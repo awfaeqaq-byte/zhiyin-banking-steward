@@ -21,9 +21,13 @@ it('日常点餐与旧的general外卖任务续聊复用，AA消费不能误归�
  expect(progress.food?.orderId).toBe('order1');
 });
 it('模型只提出菜单方案，不得捏造商品、执行授权或覆盖订单编号',()=>{
- expect(parseFoodAdvice(JSON.stringify({text:'推荐奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''},choices:[]}),catalog)).toMatchObject({text:'推荐奶茶'});
+ expect(parseFoodAdvice(JSON.stringify({text:'推荐奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''},choices:[]}),catalog).text).toContain('黑糖珍珠鲜奶茶');
  for(const draft of [{items:[{productId:'fake',quantity:1}],note:''},{items:[{productId:'tea',quantity:1}],note:'',orderId:'fake'}])expect(()=>parseFoodAdvice(JSON.stringify({text:'已下单',draft}),catalog)).toThrow();
  expect(()=>parseFoodAdvice('坏格式',catalog)).toThrow();
+});
+it('模型的已下单与积分口误不能呈现为交易事实',()=>{
+ const r=parseFoodAdvice(JSON.stringify({text:'880积分，已按默认地址下单啦',draft:{items:[{productId:'tea',quantity:1}],note:'微糖'}}),catalog);
+ expect(r.text).not.toContain('已');expect(r.text).not.toContain('积分');expect(r.text).toContain('核对后再付款');
 });
 it('请求包含实际菜单及旧对话；模型不可用不能默默下单',async()=>{
  const f=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({text:'推荐黑糖珍珠鲜奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''}})})));
