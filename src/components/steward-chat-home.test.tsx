@@ -548,4 +548,39 @@ describe("宁宁真实对话首页", () => {
     await waitFor(() => expect(onToggleReminder).toHaveBeenCalledWith("alipay:sub-video", false));
     expect(screen.getByText(/订阅本身不受影响/)).toBeInTheDocument();
   });
+
+  it("理财问题读取银行与持仓快照，并展示可进入的比较工具", async () => {
+    const reply=vi.fn<StewardReplyFn>(async()=>({text:'先看风险和流动性。',view:'wealth_compare'}));
+    vi.spyOn(globalThis,'fetch').mockImplementation(async input=>{
+      const url=String(input);
+      if(url.includes('/api/zhiyin/wealth'))return new Response(JSON.stringify({version:1,receipts:[],cashBalance:4230000,holdings:[],redemptions:[]}));
+      if(url.includes('/api/zhiyin/bank'))return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));
+      return new Response('{}');
+    });
+    const open=vi.fn();
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]}
+      onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onOpenWealth={open} reply={reply}/>);
+    await userEvent.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'帮我比较理财产品');
+    await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByText('先看风险和流动性。');
+    expect(reply.mock.calls[0][0]).toMatchObject({bank:{balance:4230000},wealthSnapshot:{cashBalance:4230000}});
+    expect(screen.getByRole('button',{name:'进入理财方案与风险测评'})).toBeInTheDocument();
+  });
+
+  it("首页可展开自动检查交易并记录人工判断", async () => {
+    const decide=vi.fn(async()=>undefined);
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]}
+      onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onAutomationDecision={decide}
+      automationAttention={{count:1,summary:'发现一条线索',runId:'run-1',evidence:{
+        id:'finding-1',title:'有一笔较大消费：淘宝平台商户',
+        detail:'2026-09-13 支出 ¥3,619.90，超过本期单笔中位数的 3 倍。',
+        suggestion:'先核对订单。',decision:'pending',
+        transactions:[{id:'tx-1',title:'淘宝平台商户',amount:-361990,occurredAt:'2026-09-13',providerName:'微信支付'}],
+      }}}/>);
+    expect(screen.getByRole('heading',{name:'宁宁发现近期大额消费：淘宝平台商户'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:'查看具体交易'}));
+    expect(screen.getByRole('region',{name:'相关交易明细'})).toHaveTextContent('淘宝平台商户');
+    await userEvent.click(screen.getByRole('button',{name:'继续关注'}));
+    expect(decide).toHaveBeenCalledWith('run-1','finding-1','confirmed');
+  });
 });

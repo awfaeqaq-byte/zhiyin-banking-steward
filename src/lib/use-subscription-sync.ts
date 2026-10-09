@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import type { ConnectedFinancialSource, ExternalFinancialProvider } from "./financial-connections";
 import { refreshFinancialSource } from "./phone-bridge";
+import { updateBillSourceGrant } from './bill-source-grant';
 
 export type FinancialConnections = Partial<Record<ExternalFinancialProvider, ConnectedFinancialSource>>;
 export type SubscriptionSyncResult = { connections: FinancialConnections; error: string };
@@ -44,8 +45,10 @@ export function useSubscriptionSync(
           const result = await load(provider, source.scopes);
           if (result.status === "granted" && result.source) {
             next[provider] = { ...result.source, scopes: source.scopes };
+            if(source.scopes.includes('transactions'))await updateBillSourceGrant(provider,true);
           } else if (result.status === "denied") {
             delete next[provider];
+            if(source.scopes.includes('transactions'))await updateBillSourceGrant(provider,false);
             failures.push(`${source.displayName}授权已失效，请重新连接。`);
           } else {
             failures.push(`${source.displayName}暂时无法同步，请稍后重试。`);

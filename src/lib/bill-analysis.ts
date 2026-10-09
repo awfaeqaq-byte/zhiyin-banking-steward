@@ -8,8 +8,12 @@ const day = (time: number) => new Date(time + 8 * 3600000).toISOString().slice(0
 const midnight = (date: string) => Date.parse(`${date}T00:00:00+08:00`);
 
 export function billReferenceTime(connections: Connections, fallback = Date.now()) {
-  const times = Object.values(connections).filter(source=>source?.scopes.includes('transactions'))
-    .map(source=>Date.parse(source!.syncedAt)).filter(Number.isFinite);
+  const sources = Object.values(connections).filter(source=>source?.scopes.includes('transactions')) as ConnectedFinancialSource[];
+  const coverageTimes = sources.map(source=>source.transactionCoverage?.to ? Date.parse(`${source.transactionCoverage.to}T23:59:59+08:00`) : NaN).filter(Number.isFinite);
+  if (coverageTimes.length) return Math.max(...coverageTimes);
+  const transactionTimes = sources.flatMap(source=>source.transactions.map(row=>Date.parse(row.occurredAt.length===10?`${row.occurredAt}T23:59:59+08:00`:row.occurredAt))).filter(Number.isFinite);
+  if (transactionTimes.length) return Math.max(...transactionTimes);
+  const times = sources.map(source=>Date.parse(source.syncedAt)).filter(Number.isFinite);
   return times.length ? Math.max(...times) : fallback;
 }
 
@@ -67,6 +71,7 @@ export function buildBillAnalysis(connections: Connections, question: string, no
     : /支付宝/.test(question) && !/微信/.test(question) ? 'alipay' : null;
   const sources = Object.values(connections).filter((source): source is ConnectedFinancialSource =>
     Boolean(source?.scopes.includes('transactions')) && (!provider || source?.provider === provider));
+  const incompleteSources = sources.filter(source=>source.transactionCoverage && !source.transactionCoverage.complete);
   const seen = new Set<string>();
   const history:DiagnosticRow[]=[];
   const quality={duplicates:0,invalid:0};
@@ -101,11 +106,18 @@ export function buildBillAnalysis(connections: Connections, question: string, no
   return {
     ...period, sources:sources.map(source=>source.displayName), expense,income,refund,transferIn,transferOut,
     count:rows.length,
+    transactions:rows,
     diagnosis:diagnoseBills(history,period.from,period.to,quality),
     categories:[...categories].map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount),
     largest:purchases.sort((a,b)=>a.amount-b.amount).slice(0,5),
     recent:rows.sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt)).slice(0,8),
-    coverage:'仅统计本次已授权平台返回的记录，不代表全部账户或完整月账单；转账单列，退款不抵扣消费，收入指非退款、非转账入账。',
+    coverageIncomplete:incompleteSources.length>0,
+    coverage:incompleteSources.length
+      ? `数据不完整：${incompleteSources.map(source=>{
+        const coverage=source.transactionCoverage!;
+        return `${source.displayName}返回${coverage.returned}/${coverage.total}笔${coverage.invalid ? `，另有${coverage.invalid}笔格式无效` : ''}`;
+      }).join('；')}。当前合计只能视为已返回记录的小计。`
+      : '仅统计本次已授权平台返回的记录，不代表全部账户；转账单列，退款不抵扣消费，收入指非退款、非转账入账。',
   };
 }
 
@@ -114,6 +126,7 @@ export type BillAnalysis = ReturnType<typeof buildBillAnalysis>;
 export function billInstructions(name: string, analysis?: BillAnalysis, memoryContext='') {
   const data = analysis ? {
     ...analysis,
+    transactions:[],
     diagnosis:{...analysis.diagnosis,findings:analysis.diagnosis.findings.slice(0,3).map(({kind,title,detail,suggestion},index)=>({evidenceRef:index+1,kind,title,detail,suggestion}))},
     categories:analysis.categories.slice(0,6).map(item=>({...item,name:item.name.slice(0,40)})),
     largest:analysis.largest.map(({title,amount,occurredAt,providerName})=>({title:title.slice(0,60),amount,occurredAt,providerName})),
@@ -127,6 +140,7 @@ export function billInstructions(name: string, analysis?: BillAnalysis, memoryCo
     '金额与分类可由用户展开查看，不要重复罗列这些数据，不要输出表格、长汇总或平台检查状态。围绕问题自然解释，最多三段短文，每段最多两句；需要时给建议或追问，不必套固定模板。不要用订阅清单冒充全部支出。',
     '交易证据默认不展示。仅当你的某句解释需要具体交易佐证时，在该句之后单独一行输出 [[evidence:N]]，N必须是下方findings中的evidenceRef，前端会展示对应真实交易。无必要不要引用；同组只引用一次，不要编造编号、交易或固定询问是否在用。候选规则不是异常判定，选择与用户问题有关的证据。',
     '消费、普通入账、退款、转入与转出分别解释；退款未抵扣消费。跨平台转账可能两边有记录，不把流水合计当作净财富增长。不得自行把截断的明细或分类当完整总额。',
+    '若coverageIncomplete为true，必须先明示说数据不完整，只能陈述已返回记录的小计，不下“全月总额”或“完整趋势”结论。',
     '若needsClarification为true，先询问准确月份/日期范围，不使用默认月份数字回答该时间问题。若sources为空，说明需授权对应平台账单；count为0只表示该范围未返回记录，不代表零消费。',
     '来源仅限沙箱已授权数据，不声称读取真实微信或支付宝。没有前期对照数据、使用频率、商家细目时，不编造环比、异常、用途或预算建议。用户问未提供的商家/分类细目时说明数据有限。不能执行转账或取消；本次只分析账单，不输出动作标记。',
   ].join('\n');

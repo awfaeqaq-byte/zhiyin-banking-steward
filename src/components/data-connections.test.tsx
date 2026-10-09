@@ -27,16 +27,30 @@ describe("DataConnections", () => {
       wechat_pay: {
         provider: "wechat_pay", displayName: "微信支付", accountMasked: "叶先生",
         balance: 32_860, transactions: [], autopays: [], syncedAt: "2026-09-15T09:41:00+08:00",
+        transactionCoverage: { total: 1_971, returned: 1_971, invalid: 0, complete: true },
         scopes: ["balance", "transactions"],
       },
     }} onConnect={vi.fn()} onDisconnect={onDisconnect} />);
 
     expect(screen.getByText("已连接")).toBeInTheDocument();
+    expect(screen.getByText(/1971\/1971 笔.*已完整同步/)).toBeInTheDocument();
     expect(screen.queryByText(/最近同步/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重新授权微信支付" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "同步微信支付" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "断开微信支付" }));
     await waitFor(() => expect(onDisconnect).toHaveBeenCalledWith("wechat_pay"));
+  });
+
+  it("显示账单覆盖缺口和无效记录", () => {
+    render(<DataConnections connections={{
+      wechat_pay: {
+        provider: "wechat_pay", displayName: "微信支付", accountMasked: "叶先生",
+        transactions: [], autopays: [], syncedAt: "2026-09-15T09:41:00+08:00",
+        transactionCoverage: { total: 5_002, returned: 5_000, invalid: 2, complete: false },
+        scopes: ["transactions"],
+      },
+    }} onConnect={vi.fn()} onDisconnect={vi.fn()} />);
+    expect(screen.getByText(/5000\/5002 笔.*2 笔格式无效.*数据不完整/)).toBeInTheDocument();
   });
 
   it("keeps a connected source visible when partner revocation fails", async () => {

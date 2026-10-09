@@ -876,16 +876,22 @@
   .mode-native .topbar-right {
     gap: 1px;
     margin-left: auto;
+    min-width: 0;
   }
   .native-header-link {
-    font-size: 12px;
-    padding: 7px 5px;
-    gap: 4px;
+    font-size: 11px;
+    padding: 7px 4px;
+    gap: 3px;
+    white-space: nowrap;
   }
   .mode-native .topbar-right > .icon-control {
     width: 44px;
     height: 44px;
   }
+  .mode-native .identity-copy small { display:none; }
+  .mode-native .identity-copy strong { font-size:13px; }
+  .mode-native .identity { min-width:0; }
+  .mode-native .identity-portrait { display:none; }
   .native-root {
     font-size: 14px;
   }

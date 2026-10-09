@@ -10,6 +10,7 @@ coverage/
 *.local.json
 *.local.json.tmp
 *.local.json.lock
+.zhiyin-mastra.db*
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
@@ -23,6 +24,7 @@ releases/
 *.p12
 *.pfx
 __pycache__/
+.venv-akshare/
 *.pyc
 .pytest_cache/
 .claude/settings.local.json

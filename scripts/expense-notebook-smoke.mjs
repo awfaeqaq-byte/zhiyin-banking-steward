@@ -15,7 +15,7 @@ page.on("response", async (response) => {
     try {
       const d = await response.json();
       console.log("Model:", d.output_text || d.error);
-    } catch {}
+    } catch { /* Ignore non-JSON model responses in this smoke script. */ }
   }
 });
 page.setDefaultTimeout(20000);

@@ -124,6 +124,6 @@ export function StewardReplyContent({content,bill,stewardName}: {content:string;
       <p className="bill-note">本次返回数据中排除 {bill.diagnosis.quality.duplicates} 条同平台重复记录、{bill.diagnosis.quality.invalid} 条无效记录。转账与退款单列，不计入消费诊断。</p>
       <ul className="bill-limitations">{bill.diagnosis.limitations.map(text=><li key={text}>{text}</li>)}</ul>
     </details>
-    <p className="bill-coverage">依据已授权平台返回的 {bill.count} 笔记录整理，不代表完整账单或全部账户。</p>
+    <p className="bill-coverage">依据已授权平台返回的 {bill.count} 笔期间记录整理。{bill.coverage}</p>
   </section>;
 }

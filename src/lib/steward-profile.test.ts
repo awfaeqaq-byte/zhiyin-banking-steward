@@ -5,7 +5,7 @@ import {buildStewardInstructions} from './steward-chat';
 import {buildBillAnalysis} from './bill-analysis';
 describe('长期印象',()=>{
   const observation={topic:'communication' as const,text:'喜欢先听结论',quote:'先说结论',userText:'请先说结论'};
-  function enabled(){let s=updateMemory(emptyMemory(),{type:'enabled',revision:0,enabled:true});return updateMemory(s,{type:'profile',revision:1,profileAction:'enable',enabled:true});}
+  function enabled(){const s=updateMemory(emptyMemory(),{type:'enabled',revision:0,enabled:true});return updateMemory(s,{type:'profile',revision:1,profileAction:'enable',enabled:true});}
   it('独立开启、需要原文证据，旧数据兼容',()=>{
     expect(validMemoryState(emptyMemory())).toBe(true);
     expect(()=>updateMemory({...emptyMemory(),enabled:true},{type:'profile',revision:0,profileAction:'observe',observation})).toThrow();

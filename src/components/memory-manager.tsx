@@ -3,6 +3,7 @@ import type {StewardMemoryController} from '../lib/use-steward-memory';
 import type {MemoryCategory,MemoryItem} from '../lib/steward-memory';
 import './memory-manager.css';
 import {ProfileUnderstanding} from './profile-understanding';
+import {CustomerContextPanel} from './customer-context-panel';
 const labels:Record<MemoryCategory,string>={preference:'偏好',habit:'习惯',goal:'目标',background:'背景'};
 export function MemoryManager({memory}:{memory:StewardMemoryController}) {
   const [text,setText]=useState(''),[category,setCategory]=useState<MemoryCategory>('preference');
@@ -15,6 +16,7 @@ export function MemoryManager({memory}:{memory:StewardMemoryController}) {
     <details className="memory-help"><summary>记忆如何使用</summary><p>对话时，相关记忆和长期印象会发送给你配置的大模型服务。请勿保存密码、证件或完整账号。</p></details>
     <p className="memory-help">修改、删除或切换开关会重新开始模型上下文，旧聊天仍可查看，但不再发给模型；订阅提醒等业务设置不受影响。</p>
     {memory.error && <p role="alert">{memory.error}<button onClick={()=>void memory.refresh()}>重试</button></p>}
+    <CustomerContextPanel memory={memory}/>
     <ProfileUnderstanding memory={memory}/>
     <h3>你明确告诉我的</h3>
     <form onSubmit={async event=>{event.preventDefault();if(await memory.change({type:'save',id:editing,text,category})){setText('');setEditing(undefined);}}}>
@@ -29,6 +31,6 @@ export function MemoryManager({memory}:{memory:StewardMemoryController}) {
       <div className="memory-actions"><button disabled={memory.busy || !memory.state.enabled} onClick={()=>edit(item)} aria-label={`修改记忆：${item.text}`}>修改</button><button disabled={memory.busy} onClick={()=>void memory.change({type:'delete',id:item.id})} aria-label={`删除记忆：${item.text}`}>删除</button></div>
     </article>)}</div>
     {!memory.state.items.length&&<p className="memory-help">还没有确认保存的长期记忆，不会自动导入演示偏好。</p>}
-    {(memory.state.items.length>0 || !!memory.state.profile?.items.length) && (confirmClear?<div className="memory-actions"><p className="memory-help">明确记忆和长期印象都会删除，并停止各主题的自动积累。</p><button disabled={memory.busy} onClick={async()=>{if(await memory.change({type:'clear'}))setConfirmClear(false);}}>确认清空全部记忆</button><button onClick={()=>setConfirmClear(false)}>返回</button></div>:<button onClick={()=>setConfirmClear(true)}>清空全部记忆</button>)}
+    {(memory.state.items.length>0 || !!memory.state.profile?.items.length || !!memory.state.customerContext) && (confirmClear?<div className="memory-actions"><p className="memory-help">明确记忆、长期印象和服务偏好都会删除，并停止各主题的自动积累。</p><button disabled={memory.busy} onClick={async()=>{if(await memory.change({type:'clear'}))setConfirmClear(false);}}>确认清空全部记忆</button><button onClick={()=>setConfirmClear(false)}>返回</button></div>:<button onClick={()=>setConfirmClear(true)}>清空全部记忆</button>)}
   </div>;
 }

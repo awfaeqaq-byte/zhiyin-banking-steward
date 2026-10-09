@@ -10,8 +10,9 @@ const source: ConnectedFinancialSource = {provider:'wechat_pay', displayName:'�
   {id:'5',title:'旧消费',amount:-9999,category:'购物',occurredAt:'2026-08-20'},
 ]};
 describe('账单分析',()=>{
-  it('仅授权账单时也跟随沙箱日期',()=>{
-    expect(billReferenceTime({wechat_pay:{...source,syncedAt:'2026-10-02T10:00:00+08:00'}},now)).toBe(Date.parse('2026-10-02T10:00:00+08:00'));
+  it('优先跟随账单最后一笔交易，避免同步时间把测试账期推到空月份',()=>{
+    expect(billReferenceTime({wechat_pay:{...source,syncedAt:'2026-10-02T10:00:00+08:00'}},now)).toBe(Date.parse('2026-09-22T23:59:59+08:00'));
+    expect(billReferenceTime({wechat_pay:{...source,transactionCoverage:{total:5,returned:5,invalid:0,complete:true,to:'2026-09-29'}}},now)).toBe(Date.parse('2026-09-29T23:59:59+08:00'));
     expect(billReferenceTime({},now)).toBe(now);
   });
   it('连续追问维持账单语境，明确问续费则切回',()=>{
@@ -45,6 +46,13 @@ describe('账单分析',()=>{
   it('未授权账单不读取，空记录不声称完整',()=>{
     expect(buildBillAnalysis({wechat_pay:{...source,scopes:['balance']}},'账单',now).sources).toEqual([]);
     expect(buildBillAnalysis({},'账单',now).coverage).toContain('不代表全部');
+  });
+  it('数据源覆盖不完整时只把结果当作小计',()=>{
+    const result=buildBillAnalysis({wechat_pay:{...source,transactionCoverage:{total:5002,returned:5000,invalid:2,complete:false}}},'账单',now);
+    expect(result.coverageIncomplete).toBe(true);
+    expect(result.coverage).toContain('数据不完整');
+    expect(result.coverage).toContain('5000/5002');
+    expect(billInstructions('宁宁',result)).toContain('只能陈述已返回记录的小计');
   });
   it('支持上月、近七天、昨天、指定月份及平台',()=>{
     expect(buildBillAnalysis({wechat_pay:source},'上个月消费',now).expense).toBe(9999);

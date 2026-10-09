@@ -9,5 +9,5 @@
     "types": ["node"],
     "strict": true
   },
-  "include": ["vite.config.ts", "server/**/*.ts", "src/lib/workspaces.ts", "src/lib/steward-memory.ts", "src/lib/steward-profile.ts", "src/lib/bank-transfer.ts", "src/lib/task-calendar.ts", "src/lib/financial-connections.ts", "src/lib/expense-notebook.ts", "src/lib/expense-follow-up.ts", "src/lib/group-aa.ts"]
+  "include": ["vite.config.ts", "server/**/*.ts", "src/lib/workspaces.ts", "src/lib/steward-memory.ts", "src/lib/steward-profile.ts", "src/lib/customer-context.ts", "src/lib/bank-transfer.ts", "src/lib/task-calendar.ts", "src/lib/financial-connections.ts", "src/lib/expense-notebook.ts", "src/lib/expense-follow-up.ts", "src/lib/group-aa.ts", "src/lib/wealth-operation.ts", "src/lib/market-context.ts", "src/lib/fund-samples.ts", "src/lib/agent-automations.ts", "src/lib/bill-analysis.ts", "src/lib/bill-report.ts", "src/lib/bill-diagnosis.ts", "src/lib/reply-choices.ts"]
 }

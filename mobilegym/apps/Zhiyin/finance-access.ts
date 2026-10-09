@@ -27,6 +27,8 @@ const categoryLabels: Record<string, string> = {
   income: '收入', other: '其他', transfer: '转账',
 };
 
+const TRANSACTION_RESPONSE_LIMIT = 5_000;
+
 const defaults: Dependencies = {
   nowIso: () => TimeService.getDate().toISOString(),
   readAlipay: () => {
@@ -76,12 +78,13 @@ function dateLabel(value: unknown) {
 }
 
 function alipayTransactions(records: Array<Record<string, unknown>>) {
-  return records.filter(record => (
+  const valid = records.filter(record => (
     typeof record.id === 'string' && typeof record.delta === 'number' &&
     Number.isSafeInteger(Math.round(record.delta * 100)) &&
     typeof record.timestamp === 'number' && Number.isFinite(record.timestamp) &&
     Number.isFinite(TimeService.fromTimestamp(record.timestamp).getTime())
-  )).sort((a, b) => Number(b.timestamp) - Number(a.timestamp)).slice(0, 1_000).map((record) => {
+  )).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+  const transactions = valid.slice(0, TRANSACTION_RESPONSE_LIMIT).map((record) => {
     const kind = record.kind === 'refund' ? 'refund'
       : record.kind === 'salary' ? 'income'
         : ['transfer', 'recharge', 'withdrawal', 'redPacket'].includes(String(record.kind)) ? 'transfer'
@@ -97,6 +100,19 @@ function alipayTransactions(records: Array<Record<string, unknown>>) {
       ...(typeof linkedId === 'string' ? { linkedId: linkedId.slice(0, 100) } : {}),
     };
   });
+  return {
+    transactions,
+    transactionCoverage: {
+      total: records.length,
+      returned: transactions.length,
+      invalid: records.length - valid.length,
+      complete: valid.length <= TRANSACTION_RESPONSE_LIMIT && valid.length === records.length,
+      ...(transactions.length ? {
+        from: transactions.at(-1)?.occurredAt,
+        to: transactions[0]?.occurredAt,
+      } : {}),
+    },
+  };
 }
 
 function cancelledAutopayIds(records: Array<Record<string, unknown>>) {
@@ -136,12 +152,13 @@ function autopays(records: Array<Record<string, unknown>>) {
 }
 
 function wechatTransactions(records: WechatPayTransaction[]) {
-  return records.filter(record => (
+  const valid = records.filter(record => (
     typeof record.id === 'string' && typeof record.merchant === 'string' &&
     Number.isSafeInteger(record.amountCents) && record.amountCents > 0 &&
     ['expense', 'income'].includes(record.direction) &&
     typeof record.occurredAt === 'string' && Number.isFinite(Date.parse(record.occurredAt))
-  )).sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt)).slice(0, 1_000).map(record => {
+  )).sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
+  const transactions = valid.slice(0, TRANSACTION_RESPONSE_LIMIT).map(record => {
     const isInvalidLegacyLink =
       (record.linkedId === 'order-hema' && (!record.merchant.includes('盒马') || record.amountCents !== 13_200)) ||
       (record.linkedId === 'order-didi' && (!record.merchant.includes('滴滴') || record.amountCents !== 4_800));
@@ -151,10 +168,25 @@ function wechatTransactions(records: WechatPayTransaction[]) {
       amount: record.direction === 'expense' ? -record.amountCents : record.amountCents,
       category: categoryLabels[record.category] || '其他',
       occurredAt: record.occurredAt.slice(0, 10),
-      kind: record.category === 'transfer' ? 'transfer' : record.direction === 'income' ? 'income' : 'payment',
+      kind: record.category === 'refund' ? 'refund'
+        : record.category === 'transfer' ? 'transfer'
+          : record.direction === 'income' ? 'income' : 'payment',
       ...(record.linkedId && !isInvalidLegacyLink ? { linkedId: record.linkedId.slice(0, 100) } : {}),
     };
   });
+  return {
+    transactions,
+    transactionCoverage: {
+      total: records.length,
+      returned: transactions.length,
+      invalid: records.length - valid.length,
+      complete: valid.length <= TRANSACTION_RESPONSE_LIMIT && valid.length === records.length,
+      ...(transactions.length ? {
+        from: transactions.at(-1)?.occurredAt,
+        to: transactions[0]?.occurredAt,
+      } : {}),
+    },
+  };
 }
 
 export async function loadFinancialSource(
@@ -168,12 +200,14 @@ export async function loadFinancialSource(
   if (provider === 'alipay') {
     const state = dependencies.readAlipay();
     const balance = nonNegativeCents(state.balance.total);
+    const transactionData = scopes.includes('transactions') ? alipayTransactions(state.transferRecords) : undefined;
     return {
       status: 'granted' as const,
       source: {
         provider, displayName: '支付宝', accountMasked: '叶先生', syncedAt: dependencies.nowIso(),
         ...(scopes.includes('balance') && balance !== undefined ? { balance } : {}),
-        transactions: scopes.includes('transactions') ? alipayTransactions(state.transferRecords) : [],
+        transactions: transactionData?.transactions || [],
+        ...(transactionData ? { transactionCoverage: transactionData.transactionCoverage } : {}),
         ...(scopes.includes('autopay') ? autopays(state.subscriptions) : { autopays: [] }),
         ...(scopes.includes('autopay') ? { cancelledAutopayIds: cancelledAutopayIds(state.subscriptions) } : {}),
       },
@@ -183,13 +217,15 @@ export async function loadFinancialSource(
   const state = dependencies.readWechatPay();
   const wallet = dependencies.readWechatWallet();
   const ledger = scopes.includes('transactions') ? await dependencies.readWechatLedger() : [];
+  const transactionData = scopes.includes('transactions') ? wechatTransactions(ledger) : undefined;
   return {
     status: 'granted' as const,
     source: {
       provider, displayName: '微信支付', accountMasked: '叶先生', syncedAt: dependencies.nowIso(),
       ...(scopes.includes('balance') && Number.isSafeInteger(wallet.balanceCents) && wallet.balanceCents >= 0
         ? { balance: wallet.balanceCents } : {}),
-      transactions: scopes.includes('transactions') ? wechatTransactions(ledger) : [],
+      transactions: transactionData?.transactions || [],
+      ...(transactionData ? { transactionCoverage: transactionData.transactionCoverage } : {}),
       ...(scopes.includes('autopay') ? autopays(state.subscriptions) : { autopays: [] }),
       ...(scopes.includes('autopay') ? { cancelledAutopayIds: cancelledAutopayIds(state.subscriptions) } : {}),
     },

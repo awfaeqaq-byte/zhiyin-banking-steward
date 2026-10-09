@@ -4,8 +4,17 @@ import App from "./App";
 import "./index.css";
 import "./motion.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+// This bundle belongs to the Zhiyin app inside MobileGym. Do not expose a
+// second, standalone banking website outside the phone session.
+const inPhone = window.parent !== window
+  && new URLSearchParams(window.location.search).get("phone") === "mobilegym";
+
+if (inPhone) {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+} else {
+  document.body.textContent = "请通过 MobileGym 手机中的知银 App 打开。";
+}

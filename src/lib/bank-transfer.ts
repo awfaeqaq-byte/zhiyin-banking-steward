@@ -33,19 +33,25 @@ export function transferImpact(s:BankSnapshot,intent:TransferIntent,excludeId?:s
 export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number;impact?:TransferImpact};
 export type BankReceipt=TransferIntent & {id:string;completedAt:number;balanceAfter:number};
 export type BankControls={overseas:boolean;contactless:boolean;night:boolean};
-export type BankPayment={id:string;channel:'wechat'|'alipay';amount:number;merchant:string};
+export const cardProducts=[
+ {id:'standard-debit',name:'标准借记卡',annualFee:0,benefit:'日常转账与支付',condition:'持有演示沙箱账户',materials:'无需提交真实身份资料'},
+ {id:'safety-debit',name:'安心借记卡',annualFee:0,benefit:'默认开启夜间保护',condition:'持有演示沙箱账户',materials:'无需提交真实身份资料'},
+] as const;
+export type CardApplication={id:string;productId:string;createdAt:number;status:'submitted'};
+export type BankPayment={id:string;channel:'wechat'|'alipay'|'overseas';amount:number;merchant:string};
 export type BankPaymentReceipt=BankPayment & {completedAt:number;balanceAfter:number;refundedAt?:number;refundBalanceAfter?:number};
-export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[]};
+export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[];cardApplications?:CardApplication[]};
 export function validBankPayment(value:unknown):value is BankPayment {
  if(!value || typeof value!=='object')return false;
  const p=value as BankPayment;
- return typeof p.id==='string' && /^[\w:-]{1,180}$/.test(p.id) && ['wechat','alipay'].includes(p.channel) && Number.isSafeInteger(p.amount) && p.amount>0 && typeof p.merchant==='string' && p.merchant.trim().length>0 && p.merchant.length<=100;
+ return typeof p.id==='string' && /^[\w:-]{1,180}$/.test(p.id) && ['wechat','alipay','overseas'].includes(p.channel) && Number.isSafeInteger(p.amount) && p.amount>0 && typeof p.merchant==='string' && p.merchant.trim().length>0 && p.merchant.length<=100;
 }
 export type BankSettings={revision:number;limit?:number;frozen?:boolean;controls?:BankControls};
 export function validBankSnapshot(v:unknown):v is BankSnapshot {
  if(!v || typeof v!=='object')return false;
  const s=v as BankSnapshot;
- if(s.payments!==undefined && (!Array.isArray(s.payments) || !s.payments.every(p=>validBankPayment(p) && Number.isFinite(p.completedAt) && Number.isSafeInteger(p.balanceAfter) && (p.refundedAt===undefined || (Number.isFinite(p.refundedAt) && Number.isSafeInteger(p.refundBalanceAfter))))))return false;
+  if(s.payments!==undefined && (!Array.isArray(s.payments) || !s.payments.every(p=>validBankPayment(p) && Number.isFinite(p.completedAt) && Number.isSafeInteger(p.balanceAfter) && (p.refundedAt===undefined || (Number.isFinite(p.refundedAt) && Number.isSafeInteger(p.refundBalanceAfter))))))return false;
+  if(s.cardApplications!==undefined && (!Array.isArray(s.cardApplications)||!s.cardApplications.every(item=>typeof item.id==='string'&&/^[\w-]{1,80}$/.test(item.id)&&cardProducts.some(product=>product.id===item.productId)&&Number.isFinite(item.createdAt)&&item.status==='submitted')))return false;
  return Number.isSafeInteger(s.revision) && s.revision>=0 && Number.isSafeInteger(s.balance) && s.balance>=0 && Number.isSafeInteger(s.limit) && s.limit>=10000 && s.limit<=5000000 && typeof s.frozen==='boolean' && !!s.controls && ['overseas','contactless','night'].every(k=>typeof s.controls[k as keyof BankControls]==='boolean') && Array.isArray(s.transactions) && s.transactions.every(r=>validTransfer(r) && typeof r.id==='string' && Number.isFinite(r.completedAt) && Number.isSafeInteger(r.balanceAfter));
 }
 export function validTransfer(value:unknown):value is TransferIntent {
