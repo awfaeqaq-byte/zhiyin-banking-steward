@@ -10,6 +10,7 @@ coverage/
 *.local.json
 *.local.json.tmp
 *.local.json.lock
+*.local.json.reset-*.bak
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts

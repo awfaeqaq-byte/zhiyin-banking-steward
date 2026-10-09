@@ -58,7 +58,7 @@ function writeNamespaceToWindowName(ns: string): void {
 
 function safeGetEnvMode(): string | null {
   try {
-    const raw = (import.meta as any)?.env?.VITE_STORAGE_ISOLATION_MODE;
+    const raw = (import.meta as ImportMeta & { env?: { VITE_STORAGE_ISOLATION_MODE?: unknown } }).env?.VITE_STORAGE_ISOLATION_MODE;
     return typeof raw === 'string' ? raw : null;
   } catch {
     return null;
@@ -216,7 +216,9 @@ export function installLocalStorageNamespacing(): { mode: StorageIsolationMode; 
 
   if (mode === 'off' || !namespace) return { mode, namespace };
 
-  const proto = Storage.prototype as any;
+  const proto = Storage.prototype as Storage & {
+    [PATCH_MARK]?: { installedAt: number; namespace: string; mode: StorageIsolationMode; originalMethods: OriginStorageMethods };
+  };
   if (proto[PATCH_MARK]) return { mode, namespace };
 
   const originalGetItem = proto.getItem;

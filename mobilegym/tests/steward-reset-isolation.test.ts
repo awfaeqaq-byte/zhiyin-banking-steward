@@ -84,4 +84,17 @@ describe('重置知银内嵌页面，不清错沙箱隔离存储', () => {
     await expect(resetSteward({ stop: vi.fn(), request })).rejects.toThrow('忙碌');
     expect(readOrigin(conversationKey)).toBe(oldMessages);
   });
+
+  it('热更新还留着旧隔离补丁时要求刷新，不向错误 scope 发出重置请求', async () => {
+    Object.defineProperty(Storage.prototype, '__MG_LOCALSTORAGE_NS_PATCH__', {
+      configurable: true, value: { namespace: 'legacy' },
+    });
+    writeOrigin(conversationKey, oldMessages);
+    const { resetSteward } = await import('../sandbox/steward-reset');
+    const request = vi.fn<typeof fetch>(), stop = vi.fn();
+    await expect(resetSteward({ request, stop })).rejects.toThrow('请先刷新整个沙箱页面');
+    expect(request).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+    expect(readOrigin(conversationKey)).toBe(oldMessages);
+  });
 });

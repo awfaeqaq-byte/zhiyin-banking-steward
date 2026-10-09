@@ -49,6 +49,11 @@ Open **知银管家 → 重置宁宁** in the console. The first click only show
 the boundary; **确认重置** performs the reset, and **取消** leaves data unchanged.
 The old Zhiyin app is closed before resetting to stop its pending reply UI.
 Reopen Zhiyin afterward to start a clean conversation.
+The reset reads the embedded Zhiyin app's unprefixed origin storage, including
+its existing backend scope, even if the app is not open. MobileGym's tab/load
+namespace is left intact. After updating an already-open sandbox, reload the
+whole page before resetting; a legacy storage patch fails safely and asks for
+a reload instead of reporting a reset against the wrong scope.
 
 - Clears this browser's Zhiyin conversation, task workspaces, AA notebooks and
   drafts, bill presentation state, and subscription review preferences.
