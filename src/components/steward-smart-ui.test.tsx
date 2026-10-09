@@ -1,0 +1,45 @@
+import {render,screen,waitFor,within} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {expect,it,vi} from 'vitest';
+import {StewardChatHome} from './steward-chat-home';
+import type {ConnectedFinancialSource} from '../lib/financial-connections';
+import type {StewardReplyFn} from '../lib/steward-chat';
+
+const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
+const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
+it('模型遗漏入口仍展示账单读取现场，完成双边授权后自动继续原问题',async()=>{
+ const user=userEvent.setup(),connect=vi.fn(async()=>source),open=vi.fn();
+ const reply=vi.fn<StewardReplyFn>(async request=>({text:request.billAnalysis?.count?'餐饮是这段支出的主要部分。':'需要你确认账单读取范围。'}));
+ render(<StewardChatHome {...base} connections={{}} reply={reply} onConnectSource={connect} onOpenConnections={open}/>);
+ await user.type(screen.getByRole('textbox'),'看看8月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const consent=await screen.findByRole('region',{name:'账单读取范围'});
+ expect(connect).not.toHaveBeenCalled();expect(open).not.toHaveBeenCalled();
+ await user.click(within(consent).getByRole('checkbox',{name:'支付宝'}));
+ await user.click(within(consent).getByRole('button',{name:'继续到平台确认'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ expect(reply.mock.calls[1][0].billAnalysis).toMatchObject({from:'2026-08-01',to:'2026-08-31',sources:['微信支付']});
+ expect(screen.queryByRole('region',{name:'账单读取范围'})).not.toBeInTheDocument();
+ expect(await screen.findByRole('region',{name:'账单工作区'})).toHaveTextContent('2026-08-01');
+});
+it('就地交互把选中的实际交易传给模型，续聊后只有一份可操作账单',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async request=>({text:request.billFocus?'这笔午餐可以先核对是否为预期消费。':'先看餐饮。',billUI:{sections:['overview','categories'],evidenceRefs:[]}}));
+ render(<StewardChatHome {...base} connections={{wechat_pay:source}} reply={reply} onConnectSource={vi.fn()}/>);
+ await user.type(screen.getByRole('textbox'),'帮我看看这个月的支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const scene=await screen.findByRole('region',{name:'账单工作区'});
+ await user.click(within(scene).getByRole('button',{name:/查看餐饮交易/}));
+ await user.click(within(scene).getByRole('button',{name:/请宁宁解释午餐/}));
+ await screen.findByText('这笔午餐可以先核对是否为预期消费。');
+ expect(reply.mock.calls[1][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
+ expect(screen.getAllByRole('region',{name:'账单工作区'})).toHaveLength(1);
+ expect(screen.getByRole('region',{name:'账单工作区'})).toBe(scene);
+});
+it('刷新恢复展示意图但不自动授权或自动发送，撤回授权后隐藏金额',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'先看餐饮。'})),connect=vi.fn();
+ const props={...base,connections:{wechat_pay:source},reply,onConnectSource:connect};
+ const view=render(<StewardChatHome {...props}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));await screen.findByRole('region',{name:'账单工作区'});
+ view.unmount();reply.mockClear();
+ render(<StewardChatHome {...props} connections={{}}/>);
+ expect(screen.getByRole('region',{name:'账单工作区'})).toHaveTextContent('需要账单读取授权');
+ expect(screen.queryByText('¥25')).not.toBeInTheDocument();expect(reply).not.toHaveBeenCalled();expect(connect).not.toHaveBeenCalled();
+});
