@@ -233,6 +233,8 @@ export function StewardChatHome({
   const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?(messages.at(-1)?.action?.type==='open_connections'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
   const [billScenes,setBillScenes]=useState<Record<string,BillScene>>(()=>seamless?restoreBillScenes(localStorage.getItem('zhiyin-bill-scenes-v1')):{});
+  const liveBillScenes=useRef(billScenes);liveBillScenes.current=billScenes;
+  const liveWorkspaceId=useRef(workspace?.id);liveWorkspaceId.current=workspace?.id;
   const [billConnections,setBillConnections]=useState(connections);
   const confirmedBill=useRef<{taskId:string;sources:typeof connections}>();
   const [billDataError,setBillDataError]=useState('');
@@ -540,6 +542,10 @@ export function StewardChatHome({
   }
   async function continueAuthorizedBill(scene:BillScene,updated:typeof connections,selected:ExternalFinancialProvider[]) {
     setBillConnections(updated);
+    const current=liveBillScenes.current[scene.key];
+    if(!current||current.question!==scene.question||current.provider!==scene.provider||(workspace!==undefined&&liveWorkspaceId.current!==scene.key)) {
+      throw new Error('查询范围已变化，平台确认已返回，但没有继续旧查询。请按当前范围继续。');
+    }
     confirmedBill.current={taskId:scene.key,sources:updated};
     setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:false,provider:undefined}}));
     if(scene.question)await sendPrompt(billScopeQuestion(scene.question,selected.length===1?selected[0]:undefined),true,false,updated,false,{taskId:scene.key});
