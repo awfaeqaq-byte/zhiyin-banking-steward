@@ -112,10 +112,15 @@ type Props = {
 const storageKey = "zhiyin-steward-chat-v3";
 const conversationKey = "zhiyin-steward-conversation-v1";
 
+function readOnlyEntry(action?: StewardAction): StewardAction | undefined {
+  if(action?.type!=='open_connections')return undefined;
+  if(action.provider!==undefined&&!['wechat_pay','alipay'].includes(action.provider))return undefined;
+  return {type:'open_connections',...(action.provider?{provider:action.provider}:{})};
+}
 function readMessages(key=storageKey): DisplayMessage[] {
   try {
     const value = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value.filter(m=>m&&typeof m.id==='string'&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-30).map(m=>({id:m.id,role:m.role,content:m.content})) : [];
+    return Array.isArray(value) ? value.filter(m=>m&&typeof m.id==='string'&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-30).map(m=>({id:m.id,role:m.role,content:m.content,...(m.role==='assistant'?{action:readOnlyEntry(m.action)}:{})})) : [];
   } catch {
     return [];
   }
@@ -123,8 +128,8 @@ function readMessages(key=storageKey): DisplayMessage[] {
 
 function writeMessages(messages: DisplayMessage[],key=storageKey) {
   try {
-    // Restored conversation is history, never a restored execution/authorization control.
-    localStorage.setItem(key, JSON.stringify(messages.slice(-30).map(({id,role,content})=>({id,role,content}))));
+    // Only read-only navigation can survive a return. Financial controls never do.
+    localStorage.setItem(key, JSON.stringify(messages.slice(-30).map(({id,role,content,action})=>({id,role,content,...(role==='assistant'?{action:readOnlyEntry(action)}:{})}))));
   } catch {
     // Conversation persistence is optional in restricted browser contexts.
   }
@@ -219,7 +224,7 @@ export function StewardChatHome({
   const [error, setError] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?null:workspace?.messages.at(-1)?.id || null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?(messages.at(-1)?.action?.type==='open_connections'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
   useEffect(()=>{
     if(!bankReceipt)return;

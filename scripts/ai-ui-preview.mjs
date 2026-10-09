@@ -30,10 +30,12 @@ const middleware={name:'isolated-ui-preview',enforce:'pre',configureServer(serve
   else if(path.endsWith('/steward-reply')){
     const text=body.input.at(-1).content;
     if(body.instructions.includes('任务分流器')){
-      const parts=text.split('，').map(text=>{const kind=/饮料|午餐|AA/.test(text)?'aa':/生日|蛋糕|鲜花|预算/.test(text)?'occasion':'general';const task=tasks.items.find(w=>w.kind===kind);return {taskId:task?.id??null,kind,title:task?.title??'日常交代',text};});
+      const parts=text.split('，').map(text=>{const kind=/饮料|午餐|AA/.test(text)?'aa':/生日|蛋糕|鲜花|预算/.test(text)?'occasion':/账单|支出|授权/.test(text)?'bills':'general';const task=tasks.items.find(w=>w.kind===kind);return {taskId:task?.id??null,kind,title:task?.title??(kind==='bills'?'本月账单':'日常交代'),text};});
       result={output_text:JSON.stringify({parts})};
     }else if(body.instructions.includes('持续记录零散消费'))result={output_text:JSON.stringify({action:'add',entry:{title:'饮料',amount:1800,payerId:'me',fixed:[],shares:group.members.map(m=>({memberId:m.id,weight:1}))}})};
     else if(body.instructions.includes('patch'))result={output_text:JSON.stringify({text:'我先按低甜蛋糕和鲜花整理。定好送达时间后，再补收货信息。',patch:{recipient:'爱人',productIds:['cake-light','flowers-roses']},questions:[]})};
+    else if(text==='？')result={output_text:'你刚才是想查看本月支出，我接着帮你核对微信账单的只读授权。[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]'};
+    else if(body.instructions.includes('授权账单分析'))result={output_text:'先连接微信或支付宝的账单，就能继续看本月支出。授权范围由你决定。[ZHIYIN_ACTION:OPEN_CONNECTIONS]'};
     else result={output_text:'我在，想让我安排什么，直接告诉我就好。'};
   }
   else if(path.endsWith('/memory'))result=emptyMemory();
