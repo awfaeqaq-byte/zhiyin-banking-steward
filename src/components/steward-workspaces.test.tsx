@@ -81,21 +81,19 @@ it('平台确认后直接继续原账单任务，不重新分类或重复用户�
  await say('本月支出');await screen.findByRole('region',{name:'账单读取范围'});
  await waitFor(()=>expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeEnabled());
  await user.click(screen.getByRole('checkbox',{name:'支付宝'}));await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
- await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(route).toHaveBeenCalledTimes(1);
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(1));expect(route).toHaveBeenCalledTimes(1);
  expect(screen.getAllByText('本月支出',{selector:'.steward-message.user p'})).toHaveLength(1);
 });
 
-it('新建后台任务也保留最近对话的理解线索，但不混入任务执行历史',async()=>{
+it('查账授权续答不会被错误分流成新的闲聊，后台保留同一任务现场',async()=>{
   server();
   const reply=vi.fn< (request:StewardReplyRequest)=>Promise<{text:string}> >(async request=>({text:request.messages.at(-1)!.content==='看看这个月的支出'?'需要先授权微信账单。':'接着核对微信授权。'}));
   const route=vi.fn<typeof routeWorkspacePrompt>(async(text:string)=>({parts:[{taskId:null,kind:'general' as const,title:'新事项',text}]}));
   render(<StewardWorkspaces {...props} reply={reply} route={route}/>);
-  await say('看看这个月的支出');await screen.findByText('需要先授权微信账单。');
-  await say('授权一下微信吧');await screen.findByText('接着核对微信授权。');
-  expect(reply.mock.calls[1][0]).toMatchObject({recentConversation:expect.arrayContaining([{role:'assistant',content:'需要先授权微信账单。'}])});
-  expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'授权一下微信吧'}]);
-  expect(route.mock.calls[1]).toHaveLength(5);
-  expect(route.mock.calls[1][4]).toEqual(expect.arrayContaining([{role:'assistant',content:'需要先授权微信账单。'}]));
+  await say('看看这个月的支出');await screen.findByText('先选这次要看的账单来源，确认读取范围后我接着分析。');
+  await say('授权一下微信吧');await screen.findByText('范围记下了，确认账单读取授权后，我接着分析。');
+  expect(reply).not.toHaveBeenCalled();expect(route).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByText('看看这个月的支出')).toHaveLength(1);
 });
 
 it('首页只有一个对话入口，后台自动拆分并连续处理，不要求用户切任务',async()=>{

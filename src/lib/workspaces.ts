@@ -1,3 +1,4 @@
+import {validTaskProgress,type TaskProgress} from './task-progress-schema';
 /** Conversation workspaces are not payment records or execution permissions. */
 export const workspaceKinds = [
   "general",
@@ -34,6 +35,7 @@ export type Workspace = {
   summary: string;
   memoryRevision: number;
   expenseBookId?: string;
+  progress?: TaskProgress;
   pending?: { token: string; text: string }[];
 };
 export type WorkspaceState = {
@@ -44,6 +46,7 @@ export type WorkspaceState = {
 };
 export type WorkspaceOperation =
   | { type: "create"; id: string; title: string; kind: WorkspaceKind }
+  | {type:'progress';id:string;progress:TaskProgress;memoryRevision:number;kind?:'bills'}
   | {
       type: "turn";
       id: string;
@@ -51,6 +54,7 @@ export type WorkspaceOperation =
       assistant: string;
       memoryRevision: number;
       token?: string;
+      progress?:TaskProgress;
     }
   | { type: "enqueue"; id: string; text: string; token: string }
   | { type: "discard"; id: string; token: string }
@@ -98,6 +102,7 @@ export function validWorkspaces(value: unknown): value is WorkspaceState {
         Number.isSafeInteger(w.memoryRevision) &&
         typeof w.summary === "string" &&
         w.summary.length <= 6000 &&
+        (!w.progress || validTaskProgress(w.progress)) &&
         (!w.expenseBookId || idOk(w.expenseBookId)) &&
         (!w.pending ||
           (Array.isArray(w.pending) &&
@@ -158,7 +163,14 @@ export function changeWorkspaces(
     });
   } else {
     if (!current) throw new Error("任务不存在");
-    if (command.type === "status") {
+    if(command.type==='progress') {
+      if(current.status!=='active'||!validTaskProgress(command.progress)||!Number.isSafeInteger(command.memoryRevision)||command.memoryRevision<0
+        ||command.kind!==undefined&&(command.kind!=='bills'||!['general','bills'].includes(current.kind)||!command.progress.bill))throw new Error('任务现场无效，未更改记录');
+      if(current.memoryRevision!==command.memoryRevision)current.summary='';
+      current.memoryRevision=command.memoryRevision;
+      current.progress=structuredClone(command.progress);
+      if(command.kind)current.kind=command.kind;
+    }else if (command.type === "status") {
       if (!["active", "archived"].includes(command.status))
         throw new Error("任务状态无效");
       current.status = command.status;
@@ -191,9 +203,13 @@ export function changeWorkspaces(
         command.memoryRevision < 0
       )
         throw new Error("记忆版本无效");
-      if (current.memoryRevision !== command.memoryRevision)
+      if(command.progress!==undefined&&!validTaskProgress(command.progress))throw new Error('任务现场无效');
+      if (current.memoryRevision !== command.memoryRevision){
         current.summary = "";
+        delete current.progress;
+      }
       current.memoryRevision = command.memoryRevision;
+      if(command.progress)current.progress=structuredClone(command.progress);
       current.messages.push(
         {
           id: `${command.requestId}-u`,

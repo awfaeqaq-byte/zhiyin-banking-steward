@@ -48,7 +48,7 @@ function billPeriod(question: string, now: number) {
     to = day(midnight(from) - dayMs);
     from = `${to.slice(0,7)}-01`;
   } else if (/最近|近[七三一\d]|这[七三一\d]/.test(question)) {
-    const count = /30|三十/.test(question) ? 30 : /7|七|一周/.test(question) ? 7 : 0;
+    const count = /30|三十|(?:就?近|最近)\s*(?:一|1|个)?个?月/.test(question) ? 30 : /7|七|一周/.test(question) ? 7 : 0;
     if (count) from = day(midnight(today) - (count - 1) * dayMs);
     else needsClarification = true;
   } else if (explicit) {

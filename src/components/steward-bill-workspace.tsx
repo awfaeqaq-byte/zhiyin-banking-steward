@@ -22,6 +22,7 @@ export function InlineBillConsent({provider,connections,onConnect,onComplete,dis
   const lock=useRef(false);
   const mounted=useRef(true);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+  useEffect(()=>{if(!lock.current)setSelected(provider?[provider]:providers.map(p=>p.id));},[provider]);
   const allGranted=selected.length>0&&selected.every(p=>(completed.current[p]||connections[p])?.scopes.includes('transactions'));
   async function confirm() {
     if(lock.current||disabled||!selected.length)return;

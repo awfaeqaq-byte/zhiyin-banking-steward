@@ -7,6 +7,7 @@ import {
 } from "./workspaces";
 import { conversationContext } from './conversation-context';
 import type { StewardChatMessage } from './steward-chat';
+import {clearBillIntent,readTaskProgress,taskContinuation} from './task-progress';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -58,11 +59,17 @@ export async function routeWorkspacePrompt(
   recent: StewardChatMessage[] = [],
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
+  const continuation=taskContinuation(prompt,tasks,currentId);
+  if(continuation)return continuation;
+  if(clearBillIntent(prompt)) {
+    const existing=current&&(current.kind==='bills'||current.kind==='general'&&readTaskProgress(current).bill)?current:undefined;
+    return {parts:[{taskId:existing?.id||null,kind:existing?.kind||'bills' as const,title:existing?.title||'支出分析',text:prompt}]};
+  }
   // A punctuation-only objection refers to the ongoing exchange, not a new task.
   if(current && /^[？?]+$/.test(prompt.trim()))return {parts:[{taskId:current.id,kind:current.kind,title:current.title,text:prompt}]};
   const index = tasks
     .filter((t) => t.status === "active")
-    .map((t) => ({ id: t.id, kind: t.kind, title: t.title, lastInstruction:[...t.messages].reverse().find(m=>m.role==='user')?.content.slice(0,300), lastReply:[...t.messages].reverse().find(m=>m.role==='assistant')?.content.slice(0,300), pending:t.pending?.map(p=>p.text.slice(0,300)) }));
+    .map((t) => ({ id: t.id, kind: t.kind, title: t.title, progress:readTaskProgress(t),lastInstruction:[...t.messages].reverse().find(m=>m.role==='user')?.content.slice(0,300), lastReply:[...t.messages].reverse().find(m=>m.role==='assistant')?.content.slice(0,300), pending:t.pending?.map(p=>p.text.slice(0,300)) }));
   const indexText = JSON.stringify(index);
   const input = Array.from(
     { length: Math.ceil(indexText.length / 1500) },

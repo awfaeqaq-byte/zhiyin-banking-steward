@@ -3,6 +3,7 @@ import { StewardChatHome } from "./steward-chat-home";
 import { emptyWorkspaces, type WorkspaceOperation } from "../lib/workspaces";
 import { workspaceRequest, routeWorkspacePrompt } from "../lib/workspace-service";
 import "./steward-workspaces.css";
+import {advanceTaskProgress,clearBillIntent,readTaskProgress,taskContinuation,type TaskProgress} from '../lib/task-progress';
 import type {StewardChatMessage} from '../lib/steward-chat';
 
 type Props = ComponentProps<typeof StewardChatHome> & { route?: typeof routeWorkspacePrompt };
@@ -58,18 +59,25 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
         clarify.current=""; say("好，刚才的请求没有执行。"); return;
       }
       const revision=props.memory?.current.current.revision??0;
-      const routingTasks=latest.items.map(task=>({...task,messages:task.messages.filter(message=>message.memoryRevision===revision)}));
-      const known=knownBillTaskId?routingTasks.find(task=>task.id===knownBillTaskId&&task.status==='active'&&task.kind==='bills'):undefined;
+      const routingTasks=latest.items.map(task=>({...task,progress:task.memoryRevision===revision?task.progress:undefined,memoryRevision:revision,messages:task.messages.filter(message=>message.memoryRevision===revision)}));
+      const known=knownBillTaskId?routingTasks.find(task=>task.id===knownBillTaskId&&task.status==='active'&&(task.kind==='bills'||task.kind==='general'&&readTaskProgress(task).bill)):undefined;
       if(knownBillTaskId&&!known)throw new Error('这份账单任务已变化，请重新交代需要查看的范围');
       // A control on an existing bill scene already identifies the task. Never reclassify it.
-      const result = known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text}]}:await route(source,routingTasks,work?.id || "","",recent);
+      const result = known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text}]}:(!clarify.current?taskContinuation(text,routingTasks,work?.id||''):null)||await route(source,routingTasks,work?.id || "","",recent);
       if(result.clarification) { clarify.current=source; say(result.clarification); return; }
       if(!result.parts.length) throw new Error("还没理解清楚你的意思，可以再说具体一点吗？");
       clarify.current="";
       const items:Queued[]=[];
       for(const part of result.parts) {
         const id=part.taskId || crypto.randomUUID();
-        if(!part.taskId) await save({type:"create",id,title:part.title,kind:part.kind});
+        const original=routingTasks.find(task=>task.id===id);
+        const kind=part.kind==='general'&&clearBillIntent(part.text)?'bills':part.kind;
+        let saved=latest;
+        if(!part.taskId)saved=await save({type:"create",id,title:part.title,kind});
+        const task=original||saved.items.find(task=>task.id===id)!;
+        const progress=advanceTaskProgress(task,part.text);
+        const repair=(task.kind==='general'&&progress.bill)?{kind:'bills' as const}:{};
+        await save({type:'progress',id,progress,memoryRevision:revision,...repair});
         // Repeating an interrupted instruction resumes its token instead of adding duplicate pending work.
         const token=latest.items.find(w=>w.id===id)?.pending?.find(p=>p.text===part.text)?.token || crypto.randomUUID();
         await save({type:"enqueue",id,token,text:part.text});
@@ -84,11 +92,11 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       if(!executing.current) {lock.current=false;setBusy(false);}
     }
   }
-  async function completed(user:string,assistant:string,revision:number,failed:boolean) {
+  async function completed(user:string,assistant:string,revision:number,failed:boolean,progress?:TaskProgress) {
     const owner=executing.current;
     if(!owner)return;
     try {
-      await save({type:"turn",id:owner.id,user,assistant,memoryRevision:revision,...(!failed?{token:owner.token}:{})});
+      await save({type:"turn",id:owner.id,user,assistant,memoryRevision:revision,...(progress?{progress}:{}),...(!failed?{token:owner.token}:{})});
       executing.current=undefined; setInjected(undefined);
       if(failed) {
         if(queue.current.length) say("这一项没能完成，后面的交代暂未处理。需要时直接告诉我继续哪件事。");

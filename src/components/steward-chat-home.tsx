@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, type BillAnalysis } from '../lib/bill-analysis';
+import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
 import { StewardReplyContent } from './steward-reply';
 import {TransferFollowUp} from './transfer-follow-up';
 import {TaskDueNotice} from './task-due-notice';
@@ -42,6 +43,7 @@ import {
   type StewardAction,
   type StewardChatMessage,
   type StewardReplyFn,
+  type StewardReply,
   type StewardSubscription,
 } from "../lib/steward-chat";
 import "./steward-chat-home.css";
@@ -82,7 +84,7 @@ type Props = {
   onRoutePrompt?: (text:string,recent?:StewardChatMessage[],knownBillTaskId?:string)=>Promise<void>;
   externalBusy?: boolean;
   injectedPrompt?: {token:string;text:string};
-  onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean)=>Promise<void>;
+  onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean,progress?:TaskProgress)=>Promise<void>;
   onWorkspaceBook?: (id:string)=>Promise<void>;
   memory?: StewardMemoryController;
   stewardName: string;
@@ -232,6 +234,7 @@ export function StewardChatHome({
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
   const [billScenes,setBillScenes]=useState<Record<string,BillScene>>(()=>seamless?restoreBillScenes(localStorage.getItem('zhiyin-bill-scenes-v1')):{});
   const [billConnections,setBillConnections]=useState(connections);
+  const confirmedBill=useRef<{taskId:string;sources:typeof connections}>();
   const [billDataError,setBillDataError]=useState('');
   const restoringBill=useRef(Object.keys(billScenes).length>0);
   const [revalidatingBill,setRevalidatingBill]=useState(restoringBill.current&&Boolean(refreshSubscriptions));
@@ -365,6 +368,7 @@ export function StewardChatHome({
     }return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
+    let progress=workspace?readTaskProgress(workspace):undefined;
     const userMessage: DisplayMessage = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -388,6 +392,7 @@ export function StewardChatHome({
       const remembered=memory ? await memory.refresh() : null;
       if(epoch!==contextEpoch.current)throw new Error('记忆已更新，本轮上下文已重置，请重新发送。');
       usedRevision=remembered?.revision || 0;
+      if(workspace&&workspace.memoryRevision!==usedRevision)progress=undefined;
       if(seamless&&workspace!==undefined){
         const scoped=workspace?.messages.filter(m=>m.memoryRevision===usedRevision) || [];
         requestMessages.splice(0,requestMessages.length,...[...scoped,userMessage].slice(-24).map(({role,content})=>({role,content})));
@@ -402,7 +407,9 @@ export function StewardChatHome({
       if (snapshot?.error && !bankOnly && !isTaskRequest(requestMessages) && !isOccasionRequest(requestMessages) && workspace?.kind!=='occasion') throw new Error(snapshot.error);
       const backgroundUnavailable=Boolean(snapshot?.error || (!snapshot && refreshError));
       const latestConnections = backgroundUnavailable?{}:snapshot?.connections || connections;
-      const currentConnections=grantedConnections||latestConnections;
+      const confirmed=confirmedBill.current&&confirmedBill.current.taskId===workspace?.id?confirmedBill.current.sources:undefined;
+      if(confirmed)confirmedBill.current=undefined;
+      const currentConnections=grantedConnections||confirmed||latestConnections;
       setBillConnections(currentConnections);setBillDataError('');
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
       const latestInsights = buildSubscriptionInsights(latestConnections, latestTime, duplicatePreferences);
@@ -420,7 +427,7 @@ export function StewardChatHome({
         .filter(item => recurringReviews[item.key] !== "dismissed")
         .map(item => ({ ...item, reviewStatus: recurringReviews[item.key] === "confirmed" ? "confirmed" as const : "pending" as const }));
       setRequestPhase('replying');
-      const billQuestion = billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
+      const billQuestion = progress?.bill?billTaskQuestion(progress):billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
       const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(currentConnections,billQuestion,billReferenceTime(currentConnections,latestTime)) : undefined;
       const selectedFocus=interaction.current?.value.focus||(/这笔|那笔|这个|那个|它/.test(prompt)?billScenes[workspace?.id||'bill']?.focus:undefined);
       const bankData=isBankRequest(requestMessages)||isTaskRequest(requestMessages)?await bankRequest().catch(()=>null):null;
@@ -429,7 +436,7 @@ export function StewardChatHome({
       const taskContext=tasks?`日程记录（最多20项，未列出不代表没有；时间为北京时间）：${JSON.stringify(taskEvents.filter(t=>t.status==='pending'||t.status==='failed').slice(0,20).map(t=>({title:t.title,time:localTaskTime(t.dueAt),kind:t.kind,status:t.status}))).slice(0,2200)}${!bankData?'；银行安排未能更新':''}${backgroundUnavailable?'；平台续费未能更新':''}`:'提醒数据未能读取，不能断言没有任务。';
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
-      const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+      const request = { stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         ...(seamless?{recentConversation:recentContext().filter((message,index,array)=>!(index===array.length-1&&message.role==='user'))}:{}),
         transferBackground,
         taskContext,
@@ -437,8 +444,17 @@ export function StewardChatHome({
         memoryContext:remembered?memoryContext(remembered,prompt):'',
         ...(billAnalysis ? {billAnalysis} : {}),
         ...(billAnalysis&&selectedFocus?{billFocus:selectedFocus}:{}),
+        ...(progress?{workspaceProgress:progress}:{}),
         duplicateGroups: latestGroups,
-        fundingForecast: buildFundingForecast(latestConnections, latestTime), messages: requestMessages });
+        fundingForecast: buildFundingForecast(latestConnections, latestTime), messages: requestMessages };
+      // Missing read-only scope/period is known state, not something the model must
+      // rediscover (or claim is granted). Data analysis still belongs to the model.
+      const response:StewardReply = progress?.bill&&billAnalysis?.needsClarification
+        ?{text:'想看哪段时间的支出？最近一个月可以按近30天整理。\n[[choices:最近30天|最近7天|本月]]'}
+        :progress?.bill&&billAnalysis&&!billAnalysis.sources.length
+        ?{text:progress.bill.provider?'范围记下了，确认账单读取授权后，我接着分析。':'先选这次要看的账单来源，确认读取范围后我接着分析。',action:{type:'open_connections' as const,...(progress.bill.provider&&progress.bill.provider!=='all'?{provider:progress.bill.provider}:{})}}
+        :await reply(request);
+      if(progress)progress=settleTaskProgress(progress,{bill:billAnalysis,waitingQuestion:response.waitingQuestion,needsAuthorization:response.action&&['prepare_transfer','prepare_aa','prepare_cancel','prepare_task','open_connections'].includes(response.action.type)});
       if(epoch!==contextEpoch.current || (remembered && memory && remembered.revision!==memory.current.current.revision))return;
       const impression=parseImpression(response.text,prompt);
       response.text=impression.text;
@@ -490,12 +506,13 @@ export function StewardChatHome({
       }
     } catch (cause) {
       outcome=cause instanceof Error ? cause.message : "宁宁暂时无法回复，请稍后重试。";failed=true;
+      if(progress)progress=settleTaskProgress(progress,{failed:true});
       setError(outcome);
       if(billQuestionForMessages(requestMessages)!==null)setBillDataError(outcome);
       // Failure invalidates an older actionable draft in this task, without authorizing anything.
       if(seamless)setMessages(current=>current.map(m=>m.workspaceId===workspace?.id?{...m,action:undefined}:m));
     } finally {
-      if(onTurnComplete)await onTurnComplete(prompt,outcome||'上下文已变化，本轮未完成。请重新发送。',usedRevision,failed||!outcome);
+      if(onTurnComplete)await onTurnComplete(prompt,outcome||'上下文已变化，本轮未完成。请重新发送。',usedRevision,failed||!outcome,progress);
       setSending(false);
     }
   }
@@ -520,6 +537,7 @@ export function StewardChatHome({
   }
   async function continueAuthorizedBill(scene:BillScene,updated:typeof connections) {
     setBillConnections(updated);
+    confirmedBill.current={taskId:scene.key,sources:updated};
     setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:false,provider:undefined}}));
     if(scene.question)await sendPrompt(scene.question,true,false,updated,false,{taskId:scene.key});
     else{

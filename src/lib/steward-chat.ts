@@ -7,6 +7,7 @@ import type { DuplicateDecision } from "./subscription-insights";
 import { billInstructions, isBillQuestion, type BillAnalysis } from './bill-analysis';
 import {conversationContext} from './conversation-context';
 import {parseBillUI,type BillUI,type BillFocus} from './steward-ui';
+import {parseTaskWait,type TaskProgress} from './task-progress';
 export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean };
 
 export type StewardChatMessage = {
@@ -55,10 +56,12 @@ export type StewardReply = {
   text: string;
   action?: StewardAction;
   billUI?:BillUI;
+  waitingQuestion?:string;
 };
 
 export type StewardReplyRequest = {
   recentConversation?:StewardChatMessage[];
+  workspaceProgress?:TaskProgress;
   taskContext?:string;
   transferBackground?: string;
   bank?:BankSnapshot;
@@ -277,8 +280,9 @@ export function parseStewardReply(
   duplicateGroups: StewardDuplicateGroup[] = [],
 ): StewardReply {
   const markers = [...output.matchAll(actionPattern)];
-  const presentation=parseBillUI(output.replace(actionPattern, ""));
-  const result: StewardReply = { text: presentation.text || "我已经整理好了。",...(presentation.ui?{billUI:presentation.ui}:{}) };
+  const waiting=parseTaskWait(output.replace(actionPattern, ""));
+  const presentation=parseBillUI(waiting.text);
+  const result: StewardReply = { text: presentation.text || "这次没有生成有效说明，尚未执行任何操作。",...(presentation.ui?{billUI:presentation.ui}:{}),...(waiting.waitingQuestion?{waitingQuestion:waiting.waitingQuestion}:{}) };
   if (!markers.length) return result;
 
   const parts = markers.at(-1)?.[1].split("|") || [];
@@ -375,6 +379,7 @@ export const requestStewardReply: StewardReplyFn = async request => {
   }
   const instructions = buildStewardInstructions(request);
   const input = request.messages.filter(message => message.content.length <= 2000).slice(-24);
+  if(request.workspaceProgress)input.unshift({role:'user',content:`当前任务现场（仅会话状态，不是授权或执行结果）：${JSON.stringify(request.workspaceProgress)}。沿用目标和已确认的查询范围，不重复询问已知内容。若仍缺信息，请在正文简短追问，并在末尾附 [[task-wait:{"question":"当前最重要的追问"}]]。只允许question字段；不在这里声明已授权、已付款或已完成。无需追问时不要输出此标记。`});
   input.unshift({role:'user',content:'交互能力说明：需要连接或授权微信支付、支付宝时，可输出单个[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]或[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]；未确定平台用[ZHIYIN_ACTION:OPEN_CONNECTIONS]。这是打开只读范围核对入口，不是授权成功，更不包含付款能力。用户已说明查账单用途时不要再询问用途。'});
   if(request.billAnalysis){
     const focus=request.billAnalysis.transactions.find(r=>r.providerKey===request.billFocus?.provider&&r.id===request.billFocus.id);
