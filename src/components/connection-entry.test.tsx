@@ -21,3 +21,14 @@ it('从查账单进入微信授权时默认只选账单，不直接调用连接�
   expect(screen.getByRole('checkbox',{name:/读取自动扣费/})).not.toBeChecked();
   expect(connect).not.toHaveBeenCalled();
 });
+
+it('重新开始上下文后仍保留界面历史，但近期理解线索不再携带旧话',async()=>{
+  const user=userEvent.setup(),reply=vi.fn(async()=>({text:'新的对话收到。'}));
+  localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'old',role:'assistant',content:'旧偏好不要再用'}]));
+  const route=vi.fn<(text:string,recent?:unknown)=>Promise<void>>(async()=>{});
+  render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply} onRoutePrompt={route}/>);
+  window.dispatchEvent(new Event('zhiyin-memory-context-reset'));
+  await user.type(screen.getByRole('textbox'),'你好');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+  expect(route.mock.calls[0][1]).toEqual([]);
+  expect(screen.getByText('旧偏好不要再用')).toBeInTheDocument();
+});

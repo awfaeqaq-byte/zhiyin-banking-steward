@@ -29,6 +29,12 @@ it('跨任务近期对话单独作为只读理解线索传入模型，不当成�
   expect(body.input.at(-1)).toEqual({role:'user',content:'？'});
 });
 
+it('账单提示允许打开只读授权核对，但仍禁止直接操作资金',()=>{
+  const instructions=buildStewardInstructions({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'这个月支出'}],billAnalysis:buildBillAnalysis({},'这个月支出')});
+  expect(instructions).toContain('OPEN_CONNECTIONS');
+  expect(instructions).not.toContain('本次只分析账单，不输出动作标记');
+});
+
 it('账单问题使用独立收支上下文而不是续费限定提示词',()=>{
   const instructions = buildStewardInstructions({stewardName:'宁宁',subscriptions:[],
     messages:[{role:'user',content:'这个月消费账单情况'}],

@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { DataConnections } from "./data-connections";
 
 describe("DataConnections", () => {
+  it('聊天指定的平台入口离开后不影响之后从设置正常进入',()=>{
+    const consumed=vi.fn();
+    render(<DataConnections initialProvider="alipay" onEntryConsumed={consumed} connections={{}} onConnect={vi.fn()} onDisconnect={vi.fn()}/>);
+    expect(screen.getByRole('dialog')).toHaveTextContent('连接支付宝');
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
   it("explains scopes before connecting and submits the selected scopes", async () => {
     const onConnect = vi.fn(async () => undefined);
     render(<DataConnections connections={{}} onConnect={onConnect} onDisconnect={vi.fn()} />);
