@@ -1,4 +1,4 @@
-import {render,screen,waitFor,within} from '@testing-library/react';
+import {act,render,screen,waitFor,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expect,it,vi} from 'vitest';
 import {StewardChatHome} from './steward-chat-home';
@@ -18,8 +18,31 @@ it('模型遗漏入口仍展示账单读取现场，完成双边授权后自动�
  await user.click(within(consent).getByRole('button',{name:'继续到平台确认'}));
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
  expect(reply.mock.calls[1][0].billAnalysis).toMatchObject({from:'2026-08-01',to:'2026-08-31',sources:['微信支付']});
+ expect(screen.getAllByText('看看8月支出',{selector:'.steward-message.user p'})).toHaveLength(1);
  expect(screen.queryByRole('region',{name:'账单读取范围'})).not.toBeInTheDocument();
  expect(await screen.findByRole('region',{name:'账单工作区'})).toHaveTextContent('2026-08-01');
+});
+it('刷新恢复的账单先重新核对平台，不把缓存金额当成最新结果',async()=>{
+ localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'bill-answer',role:'assistant',content:'上次的分析。'}]));
+ localStorage.setItem('zhiyin-bill-scenes-v1',JSON.stringify([{key:'bill',anchorId:'bill-answer',question:'本月支出'}]));
+ let resolve!:(value:{connections:{},error:string})=>void;
+ const refresh=vi.fn(()=>new Promise<{connections:{},error:string}>(done=>{resolve=done;}));
+ render(<StewardChatHome {...base} connections={{wechat_pay:source}} refreshSubscriptions={refresh} onConnectSource={vi.fn()}/>);
+ expect(screen.queryAllByText('¥25')).toHaveLength(0);
+ await act(async()=>{resolve({connections:{},error:'微信授权已失效'});});
+ expect(await screen.findByRole('alert')).toHaveTextContent('授权已失效');
+ expect(screen.queryAllByText('¥25')).toHaveLength(0);
+});
+it('点选交易后说这笔时沿用同一交易，而不是只记得一句无对象的提问',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'这笔可以核对。'}));
+ render(<StewardChatHome {...base} connections={{wechat_pay:source}} reply={reply} onConnectSource={vi.fn()}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ await user.click(within(await screen.findByRole('region',{name:'账单工作区'})).getByRole('button',{name:/查看餐饮交易/}));
+ await user.click(screen.getByRole('button',{name:/请宁宁解释午餐/}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ await user.type(screen.getByRole('textbox'),'这笔什么时候付的');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(3));
+ expect(reply.mock.calls[2][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
 });
 it('就地交互把选中的实际交易传给模型，续聊后只有一份可操作账单',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async request=>({text:request.billFocus?'这笔午餐可以先核对是否为预期消费。':'先看餐饮。',billUI:{sections:['overview','categories'],evidenceRefs:[]}}));

@@ -1,4 +1,4 @@
-import {render,screen,within} from '@testing-library/react';
+import {act,render,screen,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expect,it,vi} from 'vitest';
 import {InlineBillConsent,StewardBillWorkspace} from './steward-bill-workspace';
@@ -71,4 +71,32 @@ it('同步失败明确标为待核对并禁用向模型发送旧交易',()=>{
  expect(screen.getByRole('alert')).toHaveTextContent('平台暂时不可用');
  expect(screen.getByRole('button',{name:'只看微信支付'})).toBeDisabled();
  expect(screen.queryByText('¥30')).not.toBeInTheDocument();
+});
+it('等待平台授权期间如果界面已撤回，迟到的结果不会自动继续旧问题',async()=>{
+ let resolve!:(source:ConnectedFinancialSource)=>void;
+ const complete=vi.fn(),user=userEvent.setup();
+ const view=render(<InlineBillConsent provider="wechat_pay" connections={{}} onConnect={()=>new Promise(done=>{resolve=done;})} onComplete={complete}/>);
+ await user.click(screen.getByRole('button',{name:'继续到平台确认'}));view.unmount();
+ await act(async()=>{resolve(wechat);});
+ expect(complete).not.toHaveBeenCalled();
+});
+it('无选择不能授权，恢复选择后处理错误回执而不是宣称成功',async()=>{
+ const user=userEvent.setup(),complete=vi.fn(),connect=vi.fn(async()=>({...wechat,scopes:[] as ConnectedFinancialSource['scopes']}));
+ render(<InlineBillConsent provider="wechat_pay" connections={{}} onConnect={connect} onComplete={complete}/>);
+ await user.click(screen.getByRole('checkbox',{name:'微信支付'}));
+ expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeDisabled();
+ await user.click(screen.getByRole('checkbox',{name:'微信支付'}));await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('平台未返回');expect(complete).not.toHaveBeenCalled();
+});
+it('分类收起、长列表展开、交易证据和不足的趋势均可操作',async()=>{
+ const user=userEvent.setup(),change=vi.fn(),connect=vi.fn();
+ const many={...wechat,transactions:[...wechat.transactions,...Array.from({length:5},(_,i)=>({id:`s${i}`,title:'便利店',amount:-1000,category:'购物',occurredAt:'2026-09-20'}))]};
+ const props={question:'本月支出',connections:{wechat_pay:many},onInteract:change,onRequestConnection:connect,ui:{sections:['trend','transactions'] as const,evidenceRefs:[1]}};
+ render(<StewardBillWorkspace {...props} ui={{...props.ui,sections:[...props.ui.sections]}}/>);
+ expect(screen.getByText('前期记录不足，暂不能判断趋势。')).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'展开更多 · 7 笔'}));
+ expect(screen.getAllByRole('button',{name:/请宁宁解释便利店/})).toHaveLength(5);
+ await user.click(screen.getByRole('button',{name:'收起明细'}));
+ await user.click(screen.getByRole('button',{name:'加入支付宝账单'}));expect(connect).toHaveBeenCalledWith('alipay');
+ expect(screen.getByText('核对交易依据')).toBeVisible();
 });
