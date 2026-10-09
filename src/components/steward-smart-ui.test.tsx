@@ -20,15 +20,15 @@ it('切换账单平台不发消息或重算解读，刷新保留范围，下一�
  expect(within(scene).getAllByText('¥5')[0]).toBeVisible();
  expect(reply).toHaveBeenCalledTimes(1);
  expect(JSON.parse(localStorage.getItem('zhiyin-steward-conversation-v1')!)).toEqual(before);
- await user.click(within(scene).getByRole('button',{name:/查看出行交易/}));
+ await user.click(within(scene).getByRole('button',{name:/查看交通交易/}));
  expect(reply).toHaveBeenCalledTimes(1);
  view.unmount();render(<StewardChatHome {...props}/>);
  expect(screen.getByRole('button',{name:'只看支付宝'})).toHaveAttribute('aria-pressed','true');
- expect(screen.getByRole('heading',{name:'出行交易'})).toBeVisible();
+ expect(screen.getByRole('heading',{name:'交通交易'})).toBeVisible();
  await user.type(screen.getByRole('textbox'),'有没有问题');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
  expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
- expect(reply.mock.calls[1][0].billCategory).toBe('出行');
+ expect(reply.mock.calls[1][0].billCategory).toBe('交通');
 });
 it('模型遗漏入口仍展示账单读取现场，完成双边授权后自动继续原问题',async()=>{
  const user=userEvent.setup(),connect=vi.fn(async()=>source),open=vi.fn();

@@ -3,11 +3,13 @@ import type {ExternalFinancialProvider} from './financial-connections';
 export type BillSection = 'overview' | 'categories' | 'trend' | 'transactions';
 export type BillUI = {sections:BillSection[];evidenceRefs:number[]};
 export type BillFocus = {provider:ExternalFinancialProvider;id:string};
-export type BillInteraction = {question:string;provider?:ExternalFinancialProvider;focus?:BillFocus};
+export type BillInteraction = {question:string;provider?:ExternalFinancialProvider;focus?:BillFocus;category?:string};
 export type BillScene = {
   key:string;anchorId:string;question:string;ui?:BillUI;
   needsConsent?:boolean;provider?:ExternalFinancialProvider;
   focus?:BillFocus;
+  category?:string;
+  interpretationQuestion?:string;
 };
 const sections=['overview','categories','trend','transactions'];
 const marker=/\[\[bill-ui:([\s\S]*?)\]\]/g;
@@ -48,6 +50,8 @@ export function restoreBillScenes(raw:string|null):Record<string,BillScene> {
       ...(v.needsConsent===true?{needsConsent:true}:{}),
       ...(['wechat_pay','alipay'].includes(v.provider)?{provider:v.provider}:{}),
       ...(v.focus&&['wechat_pay','alipay'].includes(v.focus.provider)&&typeof v.focus.id==='string'&&v.focus.id.length<=200?{focus:{provider:v.focus.provider,id:v.focus.id}}:{}),
+      ...(typeof v.category==='string'&&v.category.length>0&&v.category.length<=80?{category:v.category}:{}),
+      ...(typeof v.interpretationQuestion==='string'&&v.interpretationQuestion.length<=1000?{interpretationQuestion:v.interpretationQuestion}:{}),
     }]));
   }catch{return {};}
 }

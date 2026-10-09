@@ -33,11 +33,11 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
   useEffect(() => { void load(); }, [load]);
 
   function say(text:string) { setConversationNotice({id:crypto.randomUUID(),text}); }
-  function save(operation: WorkspaceOperation) {
+  function save(operation: WorkspaceOperation | ((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation)) {
     // A group-selection callback may finish while another task's reply is being saved.
     const operationResult=saveTail.current.then(async()=>{
       const latest=await workspaceRequest();
-      const next=await workspaceRequest(operation,latest.revision);
+      const next=await workspaceRequest(typeof operation==='function'?operation(latest):operation,latest.revision);
       setState(next);return next;
     });
     saveTail.current=operationResult.catch(()=>undefined);
@@ -126,6 +126,16 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
         props.onPrepareTransfer?.(intent);
       }:undefined}
       workspace={work || null}
+      onBillViewChange={async(id,view)=>{
+        await save(latest=>{
+          const task=latest.items.find(t=>t.id===id&&t.status==='active');
+          const revision=props.memory?.current.current.revision??0;
+          if(!task||task.memoryRevision!==revision)throw new Error('这份账单任务已变化，请重新交代查看范围。');
+          const progress=readTaskProgress(task);
+          if(!progress.bill)throw new Error('原账单任务不可用，请重新交代查看范围。');
+          return {type:'progress',id,memoryRevision:revision,progress:{...progress,bill:{...progress.bill,provider:view.provider||'all'}}};
+        });
+      }}
       onRoutePrompt={arrange}
       externalBusy={busy || !loaded}
       injectedPrompt={injected}

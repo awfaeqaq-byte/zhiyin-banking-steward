@@ -60,16 +60,20 @@ export function InlineBillConsent({provider,connections,onConnect,onComplete,dis
   </section>;
 }
 
-export function StewardBillWorkspace({question,connections,ui,onInteract,onRequestConnection,stewardName='宁宁',disabled=false,loading=false,error='',now}:{
+export function StewardBillWorkspace({question,connections,ui,onInteract,onViewChange,selectedCategory,selectedFocus,interpretationChanged,onRequestConnection,stewardName='宁宁',disabled=false,loading=false,error='',now}:{
   question:string;connections:Connections;ui?:BillUI;onInteract:(value:BillInteraction)=>void;
   onRequestConnection?:(provider?:ExternalFinancialProvider)=>void;stewardName?:string;
+  onViewChange?:(value:BillInteraction)=>void;selectedCategory?:string;interpretationChanged?:boolean;
+  selectedFocus?:BillFocus;
   disabled?:boolean;loading?:boolean;error?:string;now?:number;
 }) {
   const [provider,setProvider]=useState<ExternalFinancialProvider|undefined>(()=>billProvider(question));
-  const [category,setCategory]=useState('');
-  const [focus,setFocus]=useState<BillFocus>();
+  const [category,setCategory]=useState(selectedCategory||'');
+  const [focus,setFocus]=useState<BillFocus|undefined>(selectedFocus);
   const [expanded,setExpanded]=useState(false);
   useEffect(()=>{setProvider(billProvider(question));},[question]);
+  useEffect(()=>{setCategory(selectedCategory||'');setExpanded(false);},[question,selectedCategory]);
+  useEffect(()=>{setFocus(selectedFocus);},[question,selectedFocus]);
   const scopedQuestion=billScopeQuestion(question,provider);
   const bill=buildBillAnalysis(connections,scopedQuestion,now??billReferenceTime(connections));
   const unavailable=Boolean(error)||loading;
@@ -81,7 +85,11 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onReque
   const rows=filtered.slice(0,expanded?100:4);
   function switchSource(id?:ExternalFinancialProvider) {
     setProvider(id);setCategory('');setFocus(undefined);setExpanded(false);
-    onInteract({question:billScopeQuestion(question,id),...(id?{provider:id}:{})});
+    onViewChange?.({question:billScopeQuestion(question,id),...(id?{provider:id}:{})});
+  }
+  function selectCategory(next:string) {
+    setCategory(next);setFocus(undefined);setExpanded(false);
+    onViewChange?.({question:scopedQuestion,provider,...(next?{category:next}:{})});
   }
   function selectTransaction(row:typeof bill.transactions[number]) {
     const picked={provider:row.providerKey,id:row.id};setFocus(picked);
@@ -89,7 +97,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onReque
   }
   function transactions() {
     return <div className="bill-scene-transactions"><h3>{category?`${category}交易`:'账单记录'}</h3>
-      {category&&<button className="bill-scene-link" onClick={()=>setCategory('')}>查看全部记录</button>}
+      {category&&<button disabled={frozen} className="bill-scene-link" onClick={()=>selectCategory('')}>查看全部记录</button>}
       <ul>{rows.map(row=><li key={`${row.providerKey}:${row.id}`}>
         <button aria-label={`请${stewardName}解释${row.title} ${formatCny(Math.abs(row.amount))}`} disabled={frozen} onClick={()=>selectTransaction(row)} aria-pressed={selected?.providerKey===row.providerKey&&selected?.id===row.id}>
           <span><strong>{row.title}</strong><small>{row.occurredAt.slice(5)} · {row.providerName} · {row.kind==='transfer'?'转账':row.kind==='refund'?'退款':row.category}</small></span>
@@ -112,11 +120,13 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onReque
         <div><dt>消费支出</dt><dd key={`${scopedQuestion}:${bill.expense}`}>{formatCny(bill.expense)}</dd></div>
         <div><dt>普通入账</dt><dd>{formatCny(bill.income)}</dd></div>
       </dl>:section==='categories'?<div className="bill-scene-categories" key={section}>
-        <h3>消费分布</h3><ul>{bill.categories.map(c=><li key={c.name}><button disabled={frozen} aria-label={`查看${c.name}交易 ${formatCny(c.amount)}`} aria-pressed={category===c.name} onClick={()=>{setCategory(category===c.name?'':c.name);setExpanded(false);}}>
+        <h3>消费分布</h3><ul>{bill.categories.map(c=><li key={c.name}><button disabled={frozen} aria-label={`查看${c.name}交易 ${formatCny(c.amount)}`} aria-pressed={category===c.name} onClick={()=>selectCategory(category===c.name?'':c.name)}>
           <span>{c.name}</span><span className="bill-scene-bar" aria-hidden="true"><i style={{transform:`scaleX(${bill.expense?c.amount/bill.expense:0})`}}/></span><strong>{formatCny(c.amount)}</strong><ChevronRight size={15} aria-hidden="true"/>
         </button></li>)}</ul>
       </div>:section==='trend'?<div className="bill-scene-trend" key={section}><h3>前期对照</h3>{bill.diagnosis.trend?<><p>已返回消费金额{bill.diagnosis.trend.changePercent===0?'持平':`${bill.diagnosis.trend.changePercent>0?'增加':'减少'} ${Math.abs(bill.diagnosis.trend.changePercent)}%`}</p><small>{bill.diagnosis.trend.previousFrom} — {bill.diagnosis.trend.previousTo}；两期记录完整性未知。</small></>:<p className="bill-ui-note">前期记录不足，暂不能判断趋势。</p>}</div>:<div key={section}>{transactions()}</div>)}
       {category&&!sections.includes('transactions')&&transactions()}
+      {interpretationChanged&&<p className="bill-ui-note" role="status">查看范围已切换，上面的解读仍对应原范围。</p>}
+      <button className="bill-scene-link" disabled={frozen} onClick={()=>onInteract({question:scopedQuestion,provider,...(category?{category}:{})})}>请{stewardName}分析当前账单<ArrowRight size={15} aria-hidden="true"/></button>
       {selected&&<p className="bill-scene-selection" role="status"><Check size={15} aria-hidden="true"/>已选中「{selected.title}」，可以直接补充。</p>}
       {(ui?.evidenceRefs||[]).map(ref=>{const finding=bill.diagnosis.findings[ref-1];return finding?<details className="bill-scene-proof" key={ref} open><summary>核对交易依据<ChevronDown size={15} aria-hidden="true"/></summary><ul>{finding.evidence.map(row=><li key={`${row.providerKey}:${row.id}`}><span>{row.title}<small>{row.occurredAt} · {row.providerName}</small></span><strong>{formatCny(Math.abs(row.amount))}</strong></li>)}</ul><p>{finding.detail}</p></details>:null;})}
       <details className="bill-scene-proof"><summary>统计范围与其他收支<ChevronDown size={15} aria-hidden="true"/></summary>

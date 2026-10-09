@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, type BillAnalysis } from '../lib/bill-analysis';
+import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
 import { StewardReplyContent } from './steward-reply';
 import {TransferFollowUp} from './transfer-follow-up';
@@ -86,6 +86,7 @@ type Props = {
   injectedPrompt?: {token:string;text:string};
   onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean,progress?:TaskProgress)=>Promise<void>;
   onWorkspaceBook?: (id:string)=>Promise<void>;
+  onBillViewChange?:(id:string,view:BillInteraction)=>Promise<void>;
   memory?: StewardMemoryController;
   stewardName: string;
   stewardImage: string;
@@ -152,7 +153,7 @@ function actionSubscription(
 
 export function StewardChatHome({
   seamless=false, conversationNotice, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,
-  workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,
+  workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
   stewardName,
   stewardImage,
@@ -241,6 +242,9 @@ export function StewardChatHome({
   const restoringBill=useRef(Object.keys(billScenes).length>0);
   const [revalidatingBill,setRevalidatingBill]=useState(restoringBill.current&&Boolean(refreshSubscriptions));
   const interaction=useRef<{prompt:string;value:BillInteraction}>();
+  const [viewSaving,setViewSaving]=useState(false);
+  const [viewError,setViewError]=useState('');
+  const viewLock=useRef(false);
   useEffect(()=>{setBillConnections(connections);},[connections]);
   useEffect(()=>{
     if(!restoringBill.current||!refreshSubscriptions)return;
@@ -360,7 +364,7 @@ export function StewardChatHome({
 
   async function sendPrompt(text: string, continueBill = false, bypassRoute = false, grantedConnections?:typeof connections,recordUser=true,billTurn?:{taskId:string;displayText?:string}) {
     const prompt = text.trim();
-    if (!prompt || sending) return;
+    if (!prompt || sending || viewLock.current) return;
     if(interaction.current?.prompt!==prompt)interaction.current=undefined;
     if(onRoutePrompt&&!bypassRoute){if(!externalBusy){
       // Record the user's original sentence once, not each backstage routing fragment.
@@ -429,9 +433,12 @@ export function StewardChatHome({
         .filter(item => recurringReviews[item.key] !== "dismissed")
         .map(item => ({ ...item, reviewStatus: recurringReviews[item.key] === "confirmed" ? "confirmed" as const : "pending" as const }));
       setRequestPhase('replying');
-      const billQuestion = progress?.stage==='paused'?null:progress?.bill?billTaskQuestion(progress):billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
+      const currentScene=billScenes[billTurn?.taskId||workspace?.id||'bill'];
+      const viewQuestion=currentScene?.question&&!isBillQuestion(prompt)&&!billProvider(prompt)?currentScene.question:null;
+      const billQuestion = progress?.stage==='paused'?null:progress?.bill?billTaskQuestion(progress):interaction.current?.value.question||viewQuestion||billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
       const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(currentConnections,billQuestion,billReferenceTime(currentConnections,latestTime)) : undefined;
       const selectedFocus=interaction.current?.value.focus||(/这笔|那笔|这个|那个|它/.test(prompt)?billScenes[workspace?.id||'bill']?.focus:undefined);
+      const selectedCategory=interaction.current?.value.category||currentScene?.category;
       const bankData=isBankRequest(requestMessages)||isTaskRequest(requestMessages)?await bankRequest().catch(()=>null):null;
       const tasks=isTaskRequest(requestMessages)?await taskRequest().catch(()=>null):null;
       const taskEvents=tasks?calendarEvents(tasks.tasks,validBankSnapshot(bankData)?bankData.schedules??[]:[],Object.values(latestConnections).filter((s):s is ConnectedFinancialSource=>!!s)):[];
@@ -446,6 +453,7 @@ export function StewardChatHome({
         memoryContext:remembered?memoryContext(remembered,prompt):'',
         ...(billAnalysis ? {billAnalysis} : {}),
         ...(billAnalysis&&selectedFocus?{billFocus:selectedFocus}:{}),
+        ...(billAnalysis&&selectedCategory?{billCategory:selectedCategory}:{}),
         ...(progress?{workspaceProgress:progress}:{}),
         duplicateGroups: latestGroups,
         fundingForecast: buildFundingForecast(latestConnections, latestTime), messages: requestMessages };
@@ -498,6 +506,8 @@ export function StewardChatHome({
         const needsConsent=Boolean(response.action?.type==='open_connections'&&!billAnalysis?.sources.length||billAnalysis&&!billAnalysis.sources.length);
         setBillScenes(current=>({...current,[key]:{
           key,anchorId:responseId,question,
+          interpretationQuestion:question,
+          ...(selectedCategory?{category:selectedCategory}:{}),
           ui:response.billUI||{sections:['overview','categories'],evidenceRefs:evidenceRefs(response.text)},
           ...(selectedFocus?{focus:selectedFocus}:{}),
           ...(needsConsent?{needsConsent:true,provider:response.action?.type==='open_connections'?response.action.provider:billProvider(question)}:{}),
@@ -535,10 +545,22 @@ export function StewardChatHome({
   function interactWithBill(scene:BillScene,value:BillInteraction) {
     const prompt=value.focus?`${value.question}；请解释我点选的这笔交易`:value.question;
     const row=value.focus?buildBillAnalysis(billConnections,value.question,billReferenceTime(billConnections,referenceTime)).transactions.find(t=>t.providerKey===value.focus?.provider&&t.id===value.focus.id):undefined;
-    const displayText=row?`解释这笔${row.title}`:value.provider==='wechat_pay'?'只看微信支付':value.provider==='alipay'?'只看支付宝':'查看全部平台';
+    const displayText=row?`解释这笔${row.title}`:value.category?`分析当前${value.category}账单`:'分析当前账单';
     interaction.current={prompt,value};
     setBillScenes(current=>({...current,[scene.key]:{...scene,question:value.question}}));
     void sendPrompt(prompt,true,false,undefined,true,{taskId:scene.key,displayText});
+  }
+  async function changeBillView(scene:BillScene,value:BillInteraction) {
+    if(viewLock.current||sending||externalBusy)return;
+    viewLock.current=true;setViewSaving(true);setViewError('');interaction.current=undefined;
+    const next={...scene,question:value.question,category:value.category,focus:undefined,
+      interpretationQuestion:scene.interpretationQuestion||scene.question,
+      // Evidence indexes belong to the interpreted snapshot, not a new filter.
+      ui:scene.ui?{...scene.ui,evidenceRefs:[]}:undefined};
+    setBillScenes(current=>({...current,[scene.key]:next}));
+    try{await onBillViewChange?.(scene.key,value);}
+    catch(cause){setBillScenes(current=>({...current,[scene.key]:scene}));setViewError(`${cause instanceof Error?cause.message:'查看范围未能保存。'} 已恢复原范围，请重试。`);}
+    finally{viewLock.current=false;setViewSaving(false);}
   }
   async function continueAuthorizedBill(scene:BillScene,updated:typeof connections,selected:ExternalFinancialProvider[]) {
     setBillConnections(updated);
@@ -740,7 +762,14 @@ export function StewardChatHome({
                   {!seamless && !historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
                 </div>
               </div>
-            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui} stewardName={stewardName} disabled={sending||externalBusy} loading={refreshing||revalidatingBill} error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)} onInteract={value=>interactWithBill(scene,value)} onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
+            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace
+              key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui}
+              selectedCategory={scene.category} selectedFocus={scene.focus}
+              interpretationChanged={Boolean(scene.interpretationQuestion&&billScopeQuestion(scene.interpretationQuestion,billProvider(scene.interpretationQuestion))!==billScopeQuestion(scene.question,billProvider(scene.question)))}
+              stewardName={stewardName} disabled={sending||externalBusy||viewSaving} loading={refreshing||revalidatingBill}
+              error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)}
+              onViewChange={value=>void changeBillView(scene,value)} onInteract={value=>interactWithBill(scene,value)}
+              onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
           })}
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
@@ -762,6 +791,7 @@ export function StewardChatHome({
           await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);
         }}/>}
 
+        {viewError&&<p className="bill-ui-error" role="alert">{viewError}</p>}
         {error && (
           <div className="steward-chat-error" role="alert">
             <CircleAlert size={17} />
@@ -784,7 +814,7 @@ export function StewardChatHome({
               autoComplete="off"
               maxLength={1000}
             />
-            <button type="submit" aria-label={`发送给${stewardName}`} disabled={sending || externalBusy || !input.trim()}>
+            <button type="submit" aria-label={`发送给${stewardName}`} disabled={sending || externalBusy || viewSaving || !input.trim()}>
               {sending ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
             </button>
           </div>
