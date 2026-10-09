@@ -26,7 +26,7 @@ export function billQuestionForMessages(messages: Array<{role:string; content:st
   if (/续费|订阅|会员|提醒|取消/.test(latest)) return null;
   const previous = users.slice(0,-1).reverse().find(message=>isBillQuestion(message.content));
   if(previous&&/^(只看|就看|仅看|切换到|换成|授权|连接|继续)/.test(latest)&&/微信|支付宝|账单|支出/.test(latest))return `${previous.content.split('；')[0]}；${latest}`;
-  if (/那|呢|多少|哪笔|哪类|最大|月份|上月|上个月|本月|昨天|今天|近.*天/.test(latest)
+  if (/这笔|那|呢|它|多少|哪笔|哪类|最大|月份|上月|上个月|本月|昨天|今天|近.*天/.test(latest)
     && previous) return /月|日|天|周|年|微信|支付宝/.test(latest) ? latest : `${previous.content}；${latest}`;
   return null;
 }

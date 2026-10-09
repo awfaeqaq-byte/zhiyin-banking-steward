@@ -20,6 +20,8 @@ export function InlineBillConsent({provider,connections,onConnect,onComplete,dis
   const completed=useRef<Connections>({});
   const latest=useRef(connections);latest.current=connections;
   const lock=useRef(false);
+  const mounted=useRef(true);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   const allGranted=selected.length>0&&selected.every(p=>(completed.current[p]||connections[p])?.scopes.includes('transactions'));
   async function confirm() {
     if(lock.current||disabled||!selected.length)return;
@@ -31,13 +33,15 @@ export function InlineBillConsent({provider,connections,onConnect,onComplete,dis
         setBusy(id);
         const scopes=[...new Set<FinancialScope>([...(source?.scopes||[]),'transactions'])];
         const result=await onConnect(id,scopes);
+        if(!mounted.current)return;
         if(result.provider!==id||!result.scopes.includes('transactions'))throw new Error('平台未返回账单读取授权，这次没有继续分析。');
         completed.current[id]=result;
       }
+      if(!mounted.current)return;
       setBusy('continuing');
       await onComplete({...latest.current,...completed.current});
-    }catch(cause){setError(cause instanceof Error?cause.message:'平台未确认，请稍后重试。');}
-    finally{lock.current=false;setBusy(null);}
+    }catch(cause){if(mounted.current)setError(cause instanceof Error?cause.message:'平台未确认，请稍后重试。');}
+    finally{lock.current=false;if(mounted.current)setBusy(null);}
   }
   return <section className="steward-inline-consent" aria-label="账单读取范围" aria-busy={Boolean(busy)}>
     <header><ReceiptText size={21} aria-hidden="true"/><div><h2>这次看哪些账单？</h2><p>确认读取范围后，我接着整理刚才的问题。</p></div></header>
