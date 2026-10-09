@@ -42,16 +42,21 @@ it('已授权来源不重复申请，缺少选择时禁止继续',async()=>{
  await user.click(screen.getByRole('button',{name:'继续分析账单'}));
  expect(connect).not.toHaveBeenCalled();expect(complete).toHaveBeenCalled();
 });
-it('平台切换和分类展开就在同一账单现场，点选真实交易回传给宁宁',async()=>{
- const user=userEvent.setup(),change=vi.fn();
- render(<StewardBillWorkspace question="本月支出" connections={{wechat_pay:wechat,alipay}} onInteract={change}/>);
+it('平台和分类仅切换展示，明确请宁宁解释时才发起问答',async()=>{
+ const user=userEvent.setup(),change=vi.fn(),viewChange=vi.fn();
+ render(<StewardBillWorkspace question="本月支出" connections={{wechat_pay:wechat,alipay}} onInteract={change} onViewChange={viewChange}/>);
  const scene=screen.getByRole('region',{name:'账单工作区'});
  expect(within(scene).getByText('¥40')).toBeVisible();
  await user.click(within(scene).getByRole('button',{name:'只看微信支付'}));
  expect(within(scene).getByText('¥30')).toBeVisible();
- expect(change).toHaveBeenLastCalledWith(expect.objectContaining({provider:'wechat_pay',question:expect.stringContaining('本月支出')}));
+ expect(change).not.toHaveBeenCalled();
+ expect(viewChange).toHaveBeenLastCalledWith(expect.objectContaining({provider:'wechat_pay',question:expect.stringContaining('本月支出')}));
  await user.click(within(scene).getByRole('button',{name:/查看餐饮交易/}));
  expect(within(scene).getByRole('button',{name:/请宁宁解释午餐/})).toBeVisible();
+ expect(change).not.toHaveBeenCalled();
+ expect(viewChange).toHaveBeenLastCalledWith(expect.objectContaining({category:'餐饮'}));
+ await user.click(within(scene).getByRole('button',{name:'请宁宁分析当前账单'}));
+ expect(change).toHaveBeenLastCalledWith(expect.objectContaining({provider:'wechat_pay',category:'餐饮'}));
  await user.click(within(scene).getByRole('button',{name:/请宁宁解释午餐/}));
  expect(change).toHaveBeenLastCalledWith(expect.objectContaining({focus:{provider:'wechat_pay',id:'lunch'}}));
  expect(screen.getAllByRole('region',{name:'账单工作区'})).toHaveLength(1);

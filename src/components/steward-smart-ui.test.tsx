@@ -8,6 +8,28 @@ import type {SubscriptionSyncResult} from '../lib/use-subscription-sync';
 
 const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
+it('切换账单平台不发消息或重算解读，刷新保留范围，下一句沿用当前展示',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'原范围的解读。'}));
+ const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'出行',occurredAt:'2026-09-20'}]};
+ const props={...base,connections:{wechat_pay:source,alipay},reply};
+ const view=render(<StewardChatHome {...props}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const scene=await screen.findByRole('region',{name:'账单工作区'});
+ const before=JSON.parse(localStorage.getItem('zhiyin-steward-conversation-v1')!);
+ await user.click(within(scene).getByRole('button',{name:'只看支付宝'}));
+ expect(within(scene).getAllByText('¥5')[0]).toBeVisible();
+ expect(reply).toHaveBeenCalledTimes(1);
+ expect(JSON.parse(localStorage.getItem('zhiyin-steward-conversation-v1')!)).toEqual(before);
+ await user.click(within(scene).getByRole('button',{name:/查看出行交易/}));
+ expect(reply).toHaveBeenCalledTimes(1);
+ view.unmount();render(<StewardChatHome {...props}/>);
+ expect(screen.getByRole('button',{name:'只看支付宝'})).toHaveAttribute('aria-pressed','true');
+ expect(screen.getByRole('heading',{name:'出行交易'})).toBeVisible();
+ await user.type(screen.getByRole('textbox'),'有没有问题');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
+ expect(reply.mock.calls[1][0].billCategory).toBe('出行');
+});
 it('模型遗漏入口仍展示账单读取现场，完成双边授权后自动继续原问题',async()=>{
  const user=userEvent.setup(),connect=vi.fn(async()=>source),open=vi.fn();
  const reply=vi.fn<StewardReplyFn>(async request=>({text:request.billAnalysis?.count?'餐饮是这段支出的主要部分。':'需要你确认账单读取范围。'}));

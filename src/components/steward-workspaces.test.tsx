@@ -67,7 +67,7 @@ it('错误分为闲聊的查账意图修正为账单，平台/时间续答和授
  expect(connect).toHaveBeenCalledWith('alipay',['transactions']);
  await waitFor(()=>expect(api.state().items[0].progress?.stage).toBe('ready'));
 });
-it('已知账单控件直接续聊原任务，保留范围与交易对象，不暴露内部指令',async()=>{
+it('账单筛选仅保存原任务范围，不发消息；明确解释才续聊',async()=>{
  const api=server(),user=userEvent.setup();
  const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'bills',title:'本月账单',text:'本月支出'}]}));
  const reply=vi.fn(async(request:StewardReplyRequest)=>({text:`已整理 ${request.billAnalysis?.expense}`,billUI:{sections:['overview','categories','transactions'] as ('overview'|'categories'|'transactions')[],evidenceRefs:[]}}));
@@ -75,14 +75,15 @@ it('已知账单控件直接续聊原任务，保留范围与交易对象，不�
  await say('本月支出');await screen.findByText('已整理 2500');
  await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));
  await user.click(screen.getByRole('button',{name:'只看微信支付'}));
- await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
- await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(4));
+ await waitFor(()=>expect(api.state().items[0].progress?.bill?.provider).toBe('wechat_pay'));
+ expect(reply).toHaveBeenCalledTimes(1);
+ expect(api.state().items[0].messages).toHaveLength(2);
  expect(route).toHaveBeenCalledTimes(1);
- expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['微信支付']);
- expect(screen.getByText('只看微信支付',{selector:'.steward-message.user p'})).toBeInTheDocument();
+ expect(screen.queryByText('只看微信支付',{selector:'.steward-message.user p'})).not.toBeInTheDocument();
  await user.click(screen.getByRole('button',{name:'请宁宁解释午餐套餐 ¥25'}));
- await waitFor(()=>expect(reply).toHaveBeenCalledTimes(3));
- expect(reply.mock.calls[2][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['微信支付']);
+ expect(reply.mock.calls[1][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
  expect(route).toHaveBeenCalledTimes(1);expect(api.state().items).toHaveLength(1);
  expect(screen.getByText('解释这笔午餐套餐',{selector:'.steward-message.user p'})).toBeInTheDocument();
  expect(screen.getByRole('region',{name:'账单工作区'})).toHaveTextContent('已选中「午餐套餐」');
