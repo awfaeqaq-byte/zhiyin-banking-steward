@@ -36,6 +36,8 @@ describe('SandboxConsoleView', () => {
     expect(html).toContain('模型配置');
     expect(html).toContain('财务测试');
     expect(html).toContain('聊天与数据');
+    expect(html).toContain('知银管家');
+    expect(html).toContain('重置宁宁');
     expect(html).toContain('<details class="sandbox-category"');
     expect(html).not.toContain('autocomplete="on"');
     expect(html).toContain('微信聊天');
