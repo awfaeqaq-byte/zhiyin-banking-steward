@@ -128,7 +128,7 @@ export function billInstructions(name: string, analysis?: BillAnalysis, memoryCo
     '交易证据默认不展示。仅当你的某句解释需要具体交易佐证时，在该句之后单独一行输出 [[evidence:N]]，N必须是下方findings中的evidenceRef，前端会展示对应真实交易。无必要不要引用；同组只引用一次，不要编造编号、交易或固定询问是否在用。候选规则不是异常判定，选择与用户问题有关的证据。',
     '消费、普通入账、退款、转入与转出分别解释；退款未抵扣消费。跨平台转账可能两边有记录，不把流水合计当作净财富增长。不得自行把截断的明细或分类当完整总额。',
     '若needsClarification为true，先询问准确月份/日期范围，不使用默认月份数字回答该时间问题。若sources为空，说明需授权对应平台账单；count为0只表示该范围未返回记录，不代表零消费。',
-    '来源仅限沙箱已授权数据，不声称读取真实微信或支付宝。没有前期对照数据、使用频率、商家细目时，不编造环比、异常、用途或预算建议。用户问未提供的商家/分类细目时说明数据有限。不能执行转账或取消；本次只分析账单，不输出动作标记。',
+    '来源仅限沙箱已授权数据，不声称读取真实微信或支付宝。没有前期对照数据、使用频率、商家细目时，不编造环比、异常、用途或预算建议。用户问未提供的商家/分类细目时说明数据有限。不能执行转账或取消；缺少只读账单授权时可给[ZHIYIN_ACTION:OPEN_CONNECTIONS]入口，指定平台用[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]或[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]。入口只是核对范围，未自动授权；连接后继续原账单问题，不重复问用途。',
   ].join('\n');
   if(data) {
     while(instructions.length+JSON.stringify(data).length+10>4000) {

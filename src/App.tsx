@@ -1564,6 +1564,7 @@ export default function App() {
               />
               <DataConnections
                 initialProvider={connectionEntry}
+                onEntryConsumed={()=>setConnectionEntry(undefined)}
                 connections={connections}
                 onConnect={connectFinancialSource}
                 onDisconnect={disconnectFinancialSource}

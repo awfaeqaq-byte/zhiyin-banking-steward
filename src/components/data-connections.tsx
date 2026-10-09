@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   ChevronRight,
@@ -22,6 +22,7 @@ import "./data-connections.css";
 
 type Props = {
   initialProvider?:ExternalFinancialProvider;
+  onEntryConsumed?:()=>void;
   connections: Partial<Record<ExternalFinancialProvider, ConnectedFinancialSource>>;
   onConnect: (provider: ExternalFinancialProvider, scopes: FinancialScope[]) => Promise<void>;
   onDisconnect: (provider: ExternalFinancialProvider) => Promise<void>;
@@ -44,9 +45,10 @@ const scopeOptions: Array<{ id: FinancialScope; title: string; description: stri
   { id: "autopay", title: "读取自动扣费", description: "用于识别未来确定支出" },
 ];
 
-export function DataConnections({ connections, onConnect, onDisconnect,initialProvider }: Props) {
+export function DataConnections({ connections, onConnect, onDisconnect,initialProvider,onEntryConsumed }: Props) {
   const [active, setActive] = useState<ExternalFinancialProvider | null>(initialProvider??null);
   const [selectedScopes, setSelectedScopes] = useState<FinancialScope[]>(initialProvider?["transactions"]:["balance", "transactions", "autopay"]);
+  useEffect(()=>{if(initialProvider)onEntryConsumed?.();},[initialProvider,onEntryConsumed]);
   const [submitting, setSubmitting] = useState(false);
   const [disconnecting, setDisconnecting] = useState<ExternalFinancialProvider | null>(null);
   const [error, setError] = useState("");
