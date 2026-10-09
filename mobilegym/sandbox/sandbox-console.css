@@ -179,6 +179,14 @@
 .sandbox-console-error { padding: 15px; border-top: 1px solid #ead6d3; background: #fff2f0; color: #7e2923; }
 .sandbox-console-error button { margin-top: 10px; border-color: #e3bbb6; color: #8d312a; }
 
+.sandbox-steward-reset .sandbox-console-confirmation,
+.sandbox-steward-reset .sandbox-console-result { grid-template-columns: minmax(0, 1fr); }
+.sandbox-steward-reset .sandbox-console-confirmation-actions { grid-column: 1; flex-wrap: wrap; }
+.sandbox-steward-reset .sandbox-console-confirmation p + p { margin-top: 10px; }
+.sandbox-steward-reset .sandbox-console-action { grid-template-columns: 20px minmax(0, 1fr); gap: 8px; }
+.sandbox-steward-reset .sandbox-console-action:disabled { opacity: .55; cursor: not-allowed; }
+.sandbox-steward-reset .sandbox-console-action svg:last-child { justify-self: start; }
+
 .sandbox-console-footer { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 18px 22px 22px; color: #77746e; font-size: 11px; line-height: 1.45; }
 .sandbox-console-footer svg { flex: 0 0 auto; color: #6e7d73; }
 

@@ -21,9 +21,9 @@ export function StewardResetPanel({ disabled = false, onBusyChange }: { disabled
     setPhase('confirming'); setError('');
     window.requestAnimationFrame(() => confirmation.current?.focus());
   }
-  return <section className="sandbox-console-section" aria-label={s.title}>
+  return <section className="sandbox-console-section sandbox-steward-reset" aria-label={s.title}>
     <div className="sandbox-console-operation">
-      <div className="sandbox-console-operation-copy"><strong>{s.title}</strong><p>{s.description}</p></div>
+      <div className="sandbox-console-operation-main"><div className="sandbox-console-operation-copy"><strong>{s.title}</strong><p>{s.description}</p></div></div>
       {phase !== 'confirming' && phase !== 'running' && <button className="sandbox-console-action" type="button" disabled={disabled} onClick={requestReset}><RotateCcw size={17} aria-hidden="true" />{s.reset}</button>}
       {(phase === 'confirming' || phase === 'running') && <div className="sandbox-console-confirmation" ref={confirmation} tabIndex={-1} role="alertdialog" aria-labelledby="steward-reset-title" aria-describedby="steward-reset-description">
         <div><h3 id="steward-reset-title">{s.confirmTitle}</h3><p id="steward-reset-description">{s.clear}</p><p>{s.keep}</p><p>{s.backup}</p></div>

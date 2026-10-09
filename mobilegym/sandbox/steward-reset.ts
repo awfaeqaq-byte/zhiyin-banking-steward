@@ -5,6 +5,7 @@ const conversationKeys = [
   'zhiyin-steward-chat-v3', 'zhiyin-steward-conversation-v1',
   'zhiyin-steward-context-cutoff', 'zhiyin-steward-conversation-cutoff',
   'zhiyin-workspace-active', 'zhiyin-transfer-workspace', 'zhiyin-bill-scenes-v1',
+  'zhiyin-duplicate-preferences-v1', 'zhiyin-recurring-reviews-v1',
 ];
 
 export async function resetSteward(options: ResetOptions = {}): Promise<StewardResetResult> {
