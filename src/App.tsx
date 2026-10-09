@@ -359,6 +359,7 @@ export default function App() {
     }));
     setSubscriptionRefreshError("");
     setToast(`${result.source.displayName}已连接，账单已按统一口径整理`);
+    return {...result.source,scopes};
   }
   async function disconnectFinancialSource(provider: ExternalFinancialProvider) {
     const name = connections[provider]?.displayName || "该账户";
@@ -1566,7 +1567,7 @@ export default function App() {
                 initialProvider={connectionEntry}
                 onEntryConsumed={()=>setConnectionEntry(undefined)}
                 connections={connections}
-                onConnect={connectFinancialSource}
+                onConnect={async(provider,scopes)=>{await connectFinancialSource(provider,scopes);}}
                 onDisconnect={disconnectFinancialSource}
               />
             </>
@@ -1626,6 +1627,7 @@ export default function App() {
               onToggleReminder={toggleSubscriptionReminder}
               onOpenSubscriptions={() => go("subscriptions")}
               onOpenConnections={provider=>{setConnectionEntry(provider);go('connections');}}
+              onConnectSource={connectFinancialSource}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
               onOpenGroupAA={()=>go('group-aa')}

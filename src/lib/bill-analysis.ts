@@ -1,6 +1,7 @@
 import type { ConnectedFinancialSource, ExternalFinancialProvider, FinancialTransaction } from './financial-connections';
 import { diagnoseBills, normalizeBillCategory, type DiagnosticRow } from './bill-diagnosis';
 import { choiceInstructions } from './reply-choices';
+import {billProvider} from './steward-ui';
 
 type Connections = Partial<Record<ExternalFinancialProvider, ConnectedFinancialSource>>;
 const dayMs = 86400000;
@@ -24,6 +25,7 @@ export function billQuestionForMessages(messages: Array<{role:string; content:st
   if (isBillQuestion(latest)) return latest;
   if (/续费|订阅|会员|提醒|取消/.test(latest)) return null;
   const previous = users.slice(0,-1).reverse().find(message=>isBillQuestion(message.content));
+  if(previous&&/^(只看|就看|仅看|切换到|换成|授权|连接|继续)/.test(latest)&&/微信|支付宝|账单|支出/.test(latest))return `${previous.content.split('；')[0]}；${latest}`;
   if (/那|呢|多少|哪笔|哪类|最大|月份|上月|上个月|本月|昨天|今天|近.*天/.test(latest)
     && previous) return /月|日|天|周|年|微信|支付宝/.test(latest) ? latest : `${previous.content}；${latest}`;
   return null;
@@ -63,14 +65,13 @@ function billPeriod(question: string, now: number) {
 
 export function buildBillAnalysis(connections: Connections, question: string, now = Date.now()) {
   const period = billPeriod(question, now);
-  const provider = /微信/.test(question) && !/支付宝/.test(question) ? 'wechat_pay'
-    : /支付宝/.test(question) && !/微信/.test(question) ? 'alipay' : null;
+  const provider = billProvider(question);
   const sources = Object.values(connections).filter((source): source is ConnectedFinancialSource =>
     Boolean(source?.scopes.includes('transactions')) && (!provider || source?.provider === provider));
   const seen = new Set<string>();
   const history:DiagnosticRow[]=[];
   const quality={duplicates:0,invalid:0};
-  const rows: Array<FinancialTransaction & {providerName: string}> = [];
+  const rows: Array<FinancialTransaction & {providerName: string;providerKey:ExternalFinancialProvider}> = [];
   for (const source of sources) for (const row of source.transactions) {
     if (!row.id?.trim() || !Number.isSafeInteger(row.amount) || !Number.isFinite(Date.parse(row.occurredAt))) {quality.invalid++;continue;}
     const date = day(Date.parse(row.occurredAt.length === 10 ? `${row.occurredAt}T00:00:00+08:00` : row.occurredAt));
@@ -79,7 +80,7 @@ export function buildBillAnalysis(connections: Connections, question: string, no
     const key = `${source.provider}:${row.id}`;
     if (seen.has(key)) {quality.duplicates++;continue;}
     seen.add(key);
-    const clean={...row,category:normalizeBillCategory(row.category),occurredAt:date,providerName:source.displayName,providerKey:source.provider};
+    const clean={...row,category:normalizeBillCategory(row.category),occurredAt:date,providerName:source.displayName,providerKey:source.provider as ExternalFinancialProvider};
     history.push(clean);
     if(date>=period.from) rows.push(clean);
   }
@@ -101,6 +102,7 @@ export function buildBillAnalysis(connections: Connections, question: string, no
   return {
     ...period, sources:sources.map(source=>source.displayName), expense,income,refund,transferIn,transferOut,
     count:rows.length,
+    transactions:[...rows].sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt)),
     diagnosis:diagnoseBills(history,period.from,period.to,quality),
     categories:[...categories].map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount),
     largest:purchases.sort((a,b)=>a.amount-b.amount).slice(0,5),
@@ -118,6 +120,7 @@ export function billInstructions(name: string, analysis?: BillAnalysis, memoryCo
     categories:analysis.categories.slice(0,6).map(item=>({...item,name:item.name.slice(0,40)})),
     largest:analysis.largest.map(({title,amount,occurredAt,providerName})=>({title:title.slice(0,60),amount,occurredAt,providerName})),
     recent:[],
+    transactions:[],
   } : null;
   const instructions = [
     memoryContext || '长期记忆未启用，不提出保存记忆或声称已长期记住。',

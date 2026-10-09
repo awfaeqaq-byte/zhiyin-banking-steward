@@ -28,7 +28,7 @@ it('普通动作与展示描述分别解析，不把展示当金融授权',()=>{
   expect(reply.text).toBe('请核对。');
 });
 it('点击的交易来自真实分析数据，作为只读界面上下文传给模型',async()=>{
-  const fetcher=vi.fn(async()=>new Response(JSON.stringify({output_text:'先核对这笔。[[bill-ui:{"sections":["transactions"]}]]'})));
+  const fetcher=vi.fn<typeof fetch>(async()=>new Response(JSON.stringify({output_text:'先核对这笔。[[bill-ui:{"sections":["transactions"]}]]'})));
   vi.stubGlobal('fetch',fetcher);
   const bill=buildBillAnalysis({alipay:{provider:'alipay',displayName:'支付宝',accountMasked:'测试',scopes:['transactions'],autopays:[],syncedAt:'2026-09-24',transactions:[{id:'metro',title:'地铁',amount:-500,category:'出行',occurredAt:'2026-09-20'}]}},'本月支出',Date.parse('2026-09-24'));
   const response=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'核对这笔账单'}],billAnalysis:bill,billFocus:{provider:'alipay',id:'metro'}});

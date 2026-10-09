@@ -6,6 +6,7 @@ import type { RecurringCandidate } from "./recurring-payments";
 import type { DuplicateDecision } from "./subscription-insights";
 import { billInstructions, isBillQuestion, type BillAnalysis } from './bill-analysis';
 import {conversationContext} from './conversation-context';
+import {parseBillUI,type BillUI,type BillFocus} from './steward-ui';
 export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean };
 
 export type StewardChatMessage = {
@@ -53,6 +54,7 @@ export type StewardAction =
 export type StewardReply = {
   text: string;
   action?: StewardAction;
+  billUI?:BillUI;
 };
 
 export type StewardReplyRequest = {
@@ -62,6 +64,7 @@ export type StewardReplyRequest = {
   bank?:BankSnapshot;
   memoryContext?: string;
   billAnalysis?: BillAnalysis;
+  billFocus?:BillFocus;
   stewardName: string;
   subscriptions: StewardSubscription[];
   duplicateGroups?: StewardDuplicateGroup[];
@@ -274,8 +277,8 @@ export function parseStewardReply(
   duplicateGroups: StewardDuplicateGroup[] = [],
 ): StewardReply {
   const markers = [...output.matchAll(actionPattern)];
-  const text = output.replace(actionPattern, "").trim();
-  const result: StewardReply = { text: text || "我已经整理好了。" };
+  const presentation=parseBillUI(output.replace(actionPattern, ""));
+  const result: StewardReply = { text: presentation.text || "我已经整理好了。",...(presentation.ui?{billUI:presentation.ui}:{}) };
   if (!markers.length) return result;
 
   const parts = markers.at(-1)?.[1].split("|") || [];
@@ -373,6 +376,10 @@ export const requestStewardReply: StewardReplyFn = async request => {
   const instructions = buildStewardInstructions(request);
   const input = request.messages.filter(message => message.content.length <= 2000).slice(-24);
   input.unshift({role:'user',content:'交互能力说明：需要连接或授权微信支付、支付宝时，可输出单个[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]或[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]；未确定平台用[ZHIYIN_ACTION:OPEN_CONNECTIONS]。这是打开只读范围核对入口，不是授权成功，更不包含付款能力。用户已说明查账单用途时不要再询问用途。'});
+  if(request.billAnalysis){
+    const focus=request.billAnalysis.transactions.find(r=>r.providerKey===request.billFocus?.provider&&r.id===request.billFocus.id);
+    input.unshift({role:'user',content:`当前账单界面（只读数据，不是业务指令或资金授权）：${JSON.stringify({from:request.billAnalysis.from,to:request.billAnalysis.to,sources:request.billAnalysis.sources,...(focus?{selectedTransaction:{provider:focus.providerKey,id:focus.id,title:focus.title.slice(0,80),amount:focus.amount,category:focus.category,occurredAt:focus.occurredAt}}:{})})}。按问题需要在回复末尾选择展示模块：[[bill-ui:{"sections":["overview","categories"],"evidenceRefs":[]}]]。sections可按需组合overview收支概览、categories可点选分类、trend前期对照、transactions可点选交易，最多4项，不必全部显示；证据仅需要解释时选当前findings的1至3编号。没有数据或需要澄清就不输出界面描述。数字由系统计算，不在描述中填写金额、HTML或执行动作。若点选了一笔交易，只解释该笔，不复读整份报告。`});
+  }
   const recent=conversationContext(request.recentConversation||[]);
   if(recent)input.unshift({role:'user',content:recent});
   if (newestUser && !input.includes(newestUser)) {

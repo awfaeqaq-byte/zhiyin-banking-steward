@@ -51,6 +51,8 @@ import type { RecurringReviews } from "./recurring-subscription-review";
 import { buildFundingForecast, fundingReferenceTime } from "../lib/funding-forecast";
 import type {Workspace} from '../lib/workspaces';
 import {recentConversation} from '../lib/conversation-context';
+import {InlineBillConsent,StewardBillWorkspace,type ConnectBillSource} from './steward-bill-workspace';
+import {billProvider,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
 
 type DisplayMessage = StewardChatMessage & {
   id: string;
@@ -90,6 +92,7 @@ type Props = {
   onToggleReminder: (key: string, enabled: boolean) => void;
   onOpenSubscriptions: () => void;
   onOpenConnections?: (provider?:ExternalFinancialProvider)=>void;
+  onConnectSource?:ConnectBillSource;
   onOpenFunding?: () => void;
   onOpenTasks?:(date?:number)=>void;
   onOpenGroupAA?:()=>void;
@@ -156,6 +159,7 @@ export function StewardChatHome({
   onToggleReminder,
   onOpenSubscriptions,
   onOpenConnections,
+  onConnectSource,
   onOpenFunding,
   onOpenTasks,
   onOpenGroupAA,
@@ -226,6 +230,19 @@ export function StewardChatHome({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?(messages.at(-1)?.action?.type==='open_connections'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
+  const [billScenes,setBillScenes]=useState<Record<string,BillScene>>(()=>seamless?restoreBillScenes(localStorage.getItem('zhiyin-bill-scenes-v1')):{});
+  const [billConnections,setBillConnections]=useState(connections);
+  const [billDataError,setBillDataError]=useState('');
+  const interaction=useRef<{prompt:string;value:BillInteraction}>();
+  useEffect(()=>{setBillConnections(connections);},[connections]);
+  useEffect(()=>{
+    if(!seamless)return;
+    try{localStorage.setItem('zhiyin-bill-scenes-v1',JSON.stringify(Object.values(billScenes).filter(scene=>messages.some(m=>m.id===scene.anchorId)).slice(-8)));}catch{/* Presentation persistence is optional. */}
+  },[billScenes,messages,seamless]);
+  useEffect(()=>{
+    const reset=()=>{setBillScenes({});interaction.current=undefined;};
+    window.addEventListener('zhiyin-memory-context-reset',reset);return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);
+  },[]);
   useEffect(()=>{
     if(!bankReceipt)return;
     const id=`bank-${bankReceipt.id}`;
@@ -323,9 +340,10 @@ export function StewardChatHome({
     }
   }, [activeReplyId, sending, error, historyOpen,externalBusy,seamless]);
 
-  async function sendPrompt(text: string, continueBill = false, bypassRoute = false) {
+  async function sendPrompt(text: string, continueBill = false, bypassRoute = false, grantedConnections?:typeof connections) {
     const prompt = text.trim();
     if (!prompt || sending) return;
+    if(interaction.current?.prompt!==prompt)interaction.current=undefined;
     if(onRoutePrompt&&!bypassRoute){if(!externalBusy){
       // Record the user's original sentence once, not each backstage routing fragment.
       if(seamless)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:prompt}]);
@@ -371,6 +389,8 @@ export function StewardChatHome({
       if (snapshot?.error && !bankOnly && !isTaskRequest(requestMessages) && !isOccasionRequest(requestMessages) && workspace?.kind!=='occasion') throw new Error(snapshot.error);
       const backgroundUnavailable=Boolean(snapshot?.error || (!snapshot && refreshError));
       const latestConnections = backgroundUnavailable?{}:snapshot?.connections || connections;
+      const currentConnections=grantedConnections||latestConnections;
+      setBillConnections(currentConnections);setBillDataError('');
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
       const latestInsights = buildSubscriptionInsights(latestConnections, latestTime, duplicatePreferences);
       const latestGroups = subscriptionGroups(latestInsights.items).map(group => ({
@@ -388,7 +408,7 @@ export function StewardChatHome({
         .map(item => ({ ...item, reviewStatus: recurringReviews[item.key] === "confirmed" ? "confirmed" as const : "pending" as const }));
       setRequestPhase('replying');
       const billQuestion = billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
-      const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(latestConnections,billQuestion,billReferenceTime(latestConnections,latestTime)) : undefined;
+      const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(currentConnections,billQuestion,billReferenceTime(currentConnections,latestTime)) : undefined;
       const bankData=isBankRequest(requestMessages)||isTaskRequest(requestMessages)?await bankRequest().catch(()=>null):null;
       const tasks=isTaskRequest(requestMessages)?await taskRequest().catch(()=>null):null;
       const taskEvents=tasks?calendarEvents(tasks.tasks,validBankSnapshot(bankData)?bankData.schedules??[]:[],Object.values(latestConnections).filter((s):s is ConnectedFinancialSource=>!!s)):[];
@@ -402,6 +422,7 @@ export function StewardChatHome({
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
         memoryContext:remembered?memoryContext(remembered,prompt):'',
         ...(billAnalysis ? {billAnalysis} : {}),
+        ...(billAnalysis&&interaction.current?.value.focus?{billFocus:interaction.current.value.focus}:{}),
         duplicateGroups: latestGroups,
         fundingForecast: buildFundingForecast(latestConnections, latestTime), messages: requestMessages });
       if(epoch!==contextEpoch.current || (remembered && memory && remembered.revision!==memory.current.current.revision))return;
@@ -436,6 +457,16 @@ export function StewardChatHome({
       }]);
       setActiveReplyId(responseId);
       setActiveBill(billAnalysis ? {id:responseId,data:billAnalysis} : null);
+      if(seamless&&(billAnalysis&&!billAnalysis.needsClarification||response.action?.type==='open_connections')){
+        const key=workspace?.id||'bill';
+        const question=billQuestion||billScenes[key]?.question||billQuestionForMessages(requestMessages.slice(0,-1))||'';
+        const needsConsent=Boolean(response.action?.type==='open_connections'&&!billAnalysis?.sources.length||billAnalysis&&!billAnalysis.sources.length);
+        setBillScenes(current=>({...current,[key]:{
+          key,anchorId:responseId,question,
+          ui:response.billUI||{sections:['overview','categories'],evidenceRefs:evidenceRefs(response.text)},
+          ...(needsConsent?{needsConsent:true,provider:response.action?.type==='open_connections'?response.action.provider:billProvider(question)}:{}),
+        }}));
+      }
       if (response.action?.type === "set_reminder") {
         onToggleReminder(
           `${response.action.provider}:${response.action.subscriptionId}`,
@@ -445,6 +476,7 @@ export function StewardChatHome({
     } catch (cause) {
       outcome=cause instanceof Error ? cause.message : "宁宁暂时无法回复，请稍后重试。";failed=true;
       setError(outcome);
+      if(billQuestionForMessages(requestMessages)!==null)setBillDataError(outcome);
       // Failure invalidates an older actionable draft in this task, without authorizing anything.
       if(seamless)setMessages(current=>current.map(m=>m.workspaceId===workspace?.id?{...m,action:undefined}:m));
     } finally {
@@ -461,6 +493,23 @@ export function StewardChatHome({
   function submit(event: FormEvent) {
     event.preventDefault();
     void sendPrompt(input);
+  }
+
+  function interactWithBill(scene:BillScene,value:BillInteraction) {
+    const prompt=value.focus?`${value.question}；请解释我点选的这笔交易`:value.question;
+    interaction.current={prompt,value};
+    setBillScenes(current=>({...current,[scene.key]:{...scene,question:value.question}}));
+    void sendPrompt(prompt,true);
+  }
+  async function continueAuthorizedBill(scene:BillScene,updated:typeof connections) {
+    setBillConnections(updated);
+    setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:false,provider:undefined}}));
+    if(scene.question)await sendPrompt(scene.question,true,false,updated);
+    else{
+      const id=`assistant-${crypto.randomUUID()}`;
+      setMessages(current=>[...current,{id,role:'assistant',content:'账单读取范围已确认。想看哪段时间的收支？',workspaceId:workspace?.id}]);
+      setActiveReplyId(id);setBillScenes(current=>{const next={...current};delete next[scene.key];return next;});
+    }
   }
 
   return (
@@ -594,7 +643,7 @@ export function StewardChatHome({
         {!seamless && (activeReplyId || sending) && !historyOpen && <p className="reply-request">{[...messages].reverse().find(message=>message.role==='user')?.content}</p>}
         <div ref={!seamless?responseStart:undefined} className="reply-start" aria-hidden="true" />
         <div id="steward-records" className={`steward-transcript ${historyOpen ? 'history-open' : 'current-response'} ${displayedMessages.length ? "" : "empty"}`} aria-live="polite">
-          {displayedMessages.map(message => {
+          {displayedMessages.flatMap(message => {
             const sourceText=messages.slice(0,messages.findIndex(item=>item.id===message.id)).reverse().find(item=>item.role==='user')?.content || '';
             const proposed=message.role==='assistant'?parseMemoryProposal(message.content,sourceText):{text:message.content,proposal:null};
             const parsed=message.role==='assistant' ? parseReplyChoices(proposed.text) : {text:message.content,choices:[]};
@@ -602,11 +651,12 @@ export function StewardChatHome({
             const latestInTask=message.workspaceId?messages.filter(m=>m.workspaceId===message.workspaceId).at(-1)?.id===message.id:message.id===activeReplyId;
             const action = !seamless || latestInTask ? message.action : undefined;
             const related = action ? actionSubscription(action, subscriptions) : undefined;
-            return (
+            const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
+            return [(
               <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} key={message.id}>
                 <div className="steward-brief">
                   {historyOpen && <small>{message.role === 'user' ? '你' : stewardName}</small>}
-                  {seamless&&message.role==='user'?<p>{message.content}</p>:<StewardReplyContent content={parsed.text} bill={!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>}
+                  {seamless&&message.role==='user'?<p>{message.content}</p>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>}
                   {!historyOpen && memory?.state.enabled && memory.error && <p className="memory-help" role="status">本次未能读取长期记忆，可到个人中心重试。</p>}
                   {!historyOpen && (!seamless||message.id===activeReplyId) && memory?.state.enabled && proposed.proposal && <div className="memory-candidate">
                     {memoryDecisions[message.id]?<p role="status">{memoryDecisions[message.id]}</p>:<>
@@ -636,7 +686,7 @@ export function StewardChatHome({
                   {action?.type==='open_transfers' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({recipientId:'mom',amount:0})}>打开智能转账<ArrowRight size={16}/></button>}
                   {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records'})}>查看转账安排<ArrowRight size={16}/></button>}
                   {action?.type==='open_tasks'&&onOpenTasks&&!historyOpen&&<button onClick={()=>onOpenTasks()}>打开任务日历<ArrowRight size={16}/></button>}
-                  {action?.type==='open_connections'&&onOpenConnections&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
+                  {action?.type==='open_connections'&&onOpenConnections&&!(seamless&&onConnectSource)&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}
                   {action?.type==='open_occasions'&&onOpenOccasions&&!historyOpen&&<button onClick={()=>onOpenOccasions(lastPrompt,workspace?.kind==='occasion'?workspace.id:undefined)}>核对生活筹备<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask(action)}>核对并保存提醒<ArrowRight size={16}/></button>}
@@ -646,7 +696,7 @@ export function StewardChatHome({
                   {!seamless && !historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
                 </div>
               </div>
-            );
+            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy} onComplete={updated=>continueAuthorizedBill(scene,updated)}/>:scene&&scene.question?<StewardBillWorkspace key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui} stewardName={stewardName} disabled={sending||externalBusy} loading={refreshing} error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)} onInteract={value=>interactWithBill(scene,value)} onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
           })}
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
