@@ -8,7 +8,7 @@ import { PERMISSIONS } from '../os/permissions';
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-function setup() {
+function setup(foodOrder?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>) {
   const peer = { postMessage: vi.fn() } as unknown as Window;
   const onStatus = vi.fn();
   const onExit = vi.fn();
@@ -29,7 +29,7 @@ function setup() {
   }));
   const origin = 'http://localhost:3000';
   const session = createPhoneSession({
-    origin, peer: () => peer, onStatus, onExit, isActive, loadContacts,
+    origin, peer: () => peer, onStatus, onExit, isActive, loadContacts, foodOrder,
     loadFinancialSource, authorizeFinancialSource, hasFinancialAuthorization,
     revokeFinancialAuthorization, cancelFinancialAutopay,
   });
@@ -44,6 +44,19 @@ function setup() {
 }
 
 describe('Zhiyin phone app', () => {
+  it('只接受可信且前台的点餐请求，并去重在途请求与返回核对错误', async () => {
+    const foodOrder=vi.fn(async()=>({status:'ok',orderId:'order-1'}));
+    const x=setup(foodOrder),request={type:'food-order-request',requestId:'food-1',operation:'prepare',taskId:'task',orderId:'order-1',authorized:true};
+    x.receive(request,'http://untrusted.example');x.receive(request,undefined,{} as Window);
+    x.isActive.mockReturnValue(false);x.receive(request);x.isActive.mockReturnValue(true);
+    x.receive({...request,operation:'pay'});expect(foodOrder).not.toHaveBeenCalled();
+    x.receive(request);x.receive(request);await vi.runAllTimersAsync();
+    expect(foodOrder).toHaveBeenCalledOnce();expect(foodOrder).toHaveBeenCalledWith('prepare',expect.objectContaining({taskId:'task',authorized:true}));
+    expect(x.peer.postMessage).toHaveBeenCalledWith(expect.objectContaining({type:'food-order-result',requestId:'food-1',orderId:'order-1'}),'http://localhost:3000');
+    foodOrder.mockRejectedValueOnce(new Error('菜单价格变化'));x.receive({...request,requestId:'food-2'});await vi.runAllTimersAsync();
+    expect(x.peer.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({type:'food-order-result',status:'error',message:'菜单价格变化'}),'http://localhost:3000');
+    x.session.dispose();
+  });
   it('notifies the ready webview on foreground, but not while backgrounded', () => {
     const x = setup();
     x.session.foreground();

@@ -1,6 +1,7 @@
 import type {Workspace,WorkspaceRoute} from './workspaces';
 import {isBillQuestion,type BillAnalysis} from './bill-analysis';
 import {billProvider} from './steward-ui';
+import {foodRoute} from './food-order';
 
 import type {TaskProgress} from './task-progress-schema';
 export {validTaskProgress,type TaskProgress} from './task-progress-schema';
@@ -47,6 +48,7 @@ export function readTaskProgress(task:Workspace):TaskProgress {
 }
 export function advanceTaskProgress(task:Workspace,prompt:string):TaskProgress {
   let progress=readTaskProgress(task);
+  if(task.kind==='food')return {...progress,stage:'collecting',waitingFor:undefined,food:progress.food||{items:[],note:''}};
   if(progress.bill&&/^(?:算了|不用了|先不看了|暂停)[。！!\s]*$/.test(prompt))return {...progress,stage:'paused',waitingFor:undefined};
   if(clearBillIntent(prompt)||task.kind==='bills') {
     if(!progress.bill)progress={goal:prompt.slice(0,300),stage:'collecting',bill:{}};
@@ -75,6 +77,7 @@ export function settleTaskProgress(progress:TaskProgress,{bill,failed,waitingQue
 }
 
 export function taskContinuation(prompt:string,tasks:Workspace[],currentId:string):{parts:WorkspaceRoute[];clarification?:string}|null {
+  const food=foodRoute(prompt,tasks,currentId);if(food?.parts[0].taskId)return food;
   const current=tasks.find(t=>t.id===currentId&&t.status==='active');
   if(!current)return null;
   const progress=readTaskProgress(current),p=prompt.trim();

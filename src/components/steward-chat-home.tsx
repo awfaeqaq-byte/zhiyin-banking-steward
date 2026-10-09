@@ -12,6 +12,7 @@ import {bankRecipients,bankRequest,validBankSnapshot,type BankReceipt} from '../
 import type {SmartIntent} from './smart-transfers';
 import type {OccasionPlan} from '../lib/occasion-plans';
 import {OccasionPlanner} from './occasion-planner';
+import {FoodOrderPlanner} from './food-order-planner';
 import {isBankRequest,isBankOperation,isTaskRequest,isOccasionRequest} from '../lib/steward-chat';
 import {taskRequest,calendarEvents,localTaskTime,type ReminderDraft} from '../lib/task-calendar';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
@@ -80,6 +81,7 @@ type Props = {
   contextWorkspaces?: Workspace[];
   onBackgroundTurn?:(id:string,user:string,assistant:string,memoryRevision:number)=>Promise<void>;
   onBackgroundBook?:(id:string,bookId:string)=>Promise<void>;
+  onBackgroundProgress?:(id:string,progress:TaskProgress,memoryRevision:number)=>Promise<void>;
   workspace?: Workspace | null;
   onRoutePrompt?: (text:string,recent?:StewardChatMessage[],knownBillTaskId?:string)=>Promise<void>;
   externalBusy?: boolean;
@@ -152,7 +154,7 @@ function actionSubscription(
 }
 
 export function StewardChatHome({
-  seamless=false, conversationNotice, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,
+  seamless=false, conversationNotice, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
   stewardName,
@@ -534,7 +536,7 @@ export function StewardChatHome({
   const sendRef=useRef(sendPrompt);sendRef.current=sendPrompt;
   const consumed=useRef('');
   useEffect(()=>{
-    if(workspace?.kind!=='occasion'&&injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void sendRef.current(injectedPrompt.text,false,true);}
+    if(workspace?.kind!=='occasion'&&workspace?.kind!=='food'&&injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void sendRef.current(injectedPrompt.text,false,true);}
   },[injectedPrompt,workspace?.kind]);
 
   function submit(event: FormEvent) {
@@ -792,6 +794,11 @@ export function StewardChatHome({
           await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);
         }}/>}
 
+        {workspace?.kind==='food'&&<FoodOrderPlanner key={`${workspace.id}:${memory?.current.current.revision??0}`} taskId={workspace.id} stewardName={stewardName} initialDraft={workspace.memoryRevision===(memory?.current.current.revision??0)?workspace.progress?.food||{items:[],note:''}:{items:[],note:''}} history={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt}
+          getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}}
+          onPrompt={text=>{void sendPrompt(text);}}
+          onDraftChange={async food=>{await onBackgroundProgress?.(workspace.id,{goal:workspace.title,stage:'waiting_authorization',food},memory?.current.current.revision??0);}}
+          onTurn={async(user,answer,failed,progress)=>{const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current,{id,role:'assistant',content:answer,workspaceId:workspace.id}]);setActiveReplyId(id);setActiveBill(null);await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed,progress);}}/>}
         {viewError&&<p className="bill-ui-error" role="alert">{viewError}</p>}
         {error && (
           <div className="steward-chat-error" role="alert">

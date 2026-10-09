@@ -7,6 +7,7 @@ import { useAppStrings } from '@/os/useAppStrings';
 import { createPhoneSession } from './phone-session';
 import {accessGroupAA} from './group-aa-access';
 import {accessOccasionFood} from './occasion-food-access';
+import {accessFoodOrder} from './food-order-access';
 import { loadZhiyinContacts } from './contact-access';
 import { loadFinancialSource } from './finance-access';
 import { requestPartnerAuthorization } from './partner-authorization';
@@ -40,6 +41,7 @@ function ZhiyinFrame() {
       loadContacts: loadZhiyinContacts,
       groupAA:accessGroupAA,
       occasionFood:accessOccasionFood,
+      foodOrder:accessFoodOrder,
       loadFinancialSource,
       authorizeFinancialSource: requestPartnerAuthorization,
       hasFinancialAuthorization: hasFinancialGrant,

@@ -2,6 +2,7 @@ type Status = 'loading' | 'ready' | 'error';
 type FinancialProvider = 'alipay' | 'wechat_pay';
 type FinancialScope = 'balance' | 'transactions' | 'autopay';
 type Options = {
+  foodOrder?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   occasionFood?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   groupAA?: (operation:string,payload:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   origin: string;
@@ -57,6 +58,10 @@ export function createPhoneSession(options: Options) {
         ready = true;
         clearTimeout(loadTimer);
         options.onStatus('ready');
+      }
+      if(data.type==='food-order-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['catalog','prepare','open','records'].includes(data.operation)&&options.isActive()&&options.foodOrder&&!financeRequests.has(data.requestId)){
+        const id=data.requestId;financeRequests.add(id);
+        void options.foodOrder(data.operation,{taskId:data.taskId,orderId:data.orderId,draft:data.draft,quote:data.quote,authorized:data.authorized}).then(result=>{if(!disposed)send({type:'food-order-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'food-order-result',requestId:id,status:'error',message:e instanceof Error?e.message:'无法核对点餐方案'});}).finally(()=>financeRequests.delete(id));
       }
       if(data.type==='occasion-food-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['prepare','open','records'].includes(data.operation)&&options.isActive()&&options.occasionFood&&!financeRequests.has(data.requestId)){
         const id=data.requestId;financeRequests.add(id);

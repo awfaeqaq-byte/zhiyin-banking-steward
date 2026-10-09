@@ -75,8 +75,8 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
         let saved=latest;
         if(!part.taskId)saved=await save({type:"create",id,title:part.title,kind});
         const task=original||saved.items.find(task=>task.id===id)!;
-        const progress=advanceTaskProgress(task,part.text);
-        const repair=(task.kind==='general'&&progress.bill)?{kind:'bills' as const}:{};
+        const progress=advanceTaskProgress(part.kind==='food'?{...task,kind:'food'}:task,part.text);
+        const repair=(task.kind==='general'&&progress.food)?{kind:'food' as const}:(task.kind==='general'&&progress.bill)?{kind:'bills' as const}:{};
         await save({type:'progress',id,progress,memoryRevision:revision,...repair});
         // Repeating an interrupted instruction resumes its token instead of adding duplicate pending work.
         const token=latest.items.find(w=>w.id===id)?.pending?.find(p=>p.text===part.text)?.token || crypto.randomUUID();
@@ -117,6 +117,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       seamless
       contextWorkspaces={state.items}
       onBackgroundBook={async(id,expenseBookId)=>{await save({type:'link',id,expenseBookId});}}
+      onBackgroundProgress={async(id,progress,memoryRevision)=>{await save(latest=>{const task=latest.items.find(t=>t.id===id&&t.status==='active');if(!task||task.memoryRevision!==memoryRevision||(props.memory?.current.current.revision??0)!==memoryRevision)throw new Error('任务上下文已变化，请重新交代');return {type:'progress',id,progress,memoryRevision};});}}
       onBackgroundTurn={async(id,user,assistant,memoryRevision)=>{await save({type:'turn',id,user,assistant,memoryRevision});}}
       conversationNotice={conversationNotice}
       bankReceipt={props.bankReceipt}

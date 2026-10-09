@@ -8,6 +8,7 @@ export const workspaceKinds = [
   "bills",
   "reminder",
   "occasion",
+  "food",
 ] as const;
 export type WorkspaceKind = (typeof workspaceKinds)[number];
 export const workspaceLabels: Record<WorkspaceKind, string> = {
@@ -18,6 +19,7 @@ export const workspaceLabels: Record<WorkspaceKind, string> = {
   bills: "账单分析",
   reminder: "日程提醒",
   occasion: "生活筹备",
+  food: "日常点餐",
 };
 export type WorkspaceMessage = {
   id: string;
@@ -46,7 +48,7 @@ export type WorkspaceState = {
 };
 export type WorkspaceOperation =
   | { type: "create"; id: string; title: string; kind: WorkspaceKind }
-  | {type:'progress';id:string;progress:TaskProgress;memoryRevision:number;kind?:'bills'}
+  | {type:'progress';id:string;progress:TaskProgress;memoryRevision:number;kind?:'bills'|'food'}
   | {
       type: "turn";
       id: string;
@@ -165,7 +167,7 @@ export function changeWorkspaces(
     if (!current) throw new Error("任务不存在");
     if(command.type==='progress') {
       if(current.status!=='active'||!validTaskProgress(command.progress)||!Number.isSafeInteger(command.memoryRevision)||command.memoryRevision<0
-        ||command.kind!==undefined&&(command.kind!=='bills'||!['general','bills'].includes(current.kind)||!command.progress.bill))throw new Error('任务现场无效，未更改记录');
+        ||command.kind!==undefined&&(!['general',command.kind].includes(current.kind)||(command.kind==='bills'?!command.progress.bill:command.kind==='food'?!command.progress.food:true)))throw new Error('任务现场无效，未更改记录');
       if(current.memoryRevision!==command.memoryRevision)current.summary='';
       current.memoryRevision=command.memoryRevision;
       current.progress=structuredClone(command.progress);
@@ -287,7 +289,7 @@ export function validateRoutes(
     if (
       p.taskId !== null &&
       !workspaces.some(
-        (w) => w.id === p.taskId && w.kind === p.kind && w.status === "active",
+        (w) => w.id === p.taskId && (w.kind === p.kind||w.kind==='general'&&p.kind==='food') && w.status === "active",
       )
     )
       throw new Error("之前的交代已变化，请重新说明要处理哪件事");
