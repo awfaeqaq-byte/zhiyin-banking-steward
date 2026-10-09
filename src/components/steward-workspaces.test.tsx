@@ -33,6 +33,20 @@ async function say(text:string) {
   return input;
 }
 
+it('普通任务的模型追问落盘，刷新后短答案不重新分流或串入查账',async()=>{
+ const api=server();
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'transfer',title:'给妈妈生活费',text}]}));
+ const reply=vi.fn(async(request:StewardReplyRequest)=>({text:request.messages.at(-1)?.content==='200元'?'金额已收到，尚未付款。':'这次转多少元？',...(request.messages.at(-1)?.content==='200元'?{}:{waitingQuestion:'这次转多少元？'})}));
+ const view=render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await say('给妈妈转账');await screen.findByText('这次转多少元？');
+ await waitFor(()=>expect(api.state().items[0].progress?.waitingFor?.question).toBe('这次转多少元？'));
+ view.unmount();render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await say('200元');await screen.findByText('金额已收到，尚未付款。');
+ expect(route).toHaveBeenCalledTimes(1);expect(api.state().items).toHaveLength(1);
+ expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'给妈妈转账'},{role:'assistant',content:'这次转多少元？'},{role:'user',content:'200元'}]);
+ expect(reply.mock.calls[1][0].workspaceProgress?.goal).toBe('给妈妈生活费');
+});
+
 const billSource:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],autopays:[],syncedAt:'2026-10-09',transactions:[{id:'lunch',title:'午餐套餐',amount:-2500,category:'餐饮',occurredAt:'2026-10-08'}]};
 it('错误分为闲聊的查账意图修正为账单，平台/时间续答和授权后仍是同一现场',async()=>{
  const api=server(),user=userEvent.setup();

@@ -111,6 +111,8 @@ describe("任务持久化", () => {
     });
     const reloaded = createWorkspaceStore(file);
     expect(reloaded.get().items[0].title).toBe("晚餐");
+    reloaded.change({type:'progress',id:'dinner',progress:{goal:'记录今天的AA',stage:'waiting_user',waitingFor:{field:'reply',question:'这次有哪些参与人？'}},memoryRevision:0,revision:1,requestId:'progress'});
+    expect(createWorkspaceStore(file).get().items[0].progress?.waitingFor?.question).toBe('这次有哪些参与人？');
     expect(() =>
       reloaded.change({
         type: "rename",

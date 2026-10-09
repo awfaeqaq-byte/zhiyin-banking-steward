@@ -9,6 +9,12 @@ import {
 import type { FundingForecast } from "./funding-forecast";
 import { buildBillAnalysis } from './bill-analysis';
 
+it('空模型输出不是完成回执；待答描述不泄露到正文或授予执行权限',async()=>{
+ expect(parseStewardReply('[[task-wait:{"question":"这次转多少元？"}]]',[])).toMatchObject({text:'这次转多少元？',waitingQuestion:'这次转多少元？'});
+ const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:''})));vi.stubGlobal('fetch',fetcher);
+ await expect(requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'你好'}]})).rejects.toThrow('有效答复');
+});
+
 it('微信授权请求准备只读连接入口，不要求用户重说用途或宣称已授权',async()=>{
   const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'授权做什么？'})));vi.stubGlobal('fetch',fetcher);
   const response=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'授权一下微信吧'}]});
