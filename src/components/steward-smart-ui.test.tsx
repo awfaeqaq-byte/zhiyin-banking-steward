@@ -8,6 +8,25 @@ import type {SubscriptionSyncResult} from '../lib/use-subscription-sync';
 
 const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
+it('模型给出平台切换选项时不再重复渲染发消息按钮，保留真正的追问选项',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'可以继续核对。[[choices:只看微信支付|只看支付宝|详细解释原因]]'}));
+ render(<StewardChatHome {...base} connections={{wechat_pay:source}} reply={reply}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const choices=await screen.findByRole('group',{name:'你可以这样回答，也可以直接输入'});
+ expect(within(choices).queryByRole('button',{name:'只看支付宝'})).not.toBeInTheDocument();
+ expect(within(choices).queryByRole('button',{name:'只看微信支付'})).not.toBeInTheDocument();
+ expect(within(choices).getByRole('button',{name:'详细解释原因'})).toBeVisible();
+});
+it('后台范围保存失败恢复原展示，并且不自动授权或生成问答',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'已整理。'}));
+ const save=vi.fn(async()=>{throw new Error('任务服务不可用');}),connect=vi.fn();
+ render(<StewardChatHome {...base} connections={{wechat_pay:source}} reply={reply} onBillViewChange={save} onConnectSource={connect}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));await screen.findByRole('region',{name:'账单工作区'});
+ await user.click(screen.getByRole('button',{name:'只看支付宝'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('已恢复原范围');
+ expect(screen.getByRole('button',{name:'查看全部平台'})).toHaveAttribute('aria-pressed','true');
+ expect(reply).toHaveBeenCalledTimes(1);expect(connect).not.toHaveBeenCalled();
+});
 it('切换账单平台不发消息或重算解读，刷新保留范围，下一句沿用当前展示',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'原范围的解读。'}));
  const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'出行',occurredAt:'2026-09-20'}]};
