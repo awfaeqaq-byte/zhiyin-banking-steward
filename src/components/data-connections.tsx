@@ -21,6 +21,7 @@ import { Dialog } from "./ui/dialog";
 import "./data-connections.css";
 
 type Props = {
+  initialProvider?:ExternalFinancialProvider;
   connections: Partial<Record<ExternalFinancialProvider, ConnectedFinancialSource>>;
   onConnect: (provider: ExternalFinancialProvider, scopes: FinancialScope[]) => Promise<void>;
   onDisconnect: (provider: ExternalFinancialProvider) => Promise<void>;
@@ -43,9 +44,9 @@ const scopeOptions: Array<{ id: FinancialScope; title: string; description: stri
   { id: "autopay", title: "读取自动扣费", description: "用于识别未来确定支出" },
 ];
 
-export function DataConnections({ connections, onConnect, onDisconnect }: Props) {
-  const [active, setActive] = useState<ExternalFinancialProvider | null>(null);
-  const [selectedScopes, setSelectedScopes] = useState<FinancialScope[]>(["balance", "transactions", "autopay"]);
+export function DataConnections({ connections, onConnect, onDisconnect,initialProvider }: Props) {
+  const [active, setActive] = useState<ExternalFinancialProvider | null>(initialProvider??null);
+  const [selectedScopes, setSelectedScopes] = useState<FinancialScope[]>(initialProvider?["transactions"]:["balance", "transactions", "autopay"]);
   const [submitting, setSubmitting] = useState(false);
   const [disconnecting, setDisconnecting] = useState<ExternalFinancialProvider | null>(null);
   const [error, setError] = useState("");

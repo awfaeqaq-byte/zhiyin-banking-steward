@@ -7,6 +7,7 @@ import type { StewardReplyRequest } from '../lib/steward-chat';
 import * as expenseService from '../lib/expense-service';
 import * as groupAA from '../lib/group-aa';
 import { changeExpenses, emptyExpenseState, type ExpenseCommand } from '../lib/expense-notebook';
+import type {routeWorkspacePrompt} from '../lib/workspace-service';
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 const props = { stewardName:'宁宁', stewardImage:'/n.png', connections:{}, disabledReminders:[], onToggleReminder:vi.fn(), onOpenSubscriptions:vi.fn(), onPrepareCancel:vi.fn() };
@@ -34,7 +35,7 @@ async function say(text:string) {
 it('新建后台任务也保留最近对话的理解线索，但不混入任务执行历史',async()=>{
   server();
   const reply=vi.fn< (request:StewardReplyRequest)=>Promise<{text:string}> >(async request=>({text:request.messages.at(-1)!.content==='看看这个月的支出'?'需要先授权微信账单。':'接着核对微信授权。'}));
-  const route=vi.fn(async(text:string)=>({parts:[{taskId:null,kind:'general' as const,title:'新事项',text}]}));
+  const route=vi.fn<typeof routeWorkspacePrompt>(async(text:string)=>({parts:[{taskId:null,kind:'general' as const,title:'新事项',text}]}));
   render(<StewardWorkspaces {...props} reply={reply} route={route}/>);
   await say('看看这个月的支出');await screen.findByText('需要先授权微信账单。');
   await say('授权一下微信吧');await screen.findByText('接着核对微信授权。');

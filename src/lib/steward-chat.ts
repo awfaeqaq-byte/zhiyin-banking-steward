@@ -5,6 +5,7 @@ import type { FundingForecast } from "./funding-forecast";
 import type { RecurringCandidate } from "./recurring-payments";
 import type { DuplicateDecision } from "./subscription-insights";
 import { billInstructions, isBillQuestion, type BillAnalysis } from './bill-analysis';
+import {conversationContext} from './conversation-context';
 export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean };
 
 export type StewardChatMessage = {
@@ -25,6 +26,7 @@ export type StewardSubscription = {
 };
 
 export type StewardAction =
+  | {type:'open_connections';provider?:ExternalFinancialProvider}
   | ({type:'prepare_task'} & ReminderDraft)
   | {type:'open_tasks'}
   | {type:'open_group_aa'}
@@ -54,6 +56,7 @@ export type StewardReply = {
 };
 
 export type StewardReplyRequest = {
+  recentConversation?:StewardChatMessage[];
   taskContext?:string;
   transferBackground?: string;
   bank?:BankSnapshot;
@@ -276,6 +279,7 @@ export function parseStewardReply(
   if (!markers.length) return result;
 
   const parts = markers.at(-1)?.[1].split("|") || [];
+  if(parts[0]==='OPEN_CONNECTIONS')return markers.length===1&&(parts.length===1||parts.length===2&&providerIsSupported(parts[1]))?{...result,action:{type:'open_connections',...(parts.length===2?{provider:parts[1] as ExternalFinancialProvider}:{})}}:result;
   if(parts[0]==='OPEN_TASKS')return markers.length===1&&parts.length===1?{...result,action:{type:'open_tasks'}}:result;
   if(parts[0]==='OPEN_OCCASIONS')return markers.length===1&&parts.length===1?{...result,action:{type:'open_occasions'}}:result;
   if(parts[0]==='PREPARE_TASK'){
@@ -337,6 +341,13 @@ export function parseStewardReply(
 }
 
 export const requestStewardReply: StewardReplyFn = async request => {
+  const latest=request.messages.filter(message=>message.role==='user').at(-1)?.content.trim()||'';
+  // This only prepares a read-only consent entry. No grant or partner request occurs here.
+  if(/^(?:那|好[的吧]?|帮我|请|先|给我|我想|我要|可以|就|把|现在|，|,|\s)*(?:授权|连接|绑定|接入)/.test(latest) && !/不(?:要|用|想)?|取消|撤销|断开|转账|付款|扣款/.test(latest)) {
+    const wechat=/微信/.test(latest),alipay=/支付宝/.test(latest);
+    const provider=wechat&&!alipay?'wechat_pay':alipay&&!wechat?'alipay':undefined;
+    return {text:provider?'可以，先核对只读数据范围，再由你在两边确认。连接后就能继续看账单；现在还没有授权。':'可以，先选择要连接的平台并核对只读范围，仍需要你在两边确认。',action:{type:'open_connections',...(provider?{provider}:{})}};
+  }
   if(isOccasionRequest(request.messages))return {text:'可以，把日期、预算和偏好交给我整理。我们先核对筹备方案，再单独确认预留资金和外卖订单。',action:{type:'open_occasions'}};
   const newestUser = [...request.messages].reverse().find(message => message.role === "user");
   if(/群收款|微信群.*(?:AA|aa|分摊|收款)|(?:AA|aa|分摊).*微信群/.test(newestUser?.content??''))return {text:'可以，从已有微信群选择参与人，再把费用和分摊规则告诉我。点选和文字都能调整同一份方案，核对后再去微信发起。',action:{type:'open_group_aa'}};
@@ -361,6 +372,9 @@ export const requestStewardReply: StewardReplyFn = async request => {
   }
   const instructions = buildStewardInstructions(request);
   const input = request.messages.filter(message => message.content.length <= 2000).slice(-24);
+  input.unshift({role:'user',content:'交互能力说明：需要连接或授权微信支付、支付宝时，可输出单个[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]或[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]；未确定平台用[ZHIYIN_ACTION:OPEN_CONNECTIONS]。这是打开只读范围核对入口，不是授权成功，更不包含付款能力。用户已说明查账单用途时不要再询问用途。'});
+  const recent=conversationContext(request.recentConversation||[]);
+  if(recent)input.unshift({role:'user',content:recent});
   if (newestUser && !input.includes(newestUser)) {
     input.shift();
     input.unshift(newestUser);

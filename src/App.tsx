@@ -276,6 +276,7 @@ export default function App() {
   const [taskDraft,setTaskDraft]=useState<ReminderDraft|null>(null);
   const [taskDate,setTaskDate]=useState<number>();
   const [occasionEntry,setOccasionEntry]=useState<{prompt?:string;id?:string}>({});
+  const [connectionEntry,setConnectionEntry]=useState<ExternalFinancialProvider>();
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
   const limit=String((bank.state?.limit ?? 2000000)/100);
@@ -1562,6 +1563,7 @@ export default function App() {
                 subtitle="把分散的资金信息，放回同一张图里"
               />
               <DataConnections
+                initialProvider={connectionEntry}
                 connections={connections}
                 onConnect={connectFinancialSource}
                 onDisconnect={disconnectFinancialSource}
@@ -1622,6 +1624,7 @@ export default function App() {
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}
               onOpenSubscriptions={() => go("subscriptions")}
+              onOpenConnections={provider=>{setConnectionEntry(provider);go('connections');}}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
               onOpenGroupAA={()=>go('group-aa')}

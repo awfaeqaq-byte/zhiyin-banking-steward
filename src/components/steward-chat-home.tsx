@@ -50,6 +50,7 @@ import { buildRecurringCandidates } from "../lib/recurring-payments";
 import type { RecurringReviews } from "./recurring-subscription-review";
 import { buildFundingForecast, fundingReferenceTime } from "../lib/funding-forecast";
 import type {Workspace} from '../lib/workspaces';
+import {recentConversation} from '../lib/conversation-context';
 
 type DisplayMessage = StewardChatMessage & {
   id: string;
@@ -76,7 +77,7 @@ type Props = {
   onBackgroundTurn?:(id:string,user:string,assistant:string,memoryRevision:number)=>Promise<void>;
   onBackgroundBook?:(id:string,bookId:string)=>Promise<void>;
   workspace?: Workspace | null;
-  onRoutePrompt?: (text:string)=>Promise<void>;
+  onRoutePrompt?: (text:string,recent?:StewardChatMessage[])=>Promise<void>;
   externalBusy?: boolean;
   injectedPrompt?: {token:string;text:string};
   onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean)=>Promise<void>;
@@ -88,6 +89,7 @@ type Props = {
   disabledReminders: string[];
   onToggleReminder: (key: string, enabled: boolean) => void;
   onOpenSubscriptions: () => void;
+  onOpenConnections?: (provider?:ExternalFinancialProvider)=>void;
   onOpenFunding?: () => void;
   onOpenTasks?:(date?:number)=>void;
   onOpenGroupAA?:()=>void;
@@ -132,7 +134,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
-  if (action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
+  if (action.type==='open_connections'||action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
   );
@@ -148,6 +150,7 @@ export function StewardChatHome({
   disabledReminders,
   onToggleReminder,
   onOpenSubscriptions,
+  onOpenConnections,
   onOpenFunding,
   onOpenTasks,
   onOpenGroupAA,
@@ -196,13 +199,20 @@ export function StewardChatHome({
     [disabledReminders, insights.items],
   );
   const [messages, setMessages] = useState<DisplayMessage[]>(()=>seamless?readMessages(conversationKey):workspace===undefined?readMessages():workspace?.messages || []);
+  const conversationCutoff=useRef(localStorage.getItem('zhiyin-steward-conversation-cutoff')||'');
+  const latestMessages=useRef(messages);
+  latestMessages.current=messages;
+  function recentContext() {
+    const index=messages.findIndex(message=>message.id===conversationCutoff.current);
+    return recentConversation(index>=0?messages.slice(index+1):messages);
+  }
   const [transferAttention,setTransferAttention]=useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [memoryDecisions,setMemoryDecisions]=useState<Record<string,string>>({});
   const contextEpoch=useRef(0);
   useEffect(()=>{
-    const reset=()=>{contextEpoch.current++;setActiveReplyId(null);setActiveBill(null);setMemoryDecisions({});};
+    const reset=()=>{contextEpoch.current++;conversationCutoff.current=latestMessages.current.at(-1)?.id||'';try{localStorage.setItem('zhiyin-steward-conversation-cutoff',conversationCutoff.current);}catch{/* Storage is optional. */}setActiveReplyId(null);setActiveBill(null);setMemoryDecisions({});};
     window.addEventListener('zhiyin-memory-context-reset',reset);
     return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);
   },[]);
@@ -315,7 +325,7 @@ export function StewardChatHome({
       // Record the user's original sentence once, not each backstage routing fragment.
       if(seamless)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:prompt}]);
       setActiveReplyId(null);setActiveBill(null);setError('');setLastPrompt(prompt);
-      try{await onRoutePrompt(prompt);setInput('');}catch{/* Keep original input for retry; coordinator displays the error. */}
+      try{await onRoutePrompt(prompt,recentContext());setInput('');}catch{/* Keep original input for retry; coordinator displays the error. */}
     }return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
@@ -381,6 +391,7 @@ export function StewardChatHome({
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
       const response = await reply({ stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+        ...(seamless?{recentConversation:recentContext().filter((message,index,array)=>!(index===array.length-1&&message.role==='user'))}:{}),
         transferBackground,
         taskContext,
         ...(validBankSnapshot(bankData)?{bank:bankData}:{}),
@@ -620,6 +631,7 @@ export function StewardChatHome({
                   {action?.type==='open_transfers' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({recipientId:'mom',amount:0})}>打开智能转账<ArrowRight size={16}/></button>}
                   {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records'})}>查看转账安排<ArrowRight size={16}/></button>}
                   {action?.type==='open_tasks'&&onOpenTasks&&!historyOpen&&<button onClick={()=>onOpenTasks()}>打开任务日历<ArrowRight size={16}/></button>}
+                  {action?.type==='open_connections'&&onOpenConnections&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}
                   {action?.type==='open_occasions'&&onOpenOccasions&&!historyOpen&&<button onClick={()=>onOpenOccasions(lastPrompt,workspace?.kind==='occasion'?workspace.id:undefined)}>核对生活筹备<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask(action)}>核对并保存提醒<ArrowRight size={16}/></button>}

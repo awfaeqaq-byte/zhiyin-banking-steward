@@ -3,6 +3,7 @@ import { StewardChatHome } from "./steward-chat-home";
 import { emptyWorkspaces, type WorkspaceOperation } from "../lib/workspaces";
 import { workspaceRequest, routeWorkspacePrompt } from "../lib/workspace-service";
 import "./steward-workspaces.css";
+import type {StewardChatMessage} from '../lib/steward-chat';
 
 type Props = ComponentProps<typeof StewardChatHome> & { route?: typeof routeWorkspacePrompt };
 type Queued = { id: string; text: string; token: string };
@@ -47,7 +48,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
     localStorage.setItem("zhiyin-workspace-active", item.id);
     setInjected(item);
   }
-  async function arrange(text:string) {
+  async function arrange(text:string,recent:StewardChatMessage[]=[]) {
     if(lock.current || !loaded) throw new Error("正在处理上一条交代，请稍等。");
     lock.current=true; setBusy(true); setError("");
     try {
@@ -56,7 +57,9 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       if(clarify.current && /^(取消|不用了|算了)[。！! ]*$/.test(text)) {
         clarify.current=""; say("好，刚才的请求没有执行。"); return;
       }
-      const result = await route(source,latest.items,work?.id || "");
+      const revision=props.memory?.current.current.revision??0;
+      const routingTasks=latest.items.map(task=>({...task,messages:task.messages.filter(message=>message.memoryRevision===revision)}));
+      const result = await route(source,routingTasks,work?.id || "","",recent);
       if(result.clarification) { clarify.current=source; say(result.clarification); return; }
       if(!result.parts.length) throw new Error("还没理解清楚你的意思，可以再说具体一点吗？");
       clarify.current="";
