@@ -43,6 +43,28 @@ not debit the wallet. Balance settings do not create deposit transactions.
 - The last ten console financial actions and undo snapshot are session-only.
   Existing WeChat chat reset remains separate.
 
+## Reset the Zhiyin steward
+
+Open **知银管家 → 重置宁宁** in the console. The first click only shows
+the boundary; **确认重置** performs the reset, and **取消** leaves data unchanged.
+The old Zhiyin app is closed before resetting to stop its pending reply UI.
+Reopen Zhiyin afterward to start a clean conversation.
+
+- Clears this browser's Zhiyin conversation, task workspaces, AA notebooks and
+  drafts, bill presentation state, and subscription review preferences.
+- Clears server-side long-term memory and profile, shared by browsers using this
+  local server. Memory/profile enable settings remain unchanged.
+- Preserves provider chats, balances, bills, subscriptions and existing reading
+  grants, as well as bank records, confirmed calendar events, scheduled transfers,
+  model configuration and UI settings. This is not a financial cancellation.
+- The reset endpoint validates origin, confirmation and the browser scope, locks
+  the three stores, validates their contents, backs them up and increments their
+  revisions. Corrupt or busy stores do not receive replacement data.
+- Original server files are saved beside them as
+  `<original filename>.reset-<backupId>.bak`. These files remain private. Recovery
+  is manual; browser conversation cleanup has no in-app undo. Do not overwrite a
+  running store while recovering a backup.
+
 ## Verification
 
 The finance controller has unit coverage for validation, fixture idempotency,

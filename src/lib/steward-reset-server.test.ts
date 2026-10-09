@@ -64,4 +64,22 @@ describe('宁宁重置后端', () => {
     expect((await reset()).status).toBe(409);
     expect(readFileSync(file + '.lock', 'utf8')).toBe('busy');
   });
+  it('复位画像而不把历史忽略标记带入新测试', async () => {
+    const { dir, reset, memory } = await fixture();
+    const memoryFile = join(dir, '.zhiyin-memory.local.json');
+    const before = { ...memory, profile: { enabled: true, ignored: ['music'], items: [] } };
+    writeFileSync(memoryFile, JSON.stringify(before));
+    expect((await reset()).status).toBe(200);
+    expect(JSON.parse(readFileSync(memoryFile, 'utf8')).profile).toEqual({ enabled: true, items: [], ignored: [] });
+  });
+  it('空沙箱也能复位且拒绝过大的请求', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'zhiyin-reset-empty-')); dirs.push(dir);
+    const server = createServer(stewardResetMiddleware(dir)); servers.push(server);
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('address');
+    const url = `http://127.0.0.1:${address.port}`;
+    const headers = { 'Content-Type': 'application/json', 'X-Zhiyin-Reset': '1', 'X-Zhiyin-Expense-Scope': scope };
+    expect((await fetch(url, { method: 'POST', headers, body: JSON.stringify({ confirm: 'reset-steward' }) })).status).toBe(200);
+    expect((await fetch(url, { method: 'POST', headers, body: ' '.repeat(1025) })).status).toBe(413);
+  });
 });
