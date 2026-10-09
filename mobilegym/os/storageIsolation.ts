@@ -181,6 +181,26 @@ export function makeNamespacedKey(key: string): string {
 }
 
 const PATCH_MARK = '__MG_LOCALSTORAGE_NS_PATCH__';
+type OriginStorageMethods = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+/** Access for same-origin embedded apps that do not install our realm's patch.
+ * This does not change normal app isolation and deliberately exposes no clear().
+ */
+export function getOriginLocalStorage(): OriginStorageMethods {
+  const storage = window.localStorage;
+  const proto = Object.getPrototypeOf(storage) as OriginStorageMethods & {
+    [PATCH_MARK]?: { originalMethods?: OriginStorageMethods };
+  };
+  const patch = proto[PATCH_MARK];
+  const methods = patch ? patch.originalMethods : storage;
+  // A page still running the old bootstrap must reload, not reset the wrong scope.
+  if (!methods) throw new Error('STORAGE_ISOLATION_RELOAD_REQUIRED');
+  return {
+    getItem: key => methods.getItem.call(storage, key),
+    setItem: (key, value) => methods.setItem.call(storage, key, value),
+    removeItem: key => methods.removeItem.call(storage, key),
+  };
+}
 
 /**
  * Monkey-patch Storage methods so all existing code that uses localStorage
@@ -243,6 +263,7 @@ export function installLocalStorageNamespacing(): { mode: StorageIsolationMode; 
     installedAt: realNow(),
     namespace,
     mode,
+    originalMethods: { getItem: originalGetItem, setItem: originalSetItem, removeItem: originalRemoveItem },
   };
 
   return { mode, namespace };
@@ -253,4 +274,3 @@ export function getNamespacedIndexedDbName(baseName: string): string {
   if (!ns) return baseName;
   return `mg_${ns}__${baseName}`;
 }
-

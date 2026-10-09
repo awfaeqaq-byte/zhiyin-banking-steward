@@ -1,3 +1,6 @@
+import { getOriginLocalStorage } from '../os/storageIsolation';
+import { consoleStrings } from './res/strings';
+
 type ResetStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 type ResetOptions = { storage?: ResetStorage; stop?: () => void; request?: typeof fetch };
 export type StewardResetResult = { reset: true; backupId: string; memoryRevision: number };
@@ -9,7 +12,14 @@ const conversationKeys = [
 ];
 
 export async function resetSteward(options: ResetOptions = {}): Promise<StewardResetResult> {
-  const storage = options.storage ?? window.localStorage;
+  // Zhiyin's iframe shares the origin's storage area, not MobileGym's tab prefix.
+  // Resolve this even when the app is closed, before selecting the backend scope.
+  let storage: ResetStorage;
+  try { storage = options.storage ?? getOriginLocalStorage(); }
+  catch (error) {
+    if (error instanceof Error && error.message === 'STORAGE_ISOLATION_RELOAD_REQUIRED') throw new Error(consoleStrings.steward.reload);
+    throw error;
+  }
   const request = options.request ?? fetch;
   const stop = options.stop ?? (() => window.__OS__?.closeApp('zhiyin'));
   let scope = storage.getItem('zhiyin-expense-scope');
