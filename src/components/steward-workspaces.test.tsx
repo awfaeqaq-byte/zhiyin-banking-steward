@@ -100,6 +100,18 @@ it('平台确认后直接继续原账单任务，不重新分类或重复用户�
  expect(screen.getAllByText('本月支出',{selector:'.steward-message.user p'})).toHaveLength(1);
 });
 
+it('平台等待期间用户改了范围，晚到的确认不重放旧查询',async()=>{
+ const api=server(),user=userEvent.setup();let grant!:(value:ConnectedFinancialSource)=>void;
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'bills',title:'查支出',text}]}));
+ const reply=vi.fn(async()=>({text:'不应分析旧范围'}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply} onConnectSource={()=>new Promise(resolve=>{grant=resolve;})}/>);
+ await say('本月微信支出');await screen.findByRole('region',{name:'账单读取范围'});
+ await waitFor(()=>expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeEnabled());await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
+ await say('上个月');await waitFor(()=>expect(api.state().items[0].progress?.bill?.period).toBe('上月'));
+ grant(billSource);await screen.findByText(/范围已变化/);
+ expect(reply).not.toHaveBeenCalled();expect(api.state().items[0].progress?.bill?.period).toBe('上月');
+});
+
 it('查账授权续答不会被错误分流成新的闲聊，后台保留同一任务现场',async()=>{
   server();
   const reply=vi.fn< (request:StewardReplyRequest)=>Promise<{text:string}> >(async request=>({text:request.messages.at(-1)!.content==='看看这个月的支出'?'需要先授权微信账单。':'接着核对微信授权。'}));
