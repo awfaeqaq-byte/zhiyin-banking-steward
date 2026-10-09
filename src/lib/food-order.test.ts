@@ -21,7 +21,7 @@ it('日常点餐与旧的general外卖任务续聊复用，AA消费不能误归�
  expect(progress.food?.orderId).toBe('order1');
 });
 it('模型只提出菜单方案，不得捏造商品、执行授权或覆盖订单编号',()=>{
- expect(parseFoodAdvice(JSON.stringify({text:'推荐奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''},choices:[]}),catalog).text).toContain('黑糖珍珠鲜奶茶');
+ expect(parseFoodAdvice(JSON.stringify({text:'推荐奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''},choices:[]}),catalog).draft?.items[0].productId).toBe('tea');
  for(const draft of [{items:[{productId:'fake',quantity:1}],note:''},{items:[{productId:'tea',quantity:1}],note:'',orderId:'fake'}])expect(()=>parseFoodAdvice(JSON.stringify({text:'已下单',draft}),catalog)).toThrow();
  expect(()=>parseFoodAdvice('坏格式',catalog)).toThrow();
 });

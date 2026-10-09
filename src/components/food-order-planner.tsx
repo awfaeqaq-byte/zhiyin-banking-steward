@@ -33,8 +33,8 @@ export function FoodOrderPlanner(props:Props){
    const memory=await callbacks.current.getMemoryContext?.(text)||'';
    const result=await requestFoodAdvice(text,catalog,next,history.current,memory,stewardName);if(!alive.current)return;
    answer=result.text;setChoices(result.choices);
-   if(result.draft&&!next.orderId){next={...result.draft,...(result.draft.address===undefined&&next.address?{address:next.address}:{}),...(result.draft.contact===undefined&&next.contact?{contact:next.contact}:{})};update(next);orderId.current='';}
-   else if(result.draft&&next.orderId){answer='这笔已经生成订单，不能在这里修改。我可以带你回原订单核对。';setChoices([]);}
+   if(result.intent!=='answer'&&result.intent!=='clarify'&&result.draft&&!next.orderId){next={...result.draft,...(result.draft.address===undefined&&next.address?{address:next.address}:{}),...(result.draft.contact===undefined&&next.contact?{contact:next.contact}:{})};update(next);orderId.current='';}
+   else if(result.intent!=='answer'&&result.intent!=='clarify'&&result.draft&&next.orderId){answer='这笔已经生成订单，不能在这里修改。我可以带你回原订单核对。';setChoices([]);}
   }catch(e){failed=true;answer=e instanceof Error?e.message:'点餐暂时未能整理，请重试。';if(alive.current)setError(answer);}
   finally{
    try{if(alive.current)await callbacks.current.onTurn?.(text,answer,failed,{goal:'日常点餐',stage:failed?'failed':next.items.length?'waiting_authorization':'waiting_user',food:next});}
