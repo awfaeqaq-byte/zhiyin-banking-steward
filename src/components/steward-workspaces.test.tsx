@@ -34,6 +34,25 @@ async function say(text:string) {
 }
 
 const billSource:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],autopays:[],syncedAt:'2026-10-09',transactions:[{id:'lunch',title:'午餐套餐',amount:-2500,category:'餐饮',occurredAt:'2026-10-08'}]};
+it('错误分为闲聊的查账意图修正为账单，平台/时间续答和授权后仍是同一现场',async()=>{
+ const api=server(),user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'general',title:'查看支出',text}]}));
+ const alipay={...billSource,provider:'alipay' as const,displayName:'支付宝'};
+ const connect=vi.fn(async()=>alipay);
+ const reply=vi.fn(async(request:StewardReplyRequest)=>({text:`分析完成 ${request.billAnalysis?.from} ${request.billAnalysis?.sources.join('、')}`}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply} onConnectSource={connect}/>);
+ await say('帮我看看这个月的支出');await screen.findByRole('region',{name:'账单读取范围'});
+ await say('支付宝');await waitFor(()=>expect(api.state().items[0].progress?.bill?.provider).toBe('alipay'));
+ expect(screen.getByRole('checkbox',{name:'支付宝'})).toBeChecked();expect(screen.getByRole('checkbox',{name:'微信支付'})).not.toBeChecked();
+ await say('就近一个月的');await waitFor(()=>expect(api.state().items[0].progress?.bill?.period).toBe('最近30天'));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeEnabled());
+ await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(1));
+ expect(reply.mock.calls[0][0].billAnalysis).toMatchObject({from:'2026-09-10',sources:['支付宝']});
+ expect(api.state().items).toHaveLength(1);expect(api.state().items[0].kind).toBe('bills');expect(route).toHaveBeenCalledTimes(1);
+ expect(connect).toHaveBeenCalledWith('alipay',['transactions']);
+ await waitFor(()=>expect(api.state().items[0].progress?.stage).toBe('ready'));
+});
 it('已知账单控件直接续聊原任务，保留范围与交易对象，不暴露内部指令',async()=>{
  const api=server(),user=userEvent.setup();
  const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'bills',title:'本月账单',text:'本月支出'}]}));

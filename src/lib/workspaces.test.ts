@@ -8,6 +8,14 @@ import {
   type WorkspaceCommand,
 } from "./workspaces";
 describe("独立任务工作区", () => {
+  it('任务现场落盘并修复旧查账分类，不允许伪造授权或改成金融执行类型',()=>{
+    let s=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'b',title:'看支出',kind:'general',revision:0,requestId:'create'});
+    s=changeWorkspaces(s,{type:'progress',id:'b',kind:'bills',progress:{goal:'看本月支出',stage:'waiting_authorization',bill:{period:'本月',provider:'alipay'},waitingFor:{field:'authorization',question:'需要平台确认账单读取范围'}},memoryRevision:0,revision:s.revision,requestId:'plan'} as WorkspaceCommand);
+    expect(s.items[0]).toMatchObject({kind:'bills',progress:{bill:{provider:'alipay'}}});expect(validWorkspaces(s)).toBe(true);
+    expect(()=>changeWorkspaces(s,{type:'progress',id:'b',kind:'transfer',progress:{goal:'转账',stage:'ready'},memoryRevision:0,revision:s.revision,requestId:'wrong'} as unknown as WorkspaceCommand)).toThrow();
+    s=changeWorkspaces(s,{type:'turn',id:'b',user:'新问题',assistant:'收到',memoryRevision:1,revision:s.revision,requestId:'new'});
+    expect(s.items[0].progress).toBeUndefined();
+  });
   it('合法的最长请求标识不会写出无法再次读取的记录',()=>{
     const s=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'a',title:'事项',kind:'general',revision:0,requestId:'create'});
     const next=changeWorkspaces(s,{type:'turn',id:'a',user:'你好',assistant:'你好',memoryRevision:0,revision:1,requestId:'a'.repeat(80)});
