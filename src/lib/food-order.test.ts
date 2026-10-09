@@ -41,3 +41,32 @@ it('旧普通事项只能用已校验的点餐现场转为food，刷新后仍有
  expect(state.items[0].kind).toBe('food');
  expect(()=>changeWorkspaces(state,{type:'progress',id:'old',kind:'food',progress:{goal:'乱转',stage:'ready'},memoryRevision:0,revision:2,requestId:'c'})).toThrow();
 });
+it('问热量沿用点餐上下文，不把询问变成方案修改',async()=>{
+ const current:Workspace={id:'food',kind:'food',title:'晚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute('这个热量大概怎么样啊？',[current],'food')?.parts[0]).toMatchObject({taskId:'food',kind:'food'});
+ const answer='按常见份量粗估约 500–700 千卡，主要取决于份量和用油；不是商家实测。';
+ const f=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({intent:'update',text:answer,draft:{items:[{productId:'rice',quantity:2}],note:''}})})));
+ const result=await requestFoodAdvice('这个热量大概怎么样啊？',catalog,{items:[{productId:'tea',quantity:1}],note:'少冰'},[],'','宁宁');
+ expect(result.text).toBe(answer);expect(result.intent).toBe('answer');expect(result.draft).toBeUndefined();
+ const body=JSON.parse(String(f.mock.calls[0][1]?.body));expect(body.instructions).toContain('估算');expect(body.instructions).toContain('商家实测');
+});
+it('普通文字营养答复能只读展示，损坏JSON只返回用户可理解的错误',async()=>{
+ const answer='菜单没有标注热量，但可以根据食材、常见份量和用油粗略估算，不是商家实测。';
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:answer})));
+ const result=await requestFoodAdvice('大概多少热量',catalog,{items:[{productId:'tea',quantity:1}],note:''},[],'','宁宁');
+ expect(result).toMatchObject({intent:'answer',text:answer});expect(result.draft).toBeUndefined();
+ expect(()=>parseFoodAdvice('{"text":',catalog)).toThrow('回复格式');
+ expect(()=>parseFoodAdvice('{"text":',catalog)).not.toThrow('Unexpected');
+});
+it('保留自然解释和推荐理由，只有伪造交易事实才替换文案',()=>{
+ const reason='推荐这杯奶茶，因为你喜欢微糖，也可以改成少冰。';
+ const result=parseFoodAdvice(JSON.stringify({intent:'update',text:reason,draft:{items:[{productId:'tea',quantity:1}],note:''}}),catalog);
+ expect(result.text).toBe(reason);expect(result.draft?.items[0].productId).toBe('tea');
+ const readOnly=parseFoodAdvice(JSON.stringify({intent:'answer',text:'我只是估算，没有修改你的点餐方案。',draft:{items:[{productId:'rice',quantity:2}],note:''}}),catalog);
+ expect(readOnly.draft).toBeUndefined();expect(readOnly.intent).toBe('answer');
+});
+it('真正修改请求仍能改方案，不因提及热量被当成只读问题',async()=>{
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({intent:'update',text:'改成鸡丁饭。',draft:{items:[{productId:'rice',quantity:1}],note:'少油'}})})));
+ const result=await requestFoodAdvice('帮我换成热量低一点的鸡丁饭',catalog,{items:[{productId:'tea',quantity:1}],note:''},[],'','宁宁');
+ expect(result.intent).toBe('update');expect(result.draft?.items[0].productId).toBe('rice');
+});

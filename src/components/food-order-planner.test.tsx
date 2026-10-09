@@ -44,3 +44,13 @@ it('模型按需询问的选项能续答，数量减少直接更新原方案',as
  await screen.findByRole('button',{name:'喝奶茶'});fireEvent.click(screen.getByRole('button',{name:'喝奶茶'}));expect(onPrompt).toHaveBeenCalledWith('喝奶茶');
  fireEvent.click(screen.getByRole('button',{name:'减少黑糖珍珠鲜奶茶'}));await screen.findByText('¥6.80');
 });
+it('营养询问仅回复解释，模型附带草稿也不改变原方案或跳支付',async()=>{
+ setup();const turn=vi.fn(),save=vi.fn();
+ advice.mockResolvedValue({intent:'answer',text:'这只是常见份量的热量粗估，不是商家实测。',draft:{items:[{productId:'tea',quantity:1}],note:'无糖'},choices:[]});
+ render(<FoodOrderPlanner taskId="food" stewardName="宁宁" initialDraft={{items:[{productId:'tea',quantity:2}],note:'少冰',address:'我的地址',contact:'我的联系人'}} history={[]} injectedPrompt={{token:'calories',text:'这个热量大概怎么样啊？'}} onTurn={turn} onDraftChange={save}/>);
+ await waitFor(()=>expect(turn).toHaveBeenCalled());
+ expect(turn.mock.calls[0][1]).toContain('热量粗估');expect(turn.mock.calls[0][2]).toBe(false);
+ expect(turn.mock.calls[0][3].food).toMatchObject({items:[{productId:'tea',quantity:2}],note:'少冰',address:'我的地址',contact:'我的联系人'});
+ expect(screen.getByText('¥15.60')).toBeTruthy();expect(save).not.toHaveBeenCalled();
+ expect(bridge.mock.calls.some(c=>c[0]==='prepare'||c[0]==='open')).toBe(false);
+});
