@@ -282,7 +282,7 @@ export function parseStewardReply(
   const markers = [...output.matchAll(actionPattern)];
   const waiting=parseTaskWait(output.replace(actionPattern, ""));
   const presentation=parseBillUI(waiting.text);
-  const result: StewardReply = { text: presentation.text || "这次没有生成有效说明，尚未执行任何操作。",...(presentation.ui?{billUI:presentation.ui}:{}),...(waiting.waitingQuestion?{waitingQuestion:waiting.waitingQuestion}:{}) };
+  const result: StewardReply = { text: presentation.text || waiting.waitingQuestion || "这次没有生成有效说明，尚未执行任何操作。",...(presentation.ui?{billUI:presentation.ui}:{}),...(waiting.waitingQuestion?{waitingQuestion:waiting.waitingQuestion}:{}) };
   if (!markers.length) return result;
 
   const parts = markers.at(-1)?.[1].split("|") || [];
@@ -412,9 +412,10 @@ export const requestStewardReply: StewardReplyFn = async request => {
     throw new Error(typeof payload.error === "string" ? payload.error : "宁宁暂时无法连接模型，请稍后重试。");
   }
   if (typeof payload.output_text !== "string" || !payload.output_text.trim()) {
-    throw new Error("模型没有返回有效内容，请重新发送。");
+    throw new Error("模型没有返回有效答复，请重新发送。");
   }
   const result=parseStewardReply(payload.output_text, request.subscriptions, request.duplicateGroups);
+  if(result.text==='这次没有生成有效说明，尚未执行任何操作。'&&!result.action&&!result.billUI&&!result.waitingQuestion)throw new Error('模型没有返回有效答复，请重新发送。');
   if(!result.action && newestUser && isBankRequest(request.messages) && !isTaskRequest(request.messages) && /准备|方案|核对|确认/.test(result.text) && !/[？?]|请问|多少|几点/.test(result.text)) {
     // Repair the missing UI action once. The model still only prepares a draft;
     // no network request here can authorize a payment.
