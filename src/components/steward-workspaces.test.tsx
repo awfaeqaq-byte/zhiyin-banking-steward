@@ -74,7 +74,7 @@ it('已知账单控件直接续聊原任务，保留范围与交易对象，不�
  expect(screen.getByRole('region',{name:'账单工作区'})).toHaveTextContent('已选中「午餐套餐」');
 });
 it('平台确认后直接继续原账单任务，不重新分类或重复用户问题',async()=>{
- server();const user=userEvent.setup();
+ const api=server();const user=userEvent.setup();
  const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'bills',title:'本月账单',text:'本月支出'}]}));
  const reply=vi.fn(async()=>({text:'接着核对账单。'}));
  render(<StewardWorkspaces {...props} route={route} reply={reply} onConnectSource={async()=>billSource}/>);
@@ -82,6 +82,7 @@ it('平台确认后直接继续原账单任务，不重新分类或重复用户�
  await waitFor(()=>expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeEnabled());
  await user.click(screen.getByRole('checkbox',{name:'支付宝'}));await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(1));expect(route).toHaveBeenCalledTimes(1);
+ await waitFor(()=>expect(api.state().items[0].progress?.bill?.provider).toBe('wechat_pay'));
  expect(screen.getAllByText('本月支出',{selector:'.steward-message.user p'})).toHaveLength(1);
 });
 

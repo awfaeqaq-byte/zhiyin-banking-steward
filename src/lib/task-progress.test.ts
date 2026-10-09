@@ -27,8 +27,12 @@ describe('任务现场而非对话猜测',()=>{
   const p=settleTaskProgress(advanceTaskProgress(task(),'本月支出'),{bill:buildBillAnalysis({},'本月支出')});
   const t=task({progress:p});
   for(const text of ['支付宝','近一个月','怎么授权','？'])expect(taskContinuation(text,[t],t.id)?.parts[0].taskId).toBe(t.id);
-  for(const text of ['给妈妈转500','支付宝，给妈妈转500','记录饮料18','今天什么天气'])expect(taskContinuation(text,[t],t.id)).toBeNull();
+  for(const text of ['给妈妈转500','支付宝，给妈妈转500','记录饮料18','今天什么天气','今天吃午餐','本月工资什么时候发'])expect(taskContinuation(text,[t],t.id)).toBeNull();
   expect(taskContinuation('支付宝',[{...t,status:'archived'}],t.id)).toBeNull();
+ });
+ it('暂停查账不再催授权，保留范围供以后继续，不撤回授权或资金动作',()=>{
+  const p=advanceTaskProgress(task(),'支付宝本月支出');
+  expect(advanceTaskProgress(task({progress:p}),'算了')).toMatchObject({stage:'paused',bill:{provider:'alipay',period:'本月'}});
  });
  it('普通任务的追问也可持久化，跨话题不会冒充付款授权',()=>{
   const p=settleTaskProgress(advanceTaskProgress(task({kind:'transfer',title:'给妈妈生活费'}),'给妈妈转账'),{waitingQuestion:'这次转多少元？'});

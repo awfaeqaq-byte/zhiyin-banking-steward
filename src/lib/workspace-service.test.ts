@@ -5,10 +5,8 @@ import { emptyWorkspaces, type Workspace } from "./workspaces";
 it('分流能看到上一轮管家的追问，授权和问号不被当作独立闲聊', async () => {
   const task: Workspace = {id:'bill',kind:'bills',title:'本月支出',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[{id:'u',role:'user',content:'看看这个月支出',memoryRevision:0},{id:'a',role:'assistant',content:'需要先授权微信账单。',memoryRevision:0}]};
   const fetcher = vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:'bill',kind:'bills',title:'本月支出',text:'授权一下微信吧'}]})})));
-  await routeWorkspacePrompt('授权一下微信吧',[task],'bill');
-  const body=JSON.parse(String(fetcher.mock.calls[0][1]?.body));
-  expect(JSON.stringify(body.input)).toContain('需要先授权微信账单');
-  expect(body.instructions).toContain('授权是原事项的前置步骤');
+  expect((await routeWorkspacePrompt('授权一下微信吧',[task],'bill')).parts[0].taskId).toBe('bill');
+  expect(fetcher).not.toHaveBeenCalled();
   fetcher.mockClear();
   expect((await routeWorkspacePrompt('？',[task],'bill')).parts[0].taskId).toBe('bill');
   expect(fetcher).not.toHaveBeenCalled();
