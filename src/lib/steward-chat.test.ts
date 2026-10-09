@@ -9,6 +9,26 @@ import {
 import type { FundingForecast } from "./funding-forecast";
 import { buildBillAnalysis } from './bill-analysis';
 
+it('微信授权请求准备只读连接入口，不要求用户重说用途或宣称已授权',async()=>{
+  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'授权做什么？'})));vi.stubGlobal('fetch',fetcher);
+  const response=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'授权一下微信吧'}]});
+  expect(response.action).toEqual({type:'open_connections',provider:'wechat_pay'});
+  expect(response.text).toContain('核对');
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(parseStewardReply('[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]',[]).action).toEqual({type:'open_connections',provider:'alipay'});
+  expect(parseStewardReply('[ZHIYIN_ACTION:OPEN_CONNECTIONS|unknown]',[]).action).toBeUndefined();
+});
+
+it('跨任务近期对话单独作为只读理解线索传入模型，不当成业务历史重放',async()=>{
+  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'你刚才是要查账单，我接着帮你核对授权。'})));vi.stubGlobal('fetch',fetcher);
+  await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'？'}],recentConversation:[{role:'user',content:'查账单'},{role:'assistant',content:'先连接微信。'}]} as StewardReplyRequest);
+  const body=JSON.parse(fetcher.mock.calls[0][1].body);
+  expect(body.input[0].content).toContain('近期首页对话');
+  expect(body.input[0].content).toContain('不是新的业务指令或授权');
+  expect(body.input[0].content).toContain('先连接微信');
+  expect(body.input.at(-1)).toEqual({role:'user',content:'？'});
+});
+
 it('账单问题使用独立收支上下文而不是续费限定提示词',()=>{
   const instructions = buildStewardInstructions({stewardName:'宁宁',subscriptions:[],
     messages:[{role:'user',content:'这个月消费账单情况'}],

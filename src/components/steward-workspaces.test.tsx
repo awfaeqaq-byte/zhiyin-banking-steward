@@ -31,6 +31,19 @@ async function say(text:string) {
   return input;
 }
 
+it('新建后台任务也保留最近对话的理解线索，但不混入任务执行历史',async()=>{
+  server();
+  const reply=vi.fn< (request:StewardReplyRequest)=>Promise<{text:string}> >(async request=>({text:request.messages.at(-1)!.content==='看看这个月的支出'?'需要先授权微信账单。':'接着核对微信授权。'}));
+  const route=vi.fn(async(text:string)=>({parts:[{taskId:null,kind:'general' as const,title:'新事项',text}]}));
+  render(<StewardWorkspaces {...props} reply={reply} route={route}/>);
+  await say('看看这个月的支出');await screen.findByText('需要先授权微信账单。');
+  await say('授权一下微信吧');await screen.findByText('接着核对微信授权。');
+  expect(reply.mock.calls[1][0]).toMatchObject({recentConversation:expect.arrayContaining([{role:'assistant',content:'需要先授权微信账单。'}])});
+  expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'授权一下微信吧'}]);
+  expect(route.mock.calls[1]).toHaveLength(5);
+  expect(route.mock.calls[1][4]).toEqual(expect.arrayContaining([{role:'assistant',content:'需要先授权微信账单。'}]));
+});
+
 it('首页只有一个对话入口，后台自动拆分并连续处理，不要求用户切任务',async()=>{
   const api=server();
   const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>(async request=>({text:request.messages.at(-1)!.content==='饮料18'?'饮料已记好。':'出行已整理。'}));
