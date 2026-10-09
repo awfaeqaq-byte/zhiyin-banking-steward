@@ -8,6 +8,7 @@ import * as expenseService from '../lib/expense-service';
 import * as groupAA from '../lib/group-aa';
 import { changeExpenses, emptyExpenseState, type ExpenseCommand } from '../lib/expense-notebook';
 import type {routeWorkspacePrompt} from '../lib/workspace-service';
+import type {ConnectedFinancialSource} from '../lib/financial-connections';
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 const props = { stewardName:'宁宁', stewardImage:'/n.png', connections:{}, disabledReminders:[], onToggleReminder:vi.fn(), onOpenSubscriptions:vi.fn(), onPrepareCancel:vi.fn() };
@@ -31,6 +32,39 @@ async function say(text:string) {
   await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
   return input;
 }
+
+const billSource:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],autopays:[],syncedAt:'2026-10-09',transactions:[{id:'lunch',title:'午餐套餐',amount:-2500,category:'餐饮',occurredAt:'2026-10-08'}]};
+it('已知账单控件直接续聊原任务，保留范围与交易对象，不暴露内部指令',async()=>{
+ const api=server(),user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'bills',title:'本月账单',text:'本月支出'}]}));
+ const reply=vi.fn(async(request:StewardReplyRequest)=>({text:`已整理 ${request.billAnalysis?.expense}`,billUI:{sections:['overview','categories','transactions'] as ('overview'|'categories'|'transactions')[],evidenceRefs:[]}}));
+ render(<StewardWorkspaces {...props} connections={{wechat_pay:billSource}} reply={reply} route={route}/>);
+ await say('本月支出');await screen.findByText('已整理 2500');
+ await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));
+ await user.click(screen.getByRole('button',{name:'只看微信支付'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(4));
+ expect(route).toHaveBeenCalledTimes(1);
+ expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['微信支付']);
+ expect(screen.getByText('只看微信支付',{selector:'.steward-message.user p'})).toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'请宁宁解释午餐套餐 ¥25'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(3));
+ expect(reply.mock.calls[2][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
+ expect(route).toHaveBeenCalledTimes(1);expect(api.state().items).toHaveLength(1);
+ expect(screen.getByText('解释这笔午餐套餐',{selector:'.steward-message.user p'})).toBeInTheDocument();
+ expect(screen.getByRole('region',{name:'账单工作区'})).toHaveTextContent('已选中「午餐套餐」');
+});
+it('平台确认后直接继续原账单任务，不重新分类或重复用户问题',async()=>{
+ server();const user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'bills',title:'本月账单',text:'本月支出'}]}));
+ const reply=vi.fn(async()=>({text:'接着核对账单。'}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply} onConnectSource={async()=>billSource}/>);
+ await say('本月支出');await screen.findByRole('region',{name:'账单读取范围'});
+ await waitFor(()=>expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeEnabled());
+ await user.click(screen.getByRole('checkbox',{name:'支付宝'}));await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(route).toHaveBeenCalledTimes(1);
+ expect(screen.getAllByText('本月支出',{selector:'.steward-message.user p'})).toHaveLength(1);
+});
 
 it('新建后台任务也保留最近对话的理解线索，但不混入任务执行历史',async()=>{
   server();

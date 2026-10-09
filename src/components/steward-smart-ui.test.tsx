@@ -4,6 +4,7 @@ import {expect,it,vi} from 'vitest';
 import {StewardChatHome} from './steward-chat-home';
 import type {ConnectedFinancialSource} from '../lib/financial-connections';
 import type {StewardReplyFn} from '../lib/steward-chat';
+import type {SubscriptionSyncResult} from '../lib/use-subscription-sync';
 
 const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
@@ -25,13 +26,22 @@ it('模型遗漏入口仍展示账单读取现场，完成双边授权后自动�
 it('刷新恢复的账单先重新核对平台，不把缓存金额当成最新结果',async()=>{
  localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'bill-answer',role:'assistant',content:'上次的分析。'}]));
  localStorage.setItem('zhiyin-bill-scenes-v1',JSON.stringify([{key:'bill',anchorId:'bill-answer',question:'本月支出'}]));
- let resolve!:(value:{connections:{},error:string})=>void;
- const refresh=vi.fn(()=>new Promise<{connections:{},error:string}>(done=>{resolve=done;}));
+ let resolve!:(value:SubscriptionSyncResult)=>void;
+ const refresh=vi.fn(()=>new Promise<SubscriptionSyncResult>(done=>{resolve=done;}));
  render(<StewardChatHome {...base} connections={{wechat_pay:source}} refreshSubscriptions={refresh} onConnectSource={vi.fn()}/>);
  expect(screen.queryAllByText('¥25')).toHaveLength(0);
  await act(async()=>{resolve({connections:{},error:'微信授权已失效'});});
  expect(await screen.findByRole('alert')).toHaveTextContent('授权已失效');
  expect(screen.queryAllByText('¥25')).toHaveLength(0);
+});
+it('恢复授权界面期间先核对权限，不能用缓存的授权范围提前继续',async()=>{
+ localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'bill-answer',role:'assistant',content:'请确认读取范围。'}]));
+ localStorage.setItem('zhiyin-bill-scenes-v1',JSON.stringify([{key:'bill',anchorId:'bill-answer',question:'本月支出',needsConsent:true,provider:'wechat_pay'}]));
+ let resolve!:(value:SubscriptionSyncResult)=>void;
+ render(<StewardChatHome {...base} connections={{wechat_pay:source}} refreshSubscriptions={()=>new Promise(done=>{resolve=done;})} onConnectSource={vi.fn()}/>);
+ expect(screen.getByRole('button',{name:'继续分析账单'})).toBeDisabled();
+ await act(async()=>resolve({connections:{},error:''}));
+ expect(screen.getByRole('button',{name:'继续到平台确认'})).toBeEnabled();
 });
 it('点选交易后说这笔时沿用同一交易，而不是只记得一句无对象的提问',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'这笔可以核对。'}));

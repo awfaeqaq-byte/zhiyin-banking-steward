@@ -116,7 +116,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onReque
         </button></li>)}</ul>
       </div>:section==='trend'?<div className="bill-scene-trend" key={section}><h3>前期对照</h3>{bill.diagnosis.trend?<><p>已返回消费金额{bill.diagnosis.trend.changePercent===0?'持平':`${bill.diagnosis.trend.changePercent>0?'增加':'减少'} ${Math.abs(bill.diagnosis.trend.changePercent)}%`}</p><small>{bill.diagnosis.trend.previousFrom} — {bill.diagnosis.trend.previousTo}；两期记录完整性未知。</small></>:<p className="bill-ui-note">前期记录不足，暂不能判断趋势。</p>}</div>:<div key={section}>{transactions()}</div>)}
       {category&&!sections.includes('transactions')&&transactions()}
-      {selected&&<p className="bill-scene-selection" role="status"><Check size={15} aria-hidden="true"/>正在围绕「{selected.title}」继续解释，也可以直接补充。</p>}
+      {selected&&<p className="bill-scene-selection" role="status"><Check size={15} aria-hidden="true"/>已选中「{selected.title}」，可以直接补充。</p>}
       {(ui?.evidenceRefs||[]).map(ref=>{const finding=bill.diagnosis.findings[ref-1];return finding?<details className="bill-scene-proof" key={ref} open><summary>核对交易依据<ChevronDown size={15} aria-hidden="true"/></summary><ul>{finding.evidence.map(row=><li key={`${row.providerKey}:${row.id}`}><span>{row.title}<small>{row.occurredAt} · {row.providerName}</small></span><strong>{formatCny(Math.abs(row.amount))}</strong></li>)}</ul><p>{finding.detail}</p></details>:null;})}
       <details className="bill-scene-proof"><summary>统计范围与其他收支<ChevronDown size={15} aria-hidden="true"/></summary>
         <p>{bill.count} 笔已返回记录；退款 {formatCny(bill.refund)}、转入 {formatCny(bill.transferIn)}、转出 {formatCny(bill.transferOut)} 单列，不计入消费支出。</p>

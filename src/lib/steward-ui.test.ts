@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {parseBillUI,validBillUI} from './steward-ui';
+import {billProvider,billScopeQuestion,evidenceRefs,parseBillUI,restoreBillScenes,validBillUI} from './steward-ui';
 import {parseStewardReply,requestStewardReply} from './steward-chat';
 import {buildBillAnalysis,billQuestionForMessages} from './bill-analysis';
 import {vi} from 'vitest';
@@ -39,4 +39,15 @@ it('点击的交易来自真实分析数据，作为只读界面上下文传给�
 });
 it('账单续聊切换平台时保留此前月份，而不是重置到本月',()=>{
   expect(billQuestionForMessages([{role:'user',content:'看看8月支出'},{role:'assistant',content:'已整理'},{role:'user',content:'只看微信'}])).toBe('看看8月支出；只看微信');
+});
+it('恢复只保留界面意图，丢弃非法结构与伪造的金额或交易对象',()=>{
+ for(const raw of [null,'{','{}','null'])expect(restoreBillScenes(raw)).toEqual({});
+ const common={key:'bill',anchorId:'answer',question:'本月支出'};
+ expect(restoreBillScenes(JSON.stringify([null,{}, {...common,key:'x'.repeat(101)}, {...common,focus:{provider:'bank',id:'fake'}}, {...common,needsConsent:true,provider:'alipay',focus:{provider:'alipay',id:'real'},amount:999}])).bill).toEqual({...common,ui:undefined,needsConsent:true,provider:'alipay',focus:{provider:'alipay',id:'real'}});
+ for(const focus of [{provider:'alipay',id:4},{provider:'alipay',id:'x'.repeat(201)}])expect(restoreBillScenes(JSON.stringify([{...common,focus}])).bill.focus).toBeUndefined();
+ expect(billProvider('微信支出；只看支付宝')).toBe('alipay');
+ expect(billProvider('微信支付宝')).toBeUndefined();
+ expect(billScopeQuestion('微信')).toBe('本月支出；只看全部平台账单');
+ expect(evidenceRefs('[[evidence:1]][[evidence:1]][[evidence:3]]')).toEqual([1,3]);
+ for(const ui of [[],{sections:[]},{sections:['overview'],evidenceRefs:[1,1]},{sections:['overview'],evidenceRefs:'1'}])expect(validBillUI(ui)).toBeUndefined();
 });

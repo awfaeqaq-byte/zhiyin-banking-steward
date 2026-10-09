@@ -79,7 +79,7 @@ type Props = {
   onBackgroundTurn?:(id:string,user:string,assistant:string,memoryRevision:number)=>Promise<void>;
   onBackgroundBook?:(id:string,bookId:string)=>Promise<void>;
   workspace?: Workspace | null;
-  onRoutePrompt?: (text:string,recent?:StewardChatMessage[])=>Promise<void>;
+  onRoutePrompt?: (text:string,recent?:StewardChatMessage[],knownBillTaskId?:string)=>Promise<void>;
   externalBusy?: boolean;
   injectedPrompt?: {token:string;text:string};
   onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean)=>Promise<void>;
@@ -353,15 +353,15 @@ export function StewardChatHome({
     }
   }, [activeReplyId, sending, error, historyOpen,externalBusy,seamless]);
 
-  async function sendPrompt(text: string, continueBill = false, bypassRoute = false, grantedConnections?:typeof connections,recordUser=true) {
+  async function sendPrompt(text: string, continueBill = false, bypassRoute = false, grantedConnections?:typeof connections,recordUser=true,billTurn?:{taskId:string;displayText?:string}) {
     const prompt = text.trim();
     if (!prompt || sending) return;
     if(interaction.current?.prompt!==prompt)interaction.current=undefined;
     if(onRoutePrompt&&!bypassRoute){if(!externalBusy){
       // Record the user's original sentence once, not each backstage routing fragment.
-      if(seamless&&recordUser)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:prompt}]);
+      if(seamless&&recordUser)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:billTurn?.displayText||prompt}]);
       setActiveReplyId(null);setActiveBill(null);setError('');setLastPrompt(prompt);
-      try{await onRoutePrompt(prompt,recentContext());setInput('');}catch{/* Keep original input for retry; coordinator displays the error. */}
+      try{await onRoutePrompt(prompt,recentContext(),billTurn?.taskId);setInput('');}catch{/* Keep original input for retry; coordinator displays the error. */}
     }return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
@@ -375,7 +375,7 @@ export function StewardChatHome({
     const requestMessages = [...contextMessages, userMessage]
       .slice(-24)
       .map(({ role, content }) => ({ role, content }));
-    if(recordUser&&(!seamless||!bypassRoute))setMessages(current => [...current, userMessage]);
+    if(recordUser&&(!seamless||!bypassRoute))setMessages(current => [...current, {...userMessage,content:billTurn?.displayText||prompt}]);
     setInput("");
     setLastPrompt(prompt);
     setError("");
@@ -512,14 +512,16 @@ export function StewardChatHome({
 
   function interactWithBill(scene:BillScene,value:BillInteraction) {
     const prompt=value.focus?`${value.question}；请解释我点选的这笔交易`:value.question;
+    const row=value.focus?buildBillAnalysis(billConnections,value.question,billReferenceTime(billConnections,referenceTime)).transactions.find(t=>t.providerKey===value.focus?.provider&&t.id===value.focus.id):undefined;
+    const displayText=row?`解释这笔${row.title}`:value.provider==='wechat_pay'?'只看微信支付':value.provider==='alipay'?'只看支付宝':'查看全部平台';
     interaction.current={prompt,value};
     setBillScenes(current=>({...current,[scene.key]:{...scene,question:value.question}}));
-    void sendPrompt(prompt,true);
+    void sendPrompt(prompt,true,false,undefined,true,{taskId:scene.key,displayText});
   }
   async function continueAuthorizedBill(scene:BillScene,updated:typeof connections) {
     setBillConnections(updated);
     setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:false,provider:undefined}}));
-    if(scene.question)await sendPrompt(scene.question,true,false,updated,false);
+    if(scene.question)await sendPrompt(scene.question,true,false,updated,false,{taskId:scene.key});
     else{
       const id=`assistant-${crypto.randomUUID()}`;
       setMessages(current=>[...current,{id,role:'assistant',content:'账单读取范围已确认。想看哪段时间的收支？',workspaceId:workspace?.id}]);
@@ -711,7 +713,7 @@ export function StewardChatHome({
                   {!seamless && !historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
                 </div>
               </div>
-            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy} onComplete={updated=>continueAuthorizedBill(scene,updated)}/>:scene&&scene.question?<StewardBillWorkspace key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui} stewardName={stewardName} disabled={sending||externalBusy} loading={refreshing||revalidatingBill} error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)} onInteract={value=>interactWithBill(scene,value)} onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
+            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={updated=>continueAuthorizedBill(scene,updated)}/>:scene&&scene.question?<StewardBillWorkspace key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui} stewardName={stewardName} disabled={sending||externalBusy} loading={refreshing||revalidatingBill} error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)} onInteract={value=>interactWithBill(scene,value)} onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
           })}
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">

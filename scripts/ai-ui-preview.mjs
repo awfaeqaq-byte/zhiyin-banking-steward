@@ -17,8 +17,26 @@ const group={id:'friends',name:'饭搭子',revision:1,members:[{id:'me',name:'�
 let expenses=changeExpenses(emptyExpenseState(),{type:'create',bookId:'dinner-book',title:'今晚聚餐AA',group,participants:['me','li','wang'],defaultPayerId:'me',revision:0,requestId:crypto.randomUUID()});
 tasks=changeWorkspaces(tasks,{type:'link',id:'dinner',expenseBookId:'dinner-book',revision:tasks.revision,requestId:crypto.randomUUID()});
 const draft={title:'爱人生日',recipient:'爱人',budget:100000,prepareAt:0,deliverAt:0,address:'',contact:'',note:'低甜',productIds:['cake-light','flowers-roses']};
+const billSources=Object.fromEntries([['wechat_pay','微信支付'],['alipay','支付宝']].map(([provider,displayName])=>[provider,{provider,displayName,accountMasked:'隔离测试账户',syncedAt:'2026-10-09T10:00:00+08:00',autopays:[],transactions:provider==='wechat_pay'?[
+ {id:'lunch',title:'午餐套餐',amount:-38800,category:'餐饮',occurredAt:'2026-10-08'},
+ {id:'metro',title:'地铁',amount:-600,category:'出行',occurredAt:'2026-10-07'},
+ {id:'drink',title:'便利店饮料',amount:-1800,category:'餐饮',occurredAt:'2026-10-06'},
+]:[{id:'groceries',title:'盒马鲜生',amount:-13200,category:'购物',occurredAt:'2026-10-08'},{id:'taxi',title:'滴滴出行',amount:-4800,category:'出行',occurredAt:'2026-10-05'}]}]));
+const billReviewPage=`<!doctype html><html lang="zh"><meta name="viewport" content="width=device-width,initial-scale=1"><title>隔离账单UI测试</title><style>body{margin:0}iframe{width:100%;height:100dvh;border:0}dialog{max-width:300px;border:0;border-radius:16px;padding:24px;font:16px system-ui}dialog::backdrop{background:#12232e88}button{min-height:44px;margin:8px;padding:8px 16px}small{color:#667}</style><iframe title="知银隔离测试" src="/?phone=mobilegym"></iframe><dialog><h2>合作平台确认</h2><p id="scope"></p><small>隔离UI测试，只提供合成账单，不操作真实账户。</small><p><button id="deny">拒绝</button><button id="approve">同意读取账单</button></p></dialog><script>
+localStorage.setItem('zhiyin-mode','"native"');localStorage.setItem('zhiyin-expense-scope','bill-ui-review');
+for(const key of ['zhiyin-steward-conversation-v1','zhiyin-bill-scenes-v1','zhiyin-connections','zhiyin-workspace-active'])localStorage.removeItem(key);
+const sources=${JSON.stringify(billSources)},grants={},frame=document.querySelector('iframe'),dialog=document.querySelector('dialog');let pending;
+function reply(data){frame.contentWindow.postMessage({channel:'zhiyin-phone',version:1,...data},location.origin);}
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==frame.contentWindow||event.data?.channel!=='zhiyin-phone')return;const data=event.data;
+ if(data.type==='finance-source-request'){pending=data;document.querySelector('#scope').textContent=sources[data.provider].displayName+'：仅提供交易账单';dialog.showModal();}
+ else if(data.type==='finance-source-refresh-request'){reply({type:'finance-source-result',requestId:data.requestId,status:grants[data.provider]?'granted':'denied',...(grants[data.provider]?{source:sources[data.provider]}:{})});}
+});
+document.querySelector('#approve').onclick=()=>{grants[pending.provider]=true;reply({type:'finance-source-result',requestId:pending.requestId,status:'granted',source:sources[pending.provider]});dialog.close();};
+document.querySelector('#deny').onclick=()=>{reply({type:'finance-source-result',requestId:pending.requestId,status:'denied'});dialog.close();};
+</script></html>`;
 const middleware={name:'isolated-ui-preview',enforce:'pre',configureServer(server){server.middlewares.use(async(req,res,next)=>{
  const path=req.url?.split('?')[0];
+ if(path==='/__bill-review'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(billReviewPage);return;}
  if(path==='/__review'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(`<script>localStorage.setItem('zhiyin-mode','"native"');localStorage.setItem('zhiyin-expense-scope','ui-review');localStorage.removeItem('zhiyin-steward-conversation-v1');localStorage.setItem('zhiyin-workspace-active','birthday');sessionStorage.setItem('zhiyin-occasion-draft:birthday',${JSON.stringify(JSON.stringify(draft))});location.replace('/');</script>`);return;}
  if(!path?.startsWith('/api/zhiyin/'))return next();
  let input='';for await(const chunk of req)input+=chunk;
@@ -35,7 +53,10 @@ const middleware={name:'isolated-ui-preview',enforce:'pre',configureServer(serve
     }else if(body.instructions.includes('持续记录零散消费'))result={output_text:JSON.stringify({action:'add',entry:{title:'饮料',amount:1800,payerId:'me',fixed:[],shares:group.members.map(m=>({memberId:m.id,weight:1}))}})};
     else if(body.instructions.includes('patch'))result={output_text:JSON.stringify({text:'我先按低甜蛋糕和鲜花整理。定好送达时间后，再补收货信息。',patch:{recipient:'爱人',productIds:['cake-light','flowers-roses']},questions:[]})};
     else if(text==='？')result={output_text:'你刚才是想查看本月支出，我接着帮你核对微信账单的只读授权。[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]'};
-    else if(body.instructions.includes('授权账单分析'))result={output_text:'先连接微信或支付宝的账单，就能继续看本月支出。授权范围由你决定。[ZHIYIN_ACTION:OPEN_CONNECTIONS]'};
+    else if(body.instructions.includes('授权账单分析')){
+      const analysis=JSON.parse(body.instructions.split('授权账单分析：')[1]);
+      result={output_text:analysis.sources.length?(body.input.some(m=>m.content.includes('selectedTransaction'))?'这笔午餐可以先核对人数和是否包含垫付，不能仅凭金额判断异常。[[bill-ui:{"sections":["overview","categories","transactions"]}]]':'餐饮是这段支出的主要部分。可以点开分类看看明细，再判断是否符合预期。[[bill-ui:{"sections":["overview","categories","transactions"]}]]'):'确认这次的账单读取范围后，我接着看刚才的支出问题。[ZHIYIN_ACTION:OPEN_CONNECTIONS]'};
+    }
     else result={output_text:'我在，想让我安排什么，直接告诉我就好。'};
   }
   else if(path.endsWith('/memory'))result=emptyMemory();

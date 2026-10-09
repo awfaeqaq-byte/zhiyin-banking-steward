@@ -48,7 +48,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
     localStorage.setItem("zhiyin-workspace-active", item.id);
     setInjected(item);
   }
-  async function arrange(text:string,recent:StewardChatMessage[]=[]) {
+  async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string) {
     if(lock.current || !loaded) throw new Error("正在处理上一条交代，请稍等。");
     lock.current=true; setBusy(true); setError("");
     try {
@@ -59,7 +59,10 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       }
       const revision=props.memory?.current.current.revision??0;
       const routingTasks=latest.items.map(task=>({...task,messages:task.messages.filter(message=>message.memoryRevision===revision)}));
-      const result = await route(source,routingTasks,work?.id || "","",recent);
+      const known=knownBillTaskId?routingTasks.find(task=>task.id===knownBillTaskId&&task.status==='active'&&task.kind==='bills'):undefined;
+      if(knownBillTaskId&&!known)throw new Error('这份账单任务已变化，请重新交代需要查看的范围');
+      // A control on an existing bill scene already identifies the task. Never reclassify it.
+      const result = known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text}]}:await route(source,routingTasks,work?.id || "","",recent);
       if(result.clarification) { clarify.current=source; say(result.clarification); return; }
       if(!result.parts.length) throw new Error("还没理解清楚你的意思，可以再说具体一点吗？");
       clarify.current="";
