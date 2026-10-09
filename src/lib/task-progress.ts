@@ -47,6 +47,7 @@ export function readTaskProgress(task:Workspace):TaskProgress {
 }
 export function advanceTaskProgress(task:Workspace,prompt:string):TaskProgress {
   let progress=readTaskProgress(task);
+  if(progress.bill&&/^(?:算了|不用了|先不看了|暂停)[。！!\s]*$/.test(prompt))return {...progress,stage:'paused',waitingFor:undefined};
   if(clearBillIntent(prompt)||task.kind==='bills') {
     if(!progress.bill)progress={goal:prompt.slice(0,300),stage:'collecting',bill:{}};
     progress=mergeBill(progress,prompt);
@@ -79,10 +80,11 @@ export function taskContinuation(prompt:string,tasks:Workspace[],currentId:strin
   const progress=readTaskProgress(current),p=prompt.trim();
   if(otherBusiness.test(p)||p.length>100)return null;
   const compact=p.replace(/[，。！!？?\s]/g,'');
+  const periodAnswer=/^(?:那|就|只看|就看|改成|改为|看)?(?:(?:最近|就近|近|过去)?(?:一|1)个?月|(?:最近|近|这)?(?:\d{1,3}|七|三十)天|最近|最近的|本月|这个月|上月|上个月|下月|下个月|昨天|今天|(?:\d{4}年)?\d{1,2}月)(?:的|账单|支出|收支|呢|吧)*$/.test(compact);
   const billAnswer=progress.bill&&(clearBillIntent(p)||/^(?:补充[:：])?(?:就|只看|就看|仅看|先看|先|用|换成|改成|选|选择)?(?:微信(?:支付)?|支付宝|全部平台|所有平台|两个平台|都看|都要)(?:吧|的)?$/.test(compact)
     ||/^(?:那|好[的吧]?|帮我|请|先|给我|我想|我要|可以|就|把|现在)*(?:授权|连接|绑定|接入)(?:一下)?(?:微信(?:支付)?|支付宝)?(?:吧)?$/.test(compact)
     ||/^(?:怎么|如何)(?:授权|连接)|^我要授权$/.test(compact)
-    ||/^(?:就|只看|就看|改成|改为|看)?(?:最近|就近|近|本月|这个月|上月|上个月|昨天|今天|\d{1,2}月)/.test(compact)&&!/[，；;]|怎么|什么|天气/.test(p));
+    ||periodAnswer||/^(?:算了|不用了|先不看了|暂停|继续)$/.test(compact));
   const answer=progress.waitingFor&&(p===progress.waitingFor.question||/^(?:好|好的|可以|继续|同意|不用了|算了|简短一点|详细一点)[。！!]*$/.test(p)
     ||progress.waitingFor.field==='reply'&&/^(?:\d+(?:\.\d+)?(?:元|块)?|明天|后天|今天|上午|下午|晚上|早上|周|星期|下周)/.test(p)&&!/[，；;]/.test(p));
   if(!/^[？?]+$/.test(p)&&!billAnswer&&!answer)return null;

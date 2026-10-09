@@ -17,7 +17,7 @@ it('账单授权就地选择平台，默认仅交易账单，点击前不连接'
  expect(connect).not.toHaveBeenCalled();
  await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
  expect(connect).toHaveBeenCalledWith('wechat_pay',['transactions']);
- expect(complete).toHaveBeenCalledWith({wechat_pay:wechat});
+ expect(complete).toHaveBeenCalledWith({wechat_pay:wechat},['wechat_pay']);
 });
 it('平台拒绝时保留范围和重试，部分授权成功不重复请求已成功的平台',async()=>{
  const user=userEvent.setup(),complete=vi.fn();let denied=true;
@@ -28,7 +28,7 @@ it('平台拒绝时保留范围和重试，部分授权成功不重复请求已�
  expect(complete).not.toHaveBeenCalled();
  denied=false;await user.click(screen.getByRole('button',{name:'继续到平台确认'}));
  expect(connect.mock.calls.filter(([p])=>p==='wechat_pay')).toHaveLength(1);
- expect(complete).toHaveBeenCalledWith({wechat_pay:wechat,alipay});
+ expect(complete).toHaveBeenCalledWith({wechat_pay:wechat,alipay},['wechat_pay','alipay']);
 });
 it('新增账单权限不暗中撤回已有余额或扣费权限',async()=>{
  const user=userEvent.setup(),connect=vi.fn(async()=>wechat);

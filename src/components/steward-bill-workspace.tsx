@@ -12,7 +12,7 @@ const providers=[{id:'wechat_pay' as const,name:'微信支付'},{id:'alipay' as 
 
 export function InlineBillConsent({provider,connections,onConnect,onComplete,disabled=false}:{
   provider?:ExternalFinancialProvider;connections:Connections;onConnect:ConnectBillSource;
-  onComplete:(connections:Connections)=>void|Promise<void>;disabled?:boolean;
+  onComplete:(connections:Connections,selected:ExternalFinancialProvider[])=>void|Promise<void>;disabled?:boolean;
 }) {
   const [selected,setSelected]=useState<ExternalFinancialProvider[]>(provider?[provider]:providers.map(p=>p.id));
   const [busy,setBusy]=useState<ExternalFinancialProvider|'continuing'|null>(null);
@@ -40,7 +40,7 @@ export function InlineBillConsent({provider,connections,onConnect,onComplete,dis
       }
       if(!mounted.current)return;
       setBusy('continuing');
-      await onComplete({...latest.current,...completed.current});
+      await onComplete({...latest.current,...completed.current},selected);
     }catch(cause){if(mounted.current)setError(cause instanceof Error?cause.message:'平台未确认，请稍后重试。');}
     finally{lock.current=false;if(mounted.current)setBusy(null);}
   }

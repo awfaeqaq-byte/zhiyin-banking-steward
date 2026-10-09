@@ -54,7 +54,7 @@ import { buildFundingForecast, fundingReferenceTime } from "../lib/funding-forec
 import type {Workspace} from '../lib/workspaces';
 import {recentConversation} from '../lib/conversation-context';
 import {InlineBillConsent,StewardBillWorkspace,type ConnectBillSource} from './steward-bill-workspace';
-import {billProvider,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
+import {billProvider,billScopeQuestion,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
 
 type DisplayMessage = StewardChatMessage & {
   id: string;
@@ -427,7 +427,7 @@ export function StewardChatHome({
         .filter(item => recurringReviews[item.key] !== "dismissed")
         .map(item => ({ ...item, reviewStatus: recurringReviews[item.key] === "confirmed" ? "confirmed" as const : "pending" as const }));
       setRequestPhase('replying');
-      const billQuestion = progress?.bill?billTaskQuestion(progress):billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
+      const billQuestion = progress?.stage==='paused'?null:progress?.bill?billTaskQuestion(progress):billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
       const billAnalysis = billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(currentConnections,billQuestion,billReferenceTime(currentConnections,latestTime)) : undefined;
       const selectedFocus=interaction.current?.value.focus||(/这笔|那笔|这个|那个|它/.test(prompt)?billScenes[workspace?.id||'bill']?.focus:undefined);
       const bankData=isBankRequest(requestMessages)||isTaskRequest(requestMessages)?await bankRequest().catch(()=>null):null;
@@ -449,12 +449,15 @@ export function StewardChatHome({
         fundingForecast: buildFundingForecast(latestConnections, latestTime), messages: requestMessages };
       // Missing read-only scope/period is known state, not something the model must
       // rediscover (or claim is granted). Data analysis still belongs to the model.
-      const response:StewardReply = progress?.bill&&billAnalysis?.needsClarification
+      const response:StewardReply = progress?.bill&&progress.stage==='paused'
+        ?{text:'好，这次查账先不继续。没有撤回已有授权，也没有改动账户。'}
+        :progress?.bill&&billAnalysis?.needsClarification
         ?{text:'想看哪段时间的支出？最近一个月可以按近30天整理。\n[[choices:最近30天|最近7天|本月]]'}
         :progress?.bill&&billAnalysis&&!billAnalysis.sources.length
         ?{text:progress.bill.provider?'范围记下了，确认账单读取授权后，我接着分析。':'先选这次要看的账单来源，确认读取范围后我接着分析。',action:{type:'open_connections' as const,...(progress.bill.provider&&progress.bill.provider!=='all'?{provider:progress.bill.provider}:{})}}
         :await reply(request);
-      if(progress)progress=settleTaskProgress(progress,{bill:billAnalysis,waitingQuestion:response.waitingQuestion,needsAuthorization:response.action&&['prepare_transfer','prepare_aa','prepare_cancel','prepare_task','open_connections'].includes(response.action.type)});
+      if(progress&&progress.stage!=='paused')progress=settleTaskProgress(progress,{bill:billAnalysis,waitingQuestion:response.waitingQuestion,needsAuthorization:response.action&&['prepare_transfer','prepare_aa','prepare_cancel','prepare_task','open_connections'].includes(response.action.type)});
+      if(progress?.stage==='paused')setBillScenes(current=>{const next={...current};delete next[workspace?.id||'bill'];return next;});
       if(epoch!==contextEpoch.current || (remembered && memory && remembered.revision!==memory.current.current.revision))return;
       const impression=parseImpression(response.text,prompt);
       response.text=impression.text;
@@ -535,11 +538,11 @@ export function StewardChatHome({
     setBillScenes(current=>({...current,[scene.key]:{...scene,question:value.question}}));
     void sendPrompt(prompt,true,false,undefined,true,{taskId:scene.key,displayText});
   }
-  async function continueAuthorizedBill(scene:BillScene,updated:typeof connections) {
+  async function continueAuthorizedBill(scene:BillScene,updated:typeof connections,selected:ExternalFinancialProvider[]) {
     setBillConnections(updated);
     confirmedBill.current={taskId:scene.key,sources:updated};
     setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:false,provider:undefined}}));
-    if(scene.question)await sendPrompt(scene.question,true,false,updated,false,{taskId:scene.key});
+    if(scene.question)await sendPrompt(billScopeQuestion(scene.question,selected.length===1?selected[0]:undefined),true,false,updated,false,{taskId:scene.key});
     else{
       const id=`assistant-${crypto.randomUUID()}`;
       setMessages(current=>[...current,{id,role:'assistant',content:'账单读取范围已确认。想看哪段时间的收支？',workspaceId:workspace?.id}]);
@@ -731,7 +734,7 @@ export function StewardChatHome({
                   {!seamless && !historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
                 </div>
               </div>
-            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={updated=>continueAuthorizedBill(scene,updated)}/>:scene&&scene.question?<StewardBillWorkspace key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui} stewardName={stewardName} disabled={sending||externalBusy} loading={refreshing||revalidatingBill} error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)} onInteract={value=>interactWithBill(scene,value)} onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
+            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui} stewardName={stewardName} disabled={sending||externalBusy} loading={refreshing||revalidatingBill} error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)} onInteract={value=>interactWithBill(scene,value)} onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
           })}
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
