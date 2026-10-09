@@ -12,6 +12,7 @@ import './sandbox-console.css';
 import { FinanceTestPanel } from './FinanceTestPanel';
 import { ModelConfigPanel } from './ModelConfigPanel';
 import { consoleStrings } from './res/strings';
+import { StewardResetPanel } from './StewardResetPanel';
 
 export type SandboxConsolePhase = 'idle' | 'confirming' | 'running' | 'success' | 'error';
 
@@ -27,6 +28,8 @@ type SandboxConsoleViewProps = {
   triggerRef?: React.Ref<HTMLButtonElement>;
   closeButtonRef?: React.Ref<HTMLButtonElement>;
   confirmationRef?: React.Ref<HTMLDivElement>;
+  stewardBusy?: boolean;
+  onStewardBusyChange?: (busy: boolean) => void;
 };
 
 export function SandboxConsoleView({
@@ -41,6 +44,8 @@ export function SandboxConsoleView({
   triggerRef,
   closeButtonRef,
   confirmationRef,
+  stewardBusy = false,
+  onStewardBusyChange,
 }: SandboxConsoleViewProps) {
   const [modelOpen, setModelOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
@@ -87,7 +92,11 @@ export function SandboxConsoleView({
           </details>
           <details className="sandbox-category" name="sandbox-category" onToggle={event=>setFinanceOpen(event.currentTarget.open)}>
             <summary><span>财务测试<small>场景、余额、时间与扣费</small></span></summary>
-            <FinanceTestPanel active={isOpen && financeOpen} disabled={phase === 'running' || phase === 'confirming'} />
+            <FinanceTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} />
+          </details>
+          <details className="sandbox-category" name="sandbox-category">
+            <summary><span>{consoleStrings.steward.category}<small>{consoleStrings.steward.categoryHint}</small></span></summary>
+            <StewardResetPanel disabled={phase === 'running' || phase === 'confirming'} onBusyChange={onStewardBusyChange} />
           </details>
           <details className="sandbox-category" name="sandbox-category">
             <summary><span>聊天与数据<small>恢复微信初始聊天</small></span></summary>
@@ -111,7 +120,7 @@ export function SandboxConsoleView({
               </div>
 
               {phase === 'idle' && (
-                <button type="button" className="sandbox-console-action" onClick={onRequestReset}>
+                <button type="button" className="sandbox-console-action" disabled={stewardBusy} onClick={onRequestReset}>
                   <RotateCcw size={17} aria-hidden="true" />
                   <span>恢复初始聊天</span>
                   <ChevronRight size={17} aria-hidden="true" />
@@ -179,6 +188,7 @@ export function SandboxConsole() {
   const [isOpen, setIsOpen] = useState(false);
   const [phase, setPhase] = useState<SandboxConsolePhase>('idle');
   const [result, setResult] = useState<SandboxActionResult>();
+  const [stewardBusy, setStewardBusy] = useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const confirmationRef = React.useRef<HTMLDivElement>(null);
@@ -204,14 +214,14 @@ export function SandboxConsole() {
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && phase !== 'running') setIsOpen(false);
+      if (event.key === 'Escape' && phase !== 'running' && !stewardBusy) setIsOpen(false);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, phase]);
+  }, [isOpen, phase, stewardBusy]);
 
   const close = () => {
-    if (phase === 'running') return;
+    if (phase === 'running' || stewardBusy) return;
     setIsOpen(false);
     window.setTimeout(() => {
       setPhase('idle');
@@ -245,6 +255,8 @@ export function SandboxConsole() {
       triggerRef={triggerRef}
       closeButtonRef={closeButtonRef}
       confirmationRef={confirmationRef}
+      stewardBusy={stewardBusy}
+      onStewardBusyChange={setStewardBusy}
     />
   );
 }

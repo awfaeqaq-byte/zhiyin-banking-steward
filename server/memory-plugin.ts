@@ -5,7 +5,9 @@ import {createBankStore,bankMiddleware} from './bank-store';
 import {createTaskStore,taskMiddleware} from './task-store';
 import {expenseMiddleware} from './expense-store';
 import {workspaceMiddleware} from './workspace-store';
+import {stewardResetMiddleware} from './steward-reset';
 export function memoryPlugin():Plugin {
+  const reset=stewardResetMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const workspaces=workspaceMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const expenses=expenseMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const middleware=memoryMiddleware(createMemoryStore(fileURLToPath(new URL('../.zhiyin-memory.local.json',import.meta.url))));
@@ -20,5 +22,5 @@ export function memoryPlugin():Plugin {
     let url=req.url || '';try{url=decodeURIComponent(url);}catch{/* Malformed URLs cannot match a file. */}
     if(url.includes('.zhiyin-workspaces-') || url.includes('.zhiyin-expenses-') || url.includes('.zhiyin-memory.local.json') || url.includes('.zhiyin-bank.local.json') || url.includes('.zhiyin-tasks.local.json')){res.statusCode=403;res.end('Forbidden');return;}next();
   };
-  return {name:'zhiyin-long-term-memory',configureServer(server){startScheduler(server);server.middlewares.use(protect);server.middlewares.use('/api/zhiyin/workspaces',workspaces);server.middlewares.use('/api/zhiyin/expenses',expenses);server.middlewares.use('/api/zhiyin/memory',middleware);server.middlewares.use('/api/zhiyin/bank',bank);server.middlewares.use('/api/zhiyin/tasks',tasks);},configurePreviewServer(server){startScheduler(server);server.middlewares.use(protect);server.middlewares.use('/api/zhiyin/workspaces',workspaces);server.middlewares.use('/api/zhiyin/expenses',expenses);server.middlewares.use('/api/zhiyin/memory',middleware);server.middlewares.use('/api/zhiyin/bank',bank);server.middlewares.use('/api/zhiyin/tasks',tasks);}};
+  return {name:'zhiyin-long-term-memory',configureServer(server){startScheduler(server);server.middlewares.use(protect);server.middlewares.use('/api/zhiyin/reset',reset);server.middlewares.use('/api/zhiyin/workspaces',workspaces);server.middlewares.use('/api/zhiyin/expenses',expenses);server.middlewares.use('/api/zhiyin/memory',middleware);server.middlewares.use('/api/zhiyin/bank',bank);server.middlewares.use('/api/zhiyin/tasks',tasks);},configurePreviewServer(server){startScheduler(server);server.middlewares.use(protect);server.middlewares.use('/api/zhiyin/reset',reset);server.middlewares.use('/api/zhiyin/workspaces',workspaces);server.middlewares.use('/api/zhiyin/expenses',expenses);server.middlewares.use('/api/zhiyin/memory',middleware);server.middlewares.use('/api/zhiyin/bank',bank);server.middlewares.use('/api/zhiyin/tasks',tasks);}};
 }
