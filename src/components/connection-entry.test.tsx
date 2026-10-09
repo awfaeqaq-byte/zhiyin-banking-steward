@@ -32,3 +32,14 @@ it('重新开始上下文后仍保留界面历史，但近期理解线索不再�
   expect(route.mock.calls[0][1]).toEqual([]);
   expect(screen.getByText('旧偏好不要再用')).toBeInTheDocument();
 });
+
+it('离开授权面板返回后只恢复最新只读入口，不恢复付款或取消动作',async()=>{
+  const user=userEvent.setup(),open=vi.fn();
+  const props={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',connections:{},disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),onOpenConnections:open,reply:async()=>({text:'请核对微信授权。',action:{type:'open_connections' as const,provider:'wechat_pay' as const}})};
+  const first=render(<StewardChatHome {...props}/>);
+  await user.type(screen.getByRole('textbox'),'授权微信');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));await screen.findByRole('button',{name:'核对微信支付授权'});
+  first.unmount();render(<StewardChatHome {...props}/>);
+  await user.click(screen.getByRole('button',{name:'核对微信支付授权'}));
+  expect(open).toHaveBeenCalledWith('wechat_pay');
+  expect(screen.queryByRole('button',{name:'核对银行转账'})).not.toBeInTheDocument();
+});
