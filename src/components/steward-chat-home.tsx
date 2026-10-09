@@ -718,6 +718,7 @@ export function StewardChatHome({
             const action = !seamless || latestInTask ? message.action : undefined;
             const related = action ? actionSubscription(action, subscriptions) : undefined;
             const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
+            const choices=scene&&!scene.needsConsent?parsed.choices.filter(choice=>!/^(?:只看|就看|查看|切换到|看)?(?:微信(?:支付)?|支付宝|全部平台|全部)(?:的)?(?:账单)?$/.test(choice)):parsed.choices;
             return [(
               <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} key={message.id}>
                 <div className="steward-brief">
@@ -733,8 +734,8 @@ export function StewardChatHome({
                       {memory.error&&<p role="alert">{memory.error}</p>}
                     </>}
                   </div>}
-                  {!historyOpen && message.id===activeReplyId && parsed.choices.length>0 && <div className="steward-reply-choices" role="group" aria-label="你可以这样回答，也可以直接输入">
-                    {parsed.choices.map(choice=><button type="button" key={choice} disabled={sending || refreshing} onClick={()=>void sendPrompt(choice,activeBill?.id===message.id)}>{choice}</button>)}
+                  {!historyOpen && message.id===activeReplyId && choices.length>0 && <div className="steward-reply-choices" role="group" aria-label="你可以这样回答，也可以直接输入">
+                    {choices.map(choice=><button type="button" key={choice} disabled={sending || refreshing || viewSaving} onClick={()=>void sendPrompt(choice,activeBill?.id===message.id)}>{choice}</button>)}
                   </div>}
                   {action?.type === "prepare_cancel" && related && !historyOpen && (
                     <button onClick={() => onPrepareCancel(action.provider, action.subscriptionId)}>
