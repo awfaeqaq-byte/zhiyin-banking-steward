@@ -14,6 +14,10 @@ it('空模型输出不是完成回执；待答描述不泄露到正文或授予�
  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:''})));vi.stubGlobal('fetch',fetcher);
  await expect(requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'你好'}]})).rejects.toThrow('有效答复');
 });
+it('模型漏掉待答标记时保留正文中的实际追问，不把整段回复当问题',()=>{
+ expect(parseStewardReply('好的，转账给妈妈。请问要转多少金额呢？',[])).toMatchObject({waitingQuestion:'请问要转多少金额呢？'});
+ expect(parseStewardReply('安排已交给你核对，尚未执行。',[]).waitingQuestion).toBeUndefined();
+});
 
 it('微信授权请求准备只读连接入口，不要求用户重说用途或宣称已授权',async()=>{
   const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'授权做什么？'})));vi.stubGlobal('fetch',fetcher);
