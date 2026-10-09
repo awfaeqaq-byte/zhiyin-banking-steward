@@ -282,7 +282,10 @@ export function parseStewardReply(
   const markers = [...output.matchAll(actionPattern)];
   const waiting=parseTaskWait(output.replace(actionPattern, ""));
   const presentation=parseBillUI(waiting.text);
-  const result: StewardReply = { text: presentation.text || waiting.waitingQuestion || "这次没有生成有效说明，尚未执行任何操作。",...(presentation.ui?{billUI:presentation.ui}:{}),...(waiting.waitingQuestion?{waitingQuestion:waiting.waitingQuestion}:{}) };
+  // Some models omit the optional marker. Preserve only an actual final question,
+  // never infer an answer, authorization, or execution result from prose.
+  const waitingQuestion=waiting.waitingQuestion || presentation.text.match(/[^。！？?\n]{1,280}[？?]\s*$/)?.[0]?.trim();
+  const result: StewardReply = { text: presentation.text || waitingQuestion || "这次没有生成有效说明，尚未执行任何操作。",...(presentation.ui?{billUI:presentation.ui}:{}),...(waitingQuestion?{waitingQuestion}:{}) };
   if (!markers.length) return result;
 
   const parts = markers.at(-1)?.[1].split("|") || [];
