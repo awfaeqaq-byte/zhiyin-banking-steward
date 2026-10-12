@@ -9,6 +9,7 @@ import * as groupAA from '../lib/group-aa';
 import { changeExpenses, emptyExpenseState, type ExpenseCommand } from '../lib/expense-notebook';
 import type {routeWorkspacePrompt} from '../lib/workspace-service';
 import type {ConnectedFinancialSource} from '../lib/financial-connections';
+import {buildWechatShare} from '../lib/wechat-message-share';
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 const props = { stewardName:'宁宁', stewardImage:'/n.png', connections:{}, disabledReminders:[], onToggleReminder:vi.fn(), onOpenSubscriptions:vi.fn(), onPrepareCancel:vi.fn() };
@@ -32,6 +33,41 @@ async function say(text:string) {
   await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
   return input;
 }
+
+it('发送后立即清空，分流及回复晚到都不覆盖正在编辑的下一条',async()=>{
+ server();const user=userEvent.setup();
+ let routed!:(value:Awaited<ReturnType<typeof routeWorkspacePrompt>>)=>void;
+ let answered!:(value:{text:string})=>void;
+ const route=vi.fn<typeof routeWorkspacePrompt>(()=>new Promise(resolve=>{routed=resolve;}));
+ const reply=vi.fn(()=>new Promise<{text:string}>(resolve=>{answered=resolve;}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ const input=await say('你好宁宁');await waitFor(()=>expect(route).toHaveBeenCalledOnce());
+ expect(input).toHaveValue('');
+ await user.type(input,'下一条还没写完');
+ routed({parts:[{taskId:null,kind:'general',title:'闲聊',text:'你好宁宁'}]});
+ await waitFor(()=>expect(reply).toHaveBeenCalledOnce());expect(input).toHaveValue('下一条还没写完');
+ answered({text:'你好，我在。'});await screen.findByText('你好，我在。');
+ expect(input).toHaveValue('下一条还没写完');
+});
+it('提交失败恢复发送框原文，有新草稿时不覆盖',async()=>{
+ server();const user=userEvent.setup();let fail!:(reason:Error)=>void;
+ const route=vi.fn<typeof routeWorkspacePrompt>(()=>new Promise((_,reject)=>{fail=reject;}));
+ render(<StewardWorkspaces {...props} route={route}/>);
+ const input=await say('你好宁宁');await waitFor(()=>expect(route).toHaveBeenCalledOnce());expect(input).toHaveValue('');
+ fail(new Error('暂时无法分流'));await waitFor(()=>expect(input).toHaveValue('你好宁宁'));
+ await say('帮我看看');await waitFor(()=>expect(route).toHaveBeenCalledTimes(2));expect(input).toHaveValue('');
+ await user.type(input,'这条草稿要保留');fail(new Error('仍然无法分流'));
+ await screen.findByText(/仍然无法分流/);expect(input).toHaveValue('这条草稿要保留');
+});
+it('微信分享附言立即清空，失败只恢复附言且保留引用材料',async()=>{
+ server();let fail!:(reason:Error)=>void;
+ const route=vi.fn<typeof routeWorkspacePrompt>(()=>new Promise((_,reject)=>{fail=reject;}));
+ const share=buildWechatShare({id:'chat',name:'小林',kind:'direct'},[{id:'m',sender:'小林',text:'我的生日是8月20日。',sentAt:1791770000000}],['m'],'帮我记住生日','share');
+ render(<StewardWorkspaces {...props} wechatShare={share} route={route}/>);
+ const input=await say('先核对一下生日');await waitFor(()=>expect(route).toHaveBeenCalledOnce());expect(input).toHaveValue('');
+ fail(new Error('暂时无法分流'));await waitFor(()=>expect(input).toHaveValue('先核对一下生日'));
+ expect(screen.getByRole('region',{name:'来自微信的所选消息'})).toHaveTextContent('我的生日是8月20日。');
+});
 
 it('普通任务的模型追问落盘，刷新后短答案不重新分流或串入查账',async()=>{
  const api=server();
