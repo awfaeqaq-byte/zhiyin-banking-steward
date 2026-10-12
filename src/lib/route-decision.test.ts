@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {routingSegments,materializeRoutes,conversationRoute} from './route-decision';
+import {sharePrompt,buildWechatShare} from './wechat-message-share';
 import type {Workspace} from './workspaces';
 const birthday:Workspace={id:'birthday',kind:'general',title:'朋友生日',status:'active',updatedAt:0,memoryRevision:0,summary:'',messages:[],progress:{goal:'生日',stage:'waiting_user',waitingFor:{field:'reply',question:'7月15号，对吗？'}}};
 describe('系统持有原文的分流协议',()=>{
@@ -11,8 +12,8 @@ describe('系统持有原文的分流协议',()=>{
   expect(routingSegments(prompt).map(s=>s.text)).toEqual(['给妈妈转500','饮料18','明天去杭州']);
   const parts=[{taskId:null,kind:'transfer',title:'妈妈转账',segmentIds:[0]},{taskId:null,kind:'aa',title:'聚餐',segmentIds:[1,2]}];
   expect(materializeRoutes({parts},prompt,[]).parts.map(p=>p.text)).toEqual(['给妈妈转500','饮料18；明天去杭州']);
-  expect(()=>materializeRoutes({parts:[parts[0]]},prompt,[])).not.toThrow(); // One part owns the entire original message.
-  expect(materializeRoutes({parts:[parts[0]]},prompt,[]).parts[0].text).toBe(prompt);
+  expect(()=>materializeRoutes({parts:[{...parts[0],segmentIds:undefined}]},prompt,[])).not.toThrow(); // One part owns the entire original message.
+  expect(materializeRoutes({parts:[{...parts[0],segmentIds:undefined}]},prompt,[]).parts[0].text).toBe(prompt);
   expect(()=>materializeRoutes({parts:[parts[0],{...parts[1],segmentIds:[2]}]},prompt,[])).toThrow();
   expect(()=>materializeRoutes({parts:[parts[0],{...parts[1],segmentIds:[0,1,2]}]},prompt,[])).toThrow();
   expect(()=>materializeRoutes({parts:[parts[1],parts[0]]},prompt,[])).toThrow();
@@ -28,4 +29,8 @@ describe('系统持有原文的分流协议',()=>{
   expect(conversationRoute('对，给妈妈转500',[birthday],birthday.id)).toBeNull();
   expect(conversationRoute('对',[{...birthday,kind:'transfer',progress:undefined}],birthday.id)).toBeNull();
  });
+});
+it('当前生日事实确认后的“记忆”复用其来源事项，不让模型另问记什么',()=>{
+ const task:Workspace={id:'birthday',kind:'general',title:'王芳生日',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[{id:'source',role:'user',memoryRevision:0,content:sharePrompt(buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text:'我生日是7月15号。',sentAt:1791770000000}],['m'],'帮我记录王芳生日','s'))}],progress:{goal:'记录王芳生日',stage:'waiting_user',waitingFor:{field:'reply',question:'需要提前提醒你吗？'}}};
+ expect(conversationRoute('记忆',[task],task.id)?.parts[0].taskId).toBe('birthday');expect(conversationRoute('记忆',[],task.id)).toBeNull();
 });

@@ -525,7 +525,7 @@ describe("知银管家大模型协议", () => {
   });
 });
 it('确认微信生日只生成当前原话可验证的候选，模型不能冒充已保存',async()=>{
- const source=sharePrompt(buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text:'我的生日是7月15日。',sentAt:1791770000000}],['m'],'帮我记录王芳生日','s'));
+ const source=sharePrompt(buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text:'我生日是7月15号，刚过去没多久。',sentAt:1791770000000}],['m'],'帮我记录王芳生日','s'));
  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'好的，已经记下王芳的生日。'})));vi.stubGlobal('fetch',fetcher);
  const reply=await requestStewardReply({stewardName:'宁宁',subscriptions:[],memoryContext:'长期记忆已开启。',messages:[{role:'user',content:source},{role:'assistant',content:'王芳生日是7月15日，我帮你记下来可以吗？'},{role:'user',content:'对'}]});
  const {parseMemoryProposal}=await import('./steward-memory');expect(parseMemoryProposal(reply.text,'对').proposal).toEqual({text:'王芳的生日是7月15日',category:'background',quote:'对'});expect(reply.text).not.toContain('已经记下');expect(fetcher).not.toHaveBeenCalled();expect(reply.action).toBeUndefined();
