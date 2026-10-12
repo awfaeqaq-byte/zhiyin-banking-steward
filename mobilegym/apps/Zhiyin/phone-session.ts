@@ -49,7 +49,7 @@ export function createPhoneSession(options: Options) {
   };
   reload();
   return {
-    share:(value:unknown)=>{if(validWechatShare(value)&&!receivedShares.has(value.id)&&shares.size<10){shares.set(value.id,value);deliverShare();}},
+    share:(value:unknown)=>{if(validWechatShare(value)&&!receivedShares.has(value.id)){shares.set(value.id,value);deliverShare();}},
     reload,
     ping: () => send({ type: 'ping' }),
     foreground: () => {

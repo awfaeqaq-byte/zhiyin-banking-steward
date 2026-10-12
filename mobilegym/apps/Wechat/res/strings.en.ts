@@ -6,6 +6,7 @@ import type { StringKey } from './strings';
 
 export const stringsEn: Partial<Record<StringKey, string>> = {
   zhiyin_share_title:'Share with Zhiyin',zhiyin_share_select:'Select message',zhiyin_share_selection:'Selected messages',zhiyin_share_selected:'{count} selected',
+  zhiyin_share_unknown_sender:'Unknown sender',
   zhiyin_share_note:'What should your steward help with? (optional)',zhiyin_share_note_hint:'For example: prepare a birthday, budget 500',zhiyin_share_back:'Back to selection',zhiyin_share_open:'Share and open Zhiyin',
   zhiyin_share_disclosure:'Only selected messages, sender names, timestamps and chat name are shared. Sharing does not authorize payment or ordering.',zhiyin_share_limits:'Select up to 5 text messages, totaling at most 1000 characters.',zhiyin_share_open_error:'Sharing failed. Check message length or try again.',
   aa_total_collection:'Total',aa_collected_amount:'Received',aa_unpaid_amount:'Unpaid',

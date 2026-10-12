@@ -1457,6 +1457,8 @@ export default function App() {
             </>
           )}
           {mode === "native" && page === "home" && (
+            <>
+            {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
@@ -1495,6 +1497,7 @@ export default function App() {
                 go("subscriptions");
               }}
             />
+            </>
           )}
         </main>
         {page === "home" && mode === "classic" && (

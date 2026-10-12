@@ -55,7 +55,7 @@ export function GroupChatPage() {
   const [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const messages = group ? (state.messages?.[group.id] ?? []) : [];
-  const messageShare=useMessageShare({id:group?.id||'',name:group?.name||'',kind:'group'},messages.map(m=>({id:m.id,sender:group?.members.find(member=>member.id===m.memberId)?.name||t.aa_me,text:m.text,sentAt:m.createdAt})));
+  const messageShare=useMessageShare({id:group?.id||'',name:group?.name||'',kind:'group'},messages.map(m=>({id:m.id,sender:group?.members.find(member=>member.id===m.memberId)?.name||t.zhiyin_share_unknown_sender,text:m.text,sentAt:m.createdAt})));
   const collections = state.collections.filter((c) => c.groupId === group?.id);
   const timeline = [
     ...messages.map((m) => ({ id: m.id, createdAt: m.createdAt, message: m })),

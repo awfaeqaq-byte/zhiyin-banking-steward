@@ -11,7 +11,11 @@ export const NAVIGATION_DECLARATION = {
 
   routes: [
     {path:'/group-aa',component:'GroupAAPage',params:{},entryPoint:'deepLink',scrollContainers:MAIN_SCROLL,uiStates:[{id:'groupAA.consent.base',search:{},description:'Sandbox group consent and confirmation',actions:[{id:'wechat.groupAA.authorize.submit',label:'Share selected group',behavior:'submit',scope:'item',paramsSchema:{groupId:'string'}},{id:'wechat.groupAA.publish.submit',label:'Publish collection',behavior:'submit'}]}],queryParams:{},description:'Sandbox group AA consent'},
-    {path:'/group-aa/:groupId',component:'GroupChatPage',params:{groupId:'string'},entryPoint:'none',scrollContainers:MAIN_SCROLL,uiStates:[{id:'groupAA.chat.base',search:{},description:'Group conversation',actions:[{id:'wechat.groupAA.message.submit',label:'Send group message',behavior:'submit'}]}],queryParams:{},description:'Sandbox group conversation'},
+    {path:'/group-aa/:groupId',component:'GroupChatPage',params:{groupId:'string'},entryPoint:'none',scrollContainers:MAIN_SCROLL,uiStates:[
+      {id:'groupAA.chat.base',search:{},description:'Group conversation',actions:[{id:'wechat.groupAA.message.submit',label:'Send group message',behavior:'submit'}]},
+      {id:'groupAA.chat.selection',search:{share:'select'},description:'Select text messages for Zhiyin',actions:[{id:'groupAA.messageShare.toggle',label:'Toggle selected message',behavior:'toggle',scope:'item',paramsSchema:{messageId:'string'}}]},
+      {id:'groupAA.chat.share',search:{share:'preview'},description:'Preview selected messages before sharing',actions:[{id:'groupAA.messageShare.send',label:'Share selected messages and open Zhiyin',behavior:'submit'},{id:'groupAA.messageShare.note',label:'Edit sharing instruction',behavior:'modify'}]},
+    ],queryParams:{},description:'Sandbox group conversation'},
     {path:'/group-aa/:groupId/info',component:'GroupInfoPage',params:{groupId:'string'},entryPoint:'none',scrollContainers:MAIN_SCROLL,uiStates:[{id:'groupAA.info.base',search:{},description:'Group member profiles',actions:[{id:'wechat.groupAA.revoke.submit',label:'Revoke sharing',behavior:'submit',scope:'item',paramsSchema:{groupId:'string'}},{id:'wechat.groupAA.mute.toggle',label:'Mute group',behavior:'toggle',scope:'item',paramsSchema:{groupId:'string'}},{id:'wechat.groupAA.pin.toggle',label:'Pin group',behavior:'toggle',scope:'item',paramsSchema:{groupId:'string'}}]}],queryParams:{},description:'Group information'},
     {path:'/group-aa/:groupId/collection/:collectionId',component:'GroupAAPage',params:{groupId:'string',collectionId:'string'},entryPoint:'none',scrollContainers:MAIN_SCROLL,uiStates:[{id:'groupAA.detail.base',search:{},description:'Sandbox group collection detail',actions:[{id:'wechat.groupAA.payment.submit',label:'Simulate receipt',behavior:'submit',scope:'item',paramsSchema:{collectionId:'string',memberId:'string'}},{id:'wechat.groupAA.cancel.submit',label:'Stop collection',behavior:'submit',scope:'item',paramsSchema:{collectionId:'string'}}]}],queryParams:{},description:'Collection receipt records'},
     // =========================
@@ -191,6 +195,8 @@ export const NAVIGATION_DECLARATION = {
             },
           ],
         },
+        {id:'chat.selection',search:{share:'select'},description:'Select text messages for Zhiyin',actions:[{id:'chat.messageShare.toggle',label:'Toggle selected message',behavior:'toggle',scope:'item',paramsSchema:{messageId:'string'}}]},
+        {id:'chat.share',search:{share:'preview'},description:'Preview selected messages before sharing',actions:[{id:'chat.messageShare.send',label:'Share selected messages and open Zhiyin',behavior:'submit'},{id:'chat.messageShare.note',label:'Edit sharing instruction',behavior:'modify'}]},
         {
           id: 'chat.preview.image',
           search: { view: 'preview' },
@@ -1948,6 +1954,12 @@ export const NAVIGATION_DECLARATION = {
   ],
 
   transitions: [
+    {id:'chat.messageShare.select',from:{path:'/chat/:id',search:{share:null,view:null}},to:'/chat/:id',search:{share:'select'},searchParams:{},params:{id:'string'},mode:'push',label:'Select text messages',ui:{placement:'content',icon:'share',gesture:'longPress'}},
+    {id:'chat.messageShare.preview',from:{path:'/chat/:id',search:{share:'select'}},to:'/chat/:id',search:{share:'preview'},searchParams:{},params:{id:'string'},mode:'push',label:'Preview sharing with Zhiyin',ui:{placement:'content',icon:'share',gesture:'tap'}},
+    {id:'chat.messageShare.finish',from:{path:'/chat/:id',search:{share:'preview'}},to:'/chat/:id',search:{},searchParams:{},params:{id:'string'},mode:'replace',label:'Finish sharing and return to chat',ui:{placement:'none',icon:'share',gesture:'tap'}},
+    {id:'groupAA.messageShare.select',from:{path:'/group-aa/:groupId',search:{share:null}},to:'/group-aa/:groupId',search:{share:'select'},searchParams:{},params:{groupId:'string'},mode:'push',label:'Select group text messages',ui:{placement:'content',icon:'share',gesture:'longPress'}},
+    {id:'groupAA.messageShare.preview',from:{path:'/group-aa/:groupId',search:{share:'select'}},to:'/group-aa/:groupId',search:{share:'preview'},searchParams:{},params:{groupId:'string'},mode:'push',label:'Preview group sharing with Zhiyin',ui:{placement:'content',icon:'share',gesture:'tap'}},
+    {id:'groupAA.messageShare.finish',from:{path:'/group-aa/:groupId',search:{share:'preview'}},to:'/group-aa/:groupId',search:{},searchParams:{},params:{groupId:'string'},mode:'replace',label:'Finish sharing and return to group',ui:{placement:'none',icon:'share',gesture:'tap'}},
     {id:'wechat.groupAA.open',from:['/','/groups','/group-aa'],to:'/group-aa/:groupId',search:{},searchParams:{},params:{groupId:'string'},mode:'push',label:'Open sandbox group',ui:{placement:'content',icon:'group',gesture:'tap'}},
     {id:'wechat.groupAA.info.open',from:'/group-aa/:groupId',to:'/group-aa/:groupId/info',search:{},searchParams:{},params:{groupId:'string'},mode:'push',label:'Chat information',ui:{placement:'topbar',icon:'more',gesture:'tap'}},
     {id:'wechat.groupAA.collection.open',from:'/group-aa/:groupId',to:'/group-aa/:groupId/collection/:collectionId',search:{},searchParams:{},params:{groupId:'string',collectionId:'string'},mode:'push',label:'Open collection receipt',ui:{placement:'content',icon:'collection',gesture:'tap'}},

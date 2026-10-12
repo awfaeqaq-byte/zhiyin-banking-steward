@@ -32,7 +32,7 @@ export function sharedTextPreview(prompt:string):{instruction:string;source:stri
 }
 export function readonlyWechatShare(prompt:string):boolean {
  const shared=sharedTextPreview(prompt);
- return !!shared&&/解释|解读|总结|什么意思|分析消息|理解/.test(shared.instruction)&&!/帮我(?:准备|转账|下单)|请(?:准备|转账|下单)|并(?:准备|转账|下单)/.test(shared.instruction);
+ return !!shared&&(/解释|解读|总结|什么意思|看看|分析|判断|真假|理解/.test(shared.instruction)||shared.instruction.startsWith('请根据消息整理需求，先给建议'))&&!/帮我(?:准备|安排|筹备|转账|下单|修改)|请(?:准备|安排|筹备|转账|下单|修改)|并(?:准备|转账|下单)/.test(shared.instruction);
 }
 export function sharePrompt(share:WechatShare,instruction=share.instruction):string {
  if(!validWechatShare(share)||typeof instruction!=='string'||instruction.length>200)throw new Error('分享材料或附言无效，请重新核对。');
