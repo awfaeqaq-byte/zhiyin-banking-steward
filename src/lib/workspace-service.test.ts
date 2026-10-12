@@ -28,11 +28,11 @@ it('分流能看到上一轮管家的追问，授权和问号不被当作独立�
 afterEach(() => vi.restoreAllMocks());
 it('分流模型临时返回空内容时重试一次，仍为空时明确失败且不生成任务',async()=>{
  const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce(new Response(JSON.stringify({error:'模型服务未返回有效内容'}),{status:502}))
-   .mockResolvedValueOnce(new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'general',title:'闲聊',text:'你好宁宁'}]})})));
- expect((await routeWorkspacePrompt('你好宁宁',[],'')).parts[0].text).toBe('你好宁宁');expect(fetcher).toHaveBeenCalledTimes(2);
+   .mockResolvedValueOnce(new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'general',title:'闲聊',text:'帮我梳理一下周末计划'}]})})));
+ expect((await routeWorkspacePrompt('帮我梳理一下周末计划',[],'')).parts[0].text).toBe('帮我梳理一下周末计划');expect(fetcher).toHaveBeenCalledTimes(2);
  expect(fetcher.mock.calls[0][1]?.signal).toBe(fetcher.mock.calls[1][1]?.signal);
  fetcher.mockClear().mockImplementation(async()=>new Response(JSON.stringify({error:'模型服务未返回有效内容'}),{status:502}));
- await expect(routeWorkspacePrompt('你好宁宁',[],'')).rejects.toThrow('未返回有效内容');expect(fetcher).toHaveBeenCalledTimes(2);
+ await expect(routeWorkspacePrompt('帮我梳理一下周末计划',[],'')).rejects.toThrow('未返回有效内容');expect(fetcher).toHaveBeenCalledTimes(2);
 });
 it('回应记忆追问的“记忆”直接续接原事项，不再额外调用分流模型',async()=>{
  const task:Workspace={id:'birthday',kind:'general',title:'记录小林生日',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[],progress:{goal:'记录小林生日',stage:'waiting_user',waitingFor:{field:'reply',question:'需要我帮你记住这个日期吗？'}}};
@@ -66,7 +66,7 @@ it("分流器只接受合法原话路由，服务失败不自行猜测执行", a
         JSON.stringify({
           output_text: JSON.stringify({
             parts: [
-              { taskId: null, kind: "aa", title: "晚餐", text: "饮料18" },
+              { taskId: null, kind: "aa", title: "晚餐", segmentIds:[0] },
             ],
           }),
         }),
@@ -95,8 +95,8 @@ it("分流器只接受合法原话路由，服务失败不自行猜测执行", a
 it("分流输出遗漏时只重试分流，不执行遗漏后的半份请求", async () => {
   const good = {
     parts: [
-      { taskId: null, kind: "aa", title: "晚饭", text: "饮料18" },
-      { taskId: null, kind: "transfer", title: "转账", text: "给妈妈转500" },
+      { taskId: null, kind: "aa", title: "晚饭", segmentIds:[0] },
+      { taskId: null, kind: "transfer", title: "转账", segmentIds:[1] },
     ],
   };
   const fetcher = vi
@@ -115,4 +115,8 @@ it("分流输出遗漏时只重试分流，不执行遗漏后的半份请求", a
     (await routeWorkspacePrompt("饮料18，给妈妈转500", [], "")).parts,
   ).toHaveLength(2);
   expect(fetcher).toHaveBeenCalledTimes(2);
+});
+it('服务端模型空内容只重试一次，编号分类仍恢复当前原文',async()=>{
+ const model=vi.fn().mockRejectedValueOnce(new Error('模型服务未返回有效内容')).mockResolvedValue(JSON.stringify({parts:[{taskId:null,kind:'general',title:'周末计划',segmentIds:[0]}]}));
+ const result=await routeWorkspacePrompt('帮我梳理一下周末计划',[],'','',[],{model});expect(model).toHaveBeenCalledTimes(2);expect(result.parts[0].text).toBe('帮我梳理一下周末计划');
 });
