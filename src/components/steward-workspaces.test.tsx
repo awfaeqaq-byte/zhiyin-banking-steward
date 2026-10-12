@@ -26,6 +26,12 @@ it('分流失败在用户消息旁给出说明和重试入口，重试成功才�
 function server() {
   let state=emptyWorkspaces();
   const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{
+    if(String(url).includes('/messages')) {
+      const body=init?.body?JSON.parse(String(init.body)):undefined;
+      if(body){const types:Record<string,string>={submit:'message-submit',claim:'message-claim',complete:'message-complete',import:'conversation-import',append:'conversation-append'};
+       if(types[body.type])state=changeWorkspaces(state,{...body,type:types[body.type],revision:state.revision,requestId:crypto.randomUUID()});}
+      return new Response(JSON.stringify(state));
+    }
     if(String(url).includes('/workspaces')) {
       if(init?.body) state=changeWorkspaces(state,JSON.parse(String(init.body)));
       return new Response(JSON.stringify(state));
@@ -341,7 +347,7 @@ it('离开首页时晚到的回复仍落盘，返回首页不丢失且不重复�
 it('已保存的后台回复补回缺失的首页消息，保留后续用户交代',async()=>{
  let state=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'finance',kind:'general',title:'理财咨询',revision:0,requestId:'create'});
  state=changeWorkspaces(state,{type:'turn',id:'finance',user:'给我一些理财建议',assistant:'先明确资金用途。',memoryRevision:0,revision:state.revision,requestId:'reply'});
- vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify(state)));
+ vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,init)=>{if(init?.body){const body=JSON.parse(String(init.body));const types:Record<string,string>={import:'conversation-import',append:'conversation-append'};state=changeWorkspaces(state,{...body,type:types[body.type]||body.type,revision:state.revision,requestId:crypto.randomUUID()});}return new Response(JSON.stringify(state));});
  localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'u',role:'user',content:'给我一些理财建议'},{id:'later',role:'user',content:'你说话啊'}]));
  const reply=vi.fn();render(<StewardWorkspaces {...props} reply={reply}/>);
  await screen.findByText('先明确资金用途。');
@@ -359,4 +365,11 @@ it('离开后马上返回首页，仍能收到原请求随后完成的回复',as
  resolve({text:'在的，我收到你的消息了。'});
  await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));
  await screen.findByText('在的，我收到你的消息了。');expect(reply).toHaveBeenCalledOnce();
+});
+it('领取时网络短暂失败后继续领取，首页不会永久卡在处理中',async()=>{
+ const api=server(),original=api.fetcher.getMockImplementation()!;let failures=0;
+ api.fetcher.mockImplementation(async(url,init)=>{const body=init?.body?JSON.parse(String(init.body)):null;if(body?.type==='message-claim'&&failures++<2)throw new TypeError('network temporarily unavailable');return original(url,init);});
+ render(<StewardWorkspaces {...props} route={async text=>({parts:[{taskId:null,kind:'general',title:'闲聊',text}]})} reply={async()=>({text:'网络恢复后我在。'})}/>);
+ await say('你好宁宁');expect(await screen.findByText('网络恢复后我在。',{}, {timeout:2200})).toBeInTheDocument();
+ await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
 });
