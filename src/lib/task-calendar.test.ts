@@ -43,3 +43,9 @@ describe('任务日历',()=>{
   expect(calendarEvents([],[],[{...source,scopes:[]}])).toHaveLength(0);
  });
 });
+it('生日作为全天年度日历记录持久化，跨年显示且不生成虚假的2月29日',()=>{
+ const draft={title:'王芳的生日',dueAt:Date.parse('2027-07-15T00:00:00+08:00'),allDay:true,repeat:'yearly' as const};
+ const state=updateTasks({revision:0,tasks:[]},{type:'save',revision:0,id:'birthday',...draft},now);expect(state.tasks[0]).toMatchObject({allDay:true,repeat:'yearly'});
+ expect(dayKey(calendarEvents(state.tasks,[],[],[],2028)[0].dueAt)).toBe('2028-07-15');expect(calendarEvents(state.tasks,[],[],[],2028)[0].kind).toBe('birthday');
+ const leap=updateTasks({revision:0,tasks:[]},{type:'save',revision:0,id:'leap',...draft,dueAt:Date.parse('2028-02-29T00:00:00+08:00')},now);expect(calendarEvents(leap.tasks,[],[],[],2027)).toHaveLength(0);expect(dayKey(calendarEvents(leap.tasks,[],[],[],2028)[0].dueAt)).toBe('2028-02-29');
+});

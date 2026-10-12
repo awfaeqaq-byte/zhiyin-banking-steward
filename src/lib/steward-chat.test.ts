@@ -20,8 +20,7 @@ it('记录分享消息中的生日由模型回应，不被包装中的预留、�
  const prompt=sharePrompt(buildWechatShare({id:'chat',name:'小林',kind:'direct'},[{id:'m',sender:'小林',text:'我的生日是8月20日。',sentAt:1791770000000}],['m'],'帮我记录一下小林的生日','s'));
  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'小林的生日是8月20日。你希望只记下这个日期，还是另设提醒？'})));vi.stubGlobal('fetch',fetcher);
  const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:prompt}]});
- expect(fetcher).toHaveBeenCalledOnce();expect(result.action).toBeUndefined();const instructions=JSON.parse(fetcher.mock.calls[0][1].body).instructions;
- expect(instructions).not.toContain('只说明可以帮忙整理并给出');expect(instructions).toContain('本人要求');
+ expect(fetcher).not.toHaveBeenCalled();expect(result.action).toMatchObject({type:'prepare_task',title:'小林的生日'});
 });
 
 it('空模型输出不是完成回执；待答描述不泄露到正文或授予执行权限',async()=>{
@@ -524,14 +523,21 @@ describe("知银管家大模型协议", () => {
     ).action).toEqual({ type: "open_subscriptions" });
   });
 });
-it('确认微信生日只生成当前原话可验证的候选，模型不能冒充已保存',async()=>{
+it('确认微信生日生成日历草稿，不受长期记忆开关影响',async()=>{
  const source=sharePrompt(buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text:'我生日是7月15号，刚过去没多久。',sentAt:1791770000000}],['m'],'帮我记录王芳生日','s'));
  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'好的，已经记下王芳的生日。'})));vi.stubGlobal('fetch',fetcher);
  const reply=await requestStewardReply({stewardName:'宁宁',subscriptions:[],memoryContext:'长期记忆已开启。',messages:[{role:'user',content:source},{role:'assistant',content:'王芳生日是7月15日，我帮你记下来可以吗？'},{role:'user',content:'对'}]});
- const {parseMemoryProposal}=await import('./steward-memory');expect(parseMemoryProposal(reply.text,'对').proposal).toEqual({text:'王芳的生日是7月15日',category:'background',quote:'对'});expect(reply.text).not.toContain('已经记下');expect(fetcher).not.toHaveBeenCalled();expect(reply.action).toBeUndefined();
+ expect(reply.action).toMatchObject({type:'prepare_task',title:'王芳的生日',allDay:true,repeat:'yearly'});expect(reply.text).not.toContain('<memory>');expect(reply.text).not.toContain('已经记下');expect(fetcher).not.toHaveBeenCalled();
 });
 it.each(['我的生日是2月30日。','我的生日是7月15日。我的生日是8月20日。'])('无效或冲突的生日日期不静默生成记忆：%s',async text=>{
  const source=sharePrompt(buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text,sentAt:1791770000000}],['m'],'帮我记录王芳生日','s'));
  const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'还需核对日期。'})));vi.stubGlobal('fetch',fetcher);
  const reply=await requestStewardReply({stewardName:'宁宁',subscriptions:[],memoryContext:'长期记忆已开启。',messages:[{role:'user',content:source},{role:'assistant',content:'需要记下来吗？'},{role:'user',content:'对'}]});expect(reply.text).not.toContain('<memory>');expect(fetcher).toHaveBeenCalledOnce();
+});
+
+it('微信明确要求记录生日直接生成日历草稿，解释材料仍只解释',async()=>{
+ const share=buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text:'我生日是7月15号。',sentAt:1791770000000}],['m'],'帮我记录一下王芳的生日','s');
+ const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'只解释材料。'})));vi.stubGlobal('fetch',fetcher);
+ const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:sharePrompt(share)}]});expect(result.action).toMatchObject({type:'prepare_task',title:'王芳的生日',allDay:true,repeat:'yearly'});expect(fetcher).not.toHaveBeenCalled();
+ const explanation=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:sharePrompt(share,'先解释一下')}]});expect(explanation.action).toBeUndefined();expect(fetcher).toHaveBeenCalledOnce();
 });
