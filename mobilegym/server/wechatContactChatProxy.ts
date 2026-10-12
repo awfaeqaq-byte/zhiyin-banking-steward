@@ -84,25 +84,39 @@ export async function requestWechatContactReply(
     ? [{ role: 'system' as const, content: instructions }, ...messages]
     : messages;
 
-  const response = await fetcher(completionUrl(config.baseUrl), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages: providerMessages,
-      stream: false,
-      temperature: 0.7,
-      max_tokens: 800,
-    }),
-    signal: AbortSignal.timeout(45_000),
-    redirect: 'error',
-  });
+  // MiniMax's limit includes thinking tokens, so 800 can leave no answer at all.
+  // Keep one deadline across the bounded retry; never expose reasoning as a reply.
+  const reasoningModel=/^MiniMax-M/i.test(model);
+  const initialLimit=reasoningModel?4096:800;
+  const signal=AbortSignal.timeout(45_000);
+  for(let attempt=0;attempt<2;attempt++){
+    const response = await fetcher(completionUrl(config.baseUrl), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages: providerMessages,
+        stream: false,
+        temperature: 0.7,
+        max_tokens: initialLimit*(attempt+1),
+        ...(reasoningModel?{reasoning_split:true}:{}),
+      }),
+      signal,
+      redirect: 'error',
+    });
 
-  if (!response.ok) throw new Error(`模型服务请求失败（HTTP ${response.status}）`);
-  return extractCompletionText(await response.json());
+    if (!response.ok) throw new Error(`模型服务请求失败（HTTP ${response.status}）`);
+    const data=await response.json();
+    if(data?.choices?.[0]?.finish_reason==='length'){
+      if(attempt===0)continue;
+      throw new Error('模型回复超出长度限制，请缩短问题后重试');
+    }
+    return extractCompletionText(data);
+  }
+  throw new Error('模型服务未返回有效内容');
 }
 
 function readJsonBody(req: IncomingMessage): Promise<WechatContactChatProxyPayload> {

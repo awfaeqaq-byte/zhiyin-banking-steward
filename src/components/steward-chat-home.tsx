@@ -74,6 +74,7 @@ type DisplayMessage = StewardChatMessage & {
   action?: StewardAction;
   workspaceId?: string;
   view?: 'wealth_compare'|'term_deposit';
+  retryPrompt?:string;
 };
 
 type AttentionEvent =
@@ -92,7 +93,7 @@ type Props = {
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
   seamless?: boolean;
-  conversationNotice?: {id:string;text:string};
+  conversationNotice?: {id:string;text:string;retryPrompt?:string};
   contextWorkspaces?: Workspace[];
   onBackgroundTurn?:(id:string,user:string,assistant:string,memoryRevision:number)=>Promise<void>;
   onBackgroundBook?:(id:string,bookId:string)=>Promise<void>;
@@ -180,11 +181,14 @@ function recoverReplies(messages:DisplayMessage[],tasks:Workspace[]):DisplayMess
   messages.forEach((message,index)=>{
     result.push(message);
     if(message.role!=='user')return;
+    const nextUser=messages.findIndex((m,i)=>i>index&&m.role==='user');
+    const replies=messages.slice(index+1,nextUser<0?undefined:nextUser);
+    // A failed submission/clarification has its own response and no saved turn.
+    // Do not attach a later retry's answer to this earlier identical sentence.
+    if(replies.some(m=>m.role==='assistant'&&m.id.startsWith('notice-')))return;
     const pair=pairs.find(p=>p.user.content===message.content&&!used.has(p.answer.id));
     if(!pair)return;
     used.add(pair.answer.id);
-    const nextUser=messages.findIndex((m,i)=>i>index&&m.role==='user');
-    const replies=messages.slice(index+1,nextUser<0?undefined:nextUser);
     if(replies.some(m=>m.id===pair.answer.id||m.role==='assistant'&&m.content===pair.answer.content))return;
     result.push({id:pair.answer.id,role:'assistant',content:pair.answer.content,workspaceId:pair.workspaceId});
     changed=true;
@@ -430,7 +434,7 @@ export function StewardChatHome({
   useEffect(()=>{
     if(!conversationNotice)return;
     const id=`notice-${conversationNotice.id}`;
-    setMessages(current=>current.some(m=>m.id===id)?current:[...current,{id,role:'assistant',content:conversationNotice.text}]);
+    setMessages(current=>current.some(m=>m.id===id)?current:[...current,{id,role:'assistant',content:conversationNotice.text,retryPrompt:conversationNotice.retryPrompt}]);
     setActiveReplyId(id);setActiveBill(null);
   },[conversationNotice]);
   useEffect(() => {
@@ -899,10 +903,11 @@ export function StewardChatHome({
             const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
             const choices=scene&&!scene.needsConsent?parsed.choices.filter(choice=>!/^(?:只看|就看|查看|切换到|看)?(?:微信(?:支付)?|支付宝|全部平台|全部)(?:的)?(?:账单)?$/.test(choice)):parsed.choices;
             return [(
-              <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} key={message.id}>
+              <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} role={message.retryPrompt?'alert':undefined} key={message.id}>
                 <div className="steward-brief">
                   {historyOpen && <small>{message.role === 'user' ? '你' : stewardName}</small>}
                   {seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>}
+                  {message.retryPrompt&&message.id===activeReplyId&&<button className="desk-text-action" disabled={sending||externalBusy||viewSaving} onClick={()=>void sendPrompt(message.retryPrompt!)}>重试这条消息</button>}
                   {!historyOpen && message.id===activeReplyId && message.view==='wealth_compare' && <WealthInlineCompare onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>}
                   {!historyOpen && message.id===activeReplyId && message.view==='term_deposit' && <TermDepositPanel scope={message.workspaceId??workspace?.id??'home'} initialRequest={depositRequestForMessages(messages.slice(0,messages.findIndex(m=>m.id===message.id)))??''}/>}
                   {!historyOpen && memory?.state.enabled && memory.error && <p className="memory-help" role="status">本次未能读取长期记忆，可到个人中心重试。</p>}

@@ -95,7 +95,8 @@ describe('WeChat contact chat server proxy', () => {
       ],
       stream: false,
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 4096,
+      reasoning_split:true,
     });
   });
 

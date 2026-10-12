@@ -36,7 +36,7 @@ it('分流模型临时返回空内容时重试一次，仍为空时明确失败�
 });
 it('回应记忆追问的“记忆”直接续接原事项，不再额外调用分流模型',async()=>{
  const task:Workspace={id:'birthday',kind:'general',title:'记录小林生日',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[],progress:{goal:'记录小林生日',stage:'waiting_user',waitingFor:{field:'reply',question:'需要我帮你记住这个日期吗？'}}};
- const fetcher=vi.spyOn(globalThis,'fetch');
+ const fetcher=vi.spyOn(globalThis,'fetch').mockRejectedValue(new Error('不应调用分流接口'));
  expect((await routeWorkspacePrompt('记忆',[task],task.id)).parts).toEqual([{taskId:task.id,kind:task.kind,title:task.title,text:'记忆'}]);expect(fetcher).not.toHaveBeenCalled();
 });
 it("写入重试复用请求ID；读失败与数据异常清晰报错", async () => {

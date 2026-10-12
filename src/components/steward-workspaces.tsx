@@ -19,7 +19,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [conversationNotice, setConversationNotice] = useState<{id:string;text:string}>();
+  const [conversationNotice, setConversationNotice] = useState<{id:string;text:string;retryPrompt?:string}>();
   const [injected, setInjected] = useState<Queued>();
   const queue = useRef<Queued[]>([]);
   const executing = useRef<Queued>();
@@ -101,7 +101,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       queue.current=items.slice(1); dispatch(items[0]);
     } catch(e) {
       queue.current=[];
-      setError(`${e instanceof Error?e.message:"暂时没理解清楚"}。这次尚未执行，请重试。`);
+      setConversationNotice({id:crypto.randomUUID(),text:`这条消息没有处理成功：${e instanceof Error?e.message:"暂时没理解清楚"}。这次尚未执行，请重试。`,retryPrompt:text});
       throw e;
     } finally {
       if(!executing.current) {lock.current=false;setBusy(false);}

@@ -89,6 +89,7 @@ export function taskContinuation(prompt:string,tasks:Workspace[],currentId:strin
     ||/^(?:怎么|如何)(?:授权|连接)|^我要授权$/.test(compact)
     ||periodAnswer||/^(?:算了|不用了|先不看了|暂停|继续)$/.test(compact));
   const answer=progress.waitingFor&&(p===progress.waitingFor.question||/^(?:好|好的|可以|继续|同意|不用了|算了|简短一点|详细一点)[。！!]*$/.test(p)
+    ||current.kind==='general'&&progress.waitingFor.field==='reply'&&/记住|记忆/.test(progress.waitingFor.question)&&/^(?:记忆|记住(?:吧|这个日期)?|帮我记住|记下来|要记住|不用记|不需要)[。！!]*$/.test(p)
     ||progress.waitingFor.field==='reply'&&/^(?:\d+(?:\.\d+)?(?:元|块)?|明天|后天|今天|上午|下午|晚上|早上|周|星期|下周)/.test(p)&&!/[，；;]/.test(p));
   if(!/^[？?]+$/.test(p)&&!billAnswer&&!answer)return null;
   return {parts:[{taskId:current.id,kind:current.kind,title:current.title,text:prompt}]};
