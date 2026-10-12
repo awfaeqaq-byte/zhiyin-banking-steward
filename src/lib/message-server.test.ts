@@ -30,3 +30,12 @@ it('并发重试共用模型调用，完成后的其他归属仍不能写结果'
  const input={id,jobId:job.id,owner,request:{stewardName:'宁宁',subscriptions:[],messages:[]}};const first=service.reply(scope,input),second=service.reply(scope,input);release('我在。');await Promise.all([first,second]);expect(model).toHaveBeenCalledOnce();
  expect(()=>service.complete(scope,{type:'message-complete',id,jobId:job.id,owner:'other',assistant:'替换结果',memoryRevision:0,failed:false})).toThrow('归属');
 });
+it('分类追问的补充带上待澄清原请求，同时保持这轮原文不可变',async()=>{
+ const dir=fixture(),model=vi.fn(async(payload:{instructions:string;input:Array<{role:string;content:string}>})=>{
+  if(payload.input.some(m=>m.content.includes('本轮原文片段 0（系统编号，唯一新请求）："改成30"')))return JSON.stringify({parts:[],clarification:'要改今晚聚餐还是周末旅行？'});
+  expect(payload.input.some(m=>m.content.includes('待澄清数据：')&&m.content.includes('改成30')&&m.content.includes('今晚聚餐还是周末旅行'))).toBe(true);
+  return JSON.stringify({parts:[{taskId:null,kind:'general',title:'今晚聚餐',segmentIds:[0]}]});
+ });const service=createMessageService(dir,model);service.submit(scope,{id:crypto.randomUUID(),text:'改成30',currentId:'',memoryRevision:0});await service.idle(scope);
+ const id=crypto.randomUUID();service.submit(scope,{id,text:'今晚聚餐',currentId:'',memoryRevision:0});await service.idle(scope);
+ const run=service.get(scope).runs!.find(r=>r.id===id)!;expect(run.status).toBe('ready');expect(run.prompt).toBe('今晚聚餐');expect(run.jobs[0].text).toBe('今晚聚餐');
+});
