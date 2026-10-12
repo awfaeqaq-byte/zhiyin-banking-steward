@@ -1999,20 +1999,21 @@ export default function App() {
       <Dialog
         open={modal === "voice"}
         onOpenChange={(open) => !open && setModal(null)}
-        title="试试用一句话办理"
-        description="语音输入界面演示，当前不会开启麦克风。"
+        title={`和${steward.name}语音对话`}
+        description="连续语音在 AI 原生首页开启，方案与核对入口留在同一页。"
       >
         <div className="voice-demo">
           <Mic size={32} />
-          <p>“给妈妈转 2000 元，下周五到账”</p>
+          <p>进入首页后，点输入框旁的麦克风。开启前会说明录音与处理方式。</p>
           <Button
             className="full-width"
             onClick={() => {
-              setInput("给妈妈转 2000 元，下周五到账");
+              setMode('native');
               setModal(null);
+              go('home');
             }}
           >
-            使用这句示例
+            前往 AI 原生首页
           </Button>
         </div>
       </Dialog>

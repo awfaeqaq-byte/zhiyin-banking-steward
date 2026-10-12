@@ -1,5 +1,12 @@
 // The console is a browser-level operator tool, not a simulated App resource namespace.
 export const consoleStrings = {
+  voice: {
+    title:'实时语音',hint:'连续对话、音色与百炼凭证',description:'Qwen 实时语音负责听和说，办理能力仍由原有宁宁提供。与文本模型独立配置，仅本机 localhost 可修改。',
+    loading:'正在读取语音配置…',loadError:'语音配置暂不可用，请重新展开重试',ready:'语音凭证已配置（密钥不回显）',missing:'尚未配置语音凭证',model:'实时模型',region:'服务地域',beijing:'北京',singapore:'新加坡',workspace:'百炼业务空间 ID',key:'百炼 API 密钥',keepKey:'留空保留现有密钥',enterKey:'输入百炼实时语音密钥',voices:'管家音色',ningning:'宁宁的音色',aheng:'阿衡的音色',lingxin:'龙安灵心 · 温和',
+    keyHelp:'密钥仅保存于本机后端，不写浏览器存储或 Git。更换地域、业务空间时须重新输入密钥；保存不会发起付费通话。',
+    save:'保存语音配置',saving:'正在保存…',saveError:'语音配置未保存，原配置不变',saved:'已保存。下一次开始语音时生效，文字模型不变。',phoneHelp:'手机录音须使用 HTTPS；电脑本机 localhost 可直接测试。单次通话最多5分钟，离开知银即停止收音。',
+    textTitle:'文本模型',textHint:'宁宁与微信联系人',
+  },
   replay: {
     title:'本地 Excel 账单回放',description:'默认使用现有沙箱账单。需要历史样本时，在这里手动切换。',
     enabled:'本地回放已开启',ready:'已配置，尚未开启',missing:'未配置：在仓库根目录 .zhiyin-bill-source.local.json 指定 sourcePath 和 expectedSha256。',loading:'正在读取配置…',

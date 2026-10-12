@@ -1,5 +1,6 @@
 import type {Plugin,ViteDevServer,PreviewServer} from 'vite';
 import {fileURLToPath} from 'node:url';
+import {createVoiceConfigStore,voiceMiddleware,voiceOfferMiddleware,voiceStatusMiddleware} from './voice-service';
 import {createMemoryStore,memoryMiddleware} from './memory-store';
 import {createBankStore,bankMiddleware} from './bank-store';
 import {createTaskStore,taskMiddleware} from './task-store';
@@ -14,6 +15,7 @@ import {createFundSamplesService,fundSamplesMiddleware} from './fund-samples';
 import {agentAutomationMiddleware,createAgentAutomationService} from './agent-automation';
 import {billSourceMiddleware,createBillSourceService,readLocalWechatSource} from './bill-source';
 export function memoryPlugin():Plugin {
+  const voiceConfig=createVoiceConfigStore(fileURLToPath(new URL('../.zhiyin-voice.local.json',import.meta.url)));
   const reset=stewardResetMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const workspaces=workspaceMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const messages=messageMiddleware(fileURLToPath(new URL('../',import.meta.url)),localStewardModel);
@@ -37,9 +39,11 @@ export function memoryPlugin():Plugin {
   };
   const protect=(req:import('node:http').IncomingMessage,res:import('node:http').ServerResponse,next:()=>void)=>{
     let url=req.url || '';try{url=decodeURIComponent(url);}catch{/* Malformed URLs cannot match a file. */}
+    if(url.includes('.zhiyin-voice.local.json')){res.statusCode=403;res.end('Forbidden');return;}
     if(['.zhiyin-workspaces-','.zhiyin-expenses-','.zhiyin-memory.local.json','.zhiyin-bank.local.json','.zhiyin-tasks.local.json','.zhiyin-wealth.local.json','.zhiyin-market-cache.local.json','.zhiyin-fund-samples.local.json','.zhiyin-automations.local.json','.zhiyin-bill-grants.local.json','.zhiyin-bill-source.local.json','.zhiyin-mastra.db'].some(name=>url.includes(name))){res.statusCode=403;res.end('Forbidden');return;}next();
   };
   const routes=[
+    ['/api/sandbox/voice-config',voiceMiddleware(voiceConfig)],['/api/zhiyin/voice/status',voiceStatusMiddleware(voiceConfig)],['/api/zhiyin/voice/offer',voiceOfferMiddleware(voiceConfig)],
     ['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/messages',messages],['/api/zhiyin/expenses',expenses],
     ['/api/zhiyin/memory',middleware],['/api/zhiyin/bank',bank],['/api/zhiyin/tasks',tasks],
     ['/api/zhiyin/wealth',wealth],['/api/zhiyin/bill-source',billSource],

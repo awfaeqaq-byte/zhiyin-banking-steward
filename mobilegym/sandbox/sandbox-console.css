@@ -248,3 +248,8 @@
   .sandbox-console-panel { top: max(8px, env(safe-area-inset-top)); bottom: max(8px, env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) { .sandbox-finance button { transition: none; } }
+.sandbox-model-group { border-bottom: 1px solid #dce4e1; }
+.sandbox-model-group > summary { display: grid; gap: 4px; min-height: 52px; padding: 14px 18px; color: #203e38; cursor: pointer; font-weight: 650; }
+.sandbox-model-group > summary small { color: #546b64; font-size: 12px; font-weight: 400; }
+.sandbox-model select { min-height: 44px; width: 100%; padding: 9px 12px; border: 1px solid #cbd8d2; border-radius: 8px; background: #fff; color: #203e38; font: inherit; }
+.sandbox-model select:focus-visible { outline: 2px solid #206a70; outline-offset: 2px; }

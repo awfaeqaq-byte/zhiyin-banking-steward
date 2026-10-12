@@ -5,7 +5,7 @@ import {isLocalConfigRequest} from '../mobilegym/server/modelConfig';
 import {voiceSessionInstructions} from '../src/lib/realtime-voice';
 
 export type VoiceConfig={region:'beijing'|'singapore';workspaceId:string;model:'qwen3.8-omni-flash-realtime';ningningVoice:string;ahengVoice:string;apiKey:string};
-const defaults:VoiceConfig={region:'beijing',workspaceId:'',model:'qwen3.8-omni-flash-realtime',ningningVoice:'longanlingxin',ahengVoice:'Ethan',apiKey:''};
+const defaults:VoiceConfig={region:'beijing',workspaceId:'',model:'qwen3.8-omni-flash-realtime',ningningVoice:'longanlingxin',ahengVoice:'Zane',apiKey:''};
 function validate(input:unknown,previous:VoiceConfig):VoiceConfig {
  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('语音配置格式无效');
  const d=input as Record<string,unknown>;
@@ -14,7 +14,7 @@ function validate(input:unknown,previous:VoiceConfig):VoiceConfig {
  if(![d.ningningVoice,d.ahengVoice].every(v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(v)))throw new Error('音色名称无效');
  if(d.apiKey!==undefined&&typeof d.apiKey!=='string')throw new Error('密钥格式无效');
  const replacement=typeof d.apiKey==='string'?d.apiKey.trim():'';
- if(replacement.length>500||/[\s\x00-\x1f]/.test(replacement))throw new Error('密钥格式无效');
+ if(replacement.length>500||/[^\x21-\x7e]/.test(replacement))throw new Error('密钥格式无效');
  if(previous.apiKey&&!replacement&&(previous.region!==d.region||previous.workspaceId!==d.workspaceId))throw new Error('更换地域或业务空间时，请重新输入对应密钥');
  const apiKey=replacement||previous.apiKey;if(!apiKey)throw new Error('请配置百炼实时语音 API 密钥');
  return {region:d.region as VoiceConfig['region'],workspaceId:d.workspaceId,model:defaults.model,ningningVoice:d.ningningVoice as string,ahengVoice:d.ahengVoice as string,apiKey};
