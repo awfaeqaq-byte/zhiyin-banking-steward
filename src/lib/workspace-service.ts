@@ -9,7 +9,7 @@ import { conversationContext } from './conversation-context';
 import type { StewardChatMessage } from './steward-chat';
 import {clearBillIntent,readTaskProgress,taskContinuation} from './task-progress';
 import {foodRoute} from './food-order';
-import {WECHAT_SHARE_PREFIX} from './wechat-message-share';
+import {WECHAT_SHARE_PREFIX,readonlyWechatShare} from './wechat-message-share';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -61,6 +61,7 @@ export async function routeWorkspacePrompt(
   recent: StewardChatMessage[] = [],
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
+  if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
   const shared=prompt.startsWith(WECHAT_SHARE_PREFIX);
   const food=shared?null:foodRoute(prompt,tasks,currentId);if(food)return food;
   const continuation=shared?null:taskContinuation(prompt,tasks,currentId);
