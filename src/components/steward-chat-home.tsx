@@ -66,12 +66,14 @@ import {InlineBillConsent,StewardBillWorkspace,type ConnectBillSource} from './s
 import {sharePrompt,WECHAT_SHARE_PREFIX,readonlyWechatShare,type WechatShare} from '../lib/wechat-message-share';
 import {WechatShareAttachment,WechatSharedText} from './wechat-share-attachment';
 import {billProvider,billScopeQuestion,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
+import {depositRequestForMessages} from '../lib/bank-assets';
+import {TermDepositPanel} from './term-deposit-panel';
 
 type DisplayMessage = StewardChatMessage & {
   id: string;
   action?: StewardAction;
   workspaceId?: string;
-  view?: 'wealth_compare';
+  view?: 'wealth_compare'|'term_deposit';
 };
 
 type AttentionEvent =
@@ -139,6 +141,7 @@ type Props = {
 
 const storageKey = "zhiyin-steward-chat-v3";
 const conversationKey = "zhiyin-steward-conversation-v1";
+function readOnlyView(view:unknown):DisplayMessage['view'] {return view==='term_deposit'||view==='wealth_compare'?view:undefined;}
 
 function readOnlyEntry(action?: StewardAction): StewardAction | undefined {
   if(action?.type!=='open_connections')return undefined;
@@ -148,7 +151,7 @@ function readOnlyEntry(action?: StewardAction): StewardAction | undefined {
 function readMessages(key=storageKey): DisplayMessage[] {
   try {
     const value = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value.filter(m=>m&&typeof m.id==='string'&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-30).map(m=>({id:m.id,role:m.role,content:m.content,...(m.role==='assistant'?{action:readOnlyEntry(m.action)}:{})})) : [];
+    return Array.isArray(value) ? value.filter(m=>m&&typeof m.id==='string'&&['user','assistant'].includes(m.role)&&typeof m.content==='string').slice(-30).map(m=>({id:m.id,role:m.role,content:m.content,...(m.role==='assistant'?{action:readOnlyEntry(m.action),view:readOnlyView(m.view)}:{})})) : [];
   } catch {
     return [];
   }
@@ -157,7 +160,7 @@ function readMessages(key=storageKey): DisplayMessage[] {
 function writeMessages(messages: DisplayMessage[],key=storageKey) {
   try {
     // Only read-only navigation can survive a return. Financial controls never do.
-    localStorage.setItem(key, JSON.stringify(messages.slice(-30).map(({id,role,content,action})=>({id,role,content,...(role==='assistant'?{action:readOnlyEntry(action)}:{})}))));
+    localStorage.setItem(key, JSON.stringify(messages.slice(-30).map(({id,role,content,action,view})=>({id,role,content,...(role==='assistant'?{action:readOnlyEntry(action),view:readOnlyView(view)}:{})}))));
   } catch {
     // Conversation persistence is optional in restricted browser contexts.
   }
@@ -266,7 +269,7 @@ export function StewardChatHome({
   const [error, setError] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?(messages.at(-1)?.action?.type==='open_connections'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?(messages.at(-1)?.action?.type==='open_connections'||messages.at(-1)?.view==='term_deposit'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
   const [billScenes,setBillScenes]=useState<Record<string,BillScene>>(()=>seamless?restoreBillScenes(localStorage.getItem('zhiyin-bill-scenes-v1')):{});
   const liveBillScenes=useRef(billScenes);liveBillScenes.current=billScenes;
@@ -512,7 +515,8 @@ export function StewardChatHome({
       const expenseReply=readonlyShare?null:await (seamless&&workspace?expenseNotebooks.current[workspace.id]:expenseNotebook.current)?.handle(prompt);
       if(expenseReply){outcome=expenseReply;const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current,{id,role:'assistant',content:expenseReply,workspaceId:workspace?.id}]);setActiveReplyId(id);return;}
       const coaching=!readonlyShare&&isFinancialCoachingQuestion(prompt);
-      const wealthQuestion=!readonlyShare&&/理财|投资|基金|存款|收益|赎回|申购|风险测评|持仓|产品对比|产品推荐/.test(prompt);
+      const depositQuestion=readonlyShare?null:depositRequestForMessages(requestMessages);
+      const wealthQuestion=!readonlyShare&&(Boolean(depositQuestion)||/理财|投资|基金|存款|资产|收益|赎回|申购|风险测评|持仓|产品对比|产品推荐/.test(prompt));
       const bankOnly=!readonlyShare&&(isBankOperation(prompt) || (!coaching&&!wealthQuestion&&isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null));
       const snapshot = !readonlyShare&&refreshSubscriptions ? await refreshSubscriptions().catch(cause=>({connections:{},error:cause instanceof Error?cause.message:'平台数据不可用'})) : null;
       if (snapshot?.error && !bankOnly && !coaching && !wealthQuestion && !isTaskRequest(requestMessages) && !isOccasionRequest(requestMessages) && workspace?.kind!=='occasion') throw new Error(snapshot.error);
@@ -611,7 +615,7 @@ export function StewardChatHome({
         content: response.text,
         action: response.action,
         workspaceId: workspace?.id,
-        view:wealthQuestion&&!prompt.startsWith('请基于我在比较工具中的选择继续解释')&&(response.view==='wealth_compare'||/比较|对比|推荐/.test(prompt))?'wealth_compare':undefined,
+        view:!readonlyShare&&(depositQuestion||response.view==='term_deposit')?'term_deposit':wealthQuestion&&!prompt.startsWith('请基于我在比较工具中的选择继续解释')&&(response.view==='wealth_compare'||/比较|对比|推荐/.test(prompt))?'wealth_compare':undefined,
       }]);
       setActiveReplyId(responseId);
       setActiveBill(billAnalysis ? {id:responseId,data:billAnalysis} : null);
@@ -867,6 +871,7 @@ export function StewardChatHome({
                   {historyOpen && <small>{message.role === 'user' ? '你' : stewardName}</small>}
                   {seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>}
                   {!historyOpen && message.id===activeReplyId && message.view==='wealth_compare' && <WealthInlineCompare onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>}
+                  {!historyOpen && message.id===activeReplyId && message.view==='term_deposit' && <TermDepositPanel scope={message.workspaceId??workspace?.id??'home'} initialRequest={depositRequestForMessages(messages.slice(0,messages.findIndex(m=>m.id===message.id)))??''}/>}
                   {!historyOpen && memory?.state.enabled && memory.error && <p className="memory-help" role="status">本次未能读取长期记忆，可到个人中心重试。</p>}
                   {!historyOpen && (!seamless||message.id===activeReplyId) && memory?.state.enabled && proposed.proposal && <div className="memory-candidate">
                     {memoryDecisions[message.id]?<p role="status">{memoryDecisions[message.id]}</p>:<>

@@ -4,6 +4,8 @@ import {MemoryManager} from './components/memory-manager';
 import {useBankAccount} from './lib/use-bank-account';
 import {SmartTransfers,type SmartIntent} from './components/smart-transfers';
 import {bankRecipients,type BankReceipt} from './lib/bank-transfer';
+import {assetMoney} from './lib/bank-assets';
+import {TermDepositPanel} from './components/term-deposit-panel';
 import {money as bankMoney} from './lib/native-banking';
 import {
   ArrowLeft,
@@ -99,6 +101,7 @@ import aheng from "./assets/aheng.png";
 type Page =
   | "home"
   | "assets"
+  | "deposits"
   | "spending"
   | "plan"
   | "risk"
@@ -492,10 +495,10 @@ export default function App() {
   const activeNav =
     page === "profile" || page === "settings" || page === "connections" || page === "subscriptions" || page === "cards"
       ? "profile"
-      : ["assets", "funding"].includes(page)
+      : ["assets", "funding", "deposits"].includes(page)
         ? "assets"
         : "home";
-  const balance = hidden ? "¥ •••,•••.••" : bank.state ? bankMoney(24424032+bank.state.balance) : "待读取";
+  const balance = hidden ? "¥ •••,•••.••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.total) : "待读取";
   const num = (value: number) =>
     `¥${value.toLocaleString("zh-CN", { maximumFractionDigits: 2 })}`;
   const subscriptionInsights = useMemo(
@@ -766,7 +769,7 @@ export default function App() {
                     <div className="account-foot">
                       <span>
                         <span className="status-dot" />
-                        整体稳健 <span className="subtle-divider">/</span>{" "}
+                        账本资产 <span className="subtle-divider">/</span>{" "}
                         常用卡 8888
                       </span>
                       <button onClick={() => go("assets")}>
@@ -912,7 +915,8 @@ export default function App() {
           )}
           {page === "assets" && (
             <>
-              <Heading title="我的资产" subtitle="每一笔，都心中有数" />
+              <Heading title="我的资产" subtitle="银行沙箱账户 · 按账面现金与持仓本金汇总" />
+              {bank.error&&<div className="operation-error" role="alert"><p>资产暂未能更新。{bank.state?'以下保留上次成功读取的快照，不代表当前可用资金。':'请重试读取后再安排资金。'}</p><button type="button" className="text-link" onClick={()=>void bank.refresh()}>重新读取资产</button></div>}
               <div className="detail-grid assets-layout">
                 <div>
                   <section className="account-summary asset-overview" aria-label="演示账户资产概览">
@@ -930,9 +934,9 @@ export default function App() {
                     <div className="account-foot">
                       <span>
                         <span className="status-dot" />
-                        整体稳健
+                        后端账本汇总
                       </span>
-                      <span>银行余额来自沙箱账本</span>
+                      <span>不含微信、支付宝钱包余额</span>
                     </div>
                   </section>
                   <button className="asset-funding-entry" onClick={() => go("funding")}>
@@ -941,25 +945,26 @@ export default function App() {
                     <ArrowRight size={18} aria-hidden="true" />
                   </button>
                   <h2 className="section-title">资产分布</h2>
-                  <div className="surface asset-distribution">
+                  <div className="surface asset-distribution" role="region" aria-label="资产分布">
                     <Row
                       icon={Wallet}
                       title="活期与现金"
-                      subtitle="随时可用，灵活安排"
-                      end={<strong>{hidden ? "••••" : bank.state ? num(bank.state.balance/100) : "待读取"}</strong>}
+                      subtitle={hidden?'常用卡 · 8888':bank.state?.assetSummary?bank.state.assetSummary.reservedCash>0?`常用卡 · 8888，扣除预留后可用 ${assetMoney(bank.state.assetSummary.availableCash)}`:'常用卡 · 8888，账面余额':'常用卡 · 8888，资金状态待读取'}
+                      end={<strong>{hidden ? "••••" : bank.state ? assetMoney(bank.state.balance) : "待读取"}</strong>}
                     />
                     <Row
                       icon={TrendingUp}
                       title="理财资产"
-                      subtitle="偏稳健 · 3 项持有"
-                      onClick={() => go("plan")}
-                      end={<strong>{hidden ? "••••" : "¥184,240.32"}</strong>}
+                      subtitle={bank.state?.assetSummary?`${bank.state.assetSummary.holdingCount} 项未赎回持仓 · 持仓本金`:'持仓待读取'}
+                      onClick={() => go("risk")}
+                      end={<strong>{hidden ? "••••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.wealth) : "待读取"}</strong>}
                     />
                     <Row
                       icon={LockKeyhole}
                       title="定期存款"
-                      subtitle="下次到期 2026年12月"
-                      end={<strong>{hidden ? "••••" : "¥60,000.00"}</strong>}
+                      onClick={() => go("deposits")}
+                      subtitle={bank.state?.assetSummary?`${bank.state.assetSummary.depositCount} 笔未支取定存`:'定存待读取'}
+                      end={<strong>{hidden ? "••••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.deposits) : "待读取"}</strong>}
                     />
                   </div>
                 </div>
@@ -995,6 +1000,7 @@ export default function App() {
               <BillReports connections={connections} onConnect={() => go("connections")} />
             </>
           )}
+          {page === "deposits" && <><Heading title="存款" subtitle="同一银行账本，先核对资金影响再由你确认"/>{hidden?<button type="button" className="primary-button" onClick={()=>setHidden(false)}>显示金额，继续办理</button>:<TermDepositPanel/>}</>}
           {page === "plan" && (
             <>
               <Heading
