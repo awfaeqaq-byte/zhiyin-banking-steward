@@ -1,6 +1,17 @@
 import {afterEach,expect,it,vi} from 'vitest';
 import {createVoiceConnection} from './voice-connection';
 afterEach(()=>vi.unstubAllGlobals());
+it('真实浏览器握手流程：只申请音频、等会话配置确认再收音，结束释放连接',async()=>{
+ const sent:unknown[]=[],stop=vi.fn(),pause=vi.fn();const track={enabled:true,stop};const audio={muted:true,autoplay:false,srcObject:null,play:vi.fn(async()=>{}),pause};
+ const txt={readyState:'open',onmessage:null as ((e:{data:string})=>void)|null,onclose:null as (()=>void)|null,close:vi.fn(),send:(raw:string)=>{const data=JSON.parse(raw);sent.push(data);if(data.type==='session.update')queueMicrotask(()=>txt.onmessage?.({data:JSON.stringify({type:'session.updated'})}));}};
+ class Peer extends EventTarget {iceGatheringState='complete';connectionState='new';localDescription={sdp:'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n'};ondatachannel:((e:{channel:typeof txt})=>void)|null=null;ontrack:null=null;onconnectionstatechange:null=null;closed=false;addTrack=vi.fn();createDataChannel(){return {...txt};}async createOffer(){return {type:'offer',sdp:this.localDescription.sdp};}async setLocalDescription(){}async setRemoteDescription(){this.ondatachannel?.({channel:txt});queueMicrotask(()=>txt.onmessage?.({data:JSON.stringify({type:'session.created'})}));}close(){this.closed=true;}}
+ const peers:Peer[]=[];vi.stubGlobal('RTCPeerConnection',class extends Peer{constructor(){super();peers.push(this);}});vi.stubGlobal('Audio',function(){return audio;});vi.stubGlobal('isSecureContext',true);
+ const media=vi.fn(async()=>({getTracks:()=>[track],getAudioTracks:()=>[track]}));vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:media}});
+ const fetcher=vi.fn<typeof fetch>(async url=>new Response(JSON.stringify(String(url).endsWith('status')?{configured:true}:{answer:'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',session:{instructions:'test-role',tools:[]}})));
+ const c=createVoiceConnection({stewardName:'宁宁',business:vi.fn(),onState:vi.fn(),fetcher});await c.start();await vi.waitFor(()=>expect(c.getState().phase).toBe('listening'));
+ expect(media).toHaveBeenCalledWith({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});expect(sent).toContainEqual({type:'session.update',session:{instructions:'test-role',tools:[]}});expect(track.enabled).toBe(true);
+ c.setMuted(true);expect(track.enabled).toBe(false);c.setMuted(false);expect(track.enabled).toBe(true);c.stop();expect(stop).toHaveBeenCalledOnce();expect(peers[0].closed).toBe(true);expect(pause).toHaveBeenCalled();
+});
 it('没有凭证不申请麦克风，没有 HTTPS 不创建远端会话',async()=>{
  const media=vi.fn();vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:media}});vi.stubGlobal('isSecureContext',true);vi.stubGlobal('RTCPeerConnection',vi.fn());
  const fetcher=vi.fn(async()=>new Response(JSON.stringify({configured:false})));const state=vi.fn();const connection=createVoiceConnection({stewardName:'宁宁',business:vi.fn(),onState:state,fetcher});

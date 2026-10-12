@@ -39,6 +39,7 @@ export function createVoiceEvents(options:{send:(event:EventData)=>void;business
   }else if(e.type==='conversation.item.input_audio_transcription.completed'&&text(e.item_id,160)&&text(e.transcript)){
    originals.set(e.item_id,e.transcript.trim());if(!currentInput)currentInput=e.item_id;if(e.item_id===currentInput)update({heard:e.transcript.trim()});for(const [id,r]of responses)if(r.input===e.item_id)for(const c of r.calls.values())if(!c.started)runTool({response_id:id},c.item);
   }else if(e.type==='response.created'&&object(e.response)&&text(e.response.id,160)){
+   if(responses.has(e.response.id))return;
    activeResponse=e.response.id;responses.set(activeResponse,{input:currentInput,done:false,calls:new Map(),continued:false});options.audio(approvedInput===currentInput&&!!currentInput);
   }else if(e.type==='response.output_item.done'&&object(e.item)&&e.item.type==='function_call'){runTool(e,e.item);
   }else if(e.type==='response.function_call_arguments.done'){runTool(e,e);

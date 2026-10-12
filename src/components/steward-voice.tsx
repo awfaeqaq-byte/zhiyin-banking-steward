@@ -23,7 +23,7 @@ export function StewardVoice({stewardName,stewardImage,onRequest,disabled=false,
   <button type="button" className="voice-entry" aria-label={`和${stewardName}语音对话`} aria-expanded={open} disabled={disabled&&!open} onClick={()=>open?close():setOpen(true)}><Mic size={20} aria-hidden="true"/></button>
   {open&&<section className="voice-strip" role="region" aria-label="语音对话">
    <header><img src={stewardImage} alt=""/><div><strong>和{stewardName}说说</strong><span role="status">{active?status:'直接说，随时可以打断'}</span></div><button type="button" aria-label="收起语音面板" onClick={close}><X size={18}/></button></header>
-   {!active&&<p className="voice-consent">开启后，麦克风音频会发送至阿里云百炼处理。退出或离开知银即停止收音，不保存原始录音。</p>}
+   {!active&&<p className="voice-consent">开启后，音频、对话和必要的业务结果会发送至阿里云百炼处理。退出或离开知银即停止收音，本项目不保存原始录音。</p>}
    {state.heard&&<p className="voice-caption"><span>你说</span>{state.heard}</p>}
    {state.answer&&active&&<p className="voice-caption"><span>{stewardName}</span>{state.answer}</p>}
    {state.error&&<p className="voice-error" role="alert">{state.error}</p>}

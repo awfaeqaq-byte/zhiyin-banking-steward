@@ -20,9 +20,10 @@ function validate(input:unknown,previous:VoiceConfig):VoiceConfig {
  return {region:d.region as VoiceConfig['region'],workspaceId:d.workspaceId,model:defaults.model,ningningVoice:d.ningningVoice as string,ahengVoice:d.ahengVoice as string,apiKey};
 }
 export function createVoiceConfigStore(file:string){
- let current={...defaults};
- if(existsSync(file))current=validate(JSON.parse(readFileSync(file,'utf8')),defaults);
- return {file,get:()=>({...current}),publicConfig:()=>{const {apiKey,...safe}=current;return {...safe,configured:!!apiKey};},save(input:unknown){
+ let current={...defaults},loadError='';
+ if(existsSync(file)){try{current=validate(JSON.parse(readFileSync(file,'utf8')),defaults);}catch{loadError='语音配置损坏，请先备份并修复本机 .zhiyin-voice.local.json；文字与银行功能不受影响。';}}
+ return {file,get:()=>{if(loadError)throw new Error(loadError);return {...current};},publicConfig:()=>{const {apiKey,...safe}=current;return {...safe,configured:!!apiKey,...(loadError?{error:loadError}:{})};},save(input:unknown){
+  if(loadError)throw new Error(loadError);
   const next=validate(input,current),temp=`${file}.${randomUUID()}.tmp`;
   try{writeFileSync(temp,JSON.stringify(next,null,2),{flag:'wx',mode:0o600});renameSync(temp,file);}catch{if(existsSync(temp))unlinkSync(temp);throw new Error('语音配置保存失败，原配置未更改');}current=next;
  }};
@@ -42,7 +43,7 @@ export function voiceOfferMiddleware(store:ReturnType<typeof createVoiceConfigSt
  if(!sameOrigin(req))return send(res,403,{error:'语音请求须来自当前页面'});
  if(req.method!=='POST')return send(res,405,{error:'仅支持 POST'});
  if(req.headers['x-zhiyin-voice']!=='1'||req.headers['content-type']!=='application/json')return send(res,403,{error:'语音请求校验失败'});
- const config=store.get();if(!config.apiKey)return send(res,503,{error:'尚未配置实时语音。请在本机沙箱控制台 → 模型配置 → 实时语音，填写百炼凭证。'});
+ let config:VoiceConfig;try{config=store.get();}catch{return send(res,503,{error:'语音配置损坏，请先修复本机 .zhiyin-voice.local.json，其他功能不受影响。'});}if(!config.apiKey)return send(res,503,{error:'尚未配置实时语音。请在本机沙箱控制台 → 模型配置 → 实时语音，填写百炼凭证。'});
  if(pending>=2)return send(res,429,{error:'语音正在连接，请稍后再试'});
  let input:Record<string,unknown>;try{const value=await body(req,64000);if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('语音请求格式无效');input=value as Record<string,unknown>;if(Object.keys(input).some(k=>!['offer','stewardName'].includes(k))||!validSdp(input.offer)||!['宁宁','阿衡'].includes(String(input.stewardName)))throw new Error('请核对音频会话与管家名称');}catch(cause){return send(res,400,{error:cause instanceof Error?cause.message:'语音请求无效'});}
  pending++;
@@ -58,5 +59,5 @@ export function voiceOfferMiddleware(store:ReturnType<typeof createVoiceConfigSt
 export function voiceStatusMiddleware(store:ReturnType<typeof createVoiceConfigStore>){return async(req:IncomingMessage,res:ServerResponse)=>{
  if(!sameOrigin(req))return send(res,403,{error:'语音请求须来自当前页面'});
  if(req.method!=='GET')return send(res,405,{error:'仅支持 GET'});
- send(res,200,{configured:store.publicConfig().configured,model:defaults.model});
+ const status=store.publicConfig();send(res,200,{configured:status.configured,model:defaults.model,...(status.error?{error:status.error}:{})});
 };}

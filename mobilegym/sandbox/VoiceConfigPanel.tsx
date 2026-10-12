@@ -8,7 +8,7 @@ export function VoiceConfigPanel({active}:{active:boolean}){
  function apply(value:Config){setConfig(value);setDraft(value);setKey('');}
  useEffect(()=>{
   if(!active){setKey('');return;}const abort=new AbortController();setLoading(true);setError('');
-  void fetch(endpoint,{signal:abort.signal,cache:'no-store'}).then(async r=>{const data=await r.json();if(!r.ok)throw new Error(data.error||s.loadError);if(typeof data.configured!=='boolean')throw new Error(s.loadError);if(!abort.signal.aborted)apply(data);}).catch(cause=>{if(!abort.signal.aborted)setError(cause instanceof Error?cause.message:s.loadError);}).finally(()=>{if(!abort.signal.aborted)setLoading(false);});
+  void fetch(endpoint,{signal:abort.signal,cache:'no-store'}).then(async r=>{const data=await r.json();if(!r.ok||data.error)throw new Error(data.error||s.loadError);if(typeof data.configured!=='boolean')throw new Error(s.loadError);if(!abort.signal.aborted)apply(data);}).catch(cause=>{if(!abort.signal.aborted)setError(cause instanceof Error?cause.message:s.loadError);}).finally(()=>{if(!abort.signal.aborted)setLoading(false);});
   return()=>abort.abort();
  },[active,s.loadError]);
  async function save(event:React.FormEvent){event.preventDefault();if(!draft||saving)return;setSaving(true);setError('');setNotice('');
