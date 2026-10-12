@@ -5,6 +5,7 @@ import { workspaceRequest, routeWorkspacePrompt } from "../lib/workspace-service
 import "./steward-workspaces.css";
 import {advanceTaskProgress,clearBillIntent,readTaskProgress,taskContinuation,type TaskProgress} from '../lib/task-progress';
 import type {StewardChatMessage} from '../lib/steward-chat';
+import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from '../lib/wechat-message-share';
 
 type Props = ComponentProps<typeof StewardChatHome> & { route?: typeof routeWorkspacePrompt };
 type Queued = { id: string; text: string; token: string };
@@ -63,7 +64,7 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       const known=knownBillTaskId?routingTasks.find(task=>task.id===knownBillTaskId&&task.status==='active'&&(task.kind==='bills'||task.kind==='general'&&readTaskProgress(task).bill)):undefined;
       if(knownBillTaskId&&!known)throw new Error('这份账单任务已变化，请重新交代需要查看的范围');
       // A control on an existing bill scene already identifies the task. Never reclassify it.
-      const result = known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text}]}:(!clarify.current?taskContinuation(text,routingTasks,work?.id||''):null)||await route(source,routingTasks,work?.id || "","",recent);
+      const result = known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text}]}:(!clarify.current&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,routingTasks,work?.id||''):null)||await route(source,routingTasks,work?.id || "","",recent);
       if(result.clarification) { clarify.current=source; say(result.clarification); return; }
       if(!result.parts.length) throw new Error("还没理解清楚你的意思，可以再说具体一点吗？");
       clarify.current="";
@@ -71,11 +72,12 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
       for(const part of result.parts) {
         const id=part.taskId || crypto.randomUUID();
         const original=routingTasks.find(task=>task.id===id);
-        const kind=part.kind==='general'&&clearBillIntent(part.text)?'bills':part.kind;
+        const readonlyShare=readonlyWechatShare(part.text);
+        const kind=readonlyShare?'general':part.kind==='general'&&clearBillIntent(part.text)?'bills':part.kind;
         let saved=latest;
         if(!part.taskId)saved=await save({type:"create",id,title:part.title,kind});
         const task=original||saved.items.find(task=>task.id===id)!;
-        const progress=advanceTaskProgress(part.kind==='food'?{...task,kind:'food'}:task,part.text);
+        const progress:TaskProgress=readonlyShare?{goal:sharedTextPreview(part.text)!.instruction,stage:'collecting'}:advanceTaskProgress(part.kind==='food'?{...task,kind:'food'}:task,part.text);
         const repair=(task.kind==='general'&&progress.food)?{kind:'food' as const}:(task.kind==='general'&&progress.bill)?{kind:'bills' as const}:{};
         await save({type:'progress',id,progress,memoryRevision:revision,...repair});
         // Repeating an interrupted instruction resumes its token instead of adding duplicate pending work.

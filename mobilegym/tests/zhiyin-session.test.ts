@@ -4,6 +4,7 @@ import { manifest } from '../apps/Zhiyin/manifest';
 import launcherDefaults from '../os/launcher/defaults.json';
 import contactsDefaults from '../os/providers/defaults/contacts.json';
 import { PERMISSIONS } from '../os/permissions';
+import {buildWechatShare} from '../../src/lib/wechat-message-share';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -44,6 +45,19 @@ function setup(foodOrder?: (operation:string,payload:Record<string,unknown>)=>Pr
 }
 
 describe('Zhiyin phone app', () => {
+  it('就绪前连续收到两份分享时不覆盖前一份材料',()=>{
+    const x=setup();const make=(id:string)=>buildWechatShare({id:'c',name:'朋友',kind:'direct'},[{id:'m',sender:'朋友',text:'明天生日',sentAt:1791770000000}],['m'],'',id);
+    x.session.share(make('first'));x.session.share(make('second'));x.receive({type:'ready'});
+    expect(x.peer.postMessage.mock.calls.filter(c=>c[0].type==='wechat-share').map(c=>c[0].share.id)).toEqual(['first','second']);x.session.dispose();
+  });
+  it('所选消息等待前台和WebView就绪再投递，确认后不重放',()=>{
+    const x=setup();const share=buildWechatShare({id:'c',name:'朋友',kind:'direct'},[{id:'m',sender:'朋友',text:'明天生日',sentAt:1791770000000}],['m'],'','share');
+    x.session.share(share);expect(x.peer.postMessage).not.toHaveBeenCalled();
+    x.isActive.mockReturnValue(false);x.receive({type:'ready'});expect(x.peer.postMessage).not.toHaveBeenCalled();
+    x.isActive.mockReturnValue(true);x.session.foreground();expect(x.peer.postMessage).toHaveBeenCalledWith(expect.objectContaining({type:'wechat-share',share}),'http://localhost:3000');
+    x.receive({type:'wechat-share-result',id:share.id,status:'received'});vi.mocked(x.peer.postMessage).mockClear();x.session.share(share);x.session.foreground();
+    expect(x.peer.postMessage).not.toHaveBeenCalledWith(expect.objectContaining({type:'wechat-share'}),expect.anything());x.session.dispose();
+  });
   it('只接受可信且前台的点餐请求，并去重在途请求与返回核对错误', async () => {
     const foodOrder=vi.fn(async()=>({status:'ok',orderId:'order-1'}));
     const x=setup(foodOrder),request={type:'food-order-request',requestId:'food-1',operation:'prepare',taskId:'task',orderId:'order-1',authorized:true};

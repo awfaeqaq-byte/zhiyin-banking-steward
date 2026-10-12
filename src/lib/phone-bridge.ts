@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import {validWechatShare,receiveWechatShare} from './wechat-message-share';
 import type {
   ExternalFinancialProvider,
   FinancialScope,
@@ -188,6 +189,15 @@ export function connectPhoneBridge(host: Window, peer: Window) {
     const data = event.data;
     if (!data || data.channel !== CHANNEL || data.version !== 1) return;
     if (data.type === "ping") ready();
+    if(data.type==='wechat-share'&&validWechatShare(data.share)){
+      try{
+        receiveWechatShare(data.share);
+        host.dispatchEvent(new Event('zhiyin-wechat-share'));
+        reply({type:'wechat-share-result',id:data.share.id,status:'received'});
+      }catch(cause){
+        host.dispatchEvent(new CustomEvent('zhiyin-wechat-share-error',{detail:cause instanceof Error?cause.message:'微信分享暂未保存，请重试。'}));
+      }
+    }
     if (data.type === "foreground") host.dispatchEvent(new Event("zhiyin-phone-foreground"));
     if (
       data.type === "contacts-result" && typeof data.requestId === "string" &&

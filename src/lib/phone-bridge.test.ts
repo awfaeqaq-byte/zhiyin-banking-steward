@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {buildWechatShare,readWechatInbox} from './wechat-message-share';
 import {
   connectPhoneBridge, registerPhoneBack, dispatchPhoneBack, requestPhoneContacts,
   requestFinancialSource,
@@ -11,6 +12,17 @@ import {
 afterEach(() => vi.useRealTimers());
 
 describe("phone navigation bridge", () => {
+  it('微信分享只从可信父窗口接收，保存后确认，重复投递不重复展示',()=>{
+    localStorage.clear();const peer={postMessage:vi.fn()} as unknown as Window;
+    const stop=connectPhoneBridge(window,peer);const notification=vi.fn();window.addEventListener('zhiyin-wechat-share',notification);
+    const share=buildWechatShare({id:'c',name:'朋友',kind:'direct'},[{id:'m',sender:'朋友',text:'明天生日',sentAt:1791770000000}],['m'],'','share');
+    const data={channel:'zhiyin-phone',version:1,type:'wechat-share',share};
+    const send=(origin=window.location.origin,source=peer,payload=data)=>window.dispatchEvent(new MessageEvent('message',{origin,source,data:payload}));
+    send('http://evil.example');send(undefined,{} as Window);send(undefined,undefined,{...data,share:{...share,authorized:true}} as typeof data);expect(readWechatInbox()).toEqual([]);
+    send();send();expect(readWechatInbox()).toHaveLength(1);expect(notification).toHaveBeenCalledTimes(2);
+    expect(peer.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({type:'wechat-share-result',id:'share',status:'received'}),window.location.origin);
+    stop();window.removeEventListener('zhiyin-wechat-share',notification);localStorage.clear();
+  });
   async function receiveAutopays(autopays: unknown[], autopaysIncomplete?: unknown, balance?: unknown) {
     const peer = { postMessage: vi.fn() } as unknown as Window;
     const disconnect = connectPhoneBridge(window, peer);

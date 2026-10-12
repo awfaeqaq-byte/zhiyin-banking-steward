@@ -8,6 +8,14 @@ import {
 } from "./steward-chat";
 import type { FundingForecast } from "./funding-forecast";
 import { buildBillAnalysis } from './bill-analysis';
+import {buildWechatShare,sharePrompt} from './wechat-message-share';
+
+it.each(['下周六生日，准备个蛋糕','微信群AA收款，午餐200','给妈妈转200元'])('只解释微信材料时不被原文关键词触发方案：%s',async text=>{
+ const prompt=sharePrompt(buildWechatShare({id:'c',name:'朋友',kind:'direct'},[{id:'m',sender:'朋友',text,sentAt:1791770000000}],['m'],'先解释一下','s'));
+ const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'这是消息中的安排，尚未执行。[ZHIYIN_ACTION:OPEN_OCCASIONS]'})));vi.stubGlobal('fetch',fetcher);
+ const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:prompt}]});
+ expect(fetcher).toHaveBeenCalledOnce();expect(result.action).toBeUndefined();expect(JSON.parse(fetcher.mock.calls[0][1].body).instructions).toContain('引用材料');
+});
 
 it('空模型输出不是完成回执；待答描述不泄露到正文或授予执行权限',async()=>{
  expect(parseStewardReply('[[task-wait:{"question":"这次转多少元？"}]]',[])).toMatchObject({text:'这次转多少元？',waitingQuestion:'这次转多少元？'});

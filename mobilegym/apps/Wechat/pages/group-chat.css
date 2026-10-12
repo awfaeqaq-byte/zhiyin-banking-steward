@@ -1,6 +1,7 @@
 .wx-group-chat header {
   border-bottom: 1px solid #ddd;
 }
+.wx-group-chat{position:relative}
 .wx-group-chat h1 {
   padding: 0;
   display: flex;
