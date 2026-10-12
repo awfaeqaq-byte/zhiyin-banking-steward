@@ -5,6 +5,8 @@ import {createBankStore,bankMiddleware} from './bank-store';
 import {createTaskStore,taskMiddleware} from './task-store';
 import {expenseMiddleware} from './expense-store';
 import {workspaceMiddleware} from './workspace-store';
+import {messageMiddleware} from './message-service';
+import {localStewardModel} from './model-reply';
 import {stewardResetMiddleware} from './steward-reset';
 import {createWealthStore,wealthMiddleware} from './wealth-store';
 import {createAkshareMarketService,marketContextMiddleware} from './akshare-market';
@@ -14,6 +16,7 @@ import {billSourceMiddleware,createBillSourceService,readLocalWechatSource} from
 export function memoryPlugin():Plugin {
   const reset=stewardResetMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const workspaces=workspaceMiddleware(fileURLToPath(new URL('../',import.meta.url)));
+  const messages=messageMiddleware(fileURLToPath(new URL('../',import.meta.url)),localStewardModel);
   const expenses=expenseMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const middleware=memoryMiddleware(createMemoryStore(fileURLToPath(new URL('../.zhiyin-memory.local.json',import.meta.url))));
   const bankStore=createBankStore(fileURLToPath(new URL('../.zhiyin-bank.local.json',import.meta.url)));
@@ -37,7 +40,7 @@ export function memoryPlugin():Plugin {
     if(['.zhiyin-workspaces-','.zhiyin-expenses-','.zhiyin-memory.local.json','.zhiyin-bank.local.json','.zhiyin-tasks.local.json','.zhiyin-wealth.local.json','.zhiyin-market-cache.local.json','.zhiyin-fund-samples.local.json','.zhiyin-automations.local.json','.zhiyin-bill-grants.local.json','.zhiyin-bill-source.local.json','.zhiyin-mastra.db'].some(name=>url.includes(name))){res.statusCode=403;res.end('Forbidden');return;}next();
   };
   const routes=[
-    ['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/expenses',expenses],
+    ['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/messages',messages],['/api/zhiyin/expenses',expenses],
     ['/api/zhiyin/memory',middleware],['/api/zhiyin/bank',bank],['/api/zhiyin/tasks',tasks],
     ['/api/zhiyin/wealth',wealth],['/api/zhiyin/bill-source',billSource],
     ['/api/zhiyin/market-context',market],['/api/zhiyin/fund-samples',fundSamples],

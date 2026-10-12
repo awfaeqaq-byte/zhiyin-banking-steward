@@ -1,4 +1,4 @@
-import wealthAdvisorPrompt from '../prompts/wealth-advisor.v1.md?raw';
+import {wealthAdvisorPrompt} from '../prompts/runtime.generated';
 import type {BankSnapshot} from './bank-transfer';
 import type {MarketContext} from './market-context';
 import type {FundSamples} from './fund-samples';

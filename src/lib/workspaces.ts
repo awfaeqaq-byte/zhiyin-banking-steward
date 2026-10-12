@@ -1,4 +1,5 @@
 import {validTaskProgress,type TaskProgress} from './task-progress-schema';
+import {changeMessageState,validConversationEntry,validMessageRun,type MessageRun,type ConversationEntry,type MessageOperation} from './message-flow';
 /** Conversation workspaces are not payment records or execution permissions. */
 export const workspaceKinds = [
   "general",
@@ -41,12 +42,15 @@ export type Workspace = {
   pending?: { token: string; text: string }[];
 };
 export type WorkspaceState = {
+  conversation?:ConversationEntry[];
+  runs?:MessageRun[];
   version: 1;
   revision: number;
   items: Workspace[];
   requests: string[];
 };
 export type WorkspaceOperation =
+  | MessageOperation
   | { type: "create"; id: string; title: string; kind: WorkspaceKind }
   | {type:'progress';id:string;progress:TaskProgress;memoryRevision:number;kind?:'bills'|'food'}
   | {
@@ -85,6 +89,8 @@ export function validWorkspaces(value: unknown): value is WorkspaceState {
   return (
     !!s &&
     s.version === 1 &&
+    (s.conversation===undefined||Array.isArray(s.conversation)&&s.conversation.length<=100&&s.conversation.every(validConversationEntry))&&
+    (s.runs===undefined||Array.isArray(s.runs)&&s.runs.length<=50&&s.runs.every(validMessageRun))&&
     Number.isSafeInteger(s.revision) &&
     s.revision >= 0 &&
     Array.isArray(s.requests) &&
@@ -144,6 +150,12 @@ export function changeWorkspaces(
   if (state.requests.includes(command.requestId)) return state;
   if (command.revision !== state.revision)
     throw new Error("任务已变化，请重新载入后重试");
+  if(command.type.startsWith('message-')||command.type==='conversation-import'||command.type==='conversation-append'){
+    const next=changeMessageState(state,command as MessageOperation);
+    next.revision=state.revision+1;next.requests=[...next.requests,command.requestId].slice(-200);
+    if(!validWorkspaces(next))throw new Error('消息状态无效，未覆盖原记录');
+    return next;
+  }
   const next = structuredClone(state);
   const current = next.items.find((w) => w.id === command.id);
   if (command.type === "create") {

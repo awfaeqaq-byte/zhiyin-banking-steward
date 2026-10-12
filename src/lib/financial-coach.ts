@@ -4,7 +4,7 @@ import type {FundingForecast} from './funding-forecast';
 import type {WealthSnapshot} from './wealth-operation';
 import type {SavedWealthGoal} from './wealth-goal';
 import {choiceInstructions} from './reply-choices';
-import coachPrompt from '../prompts/financial-coach.v1.md?raw';
+import {financialCoachPrompt as coachPrompt} from '../prompts/runtime.generated';
 
 export type FinancialCoachInput={
   stewardName:string;

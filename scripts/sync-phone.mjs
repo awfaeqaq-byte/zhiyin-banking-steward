@@ -1,3 +1,4 @@
+import "./sync-steward-prompts.mjs";
 import { cp, access, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";

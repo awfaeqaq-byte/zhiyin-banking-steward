@@ -1,140 +1,120 @@
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
-import { StewardChatHome } from "./steward-chat-home";
-import { emptyWorkspaces, validWorkspaces, type WorkspaceOperation } from "../lib/workspaces";
-import { workspaceRequest, routeWorkspacePrompt } from "../lib/workspace-service";
-import "./steward-workspaces.css";
-import {advanceTaskProgress,clearBillIntent,readTaskProgress,taskContinuation,type TaskProgress} from '../lib/task-progress';
-import type {StewardChatMessage} from '../lib/steward-chat';
-import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from '../lib/wechat-message-share';
-
-type Props = ComponentProps<typeof StewardChatHome> & { route?: typeof routeWorkspacePrompt };
-type Queued = { id: string; text: string; token: string };
+import {useCallback,useEffect,useRef,useState,type ComponentProps} from 'react';
+import {StewardChatHome,readConversationSnapshot} from './steward-chat-home';
+import {emptyWorkspaces,validWorkspaces,type WorkspaceOperation} from '../lib/workspaces';
+import {workspaceRequest,routeWorkspacePrompt} from '../lib/workspace-service';
+import {messageStateRequest,messageReplyRequest,type MessageClientOperation} from '../lib/message-service';
+import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-progress';
+import type {StewardChatMessage,StewardReplyRequest} from '../lib/steward-chat';
+import type {ConversationEntry,MessageOperation} from '../lib/message-flow';
+import {WECHAT_SHARE_PREFIX} from '../lib/wechat-message-share';
+import './steward-workspaces.css';
+type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt};
+type Queued={id:string;text:string;token:string;messageId:string;replyId:string};
 const TURN_SAVED='zhiyin-workspace-turn-saved';
-
-/** One frontstage conversation. Task ownership, routing and serial processing stay backstage.
- * A queued instruction is not payment authorization; persisted pending work is never replayed on mount. */
-export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Props) {
-  const [state, setState] = useState(emptyWorkspaces);
-  const [active, setActive] = useState(() => localStorage.getItem("zhiyin-workspace-active") || "");
-  const [loaded, setLoaded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [conversationNotice, setConversationNotice] = useState<{id:string;text:string;retryPrompt?:string}>();
-  const [injected, setInjected] = useState<Queued>();
-  const queue = useRef<Queued[]>([]);
-  const executing = useRef<Queued>();
-  const lock = useRef(false);
-  const saveTail = useRef<Promise<unknown>>(Promise.resolve());
-  const clarify = useRef("");
-  const receiptOwner = useRef(localStorage.getItem("zhiyin-transfer-workspace") || "");
-  const work = state.items.find(w => w.id === active && w.status === "active");
-  const load = useCallback(async () => {
-    try { setState(await workspaceRequest()); setLoaded(true); setError(""); }
-    catch(e) { setError(e instanceof Error ? e.message : "之前的交代暂时无法载入，请重试。"); }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-  useEffect(()=>{
-    // An earlier home instance can finish a request after navigation. Deliver its
-    // saved text to the current home without replaying persisted pending work.
-    const receive=(event:Event)=>{
-      const next=(event as CustomEvent).detail;
-      if(validWorkspaces(next))setState(current=>next.revision>=current.revision?next:current);
-    };
-    window.addEventListener(TURN_SAVED,receive);
-    return()=>window.removeEventListener(TURN_SAVED,receive);
-  },[]);
-
-  function say(text:string) { setConversationNotice({id:crypto.randomUUID(),text}); }
-  function save(operation: WorkspaceOperation | ((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation)) {
-    // A group-selection callback may finish while another task's reply is being saved.
-    const operationResult=saveTail.current.then(async()=>{
-      const latest=await workspaceRequest();
-      const next=await workspaceRequest(typeof operation==='function'?operation(latest):operation,latest.revision);
-      setState(next);
-      if((typeof operation==='function'?undefined:operation.type)==='turn')window.dispatchEvent(new CustomEvent(TURN_SAVED,{detail:next}));
-      return next;
-    });
-    saveTail.current=operationResult.catch(()=>undefined);
-    return operationResult;
+/** Server owns originals, jobs and transcript. This view only claims the next
+ * read/prepare task and supplies browser-authorized sandbox data. */
+export function StewardWorkspaces({route,...props}:Props){
+ const [state,setState]=useState(emptyWorkspaces),[loaded,setLoaded]=useState(false),[error,setError]=useState('');
+ const [active,setActive]=useState(()=>localStorage.getItem('zhiyin-workspace-active')||'');
+ const [claimAttempt,setClaimAttempt]=useState(0);
+ const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
+ const currentState=useRef(state);currentState.current=state;
+ const receiptOwner=useRef(localStorage.getItem('zhiyin-transfer-workspace')||'');
+ const activeRun=state.runs?.find(r=>['routing','ready','processing'].includes(r.status));
+ const job=activeRun?.jobs.find(j=>j.status==='claimed'&&j.owner===owner.current);
+ const injected:Queued|undefined=job&&activeRun?{id:job.taskId,text:job.text,token:job.id,messageId:activeRun.id,replyId:job.replyId}:undefined;
+ const executing=useRef<Queued>();if(injected)executing.current=injected;
+ const busy=Boolean(activeRun);
+ const phase=activeRun?.trace.at(-1)?.stage;
+ const work=state.items.find(w=>w.id===(job?.taskId||active)&&w.status==='active');
+ const accept=useCallback((next:ReturnType<typeof emptyWorkspaces>)=>{setState(current=>next.revision>current.revision?next:current);},[]);
+ async function save(operation:WorkspaceOperation|((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation)){
+  const result=saveTail.current.then(async()=>{
+   for(let attempt=0;attempt<3;attempt++){
+    const latest=await workspaceRequest();
+    try{const next=await workspaceRequest(typeof operation==='function'?operation(latest):operation,latest.revision);accept(next);window.dispatchEvent(new CustomEvent(TURN_SAVED,{detail:next}));return next;}
+    catch(cause){if(attempt===2||!(cause instanceof Error)||!cause.message.includes('已变化'))throw cause;}
+   }
+   throw new Error('任务正在保存，请重试');
+  });saveTail.current=result.catch(()=>undefined);return result;
+ }
+ // Explicit route injection is used by isolated component tests. Production
+ // classification always runs in the server worker; both paths use its reducer.
+ async function request(operation?:MessageClientOperation){
+  if(!route)return messageStateRequest(operation);
+  if(!operation)return workspaceRequest();
+  if(operation.type==='submit')return save({...operation,type:'message-submit'} as unknown as MessageOperation);
+  if(operation.type==='claim')return save({type:'message-claim',id:operation.id,jobId:operation.jobId,owner:operation.owner});
+  if(operation.type==='complete')return save({...operation,type:'message-complete'});
+  return save({type:operation.type==='import'?'conversation-import':'conversation-append',id:operation.id,messages:operation.messages});
+ }
+ const load=useCallback(async()=>{
+  try{
+   let next=await (route?workspaceRequest():messageStateRequest());
+   if(next.conversation===undefined){const messages=readConversationSnapshot(next.items);next=route?await save({type:'conversation-import',id:crypto.randomUUID(),messages}):await messageStateRequest({type:'import',id:crypto.randomUUID(),messages});}
+   accept(next);setLoaded(true);setError('');
+  }catch(cause){setError(cause instanceof Error?cause.message:'之前的消息暂时无法载入');}
+ },[route,accept]);
+ useEffect(()=>{void load();},[load]);
+ useEffect(()=>{const receive=(event:Event)=>{const next=(event as CustomEvent).detail;if(validWorkspaces(next))accept(next);};window.addEventListener(TURN_SAVED,receive);return()=>window.removeEventListener(TURN_SAVED,receive);},[accept]);
+ useEffect(()=>{
+  if(!loaded||!busy)return;
+  let live=true;
+  const poll=async()=>{try{const next=await request();if(live){accept(next);if(!claiming.current&&next.runs?.find(r=>['routing','ready','processing'].includes(r.status))?.status==='ready')setClaimAttempt(attempt=>attempt+1);}}catch(cause){if(live)setError(cause instanceof Error?cause.message:'消息状态暂时未能更新');}};
+  const timer=window.setInterval(()=>void poll(),500);return()=>{live=false;window.clearInterval(timer);};
+ },[loaded,busy,route,accept]);
+ useEffect(()=>{
+  if(!loaded||!activeRun||activeRun.status!=='ready'||claiming.current)return;
+  const next=activeRun.jobs.find(j=>j.status==='queued');if(!next)return;
+  claiming.current=true;
+  void request({type:'claim',id:activeRun.id,jobId:next.id,owner:owner.current}).then(result=>{setActive(next.taskId);localStorage.setItem('zhiyin-workspace-active',next.taskId);accept(result);setError('');}).catch(cause=>{setError(cause instanceof Error?cause.message:'这条消息暂时未能领取');}).finally(()=>{claiming.current=false;});
+ },[loaded,activeRun,route,accept,claimAttempt]);
+ async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string}){
+  if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
+  const id=meta?.messageId||crypto.randomUUID();const refreshed=props.memory?await props.memory.refresh():null;const revision=refreshed?.revision??props.memory?.current.current.revision??0;
+  try{
+   const last=currentState.current.runs?.filter(r=>r.status==='waiting_user').at(-1);
+   const source=route&&last?`${last.prompt}；补充：${text}`:text;
+   let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:work?.id||'',memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
+   if(route){
+    const tasks=next.items.map(t=>({...t,progress:t.memoryRevision===revision?t.progress:undefined,memoryRevision:revision,messages:t.messages.filter(m=>m.memoryRevision===revision)}));
+    const known=knownBillTaskId?tasks.find(t=>t.id===knownBillTaskId):undefined;
+    const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!last&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,tasks,work?.id||''):null)||await route(source,tasks,work?.id||'','',recent);
+    next=await save({type:'message-routed',id,...result});accept(next);
+   }
+   setError('');
+  }catch(cause){
+   if(route){try{accept(await save({type:'message-fail',id,error:cause instanceof Error?cause.message:'暂时未能理解这条消息',stage:'routing'}));}catch{/* Preserve the first error. */}}
+   else setError(cause instanceof Error?cause.message:'这条消息暂时未能提交');
+   throw cause;
   }
-  function dispatch(item:Queued) {
-    executing.current = item;
-    setActive(item.id);
-    localStorage.setItem("zhiyin-workspace-active", item.id);
-    setInjected(item);
-  }
-  async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string) {
-    if(lock.current || !loaded) throw new Error("正在处理上一条交代，请稍等。");
-    lock.current=true; setBusy(true); setError("");
-    try {
-      const latest = await workspaceRequest(); setState(latest);
-      const source = clarify.current ? `${clarify.current}；补充：${text}` : text;
-      if(clarify.current && /^(取消|不用了|算了)[。！! ]*$/.test(text)) {
-        clarify.current=""; say("好，刚才的请求没有执行。"); return;
-      }
-      const revision=props.memory?.current.current.revision??0;
-      const routingTasks=latest.items.map(task=>({...task,progress:task.memoryRevision===revision?task.progress:undefined,memoryRevision:revision,messages:task.messages.filter(message=>message.memoryRevision===revision)}));
-      const known=knownBillTaskId?routingTasks.find(task=>task.id===knownBillTaskId&&task.status==='active'&&(task.kind==='bills'||task.kind==='general'&&readTaskProgress(task).bill)):undefined;
-      if(knownBillTaskId&&!known)throw new Error('这份账单任务已变化，请重新交代需要查看的范围');
-      // A control on an existing bill scene already identifies the task. Never reclassify it.
-      const result = known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text}]}:(!clarify.current&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,routingTasks,work?.id||''):null)||await route(source,routingTasks,work?.id || "","",recent);
-      if(result.clarification) { clarify.current=source; say(result.clarification); return; }
-      if(!result.parts.length) throw new Error("还没理解清楚你的意思，可以再说具体一点吗？");
-      clarify.current="";
-      const items:Queued[]=[];
-      for(const part of result.parts) {
-        const id=part.taskId || crypto.randomUUID();
-        const original=routingTasks.find(task=>task.id===id);
-        const readonlyShare=readonlyWechatShare(part.text);
-        const kind=readonlyShare?'general':part.kind==='general'&&clearBillIntent(part.text)?'bills':part.kind;
-        let saved=latest;
-        if(!part.taskId)saved=await save({type:"create",id,title:part.title,kind});
-        const task=original||saved.items.find(task=>task.id===id)!;
-        const progress:TaskProgress=readonlyShare?{goal:sharedTextPreview(part.text)!.instruction,stage:'collecting'}:advanceTaskProgress(part.kind==='food'?{...task,kind:'food'}:task,part.text);
-        const repair=(task.kind==='general'&&progress.food)?{kind:'food' as const}:(task.kind==='general'&&progress.bill)?{kind:'bills' as const}:{};
-        await save({type:'progress',id,progress,memoryRevision:revision,...repair});
-        // Repeating an interrupted instruction resumes its token instead of adding duplicate pending work.
-        const token=latest.items.find(w=>w.id===id)?.pending?.find(p=>p.text===part.text)?.token || crypto.randomUUID();
-        await save({type:"enqueue",id,token,text:part.text});
-        items.push({id,text:part.text,token});
-      }
-      queue.current=items.slice(1); dispatch(items[0]);
-    } catch(e) {
-      queue.current=[];
-      setConversationNotice({id:crypto.randomUUID(),text:`这条消息没有处理成功：${e instanceof Error?e.message:"暂时没理解清楚"}。这次尚未执行，请重试。`,retryPrompt:text});
-      throw e;
-    } finally {
-      if(!executing.current) {lock.current=false;setBusy(false);}
-    }
-  }
-  async function completed(user:string,assistant:string,revision:number,failed:boolean,progress?:TaskProgress) {
-    const owner=executing.current;
-    if(!owner)return;
-    try {
-      await save({type:"turn",id:owner.id,user,assistant,memoryRevision:revision,...(progress?{progress}:{}),...(!failed?{token:owner.token}:{})});
-      executing.current=undefined; setInjected(undefined);
-      if(failed) {
-        if(queue.current.length) say("这一项没能完成，后面的交代暂未处理。需要时直接告诉我继续哪件事。");
-        queue.current=[];
-      } else {
-        const next=queue.current.shift();
-        if(next) {dispatch(next);return;}
-      }
-    } catch(e) {
-      queue.current=[]; executing.current=undefined;setInjected(undefined);
-      setError(`${e instanceof Error?e.message:"对话未能保存"}。当前答复还在，请勿重复提交资金操作。`);
-    }
-    lock.current=false;setBusy(false);
-  }
+ }
+ async function completed(_user:string,assistant:string,revision:number,failed:boolean,progress?:TaskProgress){
+  const item=injected||executing.current;if(!item)return;
+  try{
+   const latest=await request(),run=latest.runs?.find(r=>r.id===item.messageId),current=run?.jobs.find(j=>j.id===item.token);
+   if(current?.status==='claimed')accept(await request({type:'complete',id:item.messageId,jobId:item.token,owner:owner.current,assistant,memoryRevision:revision,failed,...(progress?{progress}:{})}));else accept(latest);
+   if(executing.current?.token===item.token)executing.current=undefined;
+  }catch(cause){setError(cause instanceof Error?cause.message:'回复保存状态尚未核实，请勿重复资金操作');}
+ }
+ async function serverReply(context:StewardReplyRequest){const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});accept(result.state);return result.reply;}
+ const persistEntries=useCallback(async(entries:ConversationEntry[])=>{
+  if(!loaded)return;
+  const known=new Set(currentState.current.conversation?.map(m=>m.id));const added=entries.filter(m=>!known.has(m.id));if(!added.length)return;
+  try{if(route)await save({type:'conversation-append',id:crypto.randomUUID(),messages:added});else accept(await messageStateRequest({type:'append',id:crypto.randomUUID(),messages:added}));}catch(cause){setError(cause instanceof Error?cause.message:'聊天记录尚未保存');}
+ },[loaded,route,accept]);
   return <div className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
     <StewardChatHome {...props}
       seamless
+      conversationMessages={state.conversation}
+      onConversationEntries={persistEntries}
+      processingPhase={phase}
+      reply={props.reply||serverReply}
       contextWorkspaces={state.items}
       onBackgroundBook={async(id,expenseBookId)=>{await save({type:'link',id,expenseBookId});}}
       onBackgroundProgress={async(id,progress,memoryRevision)=>{await save(latest=>{const task=latest.items.find(t=>t.id===id&&t.status==='active');if(!task||task.memoryRevision!==memoryRevision||(props.memory?.current.current.revision??0)!==memoryRevision)throw new Error('任务上下文已变化，请重新交代');return {type:'progress',id,progress,memoryRevision};});}}
       onBackgroundTurn={async(id,user,assistant,memoryRevision)=>{await save({type:'turn',id,user,assistant,memoryRevision});}}
-      conversationNotice={conversationNotice}
       bankReceipt={props.bankReceipt}
       onPrepareTransfer={props.onPrepareTransfer ? (intent,workspaceId)=>{
         receiptOwner.current=workspaceId || work?.id || "";

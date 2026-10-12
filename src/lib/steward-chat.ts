@@ -395,9 +395,41 @@ export function parseStewardReply(
   return result;
 }
 
-export const requestStewardReply: StewardReplyFn = async request => {
+export type StewardModelPayload={instructions:string;input:StewardChatMessage[]};
+export type StewardModelCall=(payload:StewardModelPayload)=>Promise<string>;
+const browserModel:StewardModelCall=async body=>{
+ const response=await fetch('/api/zhiyin/steward-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});
+ const data=await response.json();
+ if(!response.ok||typeof data.output_text!=='string'||!data.output_text.trim())throw new Error(data.error||'模型没有返回有效答复，请重试');
+ return data.output_text;
+};
+export const requestStewardReply:StewardReplyFn=request=>requestStewardReplyWithModel(request,browserModel);
+/** Birthday facts stay tied to selected source messages. A conversational yes
+ * prepares a candidate; only the memory confirmation button writes the store. */
+function birthdayMemoryCandidate(request:StewardReplyRequest):StewardReply|null {
+  const latest=request.messages.at(-1);if(latest?.role!=='user')return null;
+  const text=latest.content.trim();
+  const previous=request.messages.slice(0,-1).filter(m=>m.role==='assistant').at(-1)?.content||'';
+  const explicit=/^(?:记忆|记住|帮我记住|记下来|帮我记下来)[。！!\s]*$/.test(text);
+  const yes=/^(?:对|对的|是|是的|没错|嗯|好的|好|可以)[。！!\s]*$/.test(text)&&/记(?:住|下|下来)/.test(previous)&&/[？?]/.test(previous);
+  if(!explicit&&!yes)return null;
+  const source=request.messages.slice(0,-1).filter(m=>m.role==='user').map(m=>sharedTextPreview(m.content)).filter(Boolean).at(-1);
+  if(!source)return null;
+  const facts=new Set<string>();let invalid=false;
+  for(const message of source.messages)for(const date of message.原文.matchAll(/我(?:的)?生日(?:是|在)?\s*(\d{1,2})月(\d{1,2})(?:日|号)/g)){
+    const month=Number(date[1]),day=Number(date[2]);
+    if(month<1||month>12||day<1||day>[31,29,31,30,31,30,31,31,30,31,30,31][month-1])invalid=true;
+    else facts.add(`${message.发送人}的生日是${month}月${day}日`);
+  }
+  if(invalid||facts.size!==1)return null;
+  const fact=[...facts][0];
+  if(!request.memoryContext?.startsWith('长期记忆已开启。'))return {text:`已核对：${fact}。长期记忆尚未开启，当前没有保存。`};
+  return {text:`已整理成待确认的记忆，点击“确认记住”后才会保存。\n<memory>${JSON.stringify({text:fact,category:'background',quote:text})}</memory>`};
+}
+export async function requestStewardReplyWithModel(request:StewardReplyRequest,model:StewardModelCall):Promise<StewardReply>{
   const latest=request.messages.filter(message=>message.role==='user').at(-1)?.content.trim()||'';
   const readonlyShare=readonlyWechatShare(latest);
+  const candidate=birthdayMemoryCandidate(request);if(candidate)return candidate;
   // This only prepares a read-only consent entry. No grant or partner request occurs here.
   if(/^(?:那|好[的吧]?|帮我|请|先|给我|我想|我要|可以|就|把|现在|，|,|\s)*(?:授权|连接|绑定|接入)/.test(latest) && !/不(?:要|用|想)?|取消|撤销|断开|转账|付款|扣款/.test(latest)) {
     const wechat=/微信/.test(latest),alipay=/支付宝/.test(latest);
@@ -451,40 +483,20 @@ export const requestStewardReply: StewardReplyFn = async request => {
     input.splice(oldestHistoryIndex, 1);
     body = JSON.stringify({ instructions, input });
   }
-  const response = await fetch("/api/zhiyin/steward-reply", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-  });
-  const payload = await response.json().catch(() => ({})) as {
-    output_text?: unknown;
-    error?: unknown;
-  };
-  if (!response.ok) {
-    throw new Error(typeof payload.error === "string" ? payload.error : "宁宁暂时无法连接模型，请稍后重试。");
-  }
-  if (typeof payload.output_text !== "string" || !payload.output_text.trim()) {
-    throw new Error("模型没有返回有效答复，请重新发送。");
-  }
-  const result=parseStewardReply(payload.output_text, request.subscriptions, request.duplicateGroups);
+  const output=await model(JSON.parse(body));
+  if(!output.trim())throw new Error('模型没有返回有效答复，请重试');
+  const result=parseStewardReply(output, request.subscriptions, request.duplicateGroups);
   if(result.text==='这次没有生成有效说明，尚未执行任何操作。'&&!result.action&&!result.billUI&&!result.waitingQuestion)throw new Error('模型没有返回有效答复，请重新发送。');
   if(!readonlyShare&&!result.action && newestUser && isBankRequest(request.messages) && !isTaskRequest(request.messages) && /准备|方案|核对|确认/.test(result.text) && !/[？?]|请问|多少|几点/.test(result.text)) {
     // Repair the missing UI action once. The model still only prepares a draft;
     // no network request here can authorize a payment.
     try {
-      const repair=await fetch('/api/zhiyin/steward-reply',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({instructions:`${instructions}\n上次回答未包含动作标记，核对按钮无法展示。重新检查原用户需求：若收款人、金额（预约还需具体时间；AA还需参与人及是否包含自己）完整且用户要求办理，必须输出对应的单个ZHIYIN_ACTION标记；否则只问缺失信息。不要执行付款，不要编造任何字段。`,input}),
-        signal:AbortSignal.timeout(30000),
-      });
-      const data=await repair.json();
-      if(repair.ok && typeof data.output_text==='string') {
-        const fixed=parseStewardReply(data.output_text,request.subscriptions,request.duplicateGroups);
-        if(fixed.action)return verifyPlan(fixed);
-        return fixed;
-      }
+      const output=await model({instructions:`${instructions}\n上次回答未包含动作标记，核对按钮无法展示。重新检查原用户需求：若收款人、金额（预约还需具体时间；AA还需参与人及是否包含自己）完整且用户要求办理，输出单个ZHIYIN_ACTION标记；否则只问缺失信息。不要执行付款，不要编造字段。`,input});
+      const fixed=parseStewardReply(output,request.subscriptions,request.duplicateGroups);
+      if(fixed.action)return verifyPlan(fixed);
+      return fixed;
     }catch{/* A manual entry remains available if action repair fails. */}
     return verifyBudget({text:'可以在智能转账里核对收款人、金额和时间，再确认办理。',action:{type:'open_transfers'}});
   }
   return verifyPlan(result);
-};
+}

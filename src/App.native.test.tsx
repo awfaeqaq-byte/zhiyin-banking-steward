@@ -4,9 +4,13 @@ import { afterEach, expect, it, vi } from "vitest";
 import * as phoneBridge from "./lib/phone-bridge";
 import App from "./App";
 import type { ConnectedFinancialSource } from "./lib/financial-connections";
-import {emptyWorkspaces,changeWorkspaces} from './lib/workspaces';
+import {createMessageService} from '../server/message-service';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
-afterEach(() => vi.restoreAllMocks());
+const messageDirs:string[]=[];
+afterEach(() => {vi.restoreAllMocks();messageDirs.splice(0).forEach(path=>rmSync(path,{recursive:true,force:true}));});
 
 it('保留同类订阅后刷新仍记住，可在订阅页撤回且不关闭续费提醒', async () => {
   const now = Date.parse('2026-09-24T10:00:00+08:00');
@@ -84,9 +88,20 @@ it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页"
   vi.spyOn(phoneBridge, "refreshFinancialSource").mockResolvedValue({ status: "granted", source: alipay });
   localStorage.setItem("zhiyin-mode", '"native"');
   localStorage.setItem("zhiyin-connections", JSON.stringify({ alipay }));
-  let workspaces=emptyWorkspaces();
+  const directory=mkdtempSync(join(tmpdir(),'zhiyin-native-messages-'));messageDirs.push(directory);
+  const service=createMessageService(directory,async payload=>payload.instructions.includes('任务分类器')?JSON.stringify({parts:[{taskId:null,kind:'subscriptions',title:'优酷续费',segmentIds:[0]}]}):'可以，我先带你核对优酷续费，确认后才会取消。\n[ZHIYIN_ACTION:PREPARE_CANCEL|alipay|ali-video]');
   const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url,init)=>{
-    if(String(url).endsWith('/workspaces')){if(init?.body)workspaces=changeWorkspaces(workspaces,JSON.parse(String(init.body)));return new Response(JSON.stringify(workspaces));}
+    if(String(url).endsWith('/messages')){
+      const scope=new Headers(init?.headers).get('X-Zhiyin-Expense-Scope')!,body=init?.body?JSON.parse(String(init.body)):undefined;
+      let data:unknown;
+      if(!body)data=service.get(scope);
+      else if(body.type==='submit'){service.submit(scope,body);await service.idle(scope);data=service.get(scope);}
+      else if(body.type==='claim')data=service.claim(scope,body.id,body.jobId,body.owner);
+      else if(body.type==='reply')data={reply:await service.reply(scope,body),state:service.get(scope)};
+      else if(body.type==='complete')data=service.complete(scope,{...body,type:'message-complete'});
+      else data=service.operate(scope,{...body,type:body.type==='import'?'conversation-import':'conversation-append'});
+      return new Response(JSON.stringify(data));
+    }
     if(String(init?.body).includes('任务分流器'))return new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'subscriptions',title:'优酷续费',text:'帮我取消优酷会员续费'}]})}));
     return new Response(JSON.stringify(String(url).endsWith('/memory')?{version:1,revision:0,enabled:false,items:[]}:{
     output_text: "可以，我先带你核对优酷续费，确认后才会取消。\n[ZHIYIN_ACTION:PREPARE_CANCEL|alipay|ali-video]",
@@ -100,7 +115,7 @@ it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页"
   await user.click(await screen.findByRole("button", { name: "核对并取消优酷VIP会员连续包月" }));
 
   expect(await screen.findByRole("dialog", { name: "取消自动续费" })).toHaveTextContent("优酷VIP会员连续包月");
-  expect(fetchSpy).toHaveBeenCalledWith("/api/zhiyin/steward-reply", expect.objectContaining({ method: "POST" }));
+  expect(fetchSpy).toHaveBeenCalledWith("/api/zhiyin/messages", expect.objectContaining({ method: "POST" }));
   fetchSpy.mockRestore();
 });
 
