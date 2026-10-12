@@ -42,7 +42,7 @@ describe('语音 API 边界',()=>{
   });
  });
  it('只向指定百炼地域转发 SDP，密钥仅在服务端，错误不泄漏上游响应',async()=>{
-  const s=store();s.save(config);const upstream=vi.fn(async()=>new Response('v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',{headers:{'Content-Type':'application/sdp'}}));
+  const s=store();s.save(config);const upstream=vi.fn<typeof fetch>(async()=>new Response('v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',{headers:{'Content-Type':'application/sdp'}}));
   await http(voiceOfferMiddleware(s,upstream),async base=>{
    const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Voice':'1'},body:JSON.stringify({offer:'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',stewardName:'阿衡'})});
    expect(r.status).toBe(200);const body=await r.json();expect(body.answer).toContain('m=audio');expect(body.session.audio.output.voice).toBe('Ethan');expect(JSON.stringify(body)).not.toContain(config.apiKey);

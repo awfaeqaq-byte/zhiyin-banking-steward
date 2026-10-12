@@ -1,9 +1,14 @@
 import {describe,expect,it,vi} from 'vitest';
-import {createVoiceEvents,voiceSessionInstructions} from './realtime-voice';
+import {createVoiceEvents,voiceSessionInstructions,type VoiceBusiness} from './realtime-voice';
 const tool=(id='call-1')=>({type:'response.output_item.done',response_id:'response-1',item:{type:'function_call',status:'completed',call_id:id,name:'ask_steward',arguments:'{"text":"转3000"}'}});
-function fixture(){const send=vi.fn(),business=vi.fn(async()=>({text:'金额2000，等待你核对。'})),audio=vi.fn();const events=createVoiceEvents({send,business,audio,onState:vi.fn()});return {events,send,business,audio};}
+function fixture(){const send=vi.fn(),business=vi.fn<VoiceBusiness>(async()=>({text:'金额2000，等待你核对。'})),audio=vi.fn();const events=createVoiceEvents({send,business,audio,onState:vi.fn()});return {events,send,business,audio};}
 function turn(f:ReturnType<typeof fixture>){f.events.receive({type:'input_audio_buffer.speech_started',item_id:'user-1'});f.events.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-1',transcript:'给妈妈转2000'});f.events.receive({type:'response.created',response:{id:'response-1'}});}
 describe('语音业务桥',()=>{
+ it('语音转录晚于工具事件时等待原文；静音麦克风不关闭已经允许的播报',async()=>{
+  const f=fixture();f.events.receive({type:'input_audio_buffer.speech_started',item_id:'user-1'});f.events.receive({type:'response.created',response:{id:'response-1'}});f.events.receive(tool());f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});
+  expect(f.business).not.toHaveBeenCalled();f.events.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-1',transcript:'给妈妈转2000'});
+  await vi.waitFor(()=>expect(f.business).toHaveBeenCalledOnce());await vi.waitFor(()=>expect(f.audio).toHaveBeenLastCalledWith(true));f.events.setMuted(true);expect(f.audio).toHaveBeenLastCalledWith(true);
+ });
  it('角色与业务边界明确，不能把口头同意作为金融授权',()=>{
   expect(voiceSessionInstructions('宁宁')).toContain('ask_steward');expect(voiceSessionInstructions('阿衡')).toContain('阿衡');expect(voiceSessionInstructions('宁宁')).toContain('不能把口头');
  });
