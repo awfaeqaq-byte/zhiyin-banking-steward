@@ -1466,7 +1466,7 @@ export default function App() {
             <>
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
-              voiceEnabled={mode==='native'&&page==='home'}
+              voiceEnabled={mode==='native'&&page==='home'&&!bankIntent&&!modal}
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
               memory={memory}
