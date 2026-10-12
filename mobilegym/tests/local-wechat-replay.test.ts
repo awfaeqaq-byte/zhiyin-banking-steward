@@ -11,7 +11,7 @@ beforeEach(()=>{
  data.ledger={transactions:[{id:'original',direction:'expense',amountCents:100,category:'dining',merchant:'原消费',occurredAt:'2026-09-16'}],monthlyHistory:[],settings:{dailyReport:true,includeManualRecords:true}};
  storage=new Map([['zhiyin-connections','{"alipay":{"scopes":["balance"]}}']]);
  vi.stubGlobal('localStorage',{getItem:(key:string)=>storage.get(key)??null,setItem:(key:string,v:string)=>storage.set(key,v),removeItem:(key:string)=>storage.delete(key)});
- vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify(payload)));vi.clearAllMocks();
+ vi.spyOn(globalThis,'fetch').mockImplementation(async(url)=>new Response(JSON.stringify(String(url).endsWith('/status')?{configured:true,enabled:false}:payload)));vi.clearAllMocks();
 });
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
 it('未手动确认时不读取Excel、不替换账单或授予授权',async()=>{
