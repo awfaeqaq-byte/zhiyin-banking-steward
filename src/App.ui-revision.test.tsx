@@ -43,7 +43,7 @@ it("AI 原生首页读取真实授权订阅，顶部入口打开同一份清单"
   render(<App />);
 
   expect(screen.getByRole("heading", { name: "宁宁发现了需要你确认的订阅" })).toBeInTheDocument();
-  expect(screen.getByText("黑胶VIP会员包月")).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:/临近扣费.*黑胶VIP会员包月/})).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "订阅" }));
   expect(screen.getByRole("heading", { name: "订阅与续费" })).toBeInTheDocument();
   expect(screen.getByText("已识别 1 项自动续费")).toBeInTheDocument();
@@ -58,4 +58,52 @@ it("无授权数据时明确引导连接账户，而不是展示虚构交易", a
   await user.click(screen.getByRole("button", { name: "订阅" }));
   expect(screen.getByRole("heading", { name: "订阅与续费" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "连接微信支付或支付宝" })).toBeInTheDocument();
+});
+
+it("账单和银行卡归入我的，资金规划与定时任务保留顶部入口", async()=>{
+  localStorage.setItem("zhiyin-mode", '"native"');
+  const user=userEvent.setup();
+  render(<App/>);
+  expect(screen.getByRole('button',{name:'资金规划'})).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'定时任务'})).toBeInTheDocument();
+  expect(screen.queryByText('卡片管理')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'资产'}));
+  expect(screen.queryByRole('heading',{name:'我的银行卡'})).not.toBeInTheDocument();
+  expect(screen.getByRole('heading',{name:'分析与规划'})).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'返回'}));
+  await user.click(screen.getByRole('button',{name:'个人中心'}));
+  expect(screen.getByRole('button',{name:/我的账单/})).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:/银行卡与安全/}));
+  expect(screen.getByRole('heading',{name:'常用卡 · 8888'})).toBeInTheDocument();
+});
+
+it("资金观察进入资金规划，我的关注进入定时任务", async()=>{
+  localStorage.setItem("zhiyin-mode", '"native"');
+  const user=userEvent.setup();
+  render(<App/>);
+
+  expect(screen.queryByText("AI 最近发现")).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'资金规划'}));
+  expect(screen.getByRole('heading',{name:'资金规划'})).toBeInTheDocument();
+  expect(screen.getByRole('heading',{name:'资金观察'})).toBeInTheDocument();
+  expect(screen.getByText('宁宁为你整理')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button',{name:'返回'}));
+  await user.click(screen.getByRole('button',{name:'定时任务'}));
+  expect(screen.getByRole('heading',{name:'我的关注'})).toBeInTheDocument();
+  const input=screen.getByRole('textbox',{name:'用自然语言设置我的关注'});
+  await user.type(input,'以后外卖每月超过 800 元提醒我');
+  await user.click(screen.getByRole('button',{name:'添加关注规则'}));
+  expect(screen.getByText('外卖消费')).toBeInTheDocument();
+  expect(screen.getByText('单月超过 ¥800 时提醒我')).toBeInTheDocument();
+});
+
+it('手机紧凑导航保留管家身份，资金规划和定时任务仍可从个人中心进入',async()=>{
+  localStorage.setItem('zhiyin-mode','"native"');
+  const user=userEvent.setup();render(<App/>);
+  expect(screen.getByRole('button',{name:'资金规划'})).toHaveClass('native-header-secondary');
+  expect(screen.getByRole('button',{name:'定时任务'})).toHaveClass('native-header-secondary');
+  await user.click(screen.getByRole('button',{name:'个人中心'}));
+  await user.click(screen.getByRole('button',{name:/资金规划/}));
+  expect(screen.getByRole('heading',{name:'资金规划'})).toBeInTheDocument();
 });
