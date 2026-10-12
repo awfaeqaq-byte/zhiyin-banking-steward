@@ -34,6 +34,7 @@ describe('SandboxConsoleView', () => {
 
     expect(html).toContain('沙箱控制台');
     expect(html).toContain('模型配置');
+    expect(html).toContain('实时语音');
     expect(html).toContain('财务测试');
     expect(html).toContain('聊天与数据');
     expect(html).toContain('知银管家');

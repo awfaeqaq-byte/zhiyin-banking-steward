@@ -1,0 +1,27 @@
+.steward-voice { position: relative; flex: 0 0 auto; }
+.steward-chat-composer.has-voice { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+.steward-chat-composer.has-voice .steward-composer-note { grid-column: 1 / -1; }
+.steward-chat-composer.has-voice .steward-voice > button.voice-entry { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--pale,#eaf4f3); color: var(--teal-dark); cursor: pointer; }
+.steward-chat-composer.has-voice .steward-voice > button.voice-entry:hover:not(:disabled),.steward-chat-composer.has-voice .steward-voice > button.voice-entry[aria-expanded=true] { background: var(--teal); color: white; }
+.steward-chat-composer.has-voice .steward-voice > button.voice-entry:disabled { opacity: .5; cursor: default; }
+.voice-strip { position: absolute; z-index: 12; inset: auto 0 calc(100% + 12px) auto; width: min(350px,calc(100vw - 40px)); max-height: min(480px,calc(100dvh - 160px)); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--teal) var(--pale,#eaf4f3); padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface,#fff); color: var(--ink); transform-origin: bottom right; animation: voice-reveal 180ms cubic-bezier(.16,1,.3,1); }
+.voice-strip header { display: flex; align-items: center; gap: 10px; }
+.voice-strip header img { width: 38px; height: 38px; object-fit: cover; border-radius: 50%; }
+.voice-strip header div { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.voice-strip header strong { font-size: 16px; }
+.voice-strip header span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.steward-chat-composer .steward-voice .voice-strip header button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 10px; color: var(--muted); background: transparent; cursor: pointer; }
+.voice-consent,.voice-notice,.voice-error { margin: 12px 0; font-size: 13px; line-height: 1.65; }
+.voice-consent,.voice-notice { color: var(--muted); }
+.voice-error { color: #a13d30; }
+.voice-caption { max-height: 104px; overflow: auto; margin: 12px 0; padding: 0; color: var(--ink); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.voice-caption span { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 12px; }
+.voice-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 8px; }
+.steward-chat-composer .steward-voice .voice-strip .voice-controls button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; width: auto; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--pale,#eaf4f3); color: var(--teal-dark); font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.steward-chat-composer .steward-voice .voice-strip .voice-controls button.voice-start { border-color: var(--teal); background: var(--teal); color: #fff; }
+.steward-chat-composer .steward-voice .voice-strip .voice-controls button.voice-end { color: #a13d30; background: #fff5f1; border-color: #ebcfc7; }
+.steward-chat-composer .steward-voice .voice-strip .voice-controls button:disabled { opacity: .5; cursor: default; }
+.voice-strip small { display: block; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.voice-entry:focus-visible,.voice-strip button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+@keyframes voice-reveal { from { clip-path: inset(8% 0 0 0 round 16px); transform: translateY(4px); } to { clip-path: inset(0 round 16px); transform: translateY(0); } }
+@media (prefers-reduced-motion:reduce) { .voice-strip { animation: none; } }

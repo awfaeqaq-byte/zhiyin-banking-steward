@@ -1,5 +1,21 @@
 # 知银 · 个人银行智能管家
 
+## 连续语音对话
+
+AI 原生首页输入框右侧的麦克风现接入 Qwen-Omni-Realtime（WebRTC），支持连续收音、字幕、插话停止旧播报、静音、结束，以及语音需求复用原有任务、账单授权与长期记忆。经典模式不再使用假录音示例，原入口引导到设置选择 AI 原生模式。
+
+先在电脑本机 `http://localhost:3000/` 的 **沙箱控制台 → 模型配置 → 实时语音** 填写阿里云百炼北京或新加坡地域的 API 密钥、对应业务空间 ID，并开通 `qwen3.8-omni-flash-realtime`；可展开设置两位管家的音色。文本模型、微信联系人配置不变。保存配置不会发起付费通话；“凭证已配置”只表示已保存，不代表云端权限已经验证。
+
+密钥仅存后端 `.zhiyin-voice.local.json`（0600 权限，忽略 Git，禁止静态下载），浏览器不保存或回显。WebRTC 信令由后端代理，音频直接与百炼建立连接。开启前会说明音频、对话与必要的业务结果会发送给百炼；本项目不保存原始录音，对话文字沿用现有保存规则，云端留存遵循服务商设置。
+
+语音工具只有 `ask_steward`：最终语音转录进入同一消息流程，同轮与同 ID 重试不重复提交。转账、付款、存款、支取、取消等仍需在原页面核对确认，口头“确认”不替代金融授权。办理期间暂停收音；退出语音不会撤销已提交的后台事项。离开首页、沙箱退到桌面、浏览器切到后台或重置上下文都会停麦，不会自行重开；网页单次通话在5分钟结束，可手动再开始。
+
+电脑 localhost 可以使用麦克风；手机访问局域网 HTTP 地址不行，需 HTTPS，并允许浏览器麦克风权限。当前没有配置真实百炼凭证，云端声音、实际时延与真机插话效果仍需填入凭证后实测。接口、事件乱序/去重、任务桥和模拟浏览器握手已有隔离测试，不把这些测试视为真实云端通话证明。
+
+接口：`GET /api/zhiyin/voice/status`、`POST /api/zhiyin/voice/offer`；本机配置为 `GET/POST /api/sandbox/voice-config`。没有凭证不会采集音频或请求上游。开发服务器不应直接暴露到公网；后续部署需增加用户鉴权、服务端费用与并发限制。
+
+协议与音色依据：[Qwen 实时语音](https://help.aliyun.com/zh/model-studio/realtime)、[客户端事件](https://help.aliyun.com/zh/model-studio/client-events)、[服务端事件](https://help.aliyun.com/zh/model-studio/server-events)、[音色列表](https://help.aliyun.com/en/model-studio/omni-voice-list)。
+
 团队首次克隆、完整手机启动和分支协作请先看 [Git 协作与首次启动](docs/git-collaboration.md)。本仓库统一包含知银与 MobileGym 源码；密钥和个人沙箱数据不随 Git 分享。最新银行卡功能见 [银行沙箱](docs/bank-sandbox.md) 和 [跨平台银行卡付款](docs/bank-platform-payments.md)。下文保留了早期原型说明，涉及固定数据或演示能力的部分请以这些最新说明为准。
 
 负责账单分析、理财操作和卡片管理的成员，请先看 [场景需求文档](docs/member-b-requirements.md) 与 [项目更新 SOP](docs/project-update-sop.md)。前者定义目标、验收口径和当前缺口，后者约定分支、开发、模型配置、测试、更新记录与交付步骤。

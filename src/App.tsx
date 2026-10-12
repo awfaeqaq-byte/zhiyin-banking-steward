@@ -1470,6 +1470,7 @@ export default function App() {
             <div hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
+              voiceEnabled={mode==='native'&&page==='home'&&!bankIntent&&!modal}
               homePreview
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
@@ -2004,20 +2005,20 @@ export default function App() {
       <Dialog
         open={modal === "voice"}
         onOpenChange={(open) => !open && setModal(null)}
-        title="试试用一句话办理"
-        description="语音输入界面演示，当前不会开启麦克风。"
+        title={`和${steward.name}语音对话`}
+        description="连续语音在 AI 原生模式可用。模式选择仍在设置中，方案与核对入口留在同一首页。"
       >
         <div className="voice-demo">
           <Mic size={32} />
-          <p>“给妈妈转 2000 元，下周五到账”</p>
+          <p>在设置中选择 AI 原生模式，回到首页点输入框旁的麦克风。开启前会说明录音与处理方式。</p>
           <Button
             className="full-width"
             onClick={() => {
-              setInput("给妈妈转 2000 元，下周五到账");
               setModal(null);
+              go('settings');
             }}
           >
-            使用这句示例
+            打开设置
           </Button>
         </div>
       </Dialog>

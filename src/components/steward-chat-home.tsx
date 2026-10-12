@@ -70,6 +70,8 @@ import type {ConversationEntry} from '../lib/message-flow';
 import {billProvider,billScopeQuestion,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
 import {depositRequestForMessages} from '../lib/bank-assets';
 import {TermDepositPanel} from './term-deposit-panel';
+import {StewardVoice} from './steward-voice';
+import type {VoiceBusiness} from '../lib/realtime-voice';
 
 import type {SceneFlow,SceneNext} from '../lib/scene-flow';
 
@@ -95,6 +97,8 @@ type AttentionEvent =
   };
 
 type Props = {
+  voiceEnabled?:boolean;
+  onVoiceRequest?:VoiceBusiness;
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
   homePreview?:boolean;
@@ -220,6 +224,8 @@ function actionSubscription(
 }
 
 export function StewardChatHome({
+  voiceEnabled=true,
+  onVoiceRequest,
   wechatShare,onWechatShareDone,
   seamless=false, homePreview=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
@@ -257,6 +263,7 @@ export function StewardChatHome({
   duplicatePreferences = EMPTY_DUPLICATE_PREFERENCES,
   onDuplicatePreference,
 }: Props) {
+  const [voiceActive,setVoiceActive]=useState(false);
   const expenseNotebook=useRef<ExpenseNotebookHandle>(null);
   const expenseNotebooks=useRef<Record<string,ExpenseNotebookHandle|null>>({});
   const [waitingForAA,setWaitingForAA]=useState<Record<string,boolean>>({});
@@ -1027,7 +1034,7 @@ export function StewardChatHome({
         )}
         <div ref={transcriptEnd} aria-hidden="true" />
 
-        <form className="steward-chat-composer" onSubmit={submit}>
+        <form className={`steward-chat-composer${onVoiceRequest?' has-voice':''}`} onSubmit={submit}>
           <label className="sr-only" htmlFor="steward-chat-input">和{stewardName}说点什么</label>
           <div className="steward-composer-field">
             <input
@@ -1035,15 +1042,17 @@ export function StewardChatHome({
               id="steward-chat-input"
               aria-label={`和${stewardName}说点什么`}
               value={input}
+              disabled={voiceActive}
               onChange={event => setInput(event.target.value)}
               placeholder={wechatShare?'想让我怎么处理这些消息？':`和${stewardName}说点什么…`}
               autoComplete="off"
               maxLength={wechatShare?200:1000}
             />
-            <button type="submit" aria-label={`发送给${stewardName}`} disabled={sending || externalBusy || viewSaving || (!input.trim()&&!wechatShare)}>
+            <button type="submit" aria-label={`发送给${stewardName}`} disabled={voiceActive || sending || externalBusy || viewSaving || (!input.trim()&&!wechatShare)}>
               {sending ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
             </button>
           </div>
+          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} enabled={voiceEnabled} disabled={sending||externalBusy||viewSaving||!!wechatShare} onActiveChange={setVoiceActive}/>}
           <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />涉及资金的操作仍需你确认</span>
         </form>
       </section>

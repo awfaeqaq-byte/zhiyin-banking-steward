@@ -12,6 +12,8 @@ import type {SceneNext} from '../lib/scene-flow';
 import {foodOrderRequest} from '../lib/food-order-bridge';
 import {occasionFoodRequest} from '../lib/occasion-food-bridge';
 import './steward-workspaces.css';
+import {voiceTaskResult,abortableVoicePause} from '../lib/voice-task-bridge';
+import type {VoiceBusiness} from '../lib/realtime-voice';
 type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt};
 type Queued={id:string;text:string;token:string;messageId:string;replyId:string};
 const TURN_SAVED='zhiyin-workspace-turn-saved';
@@ -23,6 +25,7 @@ export function StewardWorkspaces({route,...props}:Props){
  const [claimAttempt,setClaimAttempt]=useState(0);
  const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
  const currentState=useRef(state);currentState.current=state;
+ const voiceRequests=useRef(new Map<string,ReturnType<VoiceBusiness>>());
  const receiptOwner=useRef(localStorage.getItem('zhiyin-transfer-workspace')||'');
  const activeRun=state.runs?.find(r=>['routing','ready','processing'].includes(r.status));
  const job=activeRun?.jobs.find(j=>j.status==='claimed'&&j.owner===owner.current);
@@ -109,6 +112,16 @@ export function StewardWorkspaces({route,...props}:Props){
   }catch(cause){setError(cause instanceof Error?cause.message:'回复保存状态尚未核实，请勿重复资金操作');}
  }
  async function serverReply(context:StewardReplyRequest){const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});accept(result.state);return result.reply;}
+ const voiceRequest:VoiceBusiness=(text,id,signal)=>{
+  const previous=voiceRequests.current.get(id);if(previous)return previous;
+  const result=(async()=>{
+   if(signal.aborted)throw new Error('语音已结束');
+   await arrange(text,[],undefined,{messageId:id});
+   const deadline=Date.now()+120000;
+   while(!signal.aborted&&Date.now()<deadline){const next=await request();if(signal.aborted)throw new Error('语音已结束');accept(next);const answer=voiceTaskResult(next,id);if(answer)return answer;await abortableVoicePause(signal);}
+   throw new Error('语音已结束或处理超时，请在首页核对原事项，不要重复提交。');
+  })();voiceRequests.current.set(id,result);return result;
+ };
  const persistEntries=useCallback(async(entries:ConversationEntry[])=>{
   if(!loaded)return;
   const known=new Set(currentState.current.conversation?.map(m=>m.id));const added=entries.filter(m=>!known.has(m.id));if(!added.length)return;
@@ -117,6 +130,7 @@ export function StewardWorkspaces({route,...props}:Props){
   return <div className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
     <StewardChatHome {...props}
+      onVoiceRequest={voiceRequest}
       seamless
       sceneFlows={state.scenes}
       onResumeScene={resumeScene}

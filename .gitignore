@@ -9,6 +9,7 @@ coverage/
 !.env.template
 *.local.json
 *.local.json.tmp
+*.local.json.*.tmp
 *.local.json.lock
 *.local.json.reset-*.bak
 .zhiyin-mastra.db*
