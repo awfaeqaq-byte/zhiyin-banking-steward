@@ -30,7 +30,7 @@ describe('系统持有原文的分流协议',()=>{
   expect(conversationRoute('对',[{...birthday,kind:'transfer',progress:undefined}],birthday.id)).toBeNull();
  });
 });
-it('当前生日事实确认后的“记忆”复用其来源事项，不让模型另问记什么',()=>{
+it.each(['记忆','记录到日历'])('当前生日事实确认后的%s复用其来源事项，不让模型另问记什么',prompt=>{
  const task:Workspace={id:'birthday',kind:'general',title:'王芳生日',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[{id:'source',role:'user',memoryRevision:0,content:sharePrompt(buildWechatShare({id:'c',name:'王芳',kind:'direct'},[{id:'m',sender:'王芳',text:'我生日是7月15号。',sentAt:1791770000000}],['m'],'帮我记录王芳生日','s'))}],progress:{goal:'记录王芳生日',stage:'waiting_user',waitingFor:{field:'reply',question:'需要提前提醒你吗？'}}};
- expect(conversationRoute('记忆',[task],task.id)?.parts[0].taskId).toBe('birthday');expect(conversationRoute('记忆',[],task.id)).toBeNull();
+ expect(conversationRoute(prompt,[task],task.id)?.parts[0].taskId).toBe('birthday');expect(conversationRoute('记忆',[],task.id)).toBeNull();
 });
