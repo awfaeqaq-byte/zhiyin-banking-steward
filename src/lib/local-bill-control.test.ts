@@ -1,0 +1,23 @@
+import {afterEach,expect,it} from 'vitest';
+import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createServer,type Server} from 'node:http';
+import {createLocalWechatBillMiddleware} from '../../mobilegym/server/localWechatBill';
+const dirs:string[]=[],servers:Server[]=[];
+afterEach(async()=>{for(const server of servers.splice(0))await new Promise<void>(done=>server.close(()=>done()));for(const dir of dirs.splice(0))rmSync(dir,{recursive:true,force:true});});
+it('回放默认关闭，状态不暴露路径，启用必须同源且明确确认',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'replay-api-'));dirs.push(dir);
+ const config=join(dir,'source.json'),sourcePath=join(dir,'missing.xlsx');writeFileSync(config,JSON.stringify({sourcePath,expectedSha256:'abc'}));
+ const server=createServer(createLocalWechatBillMiddleware(config,join(dir,'missing.py')));servers.push(server);
+ await new Promise<void>(done=>server.listen(0,'127.0.0.1',done));const address=server.address();if(!address||typeof address==='string')throw Error('missing address');
+ const url=`http://127.0.0.1:${address.port}`;
+ expect((await fetch(url)).status).toBe(404);
+ const status=await(await fetch(url+'/status')).json();expect(status).toEqual({configured:true,enabled:false});expect(JSON.stringify(status)).not.toContain(sourcePath);
+ const options={method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Local-Bill':'1'},body:JSON.stringify({enabled:true,confirmed:true})};
+ expect((await fetch(url,{...options,headers:{...options.headers,Origin:'https://untrusted.invalid'}})).status).toBe(403);
+ expect((await fetch(url,{...options,body:JSON.stringify({enabled:true})})).status).toBe(400);
+ expect((await fetch(url,options)).status).toBe(200);expect(JSON.parse(readFileSync(config,'utf8'))).toEqual({sourcePath,expectedSha256:'abc',enabled:true});
+ expect((await fetch(url,{...options,body:JSON.stringify({enabled:false,confirmed:true})})).status).toBe(200);
+ expect((await fetch(url)).status).toBe(404);
+});
