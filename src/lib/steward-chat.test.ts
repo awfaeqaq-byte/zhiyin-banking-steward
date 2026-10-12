@@ -16,6 +16,13 @@ it.each(['下周六生日，准备个蛋糕','微信群AA收款，午餐200','�
  const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:prompt}]});
  expect(fetcher).toHaveBeenCalledOnce();expect(result.action).toBeUndefined();expect(JSON.parse(fetcher.mock.calls[0][1].body).instructions).toContain('引用材料');
 });
+it('记录分享消息中的生日由模型回应，不被包装中的预留、取消等字眼误判为筹备',async()=>{
+ const prompt=sharePrompt(buildWechatShare({id:'chat',name:'小林',kind:'direct'},[{id:'m',sender:'小林',text:'我的生日是8月20日。',sentAt:1791770000000}],['m'],'帮我记录一下小林的生日','s'));
+ const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'小林的生日是8月20日。你希望只记下这个日期，还是另设提醒？'})));vi.stubGlobal('fetch',fetcher);
+ const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:prompt}]});
+ expect(fetcher).toHaveBeenCalledOnce();expect(result.action).toBeUndefined();const instructions=JSON.parse(fetcher.mock.calls[0][1].body).instructions;
+ expect(instructions).not.toContain('只说明可以帮忙整理并给出');expect(instructions).toContain('本人要求');
+});
 
 it('空模型输出不是完成回执；待答描述不泄露到正文或授予执行权限',async()=>{
  expect(parseStewardReply('[[task-wait:{"question":"这次转多少元？"}]]',[])).toMatchObject({text:'这次转多少元？',waitingQuestion:'这次转多少元？'});

@@ -1,6 +1,20 @@
 import { it, expect, vi, afterEach } from "vitest";
 import { workspaceRequest, routeWorkspacePrompt } from "./workspace-service";
 import { emptyWorkspaces, type Workspace } from "./workspaces";
+import {buildWechatShare,sharePrompt} from './wechat-message-share';
+
+it('微信分享分流只判断类别，模型省略引用包装时仍保留本人附言与完整原文',async()=>{
+ const prompt=sharePrompt(buildWechatShare({id:'chat',name:'小林',kind:'direct'},[{id:'m',sender:'小林',text:'我的生日是8月20日，刚过去没多久。',sentAt:1791770000000}],['m'],'帮我记录一下小林的生日','s'));
+ const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'general',title:'小林的生日',text:'帮我记录一下小林的生日'}]})})));
+ expect((await routeWorkspacePrompt(prompt,[],'' )).parts).toEqual([{taskId:null,kind:'general',title:'小林的生日',text:prompt}]);expect(fetcher).toHaveBeenCalledOnce();
+});
+it('分享分流仍拒绝未知事项与多段拆分，不把分类结果当执行授权',async()=>{
+ const prompt=sharePrompt(buildWechatShare({id:'chat',name:'小林',kind:'direct'},[{id:'m',sender:'小林',text:'准备生日蛋糕',sentAt:1791770000000}],['m'],'帮我准备生日','s'));
+ const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:'unknown',kind:'occasion',title:'生日',text:'准备生日蛋糕'}]})})));
+ await expect(routeWorkspacePrompt(prompt,[],'' )).rejects.toThrow('之前的交代');
+ fetcher.mockImplementation(async()=>new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'occasion',title:'生日',text:'准备生日蛋糕'},{taskId:null,kind:'transfer',title:'转账',text:'给妈妈转500'}]})})));
+ await expect(routeWorkspacePrompt(prompt,[],'' )).rejects.toThrow();
+});
 
 it('分流能看到上一轮管家的追问，授权和问号不被当作独立闲聊', async () => {
   const task: Workspace = {id:'bill',kind:'bills',title:'本月支出',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[{id:'u',role:'user',content:'看看这个月支出',memoryRevision:0},{id:'a',role:'assistant',content:'需要先授权微信账单。',memoryRevision:0}]};
