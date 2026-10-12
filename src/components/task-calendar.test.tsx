@@ -36,3 +36,10 @@ it('来源任务打开对应管理，关闭草稿不保存，刷新失败可重�
  await user.click(screen.getByRole('button',{name:/音乐会员/}));await user.click(screen.getByRole('button',{name:'查看订阅'}));expect(onOpenSubscription).toHaveBeenCalledWith('wechat_pay','music');
  await user.click(screen.getByRole('button',{name:'上个月'}));await user.click(screen.getByRole('button',{name:'记下一件要做的事'}));expect(screen.getByLabelText('要做什么')).toBeInTheDocument();
 });
+it('生日草稿用日期而非提醒时刻，保存和修改后保留全天年度属性',async()=>{
+ let state:TaskState={revision:0,tasks:[]};vi.stubGlobal('fetch',vi.fn(async(_url,init)=>{if(init?.body)state=updateTasks(state,JSON.parse(init.body));return new Response(JSON.stringify(state));}));
+ const {nextAnnualDate}=await import('../lib/task-calendar');const user=userEvent.setup();render(<TaskCalendar {...props} draft={{title:'王芳的生日',dueAt:nextAnnualDate(7,15)!,allDay:true,repeat:'yearly'}}/>);
+ expect(screen.getByLabelText('生日日期（公历）')).toHaveAttribute('type','date');expect(screen.queryByLabelText('提醒时间（北京时间）')).not.toBeInTheDocument();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'确认保存生日'})).toBeEnabled());await user.click(screen.getByRole('button',{name:'确认保存生日'}));expect(state.tasks[0]).toMatchObject({allDay:true,repeat:'yearly'});
+ await user.click(await screen.findByRole('button',{name:/全天.*王芳的生日.*每年公历/}));expect(screen.queryByRole('button',{name:'标记完成'})).not.toBeInTheDocument();await user.click(screen.getByRole('button',{name:'修改'}));await user.click(screen.getByRole('button',{name:'确认保存生日'}));expect(state.tasks[0]).toMatchObject({allDay:true,repeat:'yearly'});
+});
