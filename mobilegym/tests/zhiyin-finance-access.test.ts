@@ -153,8 +153,8 @@ describe("Zhiyin financial source access", () => {
     ]);
   });
 
-  it("returns the newest 1000 valid Alipay records across months with subscription charge linkage", async () => {
-    const records = Array.from({ length: 1_002 }, (_, index) => ({
+  it("returns the newest 5000 valid Alipay records with explicit incomplete coverage", async () => {
+    const records = Array.from({ length: 5_002 }, (_, index) => ({
       id: `alipay-history-${index}`, displayTitle: "云盘会员", delta: -12,
       timestamp: Date.parse("2026-06-01T10:00:00+08:00") + index * 3_600_000,
       linkedId: `alipay-subscription:cancelled-cloud:${index}`,
@@ -171,16 +171,17 @@ describe("Zhiyin financial source access", () => {
       }),
     });
 
-    expect(result.source?.transactions).toHaveLength(1_000);
+    expect(result.source?.transactions).toHaveLength(5_000);
     expect(result.source?.transactions[0]).toEqual(expect.objectContaining({
-      id: "alipay-history-1001", title: "云盘会员", amount: -1_200,
-      linkedId: "alipay-subscription:cancelled-cloud:1001", kind: "payment",
+      id: "alipay-history-5001", title: "云盘会员", amount: -1_200,
+      linkedId: "alipay-subscription:cancelled-cloud:5001", kind: "payment",
     }));
     expect(result.source?.transactions.at(-1)?.id).toBe("alipay-history-2");
+    expect(result.source?.transactionCoverage).toMatchObject({total:5_004,returned:5_000,invalid:2,complete:false});
   });
 
-  it("returns the newest 1000 valid WeChat ledger records without losing prior months", async () => {
-    const records = Array.from({ length: 1_002 }, (_, index) => ({
+  it("returns the newest 5000 valid WeChat records with explicit incomplete coverage", async () => {
+    const records = Array.from({ length: 5_002 }, (_, index) => ({
       id: `wechat-history-${index}`, direction: "expense" as const, amountCents: 1_500,
       category: "other" as const, merchant: "云盘会员",
       occurredAt: new Date(Date.parse("2026-06-01T10:00:00+08:00") + index * 3_600_000).toISOString(),
@@ -195,12 +196,13 @@ describe("Zhiyin financial source access", () => {
       ],
     });
 
-    expect(result.source?.transactions).toHaveLength(1_000);
+    expect(result.source?.transactions).toHaveLength(5_000);
     expect(result.source?.transactions[0]).toEqual(expect.objectContaining({
-      id: "wechat-history-1001", title: "云盘会员", amount: -1_500,
-      linkedId: "subscription:cancelled-cloud:1001", kind: "payment",
+      id: "wechat-history-5001", title: "云盘会员", amount: -1_500,
+      linkedId: "subscription:cancelled-cloud:5001", kind: "payment",
     }));
     expect(result.source?.transactions.at(-1)?.id).toBe("wechat-history-2");
+    expect(result.source?.transactionCoverage).toMatchObject({total:5_004,returned:5_000,invalid:2,complete:false});
   });
 
   it("reads older WeChat transactions through the configured backend without altering its data", async () => {
