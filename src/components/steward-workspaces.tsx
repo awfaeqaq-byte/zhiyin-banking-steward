@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import { StewardChatHome } from "./steward-chat-home";
-import { emptyWorkspaces, type WorkspaceOperation } from "../lib/workspaces";
+import { emptyWorkspaces, validWorkspaces, type WorkspaceOperation } from "../lib/workspaces";
 import { workspaceRequest, routeWorkspacePrompt } from "../lib/workspace-service";
 import "./steward-workspaces.css";
 import {advanceTaskProgress,clearBillIntent,readTaskProgress,taskContinuation,type TaskProgress} from '../lib/task-progress';
@@ -9,6 +9,7 @@ import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from '../lib/
 
 type Props = ComponentProps<typeof StewardChatHome> & { route?: typeof routeWorkspacePrompt };
 type Queued = { id: string; text: string; token: string };
+const TURN_SAVED='zhiyin-workspace-turn-saved';
 
 /** One frontstage conversation. Task ownership, routing and serial processing stay backstage.
  * A queued instruction is not payment authorization; persisted pending work is never replayed on mount. */
@@ -32,6 +33,16 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
     catch(e) { setError(e instanceof Error ? e.message : "之前的交代暂时无法载入，请重试。"); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(()=>{
+    // An earlier home instance can finish a request after navigation. Deliver its
+    // saved text to the current home without replaying persisted pending work.
+    const receive=(event:Event)=>{
+      const next=(event as CustomEvent).detail;
+      if(validWorkspaces(next))setState(current=>next.revision>=current.revision?next:current);
+    };
+    window.addEventListener(TURN_SAVED,receive);
+    return()=>window.removeEventListener(TURN_SAVED,receive);
+  },[]);
 
   function say(text:string) { setConversationNotice({id:crypto.randomUUID(),text}); }
   function save(operation: WorkspaceOperation | ((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation)) {
@@ -39,7 +50,9 @@ export function StewardWorkspaces({ route = routeWorkspacePrompt, ...props }: Pr
     const operationResult=saveTail.current.then(async()=>{
       const latest=await workspaceRequest();
       const next=await workspaceRequest(typeof operation==='function'?operation(latest):operation,latest.revision);
-      setState(next);return next;
+      setState(next);
+      if((typeof operation==='function'?undefined:operation.type)==='turn')window.dispatchEvent(new CustomEvent(TURN_SAVED,{detail:next}));
+      return next;
     });
     saveTail.current=operationResult.catch(()=>undefined);
     return operationResult;

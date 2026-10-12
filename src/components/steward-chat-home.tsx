@@ -166,6 +166,32 @@ function writeMessages(messages: DisplayMessage[],key=storageKey) {
   }
 }
 
+/** Restore completed turns lost while the home was unmounted. Text only: no
+ * replayed requests or restored financial controls. Match against visible user
+ * sentences so backstage task history cannot flood the unified conversation. */
+function recoverReplies(messages:DisplayMessage[],tasks:Workspace[]):DisplayMessage[] {
+  const pairs=tasks.slice().sort((a,b)=>a.updatedAt-b.updatedAt).flatMap(task=>task.messages.flatMap((user,index)=>{
+    const answer=task.messages[index+1];
+    return user.role==='user'&&answer?.role==='assistant'?[{user,answer,workspaceId:task.id}]:[];
+  }));
+  const used=new Set<string>();
+  const result:DisplayMessage[]=[];
+  let changed=false;
+  messages.forEach((message,index)=>{
+    result.push(message);
+    if(message.role!=='user')return;
+    const pair=pairs.find(p=>p.user.content===message.content&&!used.has(p.answer.id));
+    if(!pair)return;
+    used.add(pair.answer.id);
+    const nextUser=messages.findIndex((m,i)=>i>index&&m.role==='user');
+    const replies=messages.slice(index+1,nextUser<0?undefined:nextUser);
+    if(replies.some(m=>m.id===pair.answer.id||m.role==='assistant'&&m.content===pair.answer.content))return;
+    result.push({id:pair.answer.id,role:'assistant',content:pair.answer.content,workspaceId:pair.workspaceId});
+    changed=true;
+  });
+  return changed?result:messages;
+}
+
 function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
@@ -247,6 +273,9 @@ export function StewardChatHome({
   const conversationCutoff=useRef(localStorage.getItem('zhiyin-steward-conversation-cutoff')||'');
   const latestMessages=useRef(messages);
   latestMessages.current=messages;
+  useEffect(()=>{
+    if(seamless&&contextWorkspaces.length)setMessages(current=>recoverReplies(current,contextWorkspaces));
+  },[seamless,contextWorkspaces]);
   function recentContext() {
     const index=messages.findIndex(message=>message.id===conversationCutoff.current);
     return recentConversation(index>=0?messages.slice(index+1):messages);

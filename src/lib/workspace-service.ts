@@ -9,7 +9,7 @@ import { conversationContext } from './conversation-context';
 import type { StewardChatMessage } from './steward-chat';
 import {clearBillIntent,readTaskProgress,taskContinuation} from './task-progress';
 import {foodRoute} from './food-order';
-import {WECHAT_SHARE_PREFIX,readonlyWechatShare} from './wechat-message-share';
+import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -63,6 +63,7 @@ export async function routeWorkspacePrompt(
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
   const shared=prompt.startsWith(WECHAT_SHARE_PREFIX);
+  if(shared&&!sharedTextPreview(prompt))throw new Error('微信分享材料无效，请重新核对');
   const food=shared?null:foodRoute(prompt,tasks,currentId);if(food)return food;
   const continuation=shared?null:taskContinuation(prompt,tasks,currentId);
   if(continuation)return continuation;
@@ -88,7 +89,7 @@ export async function routeWorkspacePrompt(
   input.push({
     role: "user",
     content:
-      "校验要求：逐段判断类型，不要把新转账错归当前AA；每段text只能复制下面原话，按原顺序覆盖全部。例：明天给妈妈转500，刚才饮料改成16 → 第一段transfer新任务，第二段aa已有聚餐任务。不得重排。",
+      shared?'本轮为一份完整分享材料。仅判断本人要求的任务类别，返回一个part；text可省略，客户端保留完整原文。记录朋友生日属于general，设生日提醒属于reminder，准备蛋糕和预算属于occasion。':'校验要求：逐段判断类型，不要把新转账错归当前AA；每段text只能复制下面原话，按原顺序覆盖全部。例：明天给妈妈转500，刚才饮料改成16 → 第一段transfer新任务，第二段aa已有聚餐任务。不得重排。',
   });
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await fetch("/api/zhiyin/steward-reply", {
@@ -113,16 +114,19 @@ export async function routeWorkspacePrompt(
     if (!response.ok || typeof data.output_text !== "string")
       throw new Error(data.error || "暂时没理解清楚，请重试或说得具体一点");
     try {
-      return validateRoutes(
-        JSON.parse(
+      const parsed = JSON.parse(
           data.output_text
             .trim()
             .replace(/^```(?:json)?\s*/, "")
             .replace(/\s*```$/, ""),
-        ),
-        prompt,
-        tasks,
-      );
+        );
+      // A classifier never owns the quoted evidence. Preserve the original envelope
+      // ourselves; validate task metadata as strictly as ordinary routing.
+      if(shared&&!parsed?.clarification){
+        if(!Array.isArray(parsed?.parts)||parsed.parts.length!==1)throw new Error('微信分享材料不能拆成多个任务，请先说明本次要处理的一件事');
+        parsed.parts=parsed.parts.map((part:unknown)=>part&&typeof part==='object'?{...part,text:prompt}:part);
+      }
+      return validateRoutes(parsed,prompt,tasks);
     } catch (error) {
       if (attempt === 1) throw error;
       input.push({
