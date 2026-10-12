@@ -32,7 +32,12 @@ async function expectWrapperResolvesStringsDirectly({
   const mod = await import(modulePath);
   const hook = mod[exportName] as () => unknown;
 
-  expect(hook()).toEqual({ source: 'resolveAppStrings' });
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  let resolved: unknown;
+  function Wrapper() { resolved = hook(); return null; }
+  renderToStaticMarkup(createElement(Wrapper));
+  expect(resolved).toEqual({ source: 'resolveAppStrings' });
   expect(useLocaleMock).toHaveBeenCalledTimes(1);
   expect(resolveAppStringsMock).toHaveBeenCalledTimes(1);
   expect(useAppStringsMock).not.toHaveBeenCalled();

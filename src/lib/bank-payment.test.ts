@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {createBankStore} from '../../server/bank-store';
 import {bankMiddleware} from '../../server/bank-store';
 import {createServer} from 'node:http';
+import {createWealthStore} from '../../server/wealth-store';
 
 it('平台付款共用银行余额，幂等冲突拒绝，冻结后仍可原路退款且只退一次',()=>{
  const dir=mkdtempSync(join(tmpdir(),'bank-payment-'));
@@ -59,4 +60,45 @@ it('HTTP付款和退款持久化，缺授权或跨站请求不能扣款',async()
   expect((await post({type:'refund-payment',paymentId:payment.id,authorized:true})).status).toBe(200);
   expect(bank.get().balance).toBe(4230000);
  } finally {await new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()));rmSync(dir,{recursive:true,force:true});}
+});
+
+it('境外渠道由服务端开关拦截，开启后付款并记录回执，挂失后仍拒绝',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'overseas-payment-'));
+ try{
+  const bank=createBankStore(join(dir,'bank.json'));
+  bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});
+  const payment={id:'overseas:one',channel:'overseas' as const,amount:100,merchant:'境外演示商户'};
+  expect(()=>bank.pay(payment,100)).toThrow(/境外交易已关闭/);
+  expect(bank.get().balance).toBe(4230000);
+  bank.configure({revision:1,controls:{night:false,overseas:true,contactless:true}});
+  const receipt=bank.pay(payment,101);
+  expect(receipt.balanceAfter).toBe(4229900);
+  expect(bank.pay(payment,102)).toEqual(receipt);
+  bank.configure({revision:3,frozen:true});
+  expect(()=>bank.pay({...payment,id:'overseas:two'},103)).toThrow(/挂失/);
+  expect(createBankStore(join(dir,'bank.json')).get().payments).toEqual([receipt]);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+it('理财申购、平台付款、赎回共用一个余额；银行变化使旧申购方案失效',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'shared-funds-'));
+ try{
+  const bank=createBankStore(join(dir,'bank.json'));
+  bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});
+  const wealth=createWealthStore(bank);
+  const answers={experience:0,loss:0,term:0,liquidity:0,income:0} as const;
+  wealth.assess(answers,1000);
+  const stale=wealth.prepare({productId:'cash-plus',amount:1000000,term:12},1001);
+  bank.pay({id:'bill:first',channel:'wechat',amount:500,merchant:'早餐'},1002);
+  expect(()=>wealth.confirm(stale.id,1003)).toThrow(/资金状态已变化/);
+  const draft=wealth.prepare({productId:'cash-plus',amount:1000000,term:12},1004);
+  const receipt=wealth.confirm(draft.id,1005);
+  expect(bank.get().balance).toBe(3229500);
+  expect(wealth.get().cashBalance).toBe(bank.get().balance);
+  expect(wealth.confirm(draft.id,1006)).toEqual(receipt);
+  const redemption=wealth.prepareRedemption(draft.id,1007);
+  wealth.confirmRedemption(redemption.id,1008);
+  expect(createBankStore(join(dir,'bank.json')).get().balance).toBe(4229500);
+  expect(wealth.get().cashBalance).toBe(4229500);
+ }finally{rmSync(dir,{recursive:true,force:true});}
 });

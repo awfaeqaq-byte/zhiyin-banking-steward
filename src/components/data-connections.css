@@ -90,6 +90,9 @@
 .connection-source-title { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; }
 .connection-source-title h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.5; }
 .connection-source-copy p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.connection-source-copy .connection-coverage { width: fit-content; margin-top: 8px; padding: 4px 8px; border-radius: 7px; font-size: 12px; font-weight: 600; }
+.connection-coverage.is-complete { background: #eaf7f1; color: #247556; }
+.connection-coverage.is-incomplete { background: #fff1e8; color: #9a4e23; }
 .connection-status {
   display: inline-flex;
   align-items: center;

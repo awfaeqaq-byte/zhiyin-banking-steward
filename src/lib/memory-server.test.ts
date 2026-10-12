@@ -15,6 +15,8 @@ it('重启存储仍可读取；并发版本冲突、文件损坏均不覆盖',()
   store.change({type:'profile',profileAction:'enable',enabled:true,revision:2});
   store.change({type:'profile',profileAction:'observe',revision:3,observation:{topic:'music',text:'两个会员都有用途',quote:'两个都用',userText:'两个都用'}});
   expect(createMemoryStore(file).get().profile?.items[0].text).toBe('两个会员都有用途');
+  store.change({type:'customer-context',revision:4,customerContext:{enabled:true,primarySegment:'family',needs:['family_planning']}});
+  expect(createMemoryStore(file).get().customerContext?.primarySegment).toBe('family');
   expect(()=>store.change({type:'clear',revision:1})).toThrow(/变化/);
   writeFileSync(file,'broken');
   expect(()=>store.change({type:'clear',revision:2})).toThrow();

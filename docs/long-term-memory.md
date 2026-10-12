@@ -22,11 +22,13 @@
 
 业务状态（重复订阅选择、提醒、周期扣费确认）仍由原模块管理，不因记忆开关改变。余额、最新账单每次刷新，不从长期记忆中取。
 
+已实现结构化 `customerContext` 服务偏好：年轻成长、家庭、财富管理、银发安全、商户／小微经营及通用客群，配合 10 类需求标签。只有用户主动选择并点击保存才写入；关闭后不发给模型。它只调整账单、理财和卡片建议的排序与解释重点，与风险测评、余额、持仓和交易权限分开。完整设计见 [微信账单一致性与客群记忆设计](wechat-bill-consistency-and-customer-memory.md)。
+
 ## 接口
 
 - `GET /api/zhiyin/memory` → 完整状态（no-store）
 - `POST` 相同地址，JSON，`X-Zhiyin-Memory: 1`，每次附 revision。
-- type：`enabled`、`save`、`delete`、`clear`。save 带 id 时修改，不带时新增；同文去重。409 表示版本变化，应刷新核对，不自动重试覆盖。
+- type：`enabled`、`save`、`delete`、`clear`、`profile`、`customer-context`。save 带 id 时修改，不带时新增；同文去重。409 表示版本变化，应刷新核对，不自动重试覆盖。
 
 接口在根 Vite 和 MobileGym Vite 的开发/预览服务器注册。新增服务器逻辑更新需要 Vite 重启；知银嵌入包需要 `npm run phone:sync`。
 

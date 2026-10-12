@@ -23,12 +23,11 @@ it('保留同类订阅后刷新仍记住，可在订阅页撤回且不关闭续�
   await waitFor(() => expect(screen.getByRole('button', {name:'两个都保留'})).toBeEnabled());
   await user.click(screen.getByRole('button', {name:'两个都保留'}));
   expect(screen.queryByText('可能重复订阅')).not.toBeInTheDocument();
-  expect(screen.getByText('临近扣费')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:/临近扣费.*QQ音乐/})).toBeInTheDocument();
   expect(localStorage.getItem('zhiyin-duplicate-preferences-v1')).toContain('keep');
   view.unmount(); view = render(<App />);
-  await waitFor(() => expect(screen.getByRole('button', {name:'查看全部订阅'})).toBeInTheDocument());
   expect(screen.queryByRole('button', {name:'两个都保留'})).not.toBeInTheDocument();
-  await user.click(screen.getByRole('button', {name:'查看全部订阅'}));
+  await user.click(screen.getByRole('button', {name:'订阅'}));
   await waitFor(() => expect(screen.getByRole('button', {name:'重新评估这组订阅'})).toBeEnabled());
   expect(screen.getByRole('switch', {name:'QQ音乐续费提醒'})).toBeChecked();
   await user.click(screen.getByRole('button', {name:'重新评估这组订阅'}));
@@ -74,7 +73,7 @@ it("经典模式保留，AI 原生首页可切换并记住选择", async () => {
   await switchMode(user, "AI 原生");
   expect(screen.getByRole("heading", { name: "下午好，叶先生。" })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "和宁宁说点什么" })).toBeInTheDocument();
-  expect(screen.getByRole("banner")).toHaveClass("fixed-chat-header");
+  expect(screen.getAllByRole("banner").some(item=>item.classList.contains("fixed-chat-header"))).toBe(true);
 
   view.unmount();
   render(<App />);
@@ -171,7 +170,8 @@ it("切换私人管家后，对话入口和首页文案同步更新", async () =
 
   await user.click(screen.getByRole("button", { name: "选择私人管家" }));
   await user.click(screen.getByRole("button", { name: "选择阿衡" }));
-  expect(screen.getByText(/阿衡只会在有需要时提醒你/)).toBeInTheDocument();
+  expect(screen.getByRole('heading',{name:'下午好，叶先生。'})).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'选择私人管家'})).toHaveTextContent('阿衡');
   expect(screen.getByRole("textbox", { name: "和阿衡说点什么" })).toBeInTheDocument();
 });
 

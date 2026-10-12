@@ -129,6 +129,13 @@ export function DataConnections({ connections, onConnect, onDisconnect,initialPr
                     {item && <span className="connection-status"><Check size={14} aria-hidden="true" />已连接</span>}
                   </div>
                   <p>{item ? `${item.accountMasked} · 已授权 ${item.scopes.length} 项` : provider.description}</p>
+                  {item?.transactionCoverage && (
+                    <p className={`connection-coverage ${item.transactionCoverage.complete ? "is-complete" : "is-incomplete"}`}>
+                      账单覆盖 {item.transactionCoverage.returned}/{item.transactionCoverage.total} 笔
+                      {item.transactionCoverage.invalid ? ` · ${item.transactionCoverage.invalid} 笔格式无效` : ""}
+                      {item.transactionCoverage.complete ? " · 已完整同步" : " · 数据不完整"}
+                    </p>
+                  )}
                 </div>
                 {item?.balance !== undefined && (
                   <div className="source-balance">

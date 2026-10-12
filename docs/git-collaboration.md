@@ -12,7 +12,7 @@ npm --prefix mobilegym ci
 npm run phone:dev
 ```
 
-打开 http://localhost:3000 。不需要额外开 5174。修改知银后执行 `npm run phone:sync`；修改 MobileGym 内应用由 Vite 热更新。Puppeteer 下载失败时可设置 `PUPPETEER_SKIP_DOWNLOAD=true` 再安装，普通网页演示不依赖其浏览器。
+打开 http://localhost:3000 ，在手机桌面点击「知银」。修改知银后执行 `npm run phone:sync` 并刷新手机模拟器；修改 MobileGym 内应用由 Vite 热更新。Puppeteer 下载失败时可设置 `PUPPETEER_SKIP_DOWNLOAD=true` 再安装，手动测试手机模拟器不依赖 Puppeteer。
 
 API Key 不入库：在沙箱控制台的模型配置中自行填写。所有真实账户操作均未接入，只有本地沙箱数据。
 

@@ -12,6 +12,18 @@ export type FinancialTransaction = {
   linkedId?: string;
 };
 
+export type FinancialTransactionCoverage = {
+  /** Number of source records considered before validation and the response limit. */
+  total: number;
+  /** Number of valid records included in this snapshot. */
+  returned: number;
+  /** Number of source records rejected because required fields were invalid. */
+  invalid: number;
+  complete: boolean;
+  from?: string;
+  to?: string;
+};
+
 export type FinancialAutopay = {
   id: string;
   title: string;
@@ -29,6 +41,7 @@ export type FinancialSourceSnapshot = {
   accountMasked: string;
   balance?: number;
   transactions: FinancialTransaction[];
+  transactionCoverage?: FinancialTransactionCoverage;
   autopays: FinancialAutopay[];
   /** Some active agreements were omitted because they were invalid or exceeded the response limit. */
   autopaysIncomplete?: boolean;

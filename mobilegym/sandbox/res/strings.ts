@@ -1,5 +1,15 @@
 // The console is a browser-level operator tool, not a simulated App resource namespace.
 export const consoleStrings = {
+  replay: {
+    title:'本地 Excel 账单回放',description:'默认使用现有沙箱账单。需要历史样本时，在这里手动切换。',
+    enabled:'本地回放已开启',ready:'已配置，尚未开启',missing:'未配置：在仓库根目录 .zhiyin-bill-source.local.json 指定 sourcePath 和 expectedSha256。',loading:'正在读取配置…',
+    load:'回放本地账单',restore:'恢复原账单',loadConfirm:'确认回放本地账单？',restoreConfirm:'确认恢复原账单？',
+    loadHelp:'先备份当前浏览器的微信账单，再载入已配置的 Excel。不会改变余额、订阅、聊天或银行卡。后台回放开关由此本地服务的浏览器共用。',
+    restoreHelp:'关闭后台 Excel 回放并恢复本浏览器备份，保留回放期间新增的沙箱消费。不会删除原始 Excel。其他浏览器需分别恢复自己的备份。',
+    access:'不会自动授权或撤销权限。知银仍需在连接设置中完成平台双方授权。',
+    confirmLoad:'确认回放',confirmRestore:'确认恢复',running:'正在处理…',failed:'回放未完成，请检查配置后重试',noBackup:'本浏览器没有可恢复的原账单备份',
+    statusFailed:'操作已完成，但状态刷新失败；请重新展开财务测试。',loaded:(rows:number,quarantined:number)=>`已回放 ${rows} 条账单，隔离 ${quarantined} 条。原账单已备份。`,restored:'原账单已恢复，回放期间新增的消费已保留。',
+  },
   steward: {
     category: '知银管家', categoryHint: '对话、任务上下文与记忆', title: '重置宁宁', reset: '重置宁宁',
     description: '从干净的管家上下文重新测试，支付平台数据与授权保持不变。',
