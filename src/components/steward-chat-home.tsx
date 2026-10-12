@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
+import {HomeReplyVisual} from './home-reply-visual';
 import { StewardReplyContent } from './steward-reply';
 import {TransferFollowUp} from './transfer-follow-up';
 import {TaskDueNotice} from './task-due-notice';
@@ -96,6 +97,7 @@ type AttentionEvent =
 type Props = {
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
+  homePreview?:boolean;
   seamless?: boolean;
   conversationNotice?: {id:string;text:string;retryPrompt?:string};
   sceneFlows?:SceneFlow[];
@@ -219,7 +221,7 @@ function actionSubscription(
 
 export function StewardChatHome({
   wechatShare,onWechatShareDone,
-  seamless=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
+  seamless=false, homePreview=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
   stewardName,
@@ -288,17 +290,21 @@ export function StewardChatHome({
   const conversationCutoff=useRef(localStorage.getItem('zhiyin-steward-conversation-cutoff')||'');
   const latestMessages=useRef(messages);
   latestMessages.current=messages;
+  const [homeConversationHydrated,setHomeConversationHydrated]=useState(false);
   useEffect(()=>{
     if(seamless&&conversationMessages===undefined&&contextWorkspaces.length)setMessages(current=>recoverReplies(current,contextWorkspaces));
   },[seamless,contextWorkspaces,conversationMessages]);
   useEffect(()=>{
     if(!seamless||conversationMessages===undefined)return;
-    const latest=conversationMessages.at(-1);if(latest?.role==='assistant'&&!latestMessages.current.some(m=>m.id===latest.id))setActiveReplyId(latest.id);
+    const firstHomeHydration=homePreview&&!homeConversationHydrated;
+    const latest=conversationMessages.at(-1);
+    if(firstHomeHydration){setActiveReplyId(latest?.role==='assistant'?latest.id:null);setHomeConversationHydrated(true);}
+    else if(latest?.role==='assistant'&&!latestMessages.current.some(m=>m.id===latest.id))setActiveReplyId(latest.id);
     setMessages(current=>{
       const existing=new Map(current.map(m=>[m.id,m]));const known=new Set(conversationMessages.map(m=>m.id));
       return [...conversationMessages.map(m=>({...existing.get(m.id),...m})),...current.filter(m=>!known.has(m.id))];
     });
-  },[seamless,conversationMessages]);
+  },[seamless,conversationMessages,homePreview,homeConversationHydrated]);
   useEffect(()=>{
     if(conversationMessages!==undefined&&onConversationEntries)void onConversationEntries(messages.map(({id,role,content,workspaceId,retryPrompt})=>({id,role,content,...(workspaceId?{workspaceId}:{}),...(retryPrompt?{retryPrompt}:{})})));
   },[messages,conversationMessages,onConversationEntries]);
@@ -324,7 +330,7 @@ export function StewardChatHome({
   const [error, setError] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>seamless?(messages.at(-1)?.action?.type==='open_connections'||messages.at(-1)?.view==='term_deposit'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(()=>homePreview&&messages.at(-1)?.role==='assistant'?messages.at(-1)!.id:seamless?(messages.at(-1)?.action?.type==='open_connections'||messages.at(-1)?.view==='term_deposit'?messages.at(-1)!.id:null):workspace?.messages.at(-1)?.id || null);
   const [activeBill, setActiveBill] = useState<{id:string; data:BillAnalysis} | null>(null);
   const [billScenes,setBillScenes]=useState<Record<string,BillScene>>(()=>seamless?restoreBillScenes(localStorage.getItem('zhiyin-bill-scenes-v1')):{});
   const liveBillScenes=useRef(billScenes);liveBillScenes.current=billScenes;
@@ -470,7 +476,7 @@ export function StewardChatHome({
     if (typeof target?.scrollIntoView === "function") {
       target.scrollIntoView({ block: "nearest" });
     }
-  }, [activeReplyId, sending, error, historyOpen,externalBusy,seamless]);
+  }, [activeReplyId, sending, error, historyOpen,externalBusy,seamless,homeConversationHydrated]);
 
   async function decideAutomationEvidence(decision:'confirmed'|'dismissed'){
     if(!currentAutomationAttention?.runId||!automationEvidence||!onAutomationDecision)return;
@@ -759,7 +765,7 @@ export function StewardChatHome({
   }
 
   return (
-    <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${sending || externalBusy ? 'is-working' : ''}`}>
+    <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
         <div className="steward-thread-context" aria-label="演示环境">
           <span>今天</span>
@@ -927,9 +933,11 @@ export function StewardChatHome({
             const choices=scene&&!scene.needsConsent?parsed.choices.filter(choice=>!/^(?:只看|就看|查看|切换到|看)?(?:微信(?:支付)?|支付宝|全部平台|全部)(?:的)?(?:账单)?$/.test(choice)):parsed.choices;
             return [(
               <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} role={message.retryPrompt?'alert':undefined} key={message.id}>
+                {homePreview&&message.role==='assistant'&&<img className="home-reply-avatar" src={stewardImage} alt=""/>}
                 <div className="steward-brief">
+                  {homePreview&&message.role==='assistant'&&<div className="home-reply-identity"><strong>{stewardName}</strong><span>AI</span></div>}
                   {historyOpen && <small>{message.role === 'user' ? '你' : stewardName}</small>}
-                  {seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>}
+                  {seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:homePreview&&message.role==='assistant'?<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>}
                   {message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id&&sceneFlows.find(s=>s.id===message.sceneId)?.next&&onResumeScene&&<button className="desk-text-action" onClick={()=>void onResumeScene(sceneFlows.find(s=>s.id===message.sceneId)!.next!)}>{({food:'查看原订单',occasion:'继续核对筹备',expense:'查看收款进度',calendar:'查看日历安排',bank:'查看银行记录'} as const)[sceneFlows.find(s=>s.id===message.sceneId)!.next!.kind]}</button>}
                   {message.retryPrompt&&message.id===activeReplyId&&<button className="desk-text-action" disabled={sending||externalBusy||viewSaving} onClick={()=>void sendPrompt(message.retryPrompt!)}>重试这条消息</button>}
                   {!historyOpen && message.id===activeReplyId && message.view==='wealth_compare' && <WealthInlineCompare onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>}
