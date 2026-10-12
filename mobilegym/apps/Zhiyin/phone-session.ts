@@ -1,3 +1,4 @@
+import {validWechatShare,type WechatShare} from '../../../src/lib/wechat-message-share';
 type Status = 'loading' | 'ready' | 'error';
 type FinancialProvider = 'alipay' | 'wechat_pay';
 type FinancialScope = 'balance' | 'transactions' | 'autopay';
@@ -29,11 +30,14 @@ export function createPhoneSession(options: Options) {
   let loadTimer: ReturnType<typeof setTimeout> | undefined;
   let backTimer: ReturnType<typeof setTimeout> | undefined;
   let disposed = false;
+  let shared:WechatShare|undefined;
+  const receivedShares=new Set<string>();
   const contactRequests = new Set<string>();
   const financeRequests = new Set<string>();
   const revocationRequests = new Set<string>();
   const cancellationRequests = new Set<string>();
   const send = (data: object) => options.peer()?.postMessage({ channel: 'zhiyin-phone', version: 1, ...data }, options.origin);
+  const deliverShare=()=>{if(shared&&ready&&!disposed&&options.isActive())send({type:'wechat-share',share:shared});};
   const exit = () => { if (options.isActive()) options.onExit(); };
   const reload = () => {
     clearTimeout(loadTimer);
@@ -45,10 +49,12 @@ export function createPhoneSession(options: Options) {
   };
   reload();
   return {
+    share:(value:unknown)=>{if(validWechatShare(value)&&!receivedShares.has(value.id)){shared=value;deliverShare();}},
     reload,
     ping: () => send({ type: 'ping' }),
     foreground: () => {
       if (ready && !disposed && options.isActive()) send({ type: 'foreground' });
+      deliverShare();
     },
     receive(event: Pick<MessageEvent, 'origin' | 'source' | 'data'>) {
       if (event.origin !== options.origin || !options.peer() || event.source !== options.peer()) return;
@@ -58,7 +64,9 @@ export function createPhoneSession(options: Options) {
         ready = true;
         clearTimeout(loadTimer);
         options.onStatus('ready');
+        deliverShare();
       }
+      if(data.type==='wechat-share-result'&&data.status==='received'&&data.id===shared?.id){receivedShares.add(data.id);shared=undefined;}
       if(data.type==='food-order-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['catalog','prepare','open','records'].includes(data.operation)&&options.isActive()&&options.foodOrder&&!financeRequests.has(data.requestId)){
         const id=data.requestId;financeRequests.add(id);
         void options.foodOrder(data.operation,{taskId:data.taskId,orderId:data.orderId,draft:data.draft,quote:data.quote,authorized:data.authorized}).then(result=>{if(!disposed)send({type:'food-order-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'food-order-result',requestId:id,status:'error',message:e instanceof Error?e.message:'无法核对点餐方案'});}).finally(()=>financeRequests.delete(id));

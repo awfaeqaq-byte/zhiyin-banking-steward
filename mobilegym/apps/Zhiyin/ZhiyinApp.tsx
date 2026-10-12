@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MemoryRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useOS } from '@/os/OSContext';
+import {useActivityContext} from '@/os/ActivityContext';
 import { useAppNavigationHandler } from '@/os/hooks/useAppNavigationHandler';
 import { useTriggerGestures } from '@/os/hooks/useTriggerGestures';
 import { useAppStrings } from '@/os/useAppStrings';
@@ -25,6 +26,7 @@ const FRAME_URL = `${import.meta.env.BASE_URL}zhiyin/index.html?phone=mobilegym`
 function ZhiyinFrame() {
   const s = useAppStrings(strings, stringsEn);
   const { state, goHome } = useOS();
+  const {activityId}=useActivityContext();
   const isForeground = isAppActive(state, manifest.id);
   const active = useRef(false);
   active.current = isForeground;
@@ -61,6 +63,11 @@ function ZhiyinFrame() {
   useEffect(() => {
     if (isForeground && status === 'ready') session.current?.foreground();
   }, [isForeground, status]);
+  useEffect(()=>{
+    if(!isForeground)return;
+    const intent=window.__OS__?.getIntentPayload?.(activityId);
+    if(intent?.action==='ACTION_SEND'&&intent.type==='text/plain'&&intent.data?.__callerAppId==='wechat')session.current?.share(intent.data.wechatShare);
+  },[state,isForeground,status,activityId]);
 
   useAppNavigationHandler(manifest.id, {
     onBack: () => session.current?.back() ?? false,

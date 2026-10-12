@@ -16,6 +16,7 @@ import { WechatSmartImage } from '../../components/WechatSmartImage';
 import type { Message } from '../../types';
 import { resolveChatPeerByWxid } from '../../utils/resolveChatPeer';
 import { getWechatWalletBackend } from '../../wallet/backend';
+import {useMessageShare} from '../../components/useMessageShare';
 
 const { keyboardHeight } = SIMULATOR_CONFIG.framework;
 
@@ -35,6 +36,7 @@ type ChatBubbleProps = {
   buildImageGestureProps: (msg: Message) => Record<string, unknown>;
   buildFileGestureProps: (msg: Message) => Record<string, unknown>;
   buildTransferGestureProps: (msg: Message, isMe: boolean) => Record<string, unknown>;
+  buildTextGestureProps:(msg:Message)=>React.HTMLAttributes<HTMLDivElement>;
 };
 
 function formatTransferAmount(cents = 0): string {
@@ -49,6 +51,7 @@ const ChatBubble = React.memo<ChatBubbleProps>(function ChatBubble({
   buildImageGestureProps,
   buildFileGestureProps,
   buildTransferGestureProps,
+  buildTextGestureProps,
 }) {
   if (msg.type === 'time') {
     return (
@@ -158,6 +161,7 @@ const ChatBubble = React.memo<ChatBubbleProps>(function ChatBubble({
         );
       })() : (
         <div
+          {...(msg.type==='text'?buildTextGestureProps(msg):{})}
           className={`relative max-w-[70%] px-3 py-2.5 rounded-[6px] text-(--app-chat-bubble-text-size) leading-[1.5] break-all shadow-sm ${
             isMe ? 'bubble-tail-me' : 'bg-app-surface bubble-tail-other'
           }`}
@@ -362,6 +366,7 @@ export const ChatDetail: React.FC = () => {
   const selectedTransfer = selectedTransferId
     ? walletTransfers.find(transfer => transfer.id === selectedTransferId) || null
     : null;
+  const messageShare=useMessageShare({id:chat?.id||'',name:chat?.user.name||'',kind:'direct'},(chat?.messages??[]).filter(m=>m.type==='text').map(m=>({id:m.id,sender:m.senderId===user.wxid?t.aa_me:chat!.user.name,text:m.content,sentAt:m.timestamp})));
 
   if (!chat) {
     return <div className="min-h-screen bg-app-bg pt-20 text-center text-(--app-c-tw-text-gray-400)">未找到联系人</div>;
@@ -398,6 +403,7 @@ export const ChatDetail: React.FC = () => {
             buildImageGestureProps={buildImageGestureProps}
             buildFileGestureProps={buildFileGestureProps}
             buildTransferGestureProps={buildTransferGestureProps}
+            buildTextGestureProps={msg=>messageShare.bindMessage(msg.id)}
           />
         ))}
         {isAiReplyPending && (
@@ -417,6 +423,7 @@ export const ChatDetail: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {messageShare.overlay}
       <div
         className="flex-shrink-0 border-t border-app-border px-3 py-2 flex items-center gap-3"
         style={{ backgroundColor: 'var(--app-c-chat-input-bar-bg)' }}

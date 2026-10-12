@@ -1,0 +1,7 @@
+.wechat-share-attachment{margin:12px 0;padding:14px 16px;border-left:3px solid #206a70;background:#f1f7f5;border-radius:6px;overflow-wrap:anywhere}
+.wechat-share-attachment>div{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.wechat-share-attachment strong{font-size:15px}.wechat-share-attachment button{min-height:44px;padding:8px 10px;font-size:14px;color:#206a70}
+.wechat-share-attachment ol{list-style:none;margin:8px 0;padding:0;max-height:240px;overflow:auto}
+.wechat-share-attachment li{padding:8px 0;border-bottom:1px solid #dce7e3}.wechat-share-attachment li span{font-size:12px;color:#536870}
+.wechat-share-attachment p{font-size:14px;line-height:1.6;margin:4px 0;white-space:pre-wrap}.wechat-share-hint{color:#536870}
+.wechat-share-attachment .wechat-share-process{background:#206a70;color:white;border-radius:6px;margin-top:8px}.wechat-share-attachment button:disabled{opacity:.5}

@@ -63,6 +63,8 @@ import { buildFundingForecast, fundingReferenceTime } from "../lib/funding-forec
 import type {Workspace} from '../lib/workspaces';
 import {recentConversation} from '../lib/conversation-context';
 import {InlineBillConsent,StewardBillWorkspace,type ConnectBillSource} from './steward-bill-workspace';
+import {sharePrompt,WECHAT_SHARE_PREFIX,type WechatShare} from '../lib/wechat-message-share';
+import {WechatShareAttachment} from './wechat-share-attachment';
 import {billProvider,billScopeQuestion,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
 
 type DisplayMessage = StewardChatMessage & {
@@ -85,6 +87,8 @@ type AttentionEvent =
   };
 
 type Props = {
+  wechatShare?:WechatShare;
+  onWechatShareDone?:(id:string)=>void;
   seamless?: boolean;
   conversationNotice?: {id:string;text:string};
   contextWorkspaces?: Workspace[];
@@ -170,6 +174,7 @@ function actionSubscription(
 }
 
 export function StewardChatHome({
+  wechatShare,onWechatShareDone,
   seamless=false, conversationNotice, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
@@ -427,7 +432,7 @@ export function StewardChatHome({
     const prompt = text.trim();
     if (!prompt || sending || viewLock.current) return;
     if(interaction.current?.prompt!==prompt)interaction.current=undefined;
-    if(automationEvidence){
+    if(automationEvidence&&!prompt.startsWith(WECHAT_SHARE_PREFIX)){
       if(/具体交易|交易明细|哪一笔|看看交易|查看交易/.test(prompt)){
         setAutomationDetailsOpen(true);
         setAutomationNotice(`这是${automationEvidence.transactions?.length||0}笔关联交易，金额大或频次高不等于异常，你可以继续告诉我是否需要关注。`);
@@ -445,7 +450,7 @@ export function StewardChatHome({
         return;
       }
     }
-    const focusChange=applyFinancialFocusCommand(prompt,focusRules);
+    const focusChange=prompt.startsWith(WECHAT_SHARE_PREFIX)?null:applyFinancialFocusCommand(prompt,focusRules);
     if(focusChange){
       const stamp=Date.now();
       const responseId=`assistant-focus-${stamp}`;
@@ -467,7 +472,7 @@ export function StewardChatHome({
       // Record the user's original sentence once, not each backstage routing fragment.
       if(seamless&&recordUser)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:billTurn?.displayText||prompt}]);
       setActiveReplyId(null);setActiveBill(null);setError('');setLastPrompt(prompt);
-      try{await onRoutePrompt(prompt,recentContext(),billTurn?.taskId);setInput('');}catch{/* Keep original input for retry; coordinator displays the error. */}
+      try{await onRoutePrompt(prompt,recentContext(),billTurn?.taskId);setInput('');if(wechatShare&&prompt.startsWith(WECHAT_SHARE_PREFIX))onWechatShareDone?.(wechatShare.id);}catch{/* Keep original input for retry; coordinator displays the error. */}
     }return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
@@ -648,7 +653,8 @@ export function StewardChatHome({
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    void sendPrompt(input);
+    if(wechatShare){try{void sendPrompt(sharePrompt(wechatShare,input.trim()||wechatShare.instruction));}catch(cause){setError(cause instanceof Error?cause.message:'请核对分享材料');}}
+    else void sendPrompt(input);
   }
 
   function interactWithBill(scene:BillScene,value:BillInteraction) {
@@ -694,6 +700,7 @@ export function StewardChatHome({
           <span>今天</span>
           <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
+        {wechatShare&&<WechatShareAttachment share={wechatShare} stewardName={stewardName} disabled={sending||externalBusy} onRemove={()=>onWechatShareDone?.(wechatShare.id)} onProcess={()=>{try{void sendPrompt(sharePrompt(wechatShare,input.trim()||wechatShare.instruction));}catch(cause){setError(cause instanceof Error?cause.message:'请核对分享材料');}}}/>}
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}
         {onOpenTasks&&!sending&&!activeReplyId&&!historyOpen&&<TaskDueNotice occasions={occasionPlans} onOccasion={onOpenOccasions?id=>onOpenOccasions(undefined,id):undefined} onOpen={onOpenTasks} onAttention={setTaskAttention}/>}
 
@@ -955,9 +962,9 @@ export function StewardChatHome({
               onChange={event => setInput(event.target.value)}
               placeholder={`和${stewardName}说点什么…`}
               autoComplete="off"
-              maxLength={1000}
+              maxLength={wechatShare?200:1000}
             />
-            <button type="submit" aria-label={`发送给${stewardName}`} disabled={sending || externalBusy || viewSaving || !input.trim()}>
+            <button type="submit" aria-label={`发送给${stewardName}`} disabled={sending || externalBusy || viewSaving || (!input.trim()&&!wechatShare)}>
               {sending ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
             </button>
           </div>

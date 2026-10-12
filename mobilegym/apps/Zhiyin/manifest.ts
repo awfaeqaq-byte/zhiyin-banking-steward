@@ -16,6 +16,7 @@ export const manifest: AppManifest = {
   iconForeground: '#ffffff',
   designViewportWidth: 390,
   permissions: [PERMISSIONS.READ_CONTACTS],
+  intentFilters:[{action:'ACTION_SEND',type:'text/plain',route:'/',launchMode:'singleTask',description:'Receive explicitly selected WeChat messages as task evidence'}],
   queries: [
     { action: 'ACTION_FINANCIAL_DATA_CONSENT', scheme: 'weixin' },
     { action: 'ACTION_FINANCIAL_DATA_CONSENT', scheme: 'alipays' },

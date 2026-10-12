@@ -1,0 +1,14 @@
+.wx-message-share-bar{flex-shrink:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;background:white;border-top:1px solid #ddd;font-size:14px;z-index:5}
+.wx-message-share-bar>span{margin-right:auto}.wx-message-share-bar button,.wx-message-share-actions button{min-height:44px;padding:10px 12px;border-radius:6px;color:#176342;font-size:14px}
+.wx-message-share-bar p{flex-basis:100%;color:#a3352b;font-size:13px;margin:0}
+.wx-message-share-primary{background:#078345!important;color:#fff!important}
+[data-share-selected="true"]{outline:2px solid #078345;outline-offset:4px}
+[data-share-selected="true"]::after{content:'✓';position:absolute;right:-8px;top:-8px;background:#078345;color:white;border-radius:50%;font-size:12px;width:20px;height:20px;text-align:center;line-height:20px}
+.wx-message-share-backdrop{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:48px 16px 64px;background:#0007}
+.wx-message-share-dialog{width:100%;max-width:390px;max-height:100%;overflow:auto;border-radius:12px;background:white;padding:18px;color:#191919;font-size:15px;box-shadow:0 8px 30px #0002}
+.wx-message-share-dialog h2{font-size:18px;font-weight:600;margin:0 0 4px}.wx-message-share-source{color:#666;margin:0 0 12px;font-size:13px}
+.wx-message-share-dialog ol{list-style:none;max-height:210px;overflow:auto;padding:0;margin:0 0 12px}.wx-message-share-dialog li{padding:10px 0;border-bottom:1px solid #eee;overflow-wrap:anywhere}
+.wx-message-share-dialog li span{color:#666;font-size:12px}.wx-message-share-dialog p{line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.wx-message-share-dialog label{display:block;font-size:14px}.wx-message-share-dialog textarea{display:block;width:100%;min-height:80px;border:1px solid #ccc;border-radius:6px;padding:10px;margin-top:8px;font-size:16px;resize:none}
+.wx-message-share-hint{font-size:12px;color:#666}.wx-message-share-actions{display:flex;justify-content:flex-end;gap:10px}.wx-message-share-dialog [role="alert"]{color:#a3352b}
+.wx-message-share-dialog button:focus-visible,.wx-message-share-bar button:focus-visible,[data-message-id] [role="button"]:focus-visible{outline:2px solid #078345;outline-offset:3px}

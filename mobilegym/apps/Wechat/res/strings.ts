@@ -3,6 +3,9 @@
  * 服务宫格标签 + 页面级 UI 字符串
  */
 export const strings = {
+  zhiyin_share_title:'分享给知银',zhiyin_share_select:'选择消息',zhiyin_share_selection:'所选消息',zhiyin_share_selected:'已选 {count} 条',
+  zhiyin_share_note:'希望管家帮你做什么？（可选）',zhiyin_share_note_hint:'例如：帮我准备一下，预算500元',zhiyin_share_back:'返回选择',zhiyin_share_open:'分享并打开知银',
+  zhiyin_share_disclosure:'只分享所选消息及发送人、时间和聊天名称。分享不等于授权付款或下单。',zhiyin_share_limits:'最多选择5条文字消息，合计不超过1000字。',zhiyin_share_open_error:'分享未完成，请核对消息长度或稍后重试。',
   aa_total_collection:'总收款',aa_collected_amount:'已收',aa_unpaid_amount:'未付',
   aa_by_person:'按人填金额',aa_prepared:'知银已填写',aa_participants:'参与人',aa_amount:'承担金额',
   aa_back:'返回',aa_choose:'选择一个微信群',aa_collection:'群收款',aa_group_preview:'演示群 · 支持智能AA',

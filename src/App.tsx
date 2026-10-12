@@ -55,6 +55,7 @@ import { DataConnections } from "./components/data-connections";
 import { PhoneContactPicker } from "./components/phone-contact-picker";
 import { SubscriptionCenter } from "./components/subscription-center";
 import { StewardWorkspaces } from "./components/steward-workspaces";
+import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
 import { BillReports } from "./components/bill-reports";
 import { CardApplicationPanel } from "./components/card-application";
@@ -417,6 +418,7 @@ export default function App() {
     return false;
   });
   usePhoneBridge();
+  const wechatShare=useWechatShare(()=>{setMode('native');setPage('home');setModal(null);setPageHistory([]);});
   useEffect(() => {
     if (connections.wechat_pay) return;
     let cancelled = false;
@@ -1456,6 +1458,8 @@ export default function App() {
           )}
           {mode === "native" && page === "home" && (
             <StewardWorkspaces
+              wechatShare={wechatShare.share}
+              onWechatShareDone={wechatShare.done}
               memory={memory}
               duplicatePreferences={duplicatePreferences}
               onDuplicatePreference={changeDuplicatePreference}

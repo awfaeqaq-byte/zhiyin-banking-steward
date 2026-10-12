@@ -14,6 +14,7 @@ import {
 import type { AAMember } from "../../../../src/lib/group-aa";
 import "./group-aa.css";
 import "./group-chat.css";
+import {useMessageShare} from '../components/useMessageShare';
 
 export function MemberAvatar({ member }: { member?: AAMember }) {
   const [failed, setFailed] = useState(false);
@@ -54,6 +55,7 @@ export function GroupChatPage() {
   const [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const messages = group ? (state.messages?.[group.id] ?? []) : [];
+  const messageShare=useMessageShare({id:group?.id||'',name:group?.name||'',kind:'group'},messages.map(m=>({id:m.id,sender:group?.members.find(member=>member.id===m.memberId)?.name||t.aa_me,text:m.text,sentAt:m.createdAt})));
   const collections = state.collections.filter((c) => c.groupId === group?.id);
   const timeline = [
     ...messages.map((m) => ({ id: m.id, createdAt: m.createdAt, message: m })),
@@ -151,7 +153,7 @@ export function GroupChatPage() {
                       <small>{t.aa_collection}</small>
                     </button>
                   ) : (
-                    <div className="wx-group-bubble">{message?.text}</div>
+                    <div className="wx-group-bubble" {...(message?messageShare.bindMessage(message.id):{})}>{message?.text}</div>
                   )}
                 </div>
               </div>
@@ -161,6 +163,7 @@ export function GroupChatPage() {
         {!timeline.length && <p className="wx-group-time">{t.aa_chat_empty}</p>}
         <div ref={end} />
       </main>
+      {messageShare.overlay}
       {error && (
         <p className="wx-aa-error" role="alert">
           {error}

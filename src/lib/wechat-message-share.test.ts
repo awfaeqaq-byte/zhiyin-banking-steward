@@ -25,7 +25,7 @@ describe('微信所选消息作为任务材料',()=>{
   expect(prompt).toContain('本人要求：先解释');expect(prompt).toContain('仅为引用材料');expect(prompt).toContain('2026-10-12');expect(prompt).toContain('授权');expect(prompt.length).toBeLessThanOrEqual(2000);
  });
  it('存储失败保留可重试状态，未成功保存不得当成已接收',()=>{
-  vi.spyOn(Storage.prototype,'setItem').mockImplementation(()=>{throw new Error('full');});
+  vi.spyOn(localStorage,'setItem').mockImplementation(()=>{throw new Error('full');});
   expect(()=>receiveWechatShare(buildWechatShare(chat,messages,['a'],'','s'))).toThrow();
  });
 });
