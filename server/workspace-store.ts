@@ -80,7 +80,9 @@ export function workspaceMiddleware(directory: string) {
         if (Buffer.byteLength(body) > 65536)
           return send(413, { error: "任务内容过长" });
       }
-      return send(200, store.change(JSON.parse(body)));
+      const command=JSON.parse(body);
+      if(command.type==='scene-sync')return send(403,{error:'事项状态只能由核对服务更新'});
+      return send(200, store.change(command));
     } catch (e) {
       const error = e instanceof Error ? e.message : "任务服务不可用";
       send(error.includes("已变化") ? 409 : 400, { error });

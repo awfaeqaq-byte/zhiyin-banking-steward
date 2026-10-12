@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type FormEvent } from "react";
 import {useStewardMemory} from './lib/use-steward-memory';
 import {MemoryManager} from './components/memory-manager';
 import {useBankAccount} from './lib/use-bank-account';
@@ -220,6 +220,8 @@ export default function App() {
   const [mode, setMode] = useState<"classic" | "native">(() =>
     read<string>("zhiyin-mode", "classic") === "native" ? "native" : "classic",
   );
+  const stewardWorkerStarted=useRef(mode==='native');
+  if(mode==='native')stewardWorkerStarted.current=true;
   const [page, setPage] = useState<Page>("home");
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [stewardId, setStewardId] = useState<StewardId>(() => {
@@ -1462,8 +1464,8 @@ export default function App() {
                 }} />
             </>
           )}
-          {mode === "native" && page === "home" && (
-            <>
+          {stewardWorkerStarted.current && (
+            <div hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
               wechatShare={wechatShare.share}
@@ -1503,7 +1505,7 @@ export default function App() {
                 go("subscriptions");
               }}
             />
-            </>
+            </div>
           )}
         </main>
         {page === "home" && mode === "classic" && (

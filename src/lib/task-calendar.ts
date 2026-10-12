@@ -2,11 +2,11 @@ import {bankRecipients,type BankSchedule} from './bank-transfer';
 import type {ConnectedFinancialSource} from './financial-connections';
 import type {OccasionPlan} from './occasion-plans';
 
-export type ReminderDraft={title:string;dueAt:number;note?:string;allDay?:boolean;repeat?:'yearly'};
+export type ReminderDraft={workspaceId?:string;title:string;dueAt:number;note?:string;allDay?:boolean;repeat?:'yearly'};
 export type Reminder=ReminderDraft&{id:string;status:'pending'|'completed'|'cancelled';createdAt:number;updatedAt:number};
 export type TaskState={revision:number;tasks:Reminder[]};
 export type TaskCommand={revision:number;id:string}&({type:'save'}&ReminderDraft|{type:'status';status:Reminder['status']});
-export type CalendarEvent={id:string;title:string;dueAt:number;kind:'reminder'|'birthday'|'transfer'|'renewal'|'occasion';allDay?:boolean;status:string;note?:string;amount?:number;source?:string;sourceId?:string};
+export type CalendarEvent={workspaceId?:string;id:string;title:string;dueAt:number;kind:'reminder'|'birthday'|'transfer'|'renewal'|'occasion';allDay?:boolean;status:string;note?:string;amount?:number;source?:string;sourceId?:string};
 export const dayKey=(time:number)=>new Date(time+8*3600000).toISOString().slice(0,10);
 export const timeLabel=(time:number)=>new Date(time+8*3600000).toISOString().slice(11,16);
 export const localTaskTime=(time:number)=>`${dayKey(time)}T${timeLabel(time)}`;
@@ -27,7 +27,7 @@ export function nextAnnualDate(month:number,day:number,now=Date.now()):number|nu
 export function validReminderDraft(value:unknown):value is ReminderDraft{
  if(!value || typeof value!=='object')return false;
  const v=value as ReminderDraft;
- return typeof v.title==='string' && v.title.trim().length>0 && v.title.length<=80 && ![...v.title].some(c=>c.charCodeAt(0)<32||'|[]'.includes(c)) && Number.isSafeInteger(v.dueAt) && v.dueAt>0 && v.dueAt<4102444800000 && (v.note===undefined || typeof v.note==='string'&&v.note.length<=500)&&(v.allDay===undefined||typeof v.allDay==='boolean')&&(v.repeat===undefined||v.repeat==='yearly'&&v.allDay===true);
+ return (v.workspaceId===undefined||typeof v.workspaceId==='string'&&/^[\w-]{1,80}$/.test(v.workspaceId))&&typeof v.title==='string' && v.title.trim().length>0 && v.title.length<=80 && ![...v.title].some(c=>c.charCodeAt(0)<32||'|[]'.includes(c)) && Number.isSafeInteger(v.dueAt) && v.dueAt>0 && v.dueAt<4102444800000 && (v.note===undefined || typeof v.note==='string'&&v.note.length<=500)&&(v.allDay===undefined||typeof v.allDay==='boolean')&&(v.repeat===undefined||v.repeat==='yearly'&&v.allDay===true);
 }
 export function validTaskState(value:unknown):value is TaskState{
  if(!value || typeof value!=='object')return false;const s=value as TaskState;
@@ -41,7 +41,7 @@ export function updateTasks(state:TaskState,command:TaskCommand,now=Date.now()):
   if(!validReminderDraft(command)||(command.dueAt<=now&&!(command.allDay&&command.repeat==='yearly'&&dayKey(command.dueAt)===dayKey(now))))throw new Error('请填写任务名称和未来的提醒时间');
   if(existing&&existing.status!=='pending')throw new Error('已结束的任务不能修改，请新建提醒');
   if(!existing&&state.tasks.length>=1000)throw new Error('日程数量已达上限');
-  next={id:command.id,title:command.title.trim(),dueAt:command.dueAt,note:command.note?.trim()||'',...(command.allDay?{allDay:true}:{}),...(command.repeat?{repeat:command.repeat}:{}),status:'pending',createdAt:existing?.createdAt??now,updatedAt:now};
+  next={...(command.workspaceId?{workspaceId:command.workspaceId}:{}),id:command.id,title:command.title.trim(),dueAt:command.dueAt,note:command.note?.trim()||'',...(command.allDay?{allDay:true}:{}),...(command.repeat?{repeat:command.repeat}:{}),status:'pending',createdAt:existing?.createdAt??now,updatedAt:now};
  }else if(command.type==='status'&&['completed','cancelled'].includes(command.status)){
   if(!existing||existing.status!=='pending')throw new Error('任务不存在或已经结束');
   next={...existing,status:command.status,updatedAt:now};

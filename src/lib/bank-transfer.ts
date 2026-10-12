@@ -12,9 +12,9 @@ export function findBankRecipients(query:string){
  return bankRecipients.filter(r=>`${r.name} ${r.remark}`.toLowerCase().includes(text) || (/^\d+$/.test(digits) && r.phone.includes(digits)));
 }
 export type BankRecipientId=typeof bankRecipients[number]['id'];
-export type TransferIntent={recipientId:BankRecipientId;amount:number;executeAt?:number;protectedAmount?:number};
+export type TransferIntent={workspaceId?:string;recipientId:BankRecipientId;amount:number;executeAt?:number;protectedAmount?:number};
 export type BankSchedule=TransferIntent & {id:string;executeAt:number;createdAt:number;status:'pending'|'completed'|'cancelled'|'failed';error?:string};
-export type AAIntent={amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
+export type AAIntent={workspaceId?:string;amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
 export type AAShare={recipientId:BankRecipientId|'self';amount:number;paidAt?:number};
 export type AARequest=AAIntent & {id:string;title:string;createdAt:number;status:'pending'|'completed'|'cancelled';shares:AAShare[]};
 export type AACollection={id:string;requestId:string;recipientId:BankRecipientId;amount:number;completedAt:number;balanceAfter:number};
@@ -64,7 +64,7 @@ export function validBankSnapshot(v:unknown):v is BankSnapshot {
 export function validTransfer(value:unknown):value is TransferIntent {
  if(!value || typeof value!=='object')return false;
  const v=value as TransferIntent;
- return bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0 && (v.executeAt===undefined || (Number.isSafeInteger(v.executeAt) && v.executeAt>0)) && (v.protectedAmount===undefined || (Number.isSafeInteger(v.protectedAmount) && v.protectedAmount>=0));
+ return (v.workspaceId===undefined||typeof v.workspaceId==='string'&&/^[\w-]{1,80}$/.test(v.workspaceId))&&bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0 && (v.executeAt===undefined || (Number.isSafeInteger(v.executeAt) && v.executeAt>0)) && (v.protectedAmount===undefined || (Number.isSafeInteger(v.protectedAmount) && v.protectedAmount>=0));
 }
 export async function bankRequest<T>(body?:object):Promise<T> {
  const response=await fetch('/api/zhiyin/bank',{cache:'no-store',signal:AbortSignal.timeout(8000),...(body?{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1'},body:JSON.stringify(body)}:{})});

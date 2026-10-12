@@ -1,3 +1,4 @@
+import {applySceneSnapshot,attachSceneParent,validScene,type SceneFlow} from './scene-flow';
 import {validTaskProgress,type TaskProgress} from './task-progress-schema';
 import {changeMessageState,validConversationEntry,validMessageRun,type MessageRun,type ConversationEntry,type MessageOperation} from './message-flow';
 /** Conversation workspaces are not payment records or execution permissions. */
@@ -37,11 +38,13 @@ export type Workspace = {
   messages: WorkspaceMessage[];
   summary: string;
   memoryRevision: number;
+  sceneId?: string;
   expenseBookId?: string;
   progress?: TaskProgress;
   pending?: { token: string; text: string }[];
 };
 export type WorkspaceState = {
+  scenes?:SceneFlow[];
   conversation?:ConversationEntry[];
   runs?:MessageRun[];
   version: 1;
@@ -50,6 +53,8 @@ export type WorkspaceState = {
   requests: string[];
 };
 export type WorkspaceOperation =
+  | {type:'scene-parent';id:string;parentId:string}
+  | {type:'scene-sync';id:string;scenes:SceneFlow[]}
   | MessageOperation
   | { type: "create"; id: string; title: string; kind: WorkspaceKind }
   | {type:'progress';id:string;progress:TaskProgress;memoryRevision:number;kind?:'bills'|'food'}
@@ -89,6 +94,7 @@ export function validWorkspaces(value: unknown): value is WorkspaceState {
   return (
     !!s &&
     s.version === 1 &&
+    (s.scenes===undefined||Array.isArray(s.scenes)&&s.scenes.length<=100&&s.scenes.every(validScene))&&
     (s.conversation===undefined||Array.isArray(s.conversation)&&s.conversation.length<=100&&s.conversation.every(validConversationEntry))&&
     (s.runs===undefined||Array.isArray(s.runs)&&s.runs.length<=50&&s.runs.every(validMessageRun))&&
     Number.isSafeInteger(s.revision) &&
@@ -102,6 +108,7 @@ export function validWorkspaces(value: unknown): value is WorkspaceState {
       (w) =>
         w &&
         idOk(w.id) &&
+        (w.sceneId===undefined||idOk(w.sceneId)&&w.sceneId!==w.id&&s.items.some(t=>t.id===w.sceneId&&!t.sceneId))&&
         workspaceKinds.includes(w.kind) &&
         typeof w.title === "string" &&
         w.title.length <= 60 &&
@@ -150,6 +157,7 @@ export function changeWorkspaces(
   if (state.requests.includes(command.requestId)) return state;
   if (command.revision !== state.revision)
     throw new Error("任务已变化，请重新载入后重试");
+  if(command.type==='scene-sync'){const next=applySceneSnapshot(state,command.scenes);next.revision++;next.requests=[...next.requests,command.requestId].slice(-200);if(!validWorkspaces(next))throw new Error('事项状态无效');return next;}
   if(command.type.startsWith('message-')||command.type==='conversation-import'||command.type==='conversation-append'){
     const next=changeMessageState(state,command as MessageOperation);
     next.revision=state.revision+1;next.requests=[...next.requests,command.requestId].slice(-200);
@@ -177,7 +185,8 @@ export function changeWorkspaces(
     });
   } else {
     if (!current) throw new Error("任务不存在");
-    if(command.type==='progress') {
+    if(command.type==='scene-parent'){attachSceneParent(next.items,command.id,command.parentId);}
+    else if(command.type==='progress') {
       if(current.status!=='active'||!validTaskProgress(command.progress)||!Number.isSafeInteger(command.memoryRevision)||command.memoryRevision<0
         ||command.kind!==undefined&&(!['general',command.kind].includes(current.kind)||(command.kind==='bills'?!command.progress.bill:command.kind==='food'?!command.progress.food:true)))throw new Error('任务现场无效，未更改记录');
       if(current.memoryRevision!==command.memoryRevision)current.summary='';
