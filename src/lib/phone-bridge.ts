@@ -83,7 +83,8 @@ function sanitizeFinancialSource(value: unknown): FinancialSourceSnapshot | unde
     typeof source.syncedAt !== "string" || !Array.isArray(source.transactions) || !Array.isArray(source.autopays)
   ) return undefined;
 
-  const transactions = source.transactions.slice(0, 1000).flatMap((value): FinancialTransaction[] => {
+  const scannedTransactions = source.transactions.slice(0, 5_000);
+  const transactions = scannedTransactions.flatMap((value): FinancialTransaction[] => {
     if (!value || typeof value !== "object") return [];
     const item = value as Record<string, unknown>;
     if (
@@ -100,6 +101,26 @@ function sanitizeFinancialSource(value: unknown): FinancialSourceSnapshot | unde
       ...(typeof item.linkedId === "string" ? { linkedId: item.linkedId.slice(0, 100) } : {}),
     }];
   });
+  const localInvalidTransactions = scannedTransactions.length - transactions.length;
+  const localTransactionsOmitted = source.transactions.length > scannedTransactions.length;
+  const rawCoverage = source.transactionCoverage && typeof source.transactionCoverage === "object"
+    ? source.transactionCoverage as Record<string, unknown> : undefined;
+  const coverageIsValid = rawCoverage &&
+    Number.isSafeInteger(rawCoverage.total) && (rawCoverage.total as number) >= 0 &&
+    Number.isSafeInteger(rawCoverage.returned) && (rawCoverage.returned as number) >= 0 &&
+    Number.isSafeInteger(rawCoverage.invalid) && (rawCoverage.invalid as number) >= 0 &&
+    typeof rawCoverage.complete === "boolean";
+  const transactionCoverage = source.transactions.length || coverageIsValid ? {
+    total: coverageIsValid
+      ? Math.max(rawCoverage.total as number, source.transactions.length, transactions.length)
+      : source.transactions.length,
+    returned: transactions.length,
+    invalid: (coverageIsValid ? rawCoverage.invalid as number : 0) + localInvalidTransactions,
+    complete: Boolean(coverageIsValid ? rawCoverage.complete : true) &&
+      !localTransactionsOmitted && localInvalidTransactions === 0,
+    ...(coverageIsValid && typeof rawCoverage.from === "string" ? { from: rawCoverage.from.slice(0, 30) } : {}),
+    ...(coverageIsValid && typeof rawCoverage.to === "string" ? { to: rawCoverage.to.slice(0, 30) } : {}),
+  } : undefined;
   const validAutopays = source.autopays.flatMap((value): FinancialAutopay[] => {
     if (!value || typeof value !== "object") return [];
     const item = value as Record<string, unknown>;
@@ -127,6 +148,7 @@ function sanitizeFinancialSource(value: unknown): FinancialSourceSnapshot | unde
     ...(Number.isSafeInteger(source.balance) && (source.balance as number) >= 0
       ? { balance: source.balance as number } : {}),
     transactions, autopays, syncedAt: source.syncedAt.slice(0, 50),
+    ...(transactionCoverage ? { transactionCoverage } : {}),
     ...(omittedAutopays || typeof source.autopaysIncomplete === "boolean"
       ? { autopaysIncomplete: omittedAutopays || source.autopaysIncomplete === true } : {}),
     ...(Array.isArray(source.cancelledAutopayIds) ? {
@@ -330,6 +352,15 @@ export function refreshFinancialSource(
     activeFinanceRequest = { provider, resolve, timer };
     sendToPhone?.({ type: "finance-source-refresh-request", requestId, provider, scopes: safeScopes });
   });
+}
+
+/** Restore a persisted phone-side grant after the embedded Zhiyin view mounts. */
+export async function restoreFinancialSource(
+  provider: ExternalFinancialProvider,
+  scopes: FinancialScope[],
+): Promise<FinancialSourceResult> {
+  const connected = await waitForPhoneConnection(3_000);
+  return connected ? refreshFinancialSource(provider, scopes) : { status: "unavailable" };
 }
 
 /**

@@ -8,6 +8,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createWechatContactChatProxyMiddleware } from './server/wechatContactChatProxy';
 import { createModelConfigStore, createModelConfigMiddleware } from './server/modelConfig';
+import { createLocalWechatBillMiddleware } from './server/localWechatBill';
 import { memoryPlugin } from '../server/memory-plugin';
 
 // Fix for __dirname in ESM
@@ -1386,6 +1387,22 @@ function wechatContactChatProxyPlugin(mode: string) {
   };
 }
 
+function localWechatBillPlugin() {
+  const handler = createLocalWechatBillMiddleware(
+    path.resolve(__dirname, '..', '.zhiyin-bill-source.local.json'),
+    path.resolve(__dirname, '..', 'scripts', 'import_wechat_bill.py'),
+  );
+  return {
+    name: 'local-wechat-bill',
+    configureServer(server) {
+      server.middlewares.use('/api/zhiyin/local-wechat-bill', handler);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use('/api/zhiyin/local-wechat-bill', handler);
+    },
+  };
+}
+
 /**
  * Generate a human-readable label from filename
  * Format: "appName [Type]" or "appName [Type] (suffix)"
@@ -1479,6 +1496,7 @@ export default defineConfig(({ mode }) => {
       fileSystemPlugin(),
       runsExplorerPlugin(),
       wechatContactChatProxyPlugin(mode),
+      localWechatBillPlugin(),
       memoryPlugin(),
       apiGatewayPlugin(mode),
     ],

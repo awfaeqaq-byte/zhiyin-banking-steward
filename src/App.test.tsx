@@ -16,12 +16,14 @@ describe("知银交互原型", () => {
   it("转账结果保留分，挂失后可通过演示入口恢复", async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole("button", { name: "银行卡" }));
+    await user.click(screen.getByRole("button", { name: "个人中心" }));
+    await user.click(screen.getByRole("button", { name: /银行卡与安全/ }));
     await user.click(screen.getByRole("button", { name: "挂失这张卡" }));
     await user.click(screen.getByRole("button", { name: "确认模拟挂失" }));
     await user.click(
       screen.getByRole("button", { name: "恢复演示卡（仅用于重新体验）" }),
     );
+    await user.click(screen.getByRole("button", { name: "确认恢复演示卡" }));
     await user.click(
       within(screen.getByRole("navigation", { name: "主导航" })).getByRole(
         "button",
@@ -60,24 +62,27 @@ describe("知银交互原型", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("收藏方案不会误处理风险提醒", async () => {
+  it("收藏演示方案不会产生申购回执", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: /帮我选一个稳妥/ }));
     await user.click(screen.getByRole("button", { name: "收藏这份方案" }));
+    expect(screen.getByRole("button", { name: "已收藏这份方案" })).toBeInTheDocument();
+    expect(screen.queryByText(/沙箱申购已完成/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "返回" }));
-    expect(
-      screen.getByRole("button", { name: /理财风险评级有变化/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "今天想办理什么？" })).toBeInTheDocument();
   });
 
   it("卡片开关保存，挂失须确认", async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole("button", { name: "银行卡" }));
+    await user.click(screen.getByRole("button", { name: "个人中心" }));
+    await user.click(screen.getByRole("button", { name: /银行卡与安全/ }));
     const overseas = screen.getByRole("switch", { name: "境外交易" });
     expect(overseas).not.toBeChecked();
     await user.click(overseas);
+    expect(screen.getByRole('dialog',{name:'确认开启境外交易？'})).toBeInTheDocument();
+    await user.click(screen.getByRole('button',{name:'确认开启'}));
     expect(overseas).toBeChecked();
     expect(JSON.parse(localStorage.getItem("zhiyin-controls")!).overseas).toBe(
       true,
@@ -90,6 +95,22 @@ describe("知银交互原型", () => {
     await user.click(screen.getByRole("button", { name: "挂失这张卡" }));
     await user.click(screen.getByRole("button", { name: "确认模拟挂失" }));
     expect(screen.getByText("已挂失")).toBeInTheDocument();
+  });
+
+  it("自然语言调额只预填独立核对页，取消不变更，确认后更新", async () => {
+    const user=userEvent.setup();render(<App/>);
+    await user.type(screen.getByLabelText("告诉宁宁你想办理的事"),"把单笔限额调到5000元");
+    await user.click(screen.getByRole("button",{name:"发送给宁宁"}));
+    expect(screen.getByRole("dialog",{name:"调整单笔支付限额"})).toBeInTheDocument();
+    expect(screen.getByLabelText("单笔限额（元）")).toHaveValue(5000);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog",{name:"调整单笔支付限额"})).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button",{name:/单笔支付限额/}));
+    expect(screen.getByLabelText("单笔限额（元）")).toHaveValue(20000);
+    await user.clear(screen.getByLabelText("单笔限额（元）"));
+    await user.type(screen.getByLabelText("单笔限额（元）"),"5000");
+    await user.click(screen.getByRole("button",{name:"确认调整"}));
+    expect(screen.getByText(/单笔限额已调整为/)).toBeInTheDocument();
   });
 
   it("长期记忆可保存删除，切换管家保留选择", async () => {
@@ -136,12 +157,9 @@ describe("知银交互原型", () => {
     await user.click(
       screen.getByRole("button", { name: /分析这个月的钱花在哪/ }),
     );
-    expect(
-      screen.getByRole("heading", { name: "本月消费" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/外卖支出比上月少 ¥460，做得不错。/),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "我的账单" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "账单报告" })).toBeInTheDocument();
+    expect(screen.getByText(/当前授权范围没有返回可用账单记录/)).toBeInTheDocument();
   });
 
   it("可通过底部导航进入我的页面", async () => {
@@ -194,20 +212,13 @@ describe("知银交互原型", () => {
     expect(screen.getByText("尚未执行，需要你本人确认")).toBeInTheDocument();
   });
 
-  it("风险页的新建议需要用户主动采用", async () => {
+  it("资产健康入口进入实际风险测评，不展示固定评级变化", async () => {
     const user = userEvent.setup();
     render(<App />);
-
-    await user.click(
-      screen.getByRole("button", { name: /理财风险评级有变化/ }),
-    );
-    expect(
-      screen.getByRole("heading", { name: "理财风险评级有变化" }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "采用新建议" }));
-    expect(
-      screen.getByRole("button", { name: "已加入待确认事项" }),
-    ).toBeDisabled();
+    await user.click(within(screen.getByRole("navigation",{name:"主导航"})).getByRole("button",{name:"资产"}));
+    await user.click(screen.getByRole("button",{name:/理财风险测评与持仓/}));
+    expect(screen.getByRole("heading",{name:"理财风险测评与持仓"})).toBeInTheDocument();
+    expect(screen.getByRole("combobox",{name:"可承受亏损"})).toBeInTheDocument();
+    expect(screen.queryByText("当前建议仓位")).not.toBeInTheDocument();
   });
 });

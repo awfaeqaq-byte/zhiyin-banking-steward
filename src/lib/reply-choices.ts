@@ -7,6 +7,6 @@ export function parseReplyChoices(content:string) {
   if(matches.length!==1)return {text,choices:[] as string[]};
   const choices=matches[0][1].split('|').map(value=>value.trim());
   const valid=choices.length>=2 && choices.length<=3 && new Set(choices).size===choices.length
-    && choices.every(value=>value.length>0 && value.length<=30 && !/[\r\n<>\[\]]/.test(value));
+    && choices.every(value=>value.length>0 && value.length<=30 && !['\r','\n','<','>','[',']'].some(char=>value.includes(char)));
   return {text,choices:valid?choices:[]};
 }

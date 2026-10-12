@@ -1,6 +1,18 @@
 .memory-manager { display: grid; gap: 12px; }
 .memory-manager h3 { margin: 12px 0 0; font-size: 16px; }
 .profile-understanding { display: grid; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.customer-context-panel { display: grid; gap: 10px; padding: 4px 0 16px; border-bottom: 1px solid var(--line); }
+.customer-needs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.customer-needs legend { padding: 0 4px; font-size: 13px; color: var(--muted); }
+.customer-needs label { display: flex!important; grid-template-columns: none!important; align-items: center; gap: 8px!important; min-height: 36px; font-size: 13px!important; }
+.customer-needs input { width: 18px; height: 18px; accent-color: var(--teal); }
+.segment-preview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 12px; border-radius: 12px; background: #f3f8f6; }
+.segment-preview-heading { grid-column: 1/-1; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.segment-preview-heading strong { font-size: 14px; }
+.segment-preview-heading span { color: var(--muted); font-size: 11px; }
+.segment-preview article { min-width: 0; padding: 10px; border: 1px solid #dfeae5; border-radius: 9px; background: white; }
+.segment-preview article>strong { font-size: 13px; color: var(--teal-dark); }
+.segment-preview ul { margin: 7px 0 0; padding-left: 16px; color: var(--muted); font-size: 12px; line-height: 1.65; }
 .memory-manager > details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .memory-toggle { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 12px; }
 .memory-toggle input { width: 24px; height: 24px; accent-color: var(--teal); }
@@ -18,3 +30,5 @@
 .memory-records summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .memory-candidate { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
 .memory-manager :focus-visible,.memory-candidate button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+@media (max-width: 560px) { .segment-preview { grid-template-columns: 1fr; } }
+@media (max-width: 440px) { .customer-needs { grid-template-columns: 1fr; } }

@@ -55,3 +55,20 @@ it('服务失败可重试，写入失败不假装保存成功',async()=>{
   await user.type(screen.getByLabelText('记忆内容'),'喜欢高铁');await user.click(screen.getByRole('button',{name:'添加记忆'}));
   expect(await screen.findByRole('alert')).toHaveTextContent('记忆已变化');expect(screen.getByLabelText('记忆内容')).toHaveValue('喜欢高铁');
 });
+it('客群和需求标签只在用户保存后进入结构化长期资料',async()=>{
+  const user=userEvent.setup();let state=updateMemory(emptyMemory(),{type:'enabled',enabled:true,revision:0});
+  vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{if(options?.method==='POST')state=updateMemory(state,JSON.parse(String(options.body)));return new Response(JSON.stringify(state));});
+  render(<Harness/>);
+  await screen.findByRole('switch',{name:'按我确认的需求调整建议重点'});
+  await user.click(screen.getByRole('switch',{name:'按我确认的需求调整建议重点'}));
+  await user.selectOptions(screen.getByLabelText('主客群'),'family');
+  expect(screen.getByText('房贷教育保险固定支出')).toBeInTheDocument();
+  expect(screen.getByText('家庭应急金提醒')).toBeInTheDocument();
+  expect(screen.getByText('境内外与额度管理')).toBeInTheDocument();
+  await user.click(screen.getByLabelText('家庭资金规划'));
+  await user.click(screen.getByLabelText('强化安全'));
+  expect(state.customerContext).toBeUndefined();
+  await user.click(screen.getByRole('button',{name:'保存服务偏好'}));
+  expect(state.customerContext).toMatchObject({enabled:true,primarySegment:'family',needs:['family_planning','safety_first']});
+  expect(await screen.findByRole('status')).toHaveTextContent('服务偏好已保存');
+});

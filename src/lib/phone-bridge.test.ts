@@ -80,14 +80,18 @@ describe("phone navigation bridge", () => {
       data: { channel: "zhiyin-phone", version: 1, type: "finance-source-result", requestId: request.requestId, status: "granted",
         source: { provider: "alipay", displayName: "支付宝", accountMasked: "叶先生", syncedAt: "2026-09-22", autopays: [],
           cancelledAutopayIds: ["cancelled-1", null, 42, ""],
-          transactions: Array.from({ length: 150 }, (_, index) => ({ id: `bill-${index}`, title: "账单", amount: -1800,
+          transactionCoverage: { total: 1_971, returned: 1_971, invalid: 0, complete: true, from: "2026-07-15", to: "2026-09-15" },
+          transactions: Array.from({ length: 1_971 }, (_, index) => ({ id: `bill-${index}`, title: "账单", amount: -1800,
             category: "服务", occurredAt: index > 100 ? "2026-07-15" : "2026-09-15" })),
         },
       },
     }));
     const result = await pending;
-    expect(result.source?.transactions).toHaveLength(150);
+    expect(result.source?.transactions).toHaveLength(1_971);
     expect(result.source?.transactions.at(-1)?.occurredAt).toBe("2026-07-15");
+    expect(result.source?.transactionCoverage).toEqual(expect.objectContaining({
+      total: 1_971, returned: 1_971, invalid: 0, complete: true,
+    }));
     expect(result.source?.cancelledAutopayIds).toEqual(["cancelled-1"]);
     disconnect();
   });
@@ -226,6 +230,7 @@ describe("phone navigation bridge", () => {
       source: expect.objectContaining({
         provider: "alipay",
         transactions: [expect.objectContaining({ id: "ok", amount: -1850 })],
+        transactionCoverage: expect.objectContaining({ total: 2, returned: 1, invalid: 1, complete: false }),
       }),
     }));
     disconnect();

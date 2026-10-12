@@ -44,4 +44,15 @@ describe('长期记忆',()=>{
       expect(prompt.length).toBeLessThanOrEqual(4000);
     }
   });
+  it('只把用户明确保存的客群与需求注入模型，且不改变风险边界',()=>{
+    let state=updateMemory(emptyMemory(),{type:'enabled',revision:0,enabled:true},100);
+    state=updateMemory(state,{type:'customer-context',revision:state.revision,customerContext:{enabled:true,primarySegment:'family',needs:['family_planning','safety_first']}},101);
+    const context=memoryContext(state,'帮我分析账单',102);
+    expect(context).toContain('家庭客群');
+    expect(context).toContain('家庭资金规划');
+    expect(context).toContain('不能改变金额、风险测评、产品适当性、权限或确认步骤');
+    state=updateMemory(state,{type:'customer-context',revision:state.revision,customerContext:{enabled:false,primarySegment:'family',needs:['family_planning']}},103);
+    expect(memoryContext(state,'帮我分析账单',104)).not.toContain('家庭客群');
+    expect(()=>updateMemory(state,{type:'customer-context',revision:state.revision,customerContext:{enabled:true,primarySegment:'family',needs:['推断收入']}})).toThrow(/标签/);
+  });
 });
