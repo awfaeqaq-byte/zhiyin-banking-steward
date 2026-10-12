@@ -6,7 +6,7 @@ const scene:SceneFlow={id:'food',title:'点餐',workspaceIds:['food'],links:[{ki
 it('返回只读取原订单并同步状态；不会准备、支付或创建新订单',async()=>{
  const state={...emptyWorkspaces(),scenes:[scene]},request=vi.fn().mockResolvedValue(state),food=vi.fn().mockResolvedValue({orders:[{id:'same-order',taskId:'food',status:'PAID'}]}),occasion=vi.fn();
  await reconcileSceneSources({request,food,occasion,expenses:vi.fn()});
- expect(food).toHaveBeenCalledExactlyOnceWith('records',{taskId:'food'});expect(occasion).not.toHaveBeenCalled();
+ expect(food).toHaveBeenCalledTimes(1);expect(food).toHaveBeenCalledWith('records',{taskId:'food'});expect(occasion).not.toHaveBeenCalled();
  expect(request.mock.calls[1][0]).toEqual({orders:[expect.objectContaining({taskId:'food',id:'same-order',status:'PAID'})],errors:[]});
 });
 it('读取失败或其他事项的回执不能当作本事项成功；继续保留可重试信息',async()=>{
@@ -18,5 +18,5 @@ it('读取失败或其他事项的回执不能当作本事项成功；继续保�
 });
 it('筹备订单按原planId核对，关联账本自动同步收款进度',async()=>{
  const s={...scene,links:[{kind:'food_order' as const,id:'same-order',workspaceId:'food',channel:'occasion' as const},{kind:'expense_book' as const,id:'book',workspaceId:'food'}]},state={...emptyWorkspaces(),scenes:[s]},request=vi.fn().mockResolvedValue(state),occasion=vi.fn().mockResolvedValue({orders:[{id:'same-order',occasionId:'food',status:'DELIVERING'}]}),expenses=vi.fn().mockResolvedValue(undefined);
- await reconcileSceneSources({request,food:vi.fn(),occasion,expenses});expect(occasion).toHaveBeenCalledExactlyOnceWith('records',{planId:'food'});expect(expenses).toHaveBeenCalledExactlyOnceWith('book');expect(request.mock.lastCall?.[0].orders[0].status).toBe('DELIVERING');
+ await reconcileSceneSources({request,food:vi.fn(),occasion,expenses});expect(occasion).toHaveBeenCalledTimes(1);expect(occasion).toHaveBeenCalledWith('records',{planId:'food'});expect(expenses).toHaveBeenCalledTimes(1);expect(expenses).toHaveBeenCalledWith('book');expect(request.mock.lastCall?.[0].orders[0].status).toBe('DELIVERING');
 });

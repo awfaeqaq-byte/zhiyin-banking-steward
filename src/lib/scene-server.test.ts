@@ -29,3 +29,10 @@ it('平台读取失败保留原订单关联与上次记录，不宣称到账或�
  const failed=f.service.reconcile(scope,{errors:[{workspaceId:'food',message:'外卖暂不可读'}]});expect(failed.scenes![0].stage).toBe('waiting_external');expect(failed.scenes![0].links.some(l=>l.id==='order-a')).toBe(true);expect(failed.scenes![0].summary).toContain('核对');
  const next=f.service.reconcile(scope,{orders:[{taskId:'food',id:'order-a',status:'PENDING_PAYMENT',checkedAt:Date.now()}],errors:[]});expect(next.scenes![0].stage).toBe('waiting_authorization');expect(next.scenes![0].error).toBeUndefined();
 });
+
+it('新筹备明确属于原生日事项时关联，未知父任务或循环不写入',()=>{
+ const f=fixture();f.change({type:'create',id:'birthday',kind:'reminder',title:'王芳生日'});f.change({type:'message-submit',id:'msg',text:'给王芳生日准备蛋糕',currentId:'birthday',memoryRevision:0});
+ f.change({type:'message-routed',id:'msg',parts:[{taskId:null,relatedTaskId:'birthday',kind:'occasion',title:'王芳生日蛋糕',text:'给王芳生日准备蛋糕'}]});
+ const child=f.workspace.get().items.find(t=>t.kind==='occasion')!;expect(child.sceneId).toBe('birthday');expect(()=>f.change({type:'scene-parent',id:'birthday',parentId:child.id})).toThrow('循环');
+ f.change({type:'message-submit',id:'bad',text:'筹备生日',currentId:'birthday',memoryRevision:0});expect(()=>f.change({type:'message-routed',id:'bad',parts:[{taskId:null,relatedTaskId:'missing',kind:'occasion',title:'生日',text:'筹备生日'}]})).toThrow('关联');
+});

@@ -71,6 +71,14 @@ describe('Zhiyin phone app', () => {
     expect(x.peer.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({type:'food-order-result',status:'error',message:'菜单价格变化'}),'http://localhost:3000');
     x.session.dispose();
   });
+  it('切到其他应用后仍读取原订单和已授权账单，不打开新授权或执行点餐',async()=>{
+    const food=vi.fn(async()=>({status:'ok',orders:[]})),x=setup(food);x.isActive.mockReturnValue(false);
+    x.receive({type:'food-order-request',requestId:'background-read',operation:'records',taskId:'task'});
+    x.receive({type:'food-order-request',requestId:'background-prepare',operation:'prepare',taskId:'task',authorized:true});
+    x.receive({type:'finance-source-refresh-request',requestId:'background-finance',provider:'alipay',scopes:['transactions']});
+    x.receive({type:'finance-source-request',requestId:'background-consent',provider:'alipay',scopes:['transactions']});
+    await vi.runAllTimersAsync();expect(food).toHaveBeenCalledTimes(1);expect(food).toHaveBeenCalledWith('records',expect.objectContaining({taskId:'task'}));expect(x.loadFinancialSource).toHaveBeenCalledTimes(1);expect(x.authorizeFinancialSource).not.toHaveBeenCalled();x.session.dispose();
+  });
   it('notifies the ready webview on foreground, but not while backgrounded', () => {
     const x = setup();
     x.session.foreground();
