@@ -302,3 +302,15 @@ it('已保存的后台回复补回缺失的首页消息，保留后续用户交�
  expect(screen.getByText('你说话啊')).toBeInTheDocument();expect(reply).not.toHaveBeenCalled();
  expect(document.querySelectorAll('.steward-message')).toHaveLength(3);
 });
+it('离开后马上返回首页，仍能收到原请求随后完成的回复',async()=>{
+ const api=server();let resolve!:(value:{text:string})=>void;
+ const reply=vi.fn(()=>new Promise<{text:string}>(done=>{resolve=done;}));
+ const route:typeof routeWorkspacePrompt=async text=>({parts:[{taskId:null,kind:'general',title:'闲聊',text}]});
+ const view=render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await say('你在吗');await waitFor(()=>expect(reply).toHaveBeenCalledOnce());view.unmount();
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await waitFor(()=>expect(screen.queryByText('正在为你处理…')).not.toBeInTheDocument());
+ resolve({text:'在的，我收到你的消息了。'});
+ await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));
+ await screen.findByText('在的，我收到你的消息了。');expect(reply).toHaveBeenCalledOnce();
+});
