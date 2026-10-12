@@ -502,10 +502,13 @@ export function StewardChatHome({
       return;
     }
     if(onRoutePrompt&&!bypassRoute){if(!externalBusy){
+      const submittedDraft=input;
+      setInput('');
       // Record the user's original sentence once, not each backstage routing fragment.
       if(seamless&&recordUser)setMessages(current=>[...current,{id:`user-${crypto.randomUUID()}`,role:'user',content:billTurn?.displayText||prompt}]);
       setActiveReplyId(null);setActiveBill(null);setError('');setLastPrompt(prompt);
-      try{await onRoutePrompt(prompt,recentContext(),billTurn?.taskId);setInput('');if(wechatShare&&prompt.startsWith(WECHAT_SHARE_PREFIX))onWechatShareDone?.(wechatShare.id);}catch{/* Keep original input for retry; coordinator displays the error. */}
+      try{await onRoutePrompt(prompt,recentContext(),billTurn?.taskId);if(wechatShare&&prompt.startsWith(WECHAT_SHARE_PREFIX))onWechatShareDone?.(wechatShare.id);}
+      catch{setInput(current=>current||submittedDraft);/* Restore only the submitted draft; coordinator displays the error. */}
     }return;}
     const epoch=contextEpoch.current;
     let outcome='',failed=false,usedRevision=memory?.current.current.revision || 0;
@@ -521,7 +524,8 @@ export function StewardChatHome({
       .slice(-24)
       .map(({ role, content }) => ({ role, content }));
     if(recordUser&&(!seamless||!bypassRoute))setMessages(current => [...current, {...userMessage,content:billTurn?.displayText||prompt}]);
-    setInput("");
+    // Backstage dispatch may arrive after the user starts their next sentence.
+    if(!bypassRoute)setInput("");
     setLastPrompt(prompt);
     setError("");
     setSending(true);
