@@ -93,6 +93,7 @@ type AttentionEvent =
   };
 
 type Props = {
+  voiceEnabled?:boolean;
   onVoiceRequest?:VoiceBusiness;
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
@@ -216,6 +217,7 @@ function actionSubscription(
 }
 
 export function StewardChatHome({
+  voiceEnabled=true,
   onVoiceRequest,
   wechatShare,onWechatShareDone,
   seamless=false, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
@@ -1036,7 +1038,7 @@ export function StewardChatHome({
               {sending ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
             </button>
           </div>
-          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} disabled={sending||externalBusy||viewSaving||!!wechatShare} onActiveChange={setVoiceActive}/>}
+          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} enabled={voiceEnabled} disabled={sending||externalBusy||viewSaving||!!wechatShare} onActiveChange={setVoiceActive}/>}
           <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />涉及资金的操作仍需你确认</span>
         </form>
       </section>

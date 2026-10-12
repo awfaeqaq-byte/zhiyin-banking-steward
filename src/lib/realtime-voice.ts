@@ -45,8 +45,10 @@ export function createVoiceEvents(options:{send:(event:EventData)=>void;business
   }else if(e.type==='response.function_call_arguments.done'){runTool(e,e);
   }else if(e.type==='response.done'&&object(e.response)&&text(e.response.id,160)){
    const r=responses.get(e.response.id);if(!r)return;r.done=true;if(activeResponse===e.response.id)activeResponse='';
+   if(['failed','incomplete'].includes(String(e.response.status))&&r.input===currentInput){options.audio(false);update({phase:'error',error:'这轮语音回复未完成，请结束后查看首页实际状态，再继续交代。'});return;}
    if(e.response.status==='completed'&&Array.isArray(e.response.output))for(const item of e.response.output)if(object(item)&&item.type==='function_call')runTool({...e,response_id:e.response.id},item);
    resume(e.response.id);
+   if(!r.calls.size&&approvedInput===currentInput&&r.input===currentInput)update({phase:'listening'});
    if(!r.calls.size&&r.input===currentInput&&approvedInput!==currentInput&&e.response.status==='completed'){options.audio(false);update({phase:'error',error:'本轮语音没有交给管家办理，请改用文字继续。'});}
   }else if((e.type==='response.audio_transcript.delta'||e.type==='response.text.delta')&&e.response_id===activeResponse&&approvedInput===currentInput&&typeof e.delta==='string'){update({phase:'speaking',answer:(state.answer+e.delta).slice(0,6000)});
   }else if(e.type==='response.audio_transcript.done'&&e.response_id===activeResponse&&approvedInput===currentInput&&typeof e.transcript==='string'){update({answer:e.transcript.slice(0,6000)});

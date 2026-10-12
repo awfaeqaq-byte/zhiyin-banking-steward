@@ -1466,6 +1466,7 @@ export default function App() {
             <>
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
+              voiceEnabled={mode==='native'&&page==='home'}
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
               memory={memory}
@@ -2000,20 +2001,19 @@ export default function App() {
         open={modal === "voice"}
         onOpenChange={(open) => !open && setModal(null)}
         title={`和${steward.name}语音对话`}
-        description="连续语音在 AI 原生首页开启，方案与核对入口留在同一页。"
+        description="连续语音在 AI 原生模式可用。模式选择仍在设置中，方案与核对入口留在同一首页。"
       >
         <div className="voice-demo">
           <Mic size={32} />
-          <p>进入首页后，点输入框旁的麦克风。开启前会说明录音与处理方式。</p>
+          <p>在设置中选择 AI 原生模式，回到首页点输入框旁的麦克风。开启前会说明录音与处理方式。</p>
           <Button
             className="full-width"
             onClick={() => {
-              setMode('native');
               setModal(null);
-              go('home');
+              go('settings');
             }}
           >
-            前往 AI 原生首页
+            打开设置
           </Button>
         </div>
       </Dialog>
