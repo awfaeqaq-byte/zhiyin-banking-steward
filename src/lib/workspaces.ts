@@ -281,6 +281,7 @@ export function workspaceContext(
     .join("\n")}`;
 }
 export type WorkspaceRoute = {
+  relatedTaskId?:string|null;
   taskId: string | null;
   kind: WorkspaceKind;
   title: string;
@@ -301,6 +302,7 @@ export function validateRoutes(
   let cursor = 0;
   for (const p of data.parts) {
     if (!p || !workspaceKinds.includes(p.kind)) throw new Error("任务类型无效");
+    if(p.relatedTaskId!==undefined&&p.relatedTaskId!==null&&(p.taskId!==null||!workspaces.some(t=>t.id===p.relatedTaskId&&t.status==='active')))throw new Error('事项关联无效，请核对原事项');
     checkedText(p.title, 60);
     checkedText(p.text, 2000);
     const start = prompt.indexOf(p.text, cursor);

@@ -25,7 +25,7 @@ function AAForm({initial,onCreated}:{initial?:AAIntent;onCreated:()=>void}){
  const lock=useRef(false);
  let shares:ReturnType<typeof splitAA>=[];
  try{shares=splitAA(cents(amount)??0,ids,includeSelf);}catch{/* Incomplete inputs show no preview. */}
- function prepare(){try{const value=cents(amount)??0;splitAA(value,ids,includeSelf);if(!title.trim())throw Error('请填写收款说明');setDraft({amount:value,recipientIds:ids,includeSelf,title:title.trim(),requestId:crypto.randomUUID()});setError('');}catch(e){setError(e instanceof Error?e.message:'请核对收款信息');}}
+ function prepare(){try{const value=cents(amount)??0;splitAA(value,ids,includeSelf);if(!title.trim())throw Error('请填写收款说明');setDraft({...(initial?.workspaceId?{workspaceId:initial.workspaceId}:{}),amount:value,recipientIds:ids,includeSelf,title:title.trim(),requestId:crypto.randomUUID()});setError('');}catch(e){setError(e instanceof Error?e.message:'请核对收款信息');}}
  async function confirm(){
   if(!draft || lock.current)return;lock.current=true;setBusy(true);setError('');
   try{localStorage.setItem(aaPendingKey,JSON.stringify(draft));setUncertain(true);await bankRequest<AARequest>({type:'create-aa',...draft,authorized:true});localStorage.removeItem(aaPendingKey);setUncertain(false);setDraft(null);setAmount('');setIds([]);window.dispatchEvent(new Event('zhiyin-bank-updated'));onCreated();}
@@ -77,7 +77,7 @@ export function SmartTransfers({initial,onDone}:{initial:SmartIntent;onDone:(rec
     <div className="smart-record-heading"><strong>{person(item.recipientId)} · {money(item.amount)}</strong><span>{statusLabel[item.status]}</span></div>
     <p>{dateLabel(item.executeAt)}</p>{item.error&&<p role="status">{item.error}。未扣款，请重新安排。</p>}
     {!!item.protectedAmount&&<p>转账后至少保留 {money(item.protectedAmount)}</p>}
-    {item.status==='failed'&&<Button variant="secondary" disabled={busy} onClick={()=>{setTransfer({recipientId:item.recipientId,amount:item.amount,protectedAmount:item.protectedAmount,executeAt:Date.now()+3600000});setTransferKey(key=>key+1);setTab('transfer');}}>重新安排</Button>}
+    {item.status==='failed'&&<Button variant="secondary" disabled={busy} onClick={()=>{setTransfer({workspaceId:item.workspaceId,recipientId:item.recipientId,amount:item.amount,protectedAmount:item.protectedAmount,executeAt:Date.now()+3600000});setTransferKey(key=>key+1);setTab('transfer');}}>重新安排</Button>}
     {item.status==='pending'&&<Button variant="secondary" disabled={busy} onClick={()=>setConfirmation({label:`撤销给${person(item.recipientId)}的${money(item.amount)}预约？`,body:{type:'cancel-schedule',id:item.id}})}>撤销预约</Button>}
    </article>)}
    <h3>AA收款</h3>

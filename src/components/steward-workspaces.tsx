@@ -7,6 +7,10 @@ import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-p
 import type {StewardChatMessage,StewardReplyRequest} from '../lib/steward-chat';
 import type {ConversationEntry,MessageOperation} from '../lib/message-flow';
 import {WECHAT_SHARE_PREFIX} from '../lib/wechat-message-share';
+import {useSceneContinuation} from '../lib/use-scene-continuation';
+import type {SceneNext} from '../lib/scene-flow';
+import {foodOrderRequest} from '../lib/food-order-bridge';
+import {occasionFoodRequest} from '../lib/occasion-food-bridge';
 import './steward-workspaces.css';
 type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt};
 type Queued={id:string;text:string;token:string;messageId:string;replyId:string};
@@ -28,6 +32,13 @@ export function StewardWorkspaces({route,...props}:Props){
  const phase=activeRun?.trace.at(-1)?.stage;
  const work=state.items.find(w=>w.id===(job?.taskId||active)&&w.status==='active');
  const accept=useCallback((next:ReturnType<typeof emptyWorkspaces>)=>{setState(current=>next.revision>current.revision?next:current);},[]);
+ useSceneContinuation(loaded&&!route,accept,JSON.stringify({items:state.items.map(t=>({id:t.id,status:t.status,sceneId:t.sceneId,book:t.expenseBookId,food:t.progress?.food?.orderId})),runs:state.runs?.map(r=>({id:r.id,status:r.status}))}));
+ async function resumeScene(next:SceneNext){
+  setActive(next.workspaceId);localStorage.setItem('zhiyin-workspace-active',next.workspaceId);
+  try{if(next.kind==='food'){if(next.channel==='occasion')await occasionFoodRequest('open',{planId:next.workspaceId,orderId:next.id});else await foodOrderRequest('open',{taskId:next.workspaceId,orderId:next.id});}
+   else if(next.kind==='occasion')props.onOpenOccasions?.(undefined,next.id);else if(next.kind==='calendar')props.onOpenTasks?.(next.date);else if(next.kind==='bank')props.onPrepareTransfer?.({kind:'records'});
+  }catch(cause){setError(cause instanceof Error?cause.message:'原事项暂未打开');}
+ }
  async function save(operation:WorkspaceOperation|((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation)){
   const result=saveTail.current.then(async()=>{
    for(let attempt=0;attempt<3;attempt++){
@@ -107,6 +118,8 @@ export function StewardWorkspaces({route,...props}:Props){
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
     <StewardChatHome {...props}
       seamless
+      sceneFlows={state.scenes}
+      onResumeScene={resumeScene}
       conversationMessages={state.conversation}
       onConversationEntries={persistEntries}
       processingPhase={phase}
@@ -119,7 +132,7 @@ export function StewardWorkspaces({route,...props}:Props){
       onPrepareTransfer={props.onPrepareTransfer ? (intent,workspaceId)=>{
         receiptOwner.current=workspaceId || work?.id || "";
         localStorage.setItem("zhiyin-transfer-workspace",receiptOwner.current);
-        props.onPrepareTransfer?.(intent);
+        props.onPrepareTransfer?.('kind' in intent&&intent.kind==='records'?intent:{...intent,workspaceId:receiptOwner.current||undefined});
       }:undefined}
       workspace={work || null}
       onBillViewChange={async(id,view)=>{

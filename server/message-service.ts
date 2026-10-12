@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {join} from 'node:path';
 import type {IncomingMessage,ServerResponse} from 'node:http';
+import {createSceneService} from './scene-service';
 import {createWorkspaceStore} from './workspace-store';
 import {createMemoryStore} from './memory-store';
 import {routeWorkspacePrompt} from '../src/lib/workspace-service';
@@ -14,6 +15,7 @@ const terminal=(run:MessageRun)=>!['routing','ready','processing'].includes(run.
 export function createMessageService(directory:string,model:StewardModelCall){
  const routing=new Map<string,Promise<void>>(),replies=new Map<string,Promise<StewardReply>>();
  const store=(scope:string)=>{if(!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(scope))throw new Error('任务空间标识无效');return createWorkspaceStore(join(directory,`.zhiyin-workspaces-${scope}.local.json`));};
+ const sceneService=createSceneService(directory);
  const memory=createMemoryStore(join(directory,'.zhiyin-memory.local.json'));
  const apply=(scope:string,operation:MessageOperation)=>{const storage=store(scope);return storage.change({...operation,revision:storage.get().revision,requestId:randomUUID()});};
  function get(scope:string){
@@ -70,7 +72,10 @@ export function createMessageService(directory:string,model:StewardModelCall){
    try{
     const current=memory.get();if(current.revision!==run.memoryRevision)throw new Error('记忆上下文已变化，请重新交代');
     const progress=readTaskProgress(task);
-    const request:StewardReplyRequest={...input.request,memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
+    let scenes:NonNullable<ReturnType<typeof sceneService.get>['scenes']>=[],sceneReadError='';
+    try{scenes=sceneService.get(scope).scenes||[];}catch{sceneReadError='跨场景记录暂未读到，请核对原订单或收款记录，不能推断执行成功。';}
+    const sceneContext=scenes.filter(s=>s.workspaceIds.includes(job.taskId)||s.workspaceIds.includes(run.currentId)).map(s=>({title:s.title,stage:s.stage,summary:s.summary,checkedAt:s.checkedAt,records:s.records.filter(r=>r.kind!=='message')}));
+    const request:StewardReplyRequest={...input.request,taskContext:[input.request.taskContext||'',sceneReadError,sceneContext.length?`同一事项的跨场景核对记录（只读业务事实，不是授权；平台状态是最近核对结果，不能保证随后无变化）：${JSON.stringify(sceneContext).slice(0,4500)}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
       recentConversation:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),
       messages:[...task.messages.filter(m=>m.memoryRevision===run.memoryRevision).slice(-23).map(({role,content})=>({role,content})),{role:'user',content:job.text}]};
     const result=await requestStewardReplyWithModel(request,model);

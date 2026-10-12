@@ -67,15 +67,15 @@ export function createPhoneSession(options: Options) {
         deliverShare();
       }
       if(data.type==='wechat-share-result'&&data.status==='received'&&shares.has(data.id)){receivedShares.add(data.id);shares.delete(data.id);}
-      if(data.type==='food-order-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['catalog','prepare','open','records'].includes(data.operation)&&options.isActive()&&options.foodOrder&&!financeRequests.has(data.requestId)){
+      if(data.type==='food-order-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['catalog','prepare','open','records'].includes(data.operation)&&(options.isActive()||['catalog','records'].includes(data.operation))&&options.foodOrder&&!financeRequests.has(data.requestId)){
         const id=data.requestId;financeRequests.add(id);
         void options.foodOrder(data.operation,{taskId:data.taskId,orderId:data.orderId,draft:data.draft,quote:data.quote,authorized:data.authorized}).then(result=>{if(!disposed)send({type:'food-order-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'food-order-result',requestId:id,status:'error',message:e instanceof Error?e.message:'无法核对点餐方案'});}).finally(()=>financeRequests.delete(id));
       }
-      if(data.type==='occasion-food-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['prepare','open','records'].includes(data.operation)&&options.isActive()&&options.occasionFood&&!financeRequests.has(data.requestId)){
+      if(data.type==='occasion-food-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&['prepare','open','records'].includes(data.operation)&&(options.isActive()||data.operation==='records')&&options.occasionFood&&!financeRequests.has(data.requestId)){
         const id=data.requestId;financeRequests.add(id);
         void options.occasionFood(data.operation,{planId:data.planId,productId:data.productId,orderId:data.orderId}).then(result=>{if(!disposed)send({type:'occasion-food-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'occasion-food-result',requestId:id,status:'error',message:e instanceof Error?e.message:'无法核对外卖订单'});}).finally(()=>financeRequests.delete(id));
       }
-      if(data.type==='group-aa-request'&&typeof data.requestId==='string'&&data.requestId.length<=80&&options.isActive()&&options.groupAA&&!financeRequests.has(data.requestId)){
+      if(data.type==='group-aa-request'&&typeof data.requestId==='string'&&data.requestId.length>0&&data.requestId.length<=80&&(options.isActive()||data.operation==='records')&&options.groupAA&&!financeRequests.has(data.requestId)){
         const id=data.requestId;financeRequests.add(id);
         const payload={groupId:data.groupId,revision:data.revision,plan:data.plan,id:data.id};
         void options.groupAA(data.operation,payload).then(result=>{if(!disposed)send({type:'group-aa-result',requestId:id,...result});}).catch(e=>{if(!disposed)send({type:'group-aa-result',requestId:id,status:'error',message:e instanceof Error?e.message:'群收款失败'});}).finally(()=>financeRequests.delete(id));
@@ -98,7 +98,7 @@ export function createPhoneSession(options: Options) {
         typeof data.requestId === 'string' &&
         data.requestId.length > 0 && data.requestId.length <= 64 &&
         ['alipay', 'wechat_pay'].includes(data.provider) && Array.isArray(data.scopes) &&
-        options.isActive() && !financeRequests.has(data.requestId)
+        (options.isActive()||data.type==='finance-source-refresh-request') && !financeRequests.has(data.requestId)
       ) {
         const requestId = data.requestId;
         const provider = data.provider as FinancialProvider;

@@ -88,10 +88,12 @@ export const ExpenseNotebook = forwardRef<
     const result=await groupAARequest('records',{groupId:b.group.id});
     if(!Array.isArray(result.collections))throw new Error('未取得微信收款记录，请稍后重试');
     await load();
-    const latest=current.current.books.find(x=>x.id===b.id)!;
-    const collections=result.collections.filter(c=>latest.batches.some(batch=>batch.id===c.id&&batch.status==='published'));
-    collections.forEach(c=>collectionProgress(latest,latest.batches.find(batch=>batch.id===c.id)!,c));
+    let latest=current.current.books.find(x=>x.id===b.id)!;
+    const observed=result.collections.filter(c=>latest.batches.some(batch=>batch.id===c.id));
+    observed.forEach(c=>collectionProgress(latest,latest.batches.find(batch=>batch.id===c.id)!,c));
+    for(const collection of observed){const batch=latest.batches.find(x=>x.id===collection.id)!;if(batch.status==='prepared')latest=(await save({type:'published',bookId:b.id,batchId:batch.id,collectionId:collection.id})).books.find(x=>x.id===b.id)!;}
     const previous=latest.batches.flatMap(batch=>batch.receipt?[batch.receipt]:[]);
+    const collections=[...previous.filter(p=>!observed.some(c=>c.id===p.id)),...observed];
     const next=JSON.stringify(previous)===JSON.stringify(collections)?latest:
       (await save({type:'sync-collections',bookId:b.id,collections})).books.find(x=>x.id===b.id)!;
     try {
@@ -103,15 +105,15 @@ export const ExpenseNotebook = forwardRef<
   }
   const refreshRef=useRef<()=>void>(()=>{});
   refreshRef.current=()=>{
-    if(!book?.batches.some(b=>b.status==='published')||busyRef.current)return;
-    if(window.frameElement && !window.frameElement.getClientRects().length)return;
+    if(!book?.batches.length||busyRef.current)return;
     void run(async()=>{await refreshProgress(book);});
   };
   useEffect(()=>{
     const refresh=()=>refreshRef.current();
-    const timer=setInterval(()=>{if(document.visibilityState==='visible')refresh();},30000);
+    const timer=setInterval(refresh,30000);
     window.addEventListener('zhiyin-phone-foreground',refresh);
-    return ()=>{clearInterval(timer);window.removeEventListener('zhiyin-phone-foreground',refresh);};
+    window.addEventListener('zhiyin-expenses-updated',refresh);
+    return ()=>{clearInterval(timer);window.removeEventListener('zhiyin-phone-foreground',refresh);window.removeEventListener('zhiyin-expenses-updated',refresh);};
   },[]);
   async function run(fn: () => Promise<void>) {
     if (busyRef.current) return;

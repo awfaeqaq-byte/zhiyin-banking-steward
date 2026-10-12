@@ -18,7 +18,7 @@ export function authorizeSchedule(s:SmartState,id:string,now:number):BankSchedul
  checkExecution(s,draft.amount);
  checkTransferBudget(s,draft);
  if((s.schedules?.length??0)>=1000)throw new Error('预约数量已达上限');
- const schedule:BankSchedule={id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending'};
+ const schedule:BankSchedule={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending'};
  (s.schedules??=[]).push(schedule);s.drafts=s.drafts.filter(d=>d.id!==id);s.revision++;
  return schedule;
 }
@@ -28,7 +28,7 @@ export function executeDue(s:SmartState,now:number,guard:(s:SmartState,now:numbe
   try{
    guard(s,now);checkExecution(s,item.amount);checkTransferBudget(s,item,item.id);
    s.balance-=item.amount;s.received[item.recipientId]=(s.received[item.recipientId]??0)+item.amount;
-   s.transactions.push({id:item.id,recipientId:item.recipientId,amount:item.amount,executeAt:item.executeAt,...(item.protectedAmount===undefined?{}:{protectedAmount:item.protectedAmount}),completedAt:now,balanceAfter:s.balance});
+   s.transactions.push({...(item.workspaceId?{workspaceId:item.workspaceId}:{}),id:item.id,recipientId:item.recipientId,amount:item.amount,executeAt:item.executeAt,...(item.protectedAmount===undefined?{}:{protectedAmount:item.protectedAmount}),completedAt:now,balanceAfter:s.balance});
    item.status='completed';
   }catch(error){item.status='failed';item.error=error instanceof Error?error.message:'预约执行失败';}
   s.revision++;
@@ -36,15 +36,16 @@ export function executeDue(s:SmartState,now:number,guard:(s:SmartState,now:numbe
  return due;
 }
 export function createAA(s:SmartState,input:AAIntent & {requestId:string;title:string},now:number):AARequest{
+ if(input?.workspaceId!==undefined&&(typeof input.workspaceId!=='string'||! /^[\w-]{1,80}$/.test(input.workspaceId)))throw new Error('AA事项关联无效');
  if(!input || typeof input.requestId!=='string' || !/^[\w-]{1,80}$/.test(input.requestId) || typeof input.title!=='string' || !input.title.trim() || input.title.length>60 || typeof input.includeSelf!=='boolean' || !Array.isArray(input.recipientIds))throw new Error('AA收款信息无效');
  const shares=splitAA(input.amount,input.recipientIds,input.includeSelf);
  const existing=s.aaRequests?.find(item=>item.id===input.requestId);
  if(existing){
-  if(existing.amount!==input.amount || existing.title!==input.title.trim() || existing.includeSelf!==input.includeSelf || existing.recipientIds.join()!==input.recipientIds.join())throw new Error('同一收款请求内容发生变化');
+  if(existing.workspaceId!==input.workspaceId || existing.amount!==input.amount || existing.title!==input.title.trim() || existing.includeSelf!==input.includeSelf || existing.recipientIds.join()!==input.recipientIds.join())throw new Error('同一收款请求内容发生变化');
   return existing;
  }
  if((s.aaRequests?.length??0)>=1000)throw new Error('AA收款数量已达上限');
- const request:AARequest={id:input.requestId,title:input.title.trim(),amount:input.amount,recipientIds:[...input.recipientIds],includeSelf:input.includeSelf,createdAt:now,status:'pending',shares};
+ const request:AARequest={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),id:input.requestId,title:input.title.trim(),amount:input.amount,recipientIds:[...input.recipientIds],includeSelf:input.includeSelf,createdAt:now,status:'pending',shares};
  (s.aaRequests??=[]).push(request);s.revision++;return request;
 }
 export function settleAA(s:SmartState,id:string,recipientId:BankRecipientId,now:number){

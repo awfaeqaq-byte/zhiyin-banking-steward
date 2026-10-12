@@ -50,6 +50,7 @@ export function changeMessageState(state:WorkspaceState,operation:MessageOperati
    const taskId=part.taskId||crypto.randomUUID(),readonly=readonlyWechatShare(part.text);
    const kind=readonly?'general':part.kind==='general'&&clearBillIntent(part.text)?'bills':part.kind;
    if(!part.taskId)apply({type:'create',id:taskId,kind,title:part.title});
+   if(!part.taskId&&part.relatedTaskId)apply({type:'scene-parent',id:taskId,parentId:part.relatedTaskId});
    const task=next.items.find(t=>t.id===taskId)!;
    const progress=readonly?{goal:sharedTextPreview(part.text)!.instruction,stage:'collecting' as const}:advanceTaskProgress(part.kind==='food'?{...task,kind:'food'}:task,part.text);
    const repair=task.kind==='general'&&progress.food?{kind:'food' as const}:task.kind==='general'&&progress.bill?{kind:'bills' as const}:{};

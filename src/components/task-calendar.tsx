@@ -16,7 +16,7 @@ export function TaskCalendar({schedules,sources,occasions,onOpenOccasion,bankErr
  const [month,setMonth]=useState(selected.slice(0,7));
  const [state,setState]=useState<TaskState|null>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
  const [editing,setEditing]=useState<string|null>(draft?'new':null);const [title,setTitle]=useState(draft?.title??'');const [when,setWhen]=useState(draft?localTaskTime(draft.dueAt):'');const [note,setNote]=useState(draft?.note??'');
- const [calendarSpec,setCalendarSpec]=useState<Pick<ReminderDraft,'allDay'|'repeat'>>({allDay:draft?.allDay,repeat:draft?.repeat});
+ const [calendarSpec,setCalendarSpec]=useState<Pick<ReminderDraft,'workspaceId'|'allDay'|'repeat'>>({workspaceId:draft?.workspaceId,allDay:draft?.allDay,repeat:draft?.repeat});
  const [detail,setDetail]=useState<string|null>(null);const [cancelId,setCancelId]=useState<string|null>(null);
  const newId=useRef(crypto.randomUUID());
  async function refresh(){try{const next=await taskRequest();setState(prev=>prev&&prev.revision>next.revision?prev:next);setError('');}catch(e){setError(e instanceof Error?e.message:'加载失败，请重试');}}
@@ -26,7 +26,7 @@ export function TaskCalendar({schedules,sources,occasions,onOpenOccasion,bankErr
  const today=dayKey(Date.now());
  function pickDay(day:string){setSelected(day);setMonth(day.slice(0,7));setDetail(null);}
  function moveMonth(delta:number){const date=new Date(`${month}-01T00:00:00Z`);date.setUTCMonth(date.getUTCMonth()+delta);pickDay(date.toISOString().slice(0,10));}
- function startEdit(event?:CalendarEvent){setCalendarSpec(event?.kind==='birthday'?{allDay:true,repeat:'yearly'}:{});if(!event)newId.current=crypto.randomUUID();setEditing(event?.id??'new');setTitle(event?.title??'');setNote(event?.note??'');setWhen(event?localTaskTime(event.dueAt):selected===today?localTaskTime(Date.now()+3600000):`${selected}T09:00`);setError('');}
+ function startEdit(event?:CalendarEvent){setCalendarSpec({...event?.workspaceId?{workspaceId:event.workspaceId}:{},...event?.kind==='birthday'?{allDay:true,repeat:'yearly' as const}:{}});if(!event)newId.current=crypto.randomUUID();setEditing(event?.id??'new');setTitle(event?.title??'');setNote(event?.note??'');setWhen(event?localTaskTime(event.dueAt):selected===today?localTaskTime(Date.now()+3600000):`${selected}T09:00`);setError('');}
  async function change(command:TaskCommand){setBusy(true);setError('');try{const next=await taskRequest(command);setState(next);setEditing(null);setCancelId(null);onDraftConsumed();window.dispatchEvent(new Event('zhiyin-tasks-updated'));return true;}catch(e){setError(e instanceof Error?e.message:'保存失败，请重试');try{setState(await taskRequest());}catch{/* Keep the user's form when offline. */}return false;}finally{setBusy(false);}}
  async function save(){if(!state||busy)return;const dueAt=Date.parse(`${when}:00+08:00`);if(await change({type:'save',revision:state.revision,id:editing==='new'?newId.current:editing!,title,note,dueAt,...calendarSpec}))pickDay(dayKey(dueAt));}
  function status(id:string,status:'completed'|'cancelled'){if(state)void change({type:'status',revision:state.revision,id,status});}

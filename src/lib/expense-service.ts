@@ -48,6 +48,7 @@ export async function expenseRequest(
   if (!res.ok) throw new Error(data.error || "记录服务不可用");
   if (!validExpenseState(data))
     throw new Error("账本数据格式有误，未覆盖当前记录");
+  if(operation)window.dispatchEvent(new Event('zhiyin-expenses-updated'));
   return data;
 }
 export type ExpenseReply = {
