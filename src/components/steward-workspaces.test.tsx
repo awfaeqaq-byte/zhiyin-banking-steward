@@ -279,3 +279,26 @@ it('混合请求的转账方案仍可核对，后续回复不吃掉它；同一�
   await userEvent.click(screen.getByRole('button',{name:'核对银行转账'}));
   expect(onPrepareTransfer.mock.calls[0][0].amount).toBe(30000);
 });
+
+it('离开首页时晚到的回复仍落盘，返回首页不丢失且不重复请求',async()=>{
+ const api=server();let resolve!:(value:{text:string})=>void;
+ const reply=vi.fn(()=>new Promise<{text:string}>(done=>{resolve=done;}));
+ const route:typeof routeWorkspacePrompt=async text=>({parts:[{taskId:null,kind:'general',title:'理财咨询',text}]});
+ const view=render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await say('给我一些理财建议');await waitFor(()=>expect(reply).toHaveBeenCalledOnce());
+ view.unmount();resolve({text:'先说说这笔钱的用途，我再帮你规划。'});
+ await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await screen.findByText('先说说这笔钱的用途，我再帮你规划。');
+ expect(reply).toHaveBeenCalledOnce();
+});
+it('已保存的后台回复补回缺失的首页消息，保留后续用户交代',async()=>{
+ let state=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'finance',kind:'general',title:'理财咨询',revision:0,requestId:'create'});
+ state=changeWorkspaces(state,{type:'turn',id:'finance',user:'给我一些理财建议',assistant:'先明确资金用途。',memoryRevision:0,revision:state.revision,requestId:'reply'});
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify(state)));
+ localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify([{id:'u',role:'user',content:'给我一些理财建议'},{id:'later',role:'user',content:'你说话啊'}]));
+ const reply=vi.fn();render(<StewardWorkspaces {...props} reply={reply}/>);
+ await screen.findByText('先明确资金用途。');
+ expect(screen.getByText('你说话啊')).toBeInTheDocument();expect(reply).not.toHaveBeenCalled();
+ expect(document.querySelectorAll('.steward-message')).toHaveLength(3);
+});
