@@ -4,6 +4,13 @@ const tool=(id='call-1')=>({type:'response.output_item.done',response_id:'respon
 function fixture(){const send=vi.fn(),business=vi.fn<VoiceBusiness>(async()=>({text:'金额2000，等待你核对。'})),audio=vi.fn();const events=createVoiceEvents({send,business,audio,onState:vi.fn()});return {events,send,business,audio};}
 function turn(f:ReturnType<typeof fixture>){f.events.receive({type:'input_audio_buffer.speech_started',item_id:'user-1'});f.events.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-1',transcript:'给妈妈转2000'});f.events.receive({type:'response.created',response:{id:'response-1'}});}
 describe('语音业务桥',()=>{
+ it('重复 response.created 不重置去重，结束的旧回复不覆盖新轮次',async()=>{
+  const f=fixture();turn(f);f.events.receive(tool());f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});await vi.waitFor(()=>expect(f.send.mock.calls.filter(([e])=>e.type==='response.create')).toHaveLength(1));
+  f.events.receive({type:'response.created',response:{id:'response-1'}});f.events.receive(tool());f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});await new Promise(r=>setTimeout(r,0));expect(f.send.mock.calls.filter(([e])=>e.type==='response.create')).toHaveLength(1);
+ });
+ it('提供者失败和上限不允许未核对的音频继续播放',()=>{
+  const f=fixture();turn(f);f.events.receive({type:'error',error:{message:'failure'}});expect(f.events.getState().phase).toBe('error');expect(f.audio).toHaveBeenLastCalledWith(false);
+ });
  it('语音转录晚于工具事件时等待原文；静音麦克风不关闭已经允许的播报',async()=>{
   const f=fixture();f.events.receive({type:'input_audio_buffer.speech_started',item_id:'user-1'});f.events.receive({type:'response.created',response:{id:'response-1'}});f.events.receive(tool());f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});
   expect(f.business).not.toHaveBeenCalled();f.events.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-1',transcript:'给妈妈转2000'});

@@ -1,5 +1,5 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
-import {mkdtempSync,readFileSync,rmSync,statSync} from 'node:fs';
+import {mkdtempSync,readFileSync,rmSync,statSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createServer} from 'node:http';
@@ -9,6 +9,10 @@ function store(){const dir=mkdtempSync(join(tmpdir(),'zhiyin-voice-test-'));dirs
 afterEach(()=>{dirs.forEach(dir=>rmSync(dir,{recursive:true,force:true}));dirs.length=0;vi.restoreAllMocks();});
 const config={region:'beijing',workspaceId:'ws-example',model:'qwen3.8-omni-flash-realtime',ningningVoice:'longanlingxin',ahengVoice:'Ethan',apiKey:'test-only-key'};
 describe('独立后端语音凭证',()=>{
+ it('语音配置损坏只关闭语音，保留文件、不使银行服务启动失败或回退另一密钥',()=>{
+  const s=store();writeFileSync(s.file,'broken',{mode:0o600});const damaged=createVoiceConfigStore(s.file);
+  expect(damaged.publicConfig()).toMatchObject({configured:false});expect(()=>damaged.get()).toThrow('损坏');expect(()=>damaged.save(config)).toThrow('损坏');expect(readFileSync(s.file,'utf8')).toBe('broken');
+ });
  it('默认未配置、保存不回显密钥、重启恢复，私有文件仅本人可读',()=>{
   const s=store();expect(s.publicConfig().configured).toBe(false);s.save(config);
   expect(s.publicConfig()).toMatchObject({configured:true,region:'beijing'});expect(JSON.stringify(s.publicConfig())).not.toContain(config.apiKey);
