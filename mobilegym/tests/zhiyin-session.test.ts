@@ -45,6 +45,11 @@ function setup(foodOrder?: (operation:string,payload:Record<string,unknown>)=>Pr
 }
 
 describe('Zhiyin phone app', () => {
+  it('就绪前连续收到两份分享时不覆盖前一份材料',()=>{
+    const x=setup();const make=(id:string)=>buildWechatShare({id:'c',name:'朋友',kind:'direct'},[{id:'m',sender:'朋友',text:'明天生日',sentAt:1791770000000}],['m'],'',id);
+    x.session.share(make('first'));x.session.share(make('second'));x.receive({type:'ready'});
+    expect(x.peer.postMessage.mock.calls.filter(c=>c[0].type==='wechat-share').map(c=>c[0].share.id)).toEqual(['first','second']);x.session.dispose();
+  });
   it('所选消息等待前台和WebView就绪再投递，确认后不重放',()=>{
     const x=setup();const share=buildWechatShare({id:'c',name:'朋友',kind:'direct'},[{id:'m',sender:'朋友',text:'明天生日',sentAt:1791770000000}],['m'],'','share');
     x.session.share(share);expect(x.peer.postMessage).not.toHaveBeenCalled();
