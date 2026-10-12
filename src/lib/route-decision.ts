@@ -33,7 +33,7 @@ export function conversationRoute(prompt:string,tasks:Workspace[],currentId:stri
  const current=tasks.find(t=>t.id===currentId&&t.status==='active');
  const greeting=/^(?:你好(?:呀|啊|宁宁|阿衡)?|您好|嗨|哈喽|hello|hi|早上好|下午好|晚上好|早安|晚安|谢谢(?:你)?|在吗|你在吗|你说话啊|说话呀)[，。！!？?\s]*$/i.test(prompt.trim());
  const answer=Boolean(current?.progress?.waitingFor)&&/^(?:对|对的|是|是的|没错|嗯|嗯嗯|好的|好|可以|继续|不要|不用|不需要|不是|不对)[。！!\s]*$/.test(prompt.trim());
- const memoryAnswer=current?.kind==='general'&&/^(?:记忆|记住|帮我记住|记下来|帮我记下来)[。！!\s]*$/.test(prompt.trim())&&current.messages.some(m=>m.role==='user'&&sharedTextPreview(m.content)?.messages.some(source=>/我(?:的)?生日/.test(source.原文)));
+ const memoryAnswer=current?.kind==='general'&&/^(?:记忆|记住|帮我记住|记下来|帮我记下来|记录到日历|记到日历)[。！!\s]*$/.test(prompt.trim())&&current.messages.some(m=>m.role==='user'&&sharedTextPreview(m.content)?.messages.some(source=>/我(?:的)?生日/.test(source.原文)));
  if(!greeting&&!answer&&!memoryAnswer)return null;
  const task=answer||memoryAnswer?current:current?.kind==='general'?current:tasks.filter(t=>t.kind==='general'&&t.status==='active').at(-1);
  return {parts:[{taskId:task?.id??null,kind:task?.kind??'general',title:task?.title??'日常交流',text:prompt}]};

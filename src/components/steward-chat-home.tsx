@@ -960,7 +960,7 @@ export function StewardChatHome({
                   {action?.type==='open_connections'&&onOpenConnections&&!(seamless&&onConnectSource)&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}
                   {action?.type==='open_occasions'&&onOpenOccasions&&!historyOpen&&<button onClick={()=>onOpenOccasions(lastPrompt,workspace?.kind==='occasion'?workspace.id:undefined)}>核对生活筹备<ArrowRight size={16}/></button>}
-                  {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask(action)}>核对并保存提醒<ArrowRight size={16}/></button>}
+                  {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask(action)}>{action.repeat==='yearly'?'核对并记录生日':'核对并保存提醒'}<ArrowRight size={16}/></button>}
                   {!historyOpen && message.id===activeReplyId && onOpenWealth && /理财|投资|基金|风险测评|申购|赎回/.test(sourceText) && <button onClick={onOpenWealth}>进入理财方案与风险测评<ArrowRight size={16}/></button>}
                   {!historyOpen && message.id===activeReplyId && onOpenCards && /卡片|银行卡|挂失|解挂|限额|境外交易/.test(sourceText) && <button onClick={()=>onOpenCards(sourceText)}>打开卡片管理并核对设置<ArrowRight size={16}/></button>}
                   {action?.type === "set_reminder" && related && !historyOpen && (
