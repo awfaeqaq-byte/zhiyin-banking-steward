@@ -1,4 +1,5 @@
 import {heldOccasionBudget, validOccasionPlan, validOccasionId} from './occasion-plans';
+import {validAssetSummary,validTermDeposit,type BankAssetSummary,type TermDeposit} from './bank-assets';
 export const bankRecipients=[
  {id:'mom',name:'妈妈',accountLast4:'6621',phone:'13800006621',remark:'母亲 家人'},
  {id:'dad',name:'爸爸',accountLast4:'7316',phone:'13800007316',remark:'父亲 家人'},
@@ -42,7 +43,7 @@ export const cardProducts=[
 export type CardApplication={id:string;productId:string;createdAt:number;status:'submitted'};
 export type BankPayment={id:string;channel:'wechat'|'alipay'|'overseas';amount:number;merchant:string;occasionId?:string};
 export type BankPaymentReceipt=BankPayment & {completedAt:number;balanceAfter:number;refundedAt?:number;refundBalanceAfter?:number};
-export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[];cardApplications?:CardApplication[];occasions?:import('./occasion-plans').OccasionPlan[]};
+export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[];cardApplications?:CardApplication[];occasions?:import('./occasion-plans').OccasionPlan[];assetSummary?:BankAssetSummary;termDeposits?:TermDeposit[];asOf?:number};
 export function validBankPayment(value:unknown):value is BankPayment {
  if(!value || typeof value!=='object')return false;
  const p=value as BankPayment;
@@ -52,6 +53,9 @@ export type BankSettings={revision:number;limit?:number;frozen?:boolean;controls
 export function validBankSnapshot(v:unknown):v is BankSnapshot {
  if(!v || typeof v!=='object')return false;
  const s=v as BankSnapshot;
+ if(s.assetSummary!==undefined&&(!validAssetSummary(s.assetSummary)||s.assetSummary.cash!==s.balance))return false;
+ if(s.termDeposits!==undefined&&(!Array.isArray(s.termDeposits)||s.termDeposits.length>1000||!s.termDeposits.every(validTermDeposit)||new Set(s.termDeposits.map(d=>d.id)).size!==s.termDeposits.length))return false;
+ if(s.asOf!==undefined&&(!Number.isSafeInteger(s.asOf)||s.asOf<=0))return false;
  if(s.occasions!==undefined&&(!Array.isArray(s.occasions)||s.occasions.length>100||new Set(s.occasions.map(p=>p.id)).size!==s.occasions.length||!s.occasions.every(validOccasionPlan)))return false;
  if(s.payments!==undefined && (!Array.isArray(s.payments) || !s.payments.every(p=>validBankPayment(p) && Number.isFinite(p.completedAt) && Number.isSafeInteger(p.balanceAfter) && (p.refundedAt===undefined || (Number.isFinite(p.refundedAt) && Number.isSafeInteger(p.refundBalanceAfter))))))return false;
   if(s.cardApplications!==undefined && (!Array.isArray(s.cardApplications)||!s.cardApplications.every(item=>typeof item.id==='string'&&/^[\w-]{1,80}$/.test(item.id)&&cardProducts.some(product=>product.id===item.productId)&&Number.isFinite(item.createdAt)&&item.status==='submitted')))return false;

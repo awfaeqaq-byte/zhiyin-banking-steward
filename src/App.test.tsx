@@ -4,7 +4,7 @@ import { describe, expect, it, vi,beforeEach,afterEach } from "vitest";
 import {emptyMemory,updateMemory,type MemoryCommand} from './lib/steward-memory';
 import App from "./App";
 beforeEach(()=>{
- let bank={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[]};
+ let bank={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],assetSummary:{cash:4230000,availableCash:4230000,reservedCash:0,wealth:0,deposits:0,total:4230000,holdingCount:0,depositCount:0}};
  vi.spyOn(globalThis,'fetch').mockImplementation(async(url,options)=>{
   if(String(url).includes('/api/zhiyin/bank')){if(options?.method==='POST'){const body=JSON.parse(String(options.body));bank={...bank,...body,revision:bank.revision+1};}return new Response(JSON.stringify(bank));}
   return new Response(JSON.stringify(emptyMemory()));
@@ -143,10 +143,10 @@ describe("知银交互原型", () => {
     expect(
       screen.getByRole("heading", { name: "今天想办理什么？" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("¥286,540.32")).toBeInTheDocument();
+    expect(await screen.findByText("¥42,300.00")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "隐藏资产金额" }));
-    expect(screen.queryByText("¥286,540.32")).not.toBeInTheDocument();
+    expect(screen.queryByText("¥42,300.00")).not.toBeInTheDocument();
     expect(screen.getByText("¥ •••,•••.••")).toBeInTheDocument();
   });
 

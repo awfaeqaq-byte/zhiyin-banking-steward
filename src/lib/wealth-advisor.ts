@@ -11,6 +11,8 @@ export function buildWealthAdvisorInstructions(input:{stewardName:string;memoryC
   const assessment=input.wealthSnapshot?.assessment;
   const data=JSON.stringify({
     bankBalanceCents:input.bank?.balance??null,
+    bankAssetsCents:input.bank?.assetSummary??null,
+    termDeposits:input.bank?.termDeposits?.filter(d=>d.closedAt===undefined).slice(0,5).map(d=>({id:d.id,principalCents:d.amount,months:d.months,rateBps:d.rateBps,maturesAt:d.maturesAt}))??[],
     assessment:assessment?{risk:assessment.risk,valid:assessment.expiresAt>Date.now(),expiresAt:assessment.expiresAt}:null,
     savedGoal:input.savedGoal?{name:input.savedGoal.name,targetYuan:input.savedGoal.target,months:input.savedGoal.months,note:'用户保存的已准备金额未与银行核对'}:null,
     products:wealthProducts.map(product=>({id:product.id,name:product.name,risk:product.risk,minAmountYuan:product.minAmount,incrementYuan:product.increment,minTermMonths:product.minTerm,liquidity:product.liquidity,feeRate:product.feeRate,open:product.open,disclosure:product.riskDisclosure,dataDate:product.dataDate,kind:'演示产品'})),

@@ -1,0 +1,27 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {createServer,type Server} from 'node:http';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createBankStore,bankMiddleware} from '../../server/bank-store';
+const dirs:string[]=[],servers:Server[]=[];
+afterEach(async()=>{vi.restoreAllMocks();for(const s of servers.splice(0))await new Promise<void>(done=>s.close(()=>done()));for(const dir of dirs.splice(0))rmSync(dir,{recursive:true,force:true});});
+it('定存接口明确授权后才改变余额，并拒绝跨站请求',async()=>{
+ vi.spyOn(Date,'now').mockReturnValue(Date.parse('2026-10-12T12:00:00+08:00'));
+ const dir=mkdtempSync(join(tmpdir(),'deposit-api-'));dirs.push(dir);const bank=createBankStore(join(dir,'bank.json'));
+ const server=createServer(bankMiddleware(bank));servers.push(server);await new Promise<void>(done=>server.listen(0,'127.0.0.1',done));
+ const address=server.address();if(!address||typeof address==='string')throw Error('missing server');const url=`http://127.0.0.1:${address.port}`;
+ const post=(body:object,origin?:string)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1',...(origin?{Origin:origin}:{})},body:JSON.stringify(body)});
+ const prepared=await post({type:'prepare-deposit',amount:100000,months:3});expect(prepared.status).toBe(200);const draft=await prepared.json();
+ expect(bank.get().balance).toBe(4230000);
+ expect((await post({type:'confirm-deposit',draftId:draft.id})).status).toBe(400);
+ expect((await post({type:'confirm-deposit',draftId:draft.id,authorized:true},'https://other.invalid')).status).toBe(403);
+ expect(bank.get().balance).toBe(4230000);
+ expect((await post({type:'confirm-deposit',draftId:draft.id,authorized:true})).status).toBe(200);
+ expect((await post({type:'confirm-deposit',draftId:draft.id,authorized:true})).status).toBe(200);
+ expect(bank.get().assetSummary).toMatchObject({cash:4130000,deposits:100000,total:4230000});
+ const quote=await(await post({type:'prepare-deposit-withdrawal',depositId:draft.id})).json();
+ expect((await post({type:'confirm-deposit-withdrawal',draftId:quote.id})).status).toBe(400);
+ expect((await post({type:'confirm-deposit-withdrawal',draftId:quote.id,authorized:true})).status).toBe(200);
+ expect(bank.get().assetSummary).toMatchObject({cash:4230000,deposits:0,total:4230000});
+});
