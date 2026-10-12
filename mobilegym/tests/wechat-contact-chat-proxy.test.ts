@@ -43,6 +43,21 @@ async function callMiddleware(options: {
 }
 
 describe('WeChat contact chat server proxy', () => {
+  it('给MiniMax的思考与正式答复留足空间，长度截断时只重试一次且不泄漏思考',async()=>{
+    const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({choices:[{finish_reason:'length',message:{content:'',reasoning_content:'private internal reasoning'}}]})))
+      .mockResolvedValueOnce(new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'我收到你的消息了。',reasoning_content:'private internal reasoning'}}]})));
+    await expect(requestWechatContactReply(payload,config,fetcher)).resolves.toBe('我收到你的消息了。');
+    const first=JSON.parse(fetcher.mock.calls[0][1].body),second=JSON.parse(fetcher.mock.calls[1][1].body);
+    expect(first.max_tokens).toBeGreaterThanOrEqual(4096);expect(first.reasoning_split).toBe(true);
+    expect(second.max_tokens).toBeGreaterThan(first.max_tokens);expect(second.messages).toEqual(first.messages);
+    expect(fetcher.mock.calls[1][1].signal).toBe(fetcher.mock.calls[0][1].signal);
+  });
+  it('两次截断明确报错，正常结束但正文为空不把思考当回复或无限重试',async()=>{
+    const truncated=vi.fn(async()=>new Response(JSON.stringify({choices:[{finish_reason:'length',message:{content:'未完成的答复',reasoning_content:'private'}}]})));
+    await expect(requestWechatContactReply(payload,config,truncated)).rejects.toThrow('长度');expect(truncated).toHaveBeenCalledTimes(2);
+    const empty=vi.fn(async()=>new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'',reasoning_content:'private'}}]})));
+    await expect(requestWechatContactReply(payload,config,empty)).rejects.toThrow('未返回有效内容');expect(empty).toHaveBeenCalledOnce();
+  });
   it('reads live settings on every new request instead of capturing startup settings', async () => {
     let current = { ...config };
     const fetcher = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'ok'}}]})));

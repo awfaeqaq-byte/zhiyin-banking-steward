@@ -13,6 +13,16 @@ import {buildWechatShare} from '../lib/wechat-message-share';
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 const props = { stewardName:'宁宁', stewardImage:'/n.png', connections:{}, disabledReminders:[], onToggleReminder:vi.fn(), onOpenSubscriptions:vi.fn(), onPrepareCancel:vi.fn() };
+it('分流失败在用户消息旁给出说明和重试入口，重试成功才启动回复',async()=>{
+ server();const user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>().mockRejectedValueOnce(new Error('模型服务未返回有效内容')).mockImplementation(async text=>({parts:[{taskId:null,kind:'general',title:'闲聊',text}]}));
+ const reply=vi.fn(async()=>({text:'这次收到你的消息了。'}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await say('你好宁宁');const retry=await screen.findByRole('button',{name:'重试这条消息'});
+ expect(retry.closest('.steward-message')).toHaveTextContent('模型服务未返回有效内容');expect(reply).not.toHaveBeenCalled();
+ await user.click(retry);await screen.findByText('这次收到你的消息了。');
+ expect(route).toHaveBeenCalledTimes(2);expect(reply).toHaveBeenCalledOnce();expect(screen.queryByRole('button',{name:'重试这条消息'})).not.toBeInTheDocument();
+});
 function server() {
   let state=emptyWorkspaces();
   const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{
