@@ -8,6 +8,22 @@ import type {SubscriptionSyncResult} from '../lib/use-subscription-sync';
 
 const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
+it('分析按钮发送明确分析意图和当前平台，历史回复不能把全部平台改成支付宝',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'餐饮占主要部分。'}));
+ const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[]};
+ render(<StewardChatHome {...base} connections={{wechat_pay:source,alipay}} reply={reply}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ await user.click(within(await screen.findByRole('region',{name:'账单工作区'})).getByRole('button',{name:'只看支付宝'}));
+ await user.click(screen.getByRole('button',{name:'请宁宁分析当前账单'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ expect(reply.mock.calls[1][0].messages.at(-1)?.content).toContain('请分析');
+ expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
+ await user.click(screen.getByRole('button',{name:'查看全部平台'}));
+ await user.click(screen.getByRole('button',{name:'请宁宁分析当前账单'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(3));
+ expect(reply.mock.calls[2][0].billAnalysis?.sources).toEqual(['微信支付','支付宝']);
+ expect(reply.mock.calls[2][0].messages.at(-1)?.content).toContain('全部平台');
+});
 it('模型给出平台切换选项时不再重复渲染发消息按钮，保留真正的追问选项',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'可以继续核对。[[choices:只看微信支付|只看支付宝|详细解释原因]]'}));
  render(<StewardChatHome {...base} connections={{wechat_pay:source}} reply={reply}/>);
