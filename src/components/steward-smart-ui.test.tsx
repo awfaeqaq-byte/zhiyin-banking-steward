@@ -8,6 +8,22 @@ import type {SubscriptionSyncResult} from '../lib/use-subscription-sync';
 
 const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
+it('首页账单以同一回复组件展示，切平台即时更新结论并隐藏旧范围解读',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'仅对应当前范围的补充解读。'}));
+ const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'交通',occurredAt:'2026-09-20'}]};
+ render(<StewardChatHome {...base} homePreview connections={{wechat_pay:source,alipay}} reply={reply}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const card=await screen.findByRole('region',{name:'账单分析'});
+ expect(card.closest('.steward-message.assistant')).toBeTruthy();expect(card).toHaveTextContent('餐饮占本次消费的 83.3%');
+ expect(screen.getByText('仅对应当前范围的补充解读。')).not.toBeVisible();
+ await user.click(within(card).getByText('查看明细与切换平台'));
+ await user.click(within(card).getByRole('button',{name:'只看支付宝'}));
+ await waitFor(()=>expect(card).toHaveTextContent('交通占本次消费的 100%'));
+ expect(screen.queryByText('仅对应当前范围的补充解读。')).not.toBeInTheDocument();expect(reply).toHaveBeenCalledTimes(1);
+ await user.click(within(card).getByRole('button',{name:'请宁宁进一步分析'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
+ expect(screen.getAllByRole('region',{name:'账单分析'})).toHaveLength(1);
+});
 it('分析按钮发送明确分析意图和当前平台，历史回复不能把全部平台改成支付宝',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'餐饮占主要部分。'}));
  const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'交通',occurredAt:'2026-09-20'}]};
