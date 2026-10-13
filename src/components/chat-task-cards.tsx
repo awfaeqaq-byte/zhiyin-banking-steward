@@ -10,14 +10,18 @@ import './chat-task-cards.css';
 export type TransferQuote={balance:number;limit:number;frozen:boolean;impact:TransferImpact;capturedAt:number};
 const date=(time:number)=>new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(time);
 
-export function TransferPlanCard({intent,quote,onReview,disabled=false}:{intent:TransferIntent;quote?:TransferQuote;onReview:(intent:TransferIntent)=>void;disabled?:boolean}){
+export function TransferPlanCard({intent,quote,sourceText='',onReview,disabled=false}:{intent:TransferIntent;quote?:TransferQuote;sourceText?:string;onReview:(intent:TransferIntent)=>void;disabled?:boolean}){
  const recipient=bankRecipients.find(p=>p.id===intent.recipientId);
- const blocked=!validTransfer(intent)||Boolean(quote&&(quote.frozen||quote.impact.remaining<0||intent.amount>quote.impact.available));
+ const needsReserve=/留够|留出|保留|预留|不影响.*还款|保证.*还款/.test(sourceText)&&!/(不用|不需要|无需|取消).{0,5}(保留|预留)|不留预算/.test(sourceText);
+ const reserve=sourceText.match(/(?:留够|留出|保留|预留)\s*(\d+(?:\.\d{1,2})?)\s*(万)?\s*元/);
+ const expectedReserve=reserve?Math.round(Number(reserve[1])*(reserve[2]?1000000:100)):undefined;
+ const unresolvedReserve=needsReserve&&(intent.protectedAmount===undefined||expectedReserve!==undefined&&intent.protectedAmount!==expectedReserve);
+ const blocked=unresolvedReserve||!validTransfer(intent)||Boolean(quote&&(quote.frozen||quote.impact.remaining<0||intent.amount>quote.impact.available));
  return <section className="steward-task-card transfer-plan-card" aria-label="转账方案">
-  <header><span><Send size={18} aria-hidden="true"/><strong>转账方案</strong></span><span className="task-card-status">待你核对</span></header>
+  <header><span><Send size={18} aria-hidden="true"/><strong>转账方案</strong></span><span className="task-card-status">{unresolvedReserve?'约束待核对':'待你核对'}</span></header>
   <div className="task-card-transfer-target"><span>准备转给<strong>{recipient?.name||'收款人待核对'}</strong><small>{recipient?`收款账号尾号 ${recipient.accountLast4}`:'请先核对收款对象'}</small></span><strong>{formatCny(intent.amount)}</strong></div>
-  <dl className="task-card-facts"><div><dt>执行时间</dt><dd>{intent.executeAt?date(intent.executeAt):'确认后立即转账'}</dd></div><div><dt>资金来源</dt><dd>银行沙箱 · 常用卡</dd></div>{quote&&<><div><dt>保留金额</dt><dd>{formatCny(quote.impact.protectedAmount)}</dd></div><div><dt>其他预约</dt><dd>{formatCny(quote.impact.pendingTotal)}</dd></div><div><dt>测算剩余可安排</dt><dd>{quote.impact.remaining<0?'金额不足':formatCny(quote.impact.remaining)}</dd></div></>}</dl>
-  <p className="task-card-explanation">{quote?.frozen?'这张卡已挂失，先处理卡片状态。':blocked?'可安排金额不足，请调整金额或资金安排。':!quote?'尚未读取银行余额，核对页会重新检查。':'已计入需保留金额和其他预约，核对时还会重新读取银行状态。'}<br/>尚未转账，打开核对不会扣款。</p>
+  <dl className="task-card-facts"><div><dt>执行时间</dt><dd>{intent.executeAt?date(intent.executeAt):'确认后立即转账'}</dd></div><div><dt>资金来源</dt><dd>银行沙箱 · 常用卡</dd></div>{quote&&<><div><dt>保留金额</dt><dd>{unresolvedReserve?'尚未核对':formatCny(quote.impact.protectedAmount)}</dd></div><div><dt>其他预约</dt><dd>{formatCny(quote.impact.pendingTotal)}</dd></div><div><dt>测算剩余可安排</dt><dd>{unresolvedReserve?'待补全方案后测算':quote.impact.remaining<0?'金额不足':formatCny(quote.impact.remaining)}</dd></div></>}</dl>
+  <p className="task-card-explanation">{unresolvedReserve?'你提出的保留金额还没有计入这份方案。请重新告诉我转账金额和需保留金额，再一起核对。':quote?.frozen?'这张卡已挂失，先处理卡片状态。':blocked?'可安排金额不足，请调整金额或资金安排。':!quote?'尚未读取银行余额，核对页会重新检查。':'已计入需保留金额和其他预约，核对时还会重新读取银行状态。'}<br/>尚未转账，打开核对不会扣款。</p>
   <Button disabled={disabled||blocked} onClick={()=>onReview(intent)}>{intent.executeAt?'核对预约转账':'核对银行转账'}<ArrowRight size={16} aria-hidden="true"/></Button>
  </section>;
 }
@@ -45,7 +49,7 @@ export function SceneProgressCard({scene,onResume,disabled=false}:{scene:SceneFl
  return <section className="steward-task-card scene-progress-card" aria-label="跨场景进度">
   <header><span><Layers3 size={19} aria-hidden="true"/><strong>{scene.title}</strong></span><span className="task-card-status">{stages[scene.stage]}</span></header>
   <p className="task-card-explanation">{scene.summary}</p>
-  <ol className="task-card-records">{records.slice(0,5).map(r=><li key={`${r.kind}:${r.id}`}><CheckCircle2 size={16} aria-hidden="true"/><span>{r.label}<small>{recordStatuses[r.status]||'状态待核对'}</small></span></li>)}</ol>
+  <ol className="task-card-records">{records.slice(0,5).map(r=><li key={`${r.kind}:${r.id}`}>{['saved','completed','COMPLETED','REFUNDED'].includes(r.status)?<CheckCircle2 size={16} aria-hidden="true"/>:<Clock3 size={16} aria-hidden="true"/>}<span>{r.label}<small>{recordStatuses[r.status]||'状态待核对'}</small></span></li>)}</ol>
   {records.length>5&&<p className="task-card-explanation">已关联 {records.length} 条业务记录，可进入原事项核对完整详情。</p>}
   <p className="task-card-note"><Clock3 size={14} aria-hidden="true"/>{scene.checkedAt?`${date(scene.checkedAt)}核对的结果`:'尚未完成状态核对'} · 返回后继续核对</p>
   {scene.error&&<p className="task-card-explanation">{scene.error}</p>}{error&&<p role="alert">{error}</p>}

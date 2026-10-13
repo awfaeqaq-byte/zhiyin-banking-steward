@@ -84,6 +84,7 @@ type DisplayMessage = StewardChatMessage & {
   view?: 'wealth_compare'|'term_deposit';
   retryPrompt?:string;
   transferQuote?:TransferQuote;
+  transferSource?:string;
 };
 
 type AttentionEvent =
@@ -118,7 +119,7 @@ type Props = {
   workspace?: Workspace | null;
   onRoutePrompt?: (text:string,recent?:StewardChatMessage[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string})=>Promise<void>;
   externalBusy?: boolean;
-  injectedPrompt?: {token:string;text:string;replyId?:string};
+  injectedPrompt?: {token:string;text:string;replyId?:string;sourceText?:string};
   onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean,progress?:TaskProgress)=>Promise<void>;
   onWorkspaceBook?: (id:string)=>Promise<void>;
   onBillViewChange?:(id:string,view:BillInteraction)=>Promise<void>;
@@ -690,6 +691,7 @@ export function StewardChatHome({
         content: response.text,
         action: response.action,
         workspaceId: workspace?.id,
+        ...(response.action?.type==='prepare_transfer'?{transferSource:injectedPrompt?.sourceText||prompt}:{}),
         view:!readonlyShare&&(depositQuestion||response.view==='term_deposit')?'term_deposit':wealthQuestion&&!prompt.startsWith('请基于我在比较工具中的选择继续解释')&&(response.view==='wealth_compare'||/比较|对比|推荐/.test(prompt))?'wealth_compare':undefined,
         ...(response.action?.type==='prepare_transfer'&&validBankSnapshot(bankData)?{transferQuote:{balance:bankData.balance,limit:bankData.limit,frozen:bankData.frozen,impact:transferImpact(bankData,response.action),capturedAt:bankData.asOf??Date.now()}}:{}),
       }]);
@@ -942,7 +944,7 @@ export function StewardChatHome({
             const related = action ? actionSubscription(action, subscriptions) : undefined;
             const linkedScene=message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id?sceneFlows.find(s=>s.id===message.sceneId):undefined;
             const subscriptionOverview=latestInTask&&(action?.type==='open_subscriptions'||action?.type==='prepare_cancel'||/^(?:帮我|请|给我)?(?:查看|看看|检查|列出|整理)(?:一下|下)?(?:我的|当前|全部)?(?:订阅|会员|续费)(?:安排|情况|清单|列表)?[。！!\s]*$/.test(sourceText));
-            const taskSurface=seamless&&message.role==='assistant'&&!historyOpen?(action?.type==='prepare_transfer'&&onPrepareTransfer?<TransferPlanCard intent={action} quote={message.transferQuote} disabled={sending||externalBusy} onReview={intent=>onPrepareTransfer(intent,message.workspaceId)}/>:subscriptionOverview?<SubscriptionReviewCard items={subscriptions} error={refreshError} disabled={sending||externalBusy||refreshing} onReviewCancel={onPrepareCancel} onToggleReminder={onToggleReminder} onOpen={onOpenSubscriptions}/>:linkedScene?<SceneProgressCard scene={linkedScene} onResume={onResumeScene} disabled={sending||externalBusy}/>:null):null;
+            const taskSurface=seamless&&message.role==='assistant'&&!historyOpen?(action?.type==='prepare_transfer'&&onPrepareTransfer?<TransferPlanCard intent={action} quote={message.transferQuote} sourceText={message.transferSource||sourceText} disabled={sending||externalBusy} onReview={intent=>onPrepareTransfer(intent,message.workspaceId)}/>:subscriptionOverview?<SubscriptionReviewCard items={subscriptions} error={refreshError} disabled={sending||externalBusy||refreshing} onReviewCancel={onPrepareCancel} onToggleReminder={onToggleReminder} onOpen={onOpenSubscriptions}/>:linkedScene?<SceneProgressCard scene={linkedScene} onResume={onResumeScene} disabled={sending||externalBusy}/>:null):null;
             const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
             const choices=scene&&!scene.needsConsent?parsed.choices.filter(choice=>!/^(?:只看|就看|查看|切换到|看)?(?:微信(?:支付)?|支付宝|全部平台|全部)(?:的)?(?:账单)?$/.test(choice)):parsed.choices;
             const billSurface=scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace

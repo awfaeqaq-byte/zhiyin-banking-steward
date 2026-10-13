@@ -15,7 +15,7 @@ import './steward-workspaces.css';
 import {voiceTaskResult,abortableVoicePause} from '../lib/voice-task-bridge';
 import type {VoiceBusiness} from '../lib/realtime-voice';
 type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt};
-type Queued={id:string;text:string;token:string;messageId:string;replyId:string};
+type Queued={id:string;text:string;token:string;messageId:string;replyId:string;sourceText:string};
 const TURN_SAVED='zhiyin-workspace-turn-saved';
 /** Server owns originals, jobs and transcript. This view only claims the next
  * read/prepare task and supplies browser-authorized sandbox data. */
@@ -29,7 +29,7 @@ export function StewardWorkspaces({route,...props}:Props){
  const receiptOwner=useRef(localStorage.getItem('zhiyin-transfer-workspace')||'');
  const activeRun=state.runs?.find(r=>['routing','ready','processing'].includes(r.status));
  const job=activeRun?.jobs.find(j=>j.status==='claimed'&&j.owner===owner.current);
- const injected:Queued|undefined=job&&activeRun?{id:job.taskId,text:job.text,token:job.id,messageId:activeRun.id,replyId:job.replyId}:undefined;
+ const injected:Queued|undefined=job&&activeRun?{id:job.taskId,text:job.text,token:job.id,messageId:activeRun.id,replyId:job.replyId,sourceText:activeRun.prompt}:undefined;
  const executing=useRef<Queued>();if(injected)executing.current=injected;
  const busy=Boolean(activeRun);
  const phase=activeRun?.trace.at(-1)?.stage;

@@ -30,7 +30,7 @@
 .task-card-subscriptions li span,.task-card-subscriptions li small { font-size:10px; color:#506d7c; }
 .task-card-subscriptions li>strong { font-variant-numeric:tabular-nums; }
 .task-card-row-actions { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:5px; }
-.task-card-row-actions .button-base { width:auto; min-width:44px; padding-inline:8px; font-size:11px; color:#007d7c; }
+.task-card-row-actions .button-base { width:auto; min-width:44px; max-width:100%; white-space:normal; text-align:left; padding-inline:8px; font-size:11px; color:#007d7c; }
 .task-card-records { list-style:none; display:grid; gap:11px; margin:0; padding:0; }
 .task-card-records li { display:flex; align-items:flex-start; gap:8px; min-width:0; }
 .task-card-records li>svg { color:#007d7c; margin-top:2px; flex:none; }
