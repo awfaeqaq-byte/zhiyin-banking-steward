@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
 import {HomeReplyVisual} from './home-reply-visual';
+import {BillAnalysisCard} from './bill-analysis-card';
 import {TransferPlanCard,SubscriptionReviewCard,SceneProgressCard,type TransferQuote} from './chat-task-cards';
 import { StewardReplyContent } from './steward-reply';
 import {TransferFollowUp} from './transfer-follow-up';
@@ -955,14 +956,22 @@ export function StewardChatHome({
               error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)}
               onViewChange={value=>void changeBillView(scene,value)} onInteract={value=>interactWithBill(scene,value)}
               onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null;
+            const billCard=homePreview&&scene&&!scene.needsConsent&&scene.question?<BillAnalysisCard
+              bill={buildBillAnalysis(billConnections,scene.question,billReferenceTime(billConnections,referenceTime))}
+              stewardName={stewardName} disabled={sending||externalBusy||viewSaving} loading={refreshing||revalidatingBill}
+              error={refreshError||billDataError} details={billSurface}
+              interpretationChanged={Boolean(scene.interpretationQuestion&&billScopeQuestion(scene.interpretationQuestion,billProvider(scene.interpretationQuestion))!==billScopeQuestion(scene.question,billProvider(scene.question)))}
+              explanation={<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>}
+              onInspect={focus=>interactWithBill(scene,{question:scene.question,provider:billProvider(scene.question),focus})}
+              onAnalyze={()=>interactWithBill(scene,{question:scene.question,provider:billProvider(scene.question),...(scene.category?{category:scene.category}:{})})}/>:null;
             // Current ledger first, then its explanation. Consent still follows the question asking for it.
-            return [scene?.needsConsent?null:billSurface,(
+            return [scene?.needsConsent||billCard?null:billSurface,(
               <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} role={message.retryPrompt?'alert':undefined} key={message.id}>
                 {homePreview&&message.role==='assistant'&&<img className="home-reply-avatar" src={stewardImage} alt=""/>}
                 <div className="steward-brief">
                   {homePreview&&message.role==='assistant'&&<div className="home-reply-identity"><strong>{stewardName}</strong><span>AI</span></div>}
                   {historyOpen && <small>{message.role === 'user' ? '你' : stewardName}</small>}
-                  {taskSurface??(seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:homePreview&&message.role==='assistant'?<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>)}
+                  {billCard??taskSurface??(seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:homePreview&&message.role==='assistant'?<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>)}
                   {message.retryPrompt&&message.id===activeReplyId&&<button className="desk-text-action" disabled={sending||externalBusy||viewSaving} onClick={()=>void sendPrompt(message.retryPrompt!)}>重试这条消息</button>}
                   {!historyOpen && message.id===activeReplyId && message.view==='wealth_compare' && <WealthInlineCompare onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>}
                   {!historyOpen && message.id===activeReplyId && message.view==='term_deposit' && <TermDepositPanel scope={message.workspaceId??workspace?.id??'home'} initialRequest={depositRequestForMessages(messages.slice(0,messages.findIndex(m=>m.id===message.id)))??''}/>}
