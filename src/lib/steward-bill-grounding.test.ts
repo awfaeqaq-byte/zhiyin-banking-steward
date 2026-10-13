@@ -19,6 +19,9 @@ it.each([
  '已按支付宝账单返回，数据范围与上次一致。如需查看其他平台可补充授权。',
  '收入15800元含跨平台转账200元，餐饮是主要消费。',
  '餐饮和其他两项合计超过七成，建议先核对这两类消费。',
+ '餐饮占比最大（186.50元），其次是其他类（125元），两项合计超过总支出七成。',
+ '"其他"类占比不低，具体明细账单未返回。',
+ '跨平台转账可能在两个平台各有一条记录，数据不重复。',
  '普通入账16000元，消费支出446.08元，餐饮是主要部分。',
  '已返回全部平台账单。消费支出446.08元。',
 ])('账单回复出现口径错误或只报返回状态时重试一次：%s',async wrong=>{
@@ -28,6 +31,7 @@ it.each([
  expect(model).toHaveBeenCalledTimes(2);expect(result.text).toBe(correct);
  const packet=JSON.stringify(model.mock.calls[0][0]);
  expect(packet).toContain('69.8');expect(packet).toContain('普通入账');expect(packet).toContain('转出');
+ expect(packet).toContain('其他消费');
 });
 it('两次错误后用核对过的支出结构降级，不展示模型的错误或伪授权',async()=>{
  const model=vi.fn().mockResolvedValue('收入15800元含跨平台转账200元。已按支付宝账单返回。[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]');
