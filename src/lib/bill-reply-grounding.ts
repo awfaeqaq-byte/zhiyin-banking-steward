@@ -6,11 +6,13 @@ const share=(amount:number,total:number)=>total>0?Number((BigInt(amount)*1000n+B
 /** Derived from the ledger, never from model prose or past assistant replies. */
 export function billReplyFacts(bill:BillAnalysis){
  const top=bill.categories.slice(0,2);
+ const example=(t:BillAnalysis['transactions'][number])=>({title:t.title.slice(0,60),amountYuan:t.amount/100,date:t.occurredAt,source:t.providerName});
  return {
   range:{from:bill.from,to:bill.to,sources:bill.sources},
   amountsYuan:{消费支出:bill.expense/100,普通入账:bill.income/100,退款:bill.refund/100,转入:bill.transferIn/100,转出:bill.transferOut/100},
   definition:'普通入账不含退款、转入、转出；转出不能成为收入构成。',
-  categoryShares:bill.categories.map(c=>({name:c.name,amountYuan:c.amount/100,percent:share(c.amount,bill.expense)})),
+  categoryShares:bill.categories.map(c=>({name:c.name,amountYuan:c.amount/100,percent:share(c.amount,bill.expense),examples:bill.transactions.filter(t=>t.category===c.name&&t.amount<0&&!['transfer','refund','income'].includes(t.kind||'')).slice(0,2).map(example)})),
+  incomeExamples:bill.transactions.filter(t=>t.amount>0&&!['refund','transfer'].includes(t.kind||'')).slice(0,3).map(example),
   topCategories:{names:top.map(c=>c.name),percent:share(top.reduce((sum,c)=>sum+c.amount,0),bill.expense)},
   coverage:bill.coverage,trend:bill.diagnosis.trend,limitations:bill.diagnosis.limitations,
  };
@@ -21,8 +23,8 @@ const tenths:Record<string,number>={一:10,二:20,三:30,四:40,五:50,六:60,�
 export function billReplyIssues(text:string,bill:BillAnalysis,requireAnalysis=false):string[]{
  if(bill.needsClarification||!bill.sources.length||!bill.count)return [];
  const issues=new Set<string>();
- const prose=text.replace(/“[^”]*”|"[^"\n]*"/g,'');
- for(const clause of prose.split(/[。；，\n]/)){
+ const prose=text.replace(/“([^”]*)”|"([^"\n]*)"/g,(_whole,left:string|undefined,right:string|undefined)=>bill.categories.some(c=>c.name===(left??right))?(left??right)!:'');
+ for(const clause of prose.split(/[。；\n]/)){
   if(/错误|没有依据|混淆|不应|不能算|不准确/.test(clause))continue;
   if(/(?:收入|普通入账).{0,30}(?:包含|包括|含有|含).{0,20}转(?:入|出|账)/.test(clause)&&!/不(?:包含|包括|含有|含)/.test(clause))issues.add('普通入账不能包含转入或转出');
   for(const [pattern,cents,label] of [
@@ -33,9 +35,14 @@ export function billReplyIssues(text:string,bill:BillAnalysis,requireAnalysis=fa
   if(sourceClaim){const expected=sourceClaim[1]==='微信'?'微信支付':sourceClaim[1];if(bill.sources.length!==1||bill.sources[0]!==expected)issues.add('回复的平台范围与当前账本不符');}
   const allClaim=/(?:已返回|已统计|合并|合计)(?:全部平台|微信(?:支付)?\s*[+＋和、]\s*支付宝)/.test(clause);
   if(allClaim&&bill.sources.length<2)issues.add('单平台记录不能声称已返回两个平台');
-  const ratio=clause.match(/(占(?:比)?(?:为|是|约|达到)?|超过|高于|不足|低于)\s*(?:(\d+(?:\.\d+)?)\s*%|([一二三四五六七八九十])成)/);
-  if(ratio&&!/不是|并非|不能|不超过/.test(clause)){
-   const prefix=clause.slice(0,ratio.index),categories=bill.categories.filter(c=>prefix.includes(c.name));
+  if(/跨平台/.test(clause)&&/数据不重复|没有重复|已去重/.test(clause))issues.add('不能断言跨平台流水已去重');
+  if(/具体明细(?:账单)?未返回|账单未细分|未返回(?:交易)?明细/.test(clause)&&bill.transactions.length)issues.add('已返回的交易明细不能说成没有明细');
+  let previousRatioEnd=0;
+  for(const ratio of clause.matchAll(/(占(?:比)?(?:为|是|约|达到)?|超过|高于|不足|低于)\s*(?:(?:总|消费)?支出(?:的)?\s*)?(?:(\d+(?:\.\d+)?)\s*%|([一二三四五六七八九十])成)/g)){
+   const prefix=clause.slice(previousRatioEnd,ratio.index);previousRatioEnd=ratio.index!+ratio[0].length;
+   if(/不是|并非|不能|不超过/.test(prefix))continue;
+   let categories=bill.categories.filter(c=>prefix.includes(c.name));
+   if(!categories.length&&/两项|两类/.test(prefix))categories=bill.categories.filter(c=>clause.slice(0,ratio.index).includes(c.name));
    if(categories.length>0&&categories.length<=2){
     const actual=share(categories.reduce((sum,c)=>sum+c.amount,0),bill.expense),claimed=ratio[2]?Number(ratio[2]):tenths[ratio[3]];
     const invalid=/超过|高于/.test(ratio[1])?actual<=claimed:/不足|低于/.test(ratio[1])?actual>=claimed:Math.abs(actual-claimed)>0.11;
