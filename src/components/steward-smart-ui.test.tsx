@@ -10,7 +10,7 @@ const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
 it('分析按钮发送明确分析意图和当前平台，历史回复不能把全部平台改成支付宝',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'餐饮占主要部分。'}));
- const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[]};
+ const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'交通',occurredAt:'2026-09-20'}]};
  render(<StewardChatHome {...base} connections={{wechat_pay:source,alipay}} reply={reply}/>);
  await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  await user.click(within(await screen.findByRole('region',{name:'账单工作区'})).getByRole('button',{name:'只看支付宝'}));

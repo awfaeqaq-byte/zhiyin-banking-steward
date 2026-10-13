@@ -736,7 +736,7 @@ export function StewardChatHome({
   }
 
   function interactWithBill(scene:BillScene,value:BillInteraction) {
-    const prompt=value.focus?`${value.question}；请解释我点选的这笔交易`:value.question;
+    const prompt=value.focus?`${value.question}；请解释我点选的这笔交易`:`${value.question}；请分析当前${value.category||''}账单的支出结构、值得核对的地方和证据限制`;
     const row=value.focus?buildBillAnalysis(billConnections,value.question,billReferenceTime(billConnections,referenceTime)).transactions.find(t=>t.providerKey===value.focus?.provider&&t.id===value.focus.id):undefined;
     const displayText=row?`解释这笔${row.title}`:value.category?`分析当前${value.category}账单`:'分析当前账单';
     interaction.current={prompt,value};
