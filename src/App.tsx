@@ -56,6 +56,7 @@ import { Switch } from "./components/ui/switch";
 import { DataConnections } from "./components/data-connections";
 import { PhoneContactPicker } from "./components/phone-contact-picker";
 import { SubscriptionCenter } from "./components/subscription-center";
+import {HomePreviewHeader} from './components/home-preview-header';
 import { StewardWorkspaces } from "./components/steward-workspaces";
 import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
@@ -608,7 +609,7 @@ export default function App() {
     );
   }
   return (
-    <div className={`app-shell mode-${mode} ${mode === "native" && page === "home" ? "native-chat-shell" : ""}`}>
+    <div className={`app-shell mode-${mode} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
       <aside className="sidebar" hidden={mode === "native"}>
         <a
           className="brand"
@@ -664,8 +665,9 @@ export default function App() {
         </div>
       </aside>
       <div className="workspace">
-        {page === "home" && (
-          <header className={`topbar ${mode === "native" ? "fixed-chat-header" : ""}`}>
+        {page === "home" && mode === 'native' && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} bank={bank.state} bankError={bank.error} hidden={hidden} onHiddenChange={setHidden} onRefresh={bank.refresh} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onAssets={()=>go('assets')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')}/>}
+        {page === "home" && mode === 'classic' && (
+          <header className="topbar">
             <button
               className="identity"
               onClick={() => setModal("steward")}
@@ -1468,6 +1470,7 @@ export default function App() {
             <div hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
+              homePreview
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
               memory={memory}

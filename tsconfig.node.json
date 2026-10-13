@@ -34,6 +34,7 @@
     "src/lib/fund-samples.ts",
     "src/lib/agent-automations.ts",
     "src/lib/bill-analysis.ts",
+    "src/lib/bill-reply-grounding.ts",
     "src/lib/bill-report.ts",
     "src/lib/bill-diagnosis.ts",
     "src/lib/reply-choices.ts",
