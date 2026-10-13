@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .impeccable/review/
+mobilegym/public/__task-cards-preview/
 .DS_Store
 .env
 .env.*

@@ -326,7 +326,7 @@ it('混合请求的转账方案仍可核对，后续回复不吃掉它；同一�
   await say('转200，查另一件事');await screen.findByText('另一件事查好了。');
   expect(onPrepareTransfer).not.toHaveBeenCalled();
   expect(screen.getByRole('button',{name:'核对银行转账'})).toBeEnabled();
-  await say('改成300');await waitFor(()=>expect(screen.getAllByText('转账方案待核对。')).toHaveLength(2));
+  await say('改成300');await waitFor(()=>expect(screen.getByRole('region',{name:'转账方案'})).toHaveTextContent('¥300'));
   expect(screen.getAllByRole('button',{name:'核对银行转账'})).toHaveLength(1);
   await userEvent.click(screen.getByRole('button',{name:'核对银行转账'}));
   expect(onPrepareTransfer.mock.calls[0][0].amount).toBe(30000);

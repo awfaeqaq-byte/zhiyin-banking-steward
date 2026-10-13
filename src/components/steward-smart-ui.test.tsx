@@ -8,6 +8,39 @@ import type {SubscriptionSyncResult} from '../lib/use-subscription-sync';
 
 const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],syncedAt:'2026-09-24',autopays:[],transactions:[{id:'lunch',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
 const base={seamless:true,stewardName:'宁宁',stewardImage:'/n.png',disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),now:Date.parse('2026-09-24')};
+it('首页账单以同一回复组件展示，切平台即时更新结论并隐藏旧范围解读',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'仅对应当前范围的补充解读。'}));
+ const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'交通',occurredAt:'2026-09-20'}]};
+ render(<StewardChatHome {...base} homePreview connections={{wechat_pay:source,alipay}} reply={reply}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const card=await screen.findByRole('region',{name:'账单分析'});
+ expect(card.closest('.steward-message.assistant')).toBeTruthy();expect(card).toHaveTextContent('餐饮占本次消费的 83.3%');
+ expect(screen.getByText('仅对应当前范围的补充解读。')).not.toBeVisible();
+ await user.click(within(card).getByText('查看明细与切换平台'));
+ await user.click(within(card).getByRole('button',{name:'只看支付宝'}));
+ await waitFor(()=>expect(card).toHaveTextContent('交通占本次消费的 100%'));
+ expect(screen.queryByText('仅对应当前范围的补充解读。')).not.toBeInTheDocument();expect(reply).toHaveBeenCalledTimes(1);
+ await user.click(within(card).getByRole('button',{name:'请宁宁进一步分析'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
+ expect(screen.getAllByRole('region',{name:'账单分析'})).toHaveLength(1);
+});
+it('分析按钮发送明确分析意图和当前平台，历史回复不能把全部平台改成支付宝',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'餐饮占主要部分。'}));
+ const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'交通',occurredAt:'2026-09-20'}]};
+ render(<StewardChatHome {...base} connections={{wechat_pay:source,alipay}} reply={reply}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ await user.click(within(await screen.findByRole('region',{name:'账单工作区'})).getByRole('button',{name:'只看支付宝'}));
+ await user.click(screen.getByRole('button',{name:'请宁宁分析当前账单'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
+ expect(reply.mock.calls[1][0].messages.at(-1)?.content).toContain('请分析');
+ expect(screen.getByText('分析当前支付宝账单')).toBeInTheDocument();
+ expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
+ await user.click(screen.getByRole('button',{name:'查看全部平台'}));
+ await user.click(screen.getByRole('button',{name:'请宁宁分析当前账单'}));
+ await waitFor(()=>expect(reply).toHaveBeenCalledTimes(3));
+ expect(reply.mock.calls[2][0].billAnalysis?.sources).toEqual(['微信支付','支付宝']);
+ expect(reply.mock.calls[2][0].messages.at(-1)?.content).toContain('全部平台');
+});
 it('模型给出平台切换选项时不再重复渲染发消息按钮，保留真正的追问选项',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'可以继续核对。[[choices:只看微信支付|只看支付宝|详细解释原因]]'}));
  render(<StewardChatHome {...base} connections={{wechat_pay:source}} reply={reply}/>);
@@ -34,6 +67,7 @@ it('切换账单平台不发消息或重算解读，刷新保留范围，下一�
  const view=render(<StewardChatHome {...props}/>);
  await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  const scene=await screen.findByRole('region',{name:'账单工作区'});
+ expect(scene.compareDocumentPosition(screen.getByText('原范围的解读。').closest('.steward-message')!)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
  const before=JSON.parse(localStorage.getItem('zhiyin-steward-conversation-v1')!);
  await user.click(within(scene).getByRole('button',{name:'只看支付宝'}));
  expect(within(scene).getAllByText('¥5')[0]).toBeVisible();
@@ -103,6 +137,7 @@ it('就地交互把选中的实际交易传给模型，续聊后只有一份可�
  await user.click(within(scene).getByRole('button',{name:/查看餐饮交易/}));
  await user.click(within(scene).getByRole('button',{name:/请宁宁解释午餐/}));
  await screen.findByText('这笔午餐可以先核对是否为预期消费。');
+ expect(scene.compareDocumentPosition(screen.getByText('这笔午餐可以先核对是否为预期消费。').closest('.steward-message')!)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
  expect(reply.mock.calls[1][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
  expect(screen.getAllByRole('region',{name:'账单工作区'})).toHaveLength(1);
  expect(screen.getByRole('region',{name:'账单工作区'})).toBe(scene);
