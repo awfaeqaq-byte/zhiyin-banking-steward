@@ -51,6 +51,7 @@ it('切换账单平台不发消息或重算解读，刷新保留范围，下一�
  const view=render(<StewardChatHome {...props}/>);
  await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  const scene=await screen.findByRole('region',{name:'账单工作区'});
+ expect(scene.compareDocumentPosition(screen.getByText('原范围的解读。').closest('.steward-message')!)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
  const before=JSON.parse(localStorage.getItem('zhiyin-steward-conversation-v1')!);
  await user.click(within(scene).getByRole('button',{name:'只看支付宝'}));
  expect(within(scene).getAllByText('¥5')[0]).toBeVisible();
@@ -120,6 +121,7 @@ it('就地交互把选中的实际交易传给模型，续聊后只有一份可�
  await user.click(within(scene).getByRole('button',{name:/查看餐饮交易/}));
  await user.click(within(scene).getByRole('button',{name:/请宁宁解释午餐/}));
  await screen.findByText('这笔午餐可以先核对是否为预期消费。');
+ expect(scene.compareDocumentPosition(screen.getByText('这笔午餐可以先核对是否为预期消费。').closest('.steward-message')!)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
  expect(reply.mock.calls[1][0].billFocus).toEqual({provider:'wechat_pay',id:'lunch'});
  expect(screen.getAllByRole('region',{name:'账单工作区'})).toHaveLength(1);
  expect(screen.getByRole('region',{name:'账单工作区'})).toBe(scene);
