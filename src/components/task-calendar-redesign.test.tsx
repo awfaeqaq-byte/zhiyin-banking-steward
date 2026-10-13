@@ -31,7 +31,7 @@ it('跨年近期列表展示下一年的生日，筛选不会丢失年度记录'
 
 it('手动生日组件保存年度全天记录，取消仍需明确确认',async()=>{
  const api=serve(),user=userEvent.setup();render(<TaskCalendar {...props} initialDate={start()}/>);
- await waitFor(()=>expect(screen.getByRole('button',{name:'添加提醒'})).toBeEnabled());await user.click(screen.getByRole('button',{name:'添加提醒'}));await user.click(screen.getByRole('button',{name:'生日',exact:true}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'添加提醒'})).toBeEnabled());await user.click(screen.getByRole('button',{name:'添加提醒'}));await user.click(screen.getByRole('button',{name:'生日'}));
  await user.type(screen.getByLabelText('要做什么'),'妈妈生日');expect(screen.getByLabelText('生日日期（公历）')).toHaveValue(dayKey(start()));
  await user.click(screen.getByRole('button',{name:'确认保存生日'}));expect(api.state().tasks[0]).toMatchObject({title:'妈妈生日',allDay:true,repeat:'yearly'});
  await user.click(screen.getByRole('button',{name:/全天.*妈妈生日/}));await user.click(screen.getByRole('button',{name:'取消生日记录'}));expect(api.state().tasks[0].status).toBe('pending');

@@ -377,7 +377,8 @@ export function StewardChatHome({
   },[]);
   const handledDraft=useRef('');
   useEffect(()=>{
-    if(!initialDraft||handledDraft.current===initialDraft)return;
+    if(!initialDraft){handledDraft.current='';return;}
+    if(handledDraft.current===initialDraft)return;
     handledDraft.current=initialDraft;
     setInput(initialDraft);
     onInitialDraftConsumed?.();
