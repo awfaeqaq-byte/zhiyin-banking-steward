@@ -42,3 +42,13 @@ it('核对正确的解释只调用一次，不把交易追问强行改写成概�
  const result=await requestStewardReplyWithModel({...request,billFocus:{provider:'alipay',id:'food'},messages:[{role:'user',content:'这笔什么时候付的？'}]},model);
  expect(model).toHaveBeenCalledOnce();expect(result.text).toContain('10月12日');
 });
+it('纠正调用失败时仍返回核对过的结果，而不是让整条账单回复失败',async()=>{
+ const model=vi.fn().mockResolvedValueOnce('收入15800元含转账200元。').mockRejectedValueOnce(new Error('模型暂时不可用'));
+ const result=await requestStewardReplyWithModel(request,model);
+ expect(result.text).toContain('69.8%');expect(result.action).toBeUndefined();
+});
+it('裁剪长对话时保留当前账本事实，不让旧回复挤掉核对口径',async()=>{
+ const model=vi.fn().mockResolvedValue('餐饮是主要部分，先核对用途。');
+ await requestStewardReplyWithModel({...request,messages:[...Array.from({length:23},()=>({role:'assistant' as const,content:'历史材料'.repeat(490)})),...request.messages]},model);
+ expect(model.mock.calls[0][0].input.some((m:{content:string})=>m.content.startsWith('本轮账本核对事实'))).toBe(true);
+});

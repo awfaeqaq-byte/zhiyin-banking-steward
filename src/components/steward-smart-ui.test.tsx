@@ -17,6 +17,7 @@ it('分析按钮发送明确分析意图和当前平台，历史回复不能把�
  await user.click(screen.getByRole('button',{name:'请宁宁分析当前账单'}));
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
  expect(reply.mock.calls[1][0].messages.at(-1)?.content).toContain('请分析');
+ expect(screen.getByText('分析当前支付宝账单')).toBeInTheDocument();
  expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
  await user.click(screen.getByRole('button',{name:'查看全部平台'}));
  await user.click(screen.getByRole('button',{name:'请宁宁分析当前账单'}));
