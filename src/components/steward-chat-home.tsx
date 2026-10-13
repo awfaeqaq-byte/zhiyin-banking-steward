@@ -939,7 +939,16 @@ export function StewardChatHome({
             const related = action ? actionSubscription(action, subscriptions) : undefined;
             const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
             const choices=scene&&!scene.needsConsent?parsed.choices.filter(choice=>!/^(?:只看|就看|查看|切换到|看)?(?:微信(?:支付)?|支付宝|全部平台|全部)(?:的)?(?:账单)?$/.test(choice)):parsed.choices;
-            return [(
+            const billSurface=scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace
+              key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui}
+              selectedCategory={scene.category} selectedFocus={scene.focus}
+              interpretationChanged={Boolean(scene.interpretationQuestion&&billScopeQuestion(scene.interpretationQuestion,billProvider(scene.interpretationQuestion))!==billScopeQuestion(scene.question,billProvider(scene.question)))}
+              stewardName={stewardName} disabled={sending||externalBusy||viewSaving} loading={refreshing||revalidatingBill}
+              error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)}
+              onViewChange={value=>void changeBillView(scene,value)} onInteract={value=>interactWithBill(scene,value)}
+              onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null;
+            // Current ledger first, then its explanation. Consent still follows the question asking for it.
+            return [scene?.needsConsent?null:billSurface,(
               <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} role={message.retryPrompt?'alert':undefined} key={message.id}>
                 {homePreview&&message.role==='assistant'&&<img className="home-reply-avatar" src={stewardImage} alt=""/>}
                 <div className="steward-brief">
@@ -991,14 +1000,7 @@ export function StewardChatHome({
                   {!seamless && !historyOpen && <button className="desk-text-action" onClick={()=>{setActiveReplyId(null); composerInput.current?.focus();}}>收起回复<ChevronDown size={14} /></button>}
                 </div>
               </div>
-            ),scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace
-              key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui}
-              selectedCategory={scene.category} selectedFocus={scene.focus}
-              interpretationChanged={Boolean(scene.interpretationQuestion&&billScopeQuestion(scene.interpretationQuestion,billProvider(scene.interpretationQuestion))!==billScopeQuestion(scene.question,billProvider(scene.question)))}
-              stewardName={stewardName} disabled={sending||externalBusy||viewSaving} loading={refreshing||revalidatingBill}
-              error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)}
-              onViewChange={value=>void changeBillView(scene,value)} onInteract={value=>interactWithBill(scene,value)}
-              onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null];
+            ),scene?.needsConsent?billSurface:null];
           })}
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
