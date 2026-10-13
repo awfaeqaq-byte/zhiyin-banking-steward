@@ -8,6 +8,17 @@ import type {StewardSubscription} from '../lib/steward-chat';
 const item:StewardSubscription={key:'alipay:video',provider:'alipay',id:'video',title:'视频会员',providerName:'支付宝',amount:2500,cycle:'月',daysUntilCharge:2,reminderEnabled:true};
 const flow:SceneFlow={id:'birthday',title:'王芳生日筹备',workspaceIds:['calendar','cake'],links:[],records:[{kind:'calendar',id:'date',workspaceId:'calendar',status:'saved',label:'7月15日生日'},{kind:'food_order',id:'order',workspaceId:'cake',status:'ACCEPTED',label:'生日蛋糕'}],stage:'waiting_external',summary:'蛋糕订单已接单，等待配送。',orders:[],checkedAt:Date.parse('2026-10-13'),fingerprint:'test',next:{kind:'food',id:'order',workspaceId:'cake',channel:'occasion'}};
 
+it('用户保留金额被分流遗漏或不一致时，方案等待补全且不能进入核对',()=>{
+ const open=vi.fn(),intent={recipientId:'mom' as const,amount:200000};
+ const view=render(<TransferPlanCard intent={intent} sourceText="给妈妈转2000元，保留5000元" onReview={open}/>);
+ expect(screen.getByRole('region',{name:'转账方案'})).toHaveTextContent('约束待核对');
+ expect(screen.getByRole('button',{name:'核对银行转账'})).toBeDisabled();
+ view.rerender(<TransferPlanCard intent={{...intent,protectedAmount:100000}} sourceText="给妈妈转2000元，保留5000元" onReview={open}/>);
+ expect(screen.getByRole('button',{name:'核对银行转账'})).toBeDisabled();
+ view.rerender(<TransferPlanCard intent={{...intent,protectedAmount:500000}} sourceText="给妈妈转2000元，保留5000元" onReview={open}/>);
+ expect(screen.getByRole('button',{name:'核对银行转账'})).toBeEnabled();
+});
+
 it('转账组件把待核对方案与余额测算固定展示，点击只打开已有核对流程',async()=>{
  const open=vi.fn();
  render(<TransferPlanCard intent={{recipientId:'mom',amount:200000,protectedAmount:500000}} quote={{balance:4230000,limit:2000000,frozen:false,capturedAt:Date.parse('2026-10-13'),impact:{pendingTotal:100000,protectedAmount:500000,available:2000000,remaining:3430000}}} onReview={open}/>);

@@ -7,6 +7,14 @@ const base={seamless:true,homePreview:true,stewardName:'宁宁',stewardImage:'/n
 const bank={revision:1,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]};
 afterEach(()=>vi.restoreAllMocks());
 async function say(text:string){await userEvent.type(screen.getByRole('textbox'),text);await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));}
+it('后台分流的转账片段仍核对原始整句的保留约束',async()=>{
+ vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify(bank)));
+ const prepare=vi.fn(),reply=vi.fn().mockResolvedValue({text:'准备好了。',action:{type:'prepare_transfer',recipientId:'mom',amount:200000}});
+ render(<StewardChatHome {...base} reply={reply} onPrepareTransfer={prepare} injectedPrompt={{token:'reserve',text:'给妈妈转2000元',sourceText:'给妈妈转2000元，保留5000元',replyId:'transfer-reply'}}/>);
+ const card=await screen.findByRole('region',{name:'转账方案'});
+ expect(card).toHaveTextContent('约束待核对');expect(card).not.toHaveTextContent('已计入需保留金额');
+ expect(within(card).getByRole('button',{name:'核对银行转账'})).toBeDisabled();expect(prepare).not.toHaveBeenCalled();
+});
 it('完整转账回复展示参数化核对组件，调整后的新回复替换旧执行入口',async()=>{
  vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify(bank)));
  const prepare=vi.fn(),reply=vi.fn().mockResolvedValueOnce({text:'准备好了。',action:{type:'prepare_transfer',recipientId:'mom',amount:200000}}).mockResolvedValueOnce({text:'新方案已准备。',action:{type:'prepare_transfer',recipientId:'mom',amount:300000}});
