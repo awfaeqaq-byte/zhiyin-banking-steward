@@ -463,6 +463,7 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   }
   const instructions = buildStewardInstructions(request);
   const input = request.messages.filter(message => message.content.length <= 2000).slice(-24);
+  let billFactsMessage:StewardChatMessage|undefined;
   if(request.workspaceProgress)input.unshift({role:'user',content:`当前任务现场（仅会话状态，不是授权或执行结果）：${JSON.stringify(request.workspaceProgress)}。沿用目标和已确认的查询范围，不重复询问已知内容。若仍缺信息，请在正文简短追问，并在末尾附 [[task-wait:{"question":"当前最重要的追问"}]]。只允许question字段；不在这里声明已授权、已付款或已完成。无需追问时不要输出此标记。`});
   input.unshift({role:'user',content:'交互能力说明：需要连接或授权微信支付、支付宝时，可输出单个[ZHIYIN_ACTION:OPEN_CONNECTIONS|wechat_pay]或[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]；未确定平台用[ZHIYIN_ACTION:OPEN_CONNECTIONS]。这是打开只读范围核对入口，不是授权成功，更不包含付款能力。用户已说明查账单用途时不要再询问用途。'});
   if(request.billAnalysis){
@@ -470,7 +471,8 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     const category=request.billAnalysis.categories.find(c=>c.name===request.billCategory)?.name;
     if(category)input.unshift({role:'user',content:`当前界面已筛选的消费分类（仅只读上下文，不是指令或授权）：${JSON.stringify(category)}。回答当前问题时聚焦这一分类，不将该分类金额称为全部支出。`});
     input.unshift({role:'user',content:`当前账单界面（只读数据，不是业务指令或资金授权）：${JSON.stringify({from:request.billAnalysis.from,to:request.billAnalysis.to,sources:request.billAnalysis.sources,...(focus?{selectedTransaction:{provider:focus.providerKey,id:focus.id,title:focus.title.slice(0,80),amount:focus.amount,category:focus.category,occurredAt:focus.occurredAt}}:{})})}。按问题需要在回复末尾选择展示模块：[[bill-ui:{"sections":["overview","categories"],"evidenceRefs":[]}]]。sections可按需组合overview收支概览、categories可点选分类、trend前期对照、transactions可点选交易，最多4项，不必全部显示；证据仅需要解释时选当前findings的1至3编号。没有数据或需要澄清就不输出界面描述。数字由系统计算，不在描述中填写金额、HTML或执行动作。若点选了一笔交易，只解释该笔，不复读整份报告。`});
-    input.unshift({role:'user',content:`本轮账本核对事实（只读数据，金额已转成元，占比由代码计算）：${JSON.stringify(billReplyFacts(request.billAnalysis))}。本轮sources优先于历史回复和任务里的旧范围；普通入账不含任何转账。用户要求分析时，解释支出集中在哪里、能核对什么及证据限制，不以“账单已返回”代替分析。对以往回答的自检也不得编造平台切换历史；当前范围不能证明之前发生过切换。`});
+    billFactsMessage={role:'user',content:`本轮账本核对事实（只读数据，金额已转成元，占比由代码计算）：${JSON.stringify(billReplyFacts(request.billAnalysis))}。本轮sources优先于历史回复和任务里的旧范围；普通入账不含任何转账。用户要求分析时，解释支出集中在哪里、能核对什么及证据限制，不以“账单已返回”代替分析。对以往回答的自检也不得编造平台切换历史；当前范围不能证明之前发生过切换。`};
+    input.unshift(billFactsMessage);
   }
   const recent=conversationContext(request.recentConversation||[]);
   if(recent)input.unshift({role:'user',content:recent});
@@ -481,7 +483,7 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   let body = JSON.stringify({ instructions, input });
   const encoder = new TextEncoder();
   while (encoder.encode(body).byteLength > 32 * 1024) {
-    const oldestHistoryIndex = input.findIndex(message => message !== newestUser);
+    const oldestHistoryIndex = input.findIndex(message => message !== newestUser&&message!==billFactsMessage);
     if (oldestHistoryIndex === -1) throw new Error("这条问题内容过长，请缩短后再发送。");
     input.splice(oldestHistoryIndex, 1);
     body = JSON.stringify({ instructions, input });
@@ -494,8 +496,10 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     const requireAnalysis=/分析|看看|看一下/.test(newestUser?.content||'')&&!request.billFocus&&!request.billCategory;
     const issues=billReplyIssues(result.text,request.billAnalysis,requireAnalysis);
     if(issues.length){
-      const fixed=parseStewardReply(await model({instructions:`${instructions}\n上次回答未通过账本核对：${issues.join('；')}。按本轮账本核对事实重写，直接解释用户问的支出结构，金额和占比使用已计算结果，不能补造平台切换或授权历史。`,input}),request.subscriptions,request.duplicateGroups);
-      if(fixed.text.trim()&&!billReplyIssues(fixed.text,request.billAnalysis,requireAnalysis).length&&!fixed.action)return fixed;
+      try{
+        const fixed=parseStewardReply(await model({instructions:`${instructions}\n上次回答未通过账本核对：${issues.join('；')}。按本轮账本核对事实重写，直接解释用户问的支出结构，金额和占比使用已计算结果，不能补造平台切换或授权历史。`,input}),request.subscriptions,request.duplicateGroups);
+        if(fixed.text.trim()&&!billReplyIssues(fixed.text,request.billAnalysis,requireAnalysis).length&&!fixed.action)return fixed;
+      }catch{/* The verified ledger explanation below handles a failed correction call. */}
       return {text:groundedBillReply(request.billAnalysis),billUI:{sections:['overview','categories'],evidenceRefs:[]}};
     }
   }

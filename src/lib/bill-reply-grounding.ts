@@ -22,7 +22,7 @@ export function billReplyIssues(text:string,bill:BillAnalysis,requireAnalysis=fa
  if(bill.needsClarification||!bill.sources.length||!bill.count)return [];
  const issues=new Set<string>();
  const prose=text.replace(/“[^”]*”|"[^"\n]*"/g,'');
- for(const clause of prose.split(/[。；\n]/)){
+ for(const clause of prose.split(/[。；，\n]/)){
   if(/错误|没有依据|混淆|不应|不能算|不准确/.test(clause))continue;
   if(/(?:收入|普通入账).{0,30}(?:包含|包括|含有|含).{0,20}转(?:入|出|账)/.test(clause)&&!/不(?:包含|包括|含有|含)/.test(clause))issues.add('普通入账不能包含转入或转出');
   for(const [pattern,cents,label] of [
