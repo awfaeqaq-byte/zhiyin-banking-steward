@@ -1,4 +1,4 @@
-import {render,screen,within} from '@testing-library/react';
+import {render,screen,within,waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {afterEach,it,expect,vi} from 'vitest';
 import {SmartTransfers} from './smart-transfers';
@@ -61,4 +61,60 @@ it('手机号搜索要显式选择匹配账户，预约发送时间字段且不�
  expect(await screen.findByText('预约已建立')).toBeVisible();
  expect(calls.filter(c=>c.type==='confirm')).toHaveLength(0);
  expect(calls.find(c=>c.type==='prepare')).toMatchObject({recipientId:'dad',executeAt:expect.any(Number)});
+});
+it('暂不撤销保持预约，确认撤销后同步转账标签，新预约也能独立撤销',async()=>{
+ const user=userEvent.setup(),calls:Record<string,unknown>[]=[];
+ const executeAt=Date.now()+86400000;
+ const snapshot={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[],schedules:[] as Array<{id:string;recipientId:string;amount:number;executeAt:number;createdAt:number;status:'pending'|'cancelled'}>};
+ let sequence=0;
+ vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{
+  const body=JSON.parse(String(options?.body||'{}'));calls.push(body);
+  if(body.type==='prepare')return new Response(JSON.stringify({...body,id:`schedule-${++sequence}`,revision:snapshot.revision,balance:snapshot.balance,expiresAt:Date.now()+300000}));
+  if(body.type==='schedule'){
+   const item={id:body.draftId,recipientId:'dad',amount:2000,executeAt,createdAt:Date.now(),status:'pending' as const};
+   snapshot.schedules.push(item);snapshot.revision++;
+   return new Response(JSON.stringify(item));
+  }
+  if(body.type==='cancel-schedule'){
+   const item=snapshot.schedules.find(s=>s.id===body.id)!;item.status='cancelled';snapshot.revision++;
+   return new Response(JSON.stringify(item));
+  }
+  return new Response(JSON.stringify(snapshot));
+ });
+ render(<SmartTransfers initial={{recipientId:'dad',amount:2000,executeAt}} onDone={vi.fn()}/>);
+ await user.click(screen.getByRole('button',{name:'核对预约转账'}));
+ await user.click(await screen.findByRole('button',{name:'确认预约转账（沙箱）'}));
+ expect(await screen.findByText('预约已建立')).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'记录',exact:true}));
+ const records=await screen.findByRole('region',{name:'转账与收款记录'});
+ await user.click(await within(records).findByRole('button',{name:'撤销预约'}));
+ await user.click(screen.getByRole('button',{name:'暂不操作'}));
+ await user.click(within(records).getByRole('button',{name:'刷新'}));
+ expect(within(records).getByText('等待执行')).toBeVisible();
+ expect(calls.filter(c=>c.type==='cancel-schedule')).toHaveLength(0);
+ expect(snapshot.schedules[0].status).toBe('pending');
+ await user.click(within(records).getByRole('button',{name:'撤销预约'}));
+ await user.click(screen.getByRole('button',{name:'确认操作'}));
+ expect(await within(records).findByText('已撤销')).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'转账',exact:true}));
+ expect(await screen.findByRole('heading',{name:'预约已撤销'})).toBeVisible();
+ expect(screen.queryByText('预约已建立')).not.toBeInTheDocument();
+ expect(screen.getByText('本预约已撤销，不会执行。未扣款、未冻结余额。')).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'再安排一笔'}));
+ await user.type(screen.getByLabelText('转账金额（元）'),'20');
+ await user.click(screen.getByRole('button',{name:'核对预约转账'}));
+ await user.click(await screen.findByRole('button',{name:'确认预约转账（沙箱）'}));
+ expect(await screen.findByText('预约已建立')).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'记录',exact:true}));
+ const newRecords=await screen.findByRole('region',{name:'转账与收款记录'});
+ await user.click(await screen.findByRole('button',{name:'撤销预约'}));
+ await user.click(screen.getByRole('button',{name:'确认操作'}));
+ await waitFor(()=>expect(within(newRecords).getAllByText('已撤销')).toHaveLength(2));
+ await user.click(screen.getByRole('button',{name:'转账',exact:true}));
+ expect(await screen.findByRole('heading',{name:'预约已撤销'})).toBeVisible();
+ expect(calls.filter(c=>c.type==='cancel-schedule')).toEqual([
+  {type:'cancel-schedule',id:'schedule-1',authorized:true},
+  {type:'cancel-schedule',id:'schedule-2',authorized:true},
+ ]);
+ expect(snapshot.balance).toBe(4230000);expect(snapshot.transactions).toHaveLength(0);
 });
