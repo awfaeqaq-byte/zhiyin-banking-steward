@@ -32,7 +32,7 @@ export function BillAnalysisCard({bill,stewardName='宁宁',loading=false,error=
   </>}
   {details&&<details className="bill-card-disclosure bill-card-workspace"><summary>查看明细与切换平台</summary>{details}</details>}
   {ready&&<>
-   {interpretationChanged?<p className="task-card-explanation" role="status">查看范围已更新，补充解读需重新生成。</p>:explanation&&<details className="bill-card-disclosure"><summary>查看{stewardName}的补充解读</summary>{explanation}</details>}
+   {interpretationChanged?<p className="task-card-explanation" role="status">账单数据或查看范围已更新，补充解读需重新生成。</p>:explanation&&<details className="bill-card-disclosure"><summary>查看{stewardName}的补充解读</summary>{explanation}</details>}
    <Button variant="secondary" disabled={disabled} onClick={onAnalyze}>请{stewardName}进一步分析<ArrowRight size={15} aria-hidden="true"/></Button>
    <p className="task-card-note">只统计本次已授权平台返回的记录，不代表全部账户。</p>
   </>}

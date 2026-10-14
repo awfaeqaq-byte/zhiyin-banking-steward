@@ -1,4 +1,22 @@
 /* Shared secondary-page rhythm; the conversation keeps its own fixed shell. */
+.page-home .account-summary {
+  background: linear-gradient(125deg,#133d56,#185c6d 70%,#247d83);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(13,66,80,.14);
+}
+.page-home .account-summary::after { border-color: rgba(255,255,255,.13); }
+.page-home .account-summary .section-line,
+.page-home .account-summary .section-line .icon-control,
+.page-home .account-foot,
+.page-home .account-foot button { color: rgba(255,255,255,.84); }
+.page-home .account-summary .balance { color: #fff; }
+.page-home .quick-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; border: 0; background: transparent; }
+.page-home .quick-actions .list-row { display: flex; flex-direction: column; align-items: flex-start; min-height: 134px; padding: 15px; border: 1px solid #e0e9ea; border-radius: 15px; background: #fff; }
+.page-home .quick-actions .list-row + .list-row::before { display: none; }
+.page-home .quick-actions .list-row > svg { display: none; }
+.page-home .quick-actions .glyph { width: 36px; height: 36px; border-radius: 11px; }
+.page-home .quick-actions .row-copy strong { color: #18364b; font-size: 14px; }
+.page-home .quick-actions .row-copy > span { color: #6d818a; font-size: 11px; line-height: 1.4; }
 .app-shell .main-content.is-detail-page {
   --detail-canvas: #f4f7f6;
   padding-top: 16px;

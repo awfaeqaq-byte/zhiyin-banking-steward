@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {billProvider,billScopeQuestion,evidenceRefs,parseBillUI,restoreBillScenes,validBillUI} from './steward-ui';
+import {billLedgerFingerprint,billProvider,billScopeQuestion,evidenceRefs,parseBillUI,restoreBillScenes,validBillUI} from './steward-ui';
 import {parseStewardReply,requestStewardReply} from './steward-chat';
 import {buildBillAnalysis,billQuestionForMessages} from './bill-analysis';
 import {vi} from 'vitest';
@@ -39,6 +39,13 @@ it('点击的交易来自真实分析数据，作为只读界面上下文传给�
 });
 it('账单续聊切换平台时保留此前月份，而不是重置到本月',()=>{
   expect(billQuestionForMessages([{role:'user',content:'看看8月支出'},{role:'assistant',content:'已整理'},{role:'user',content:'只看微信'}])).toBe('看看8月支出；只看微信');
+});
+it('金额相同但流水明细改变时，账本解读指纹也改变',()=>{
+ const source={provider:'alipay' as const,displayName:'支付宝',accountMasked:'测试',scopes:['transactions' as const],autopays:[],syncedAt:'2026-09-24',transactions:[{id:'one',title:'午餐',amount:-2500,category:'餐饮',occurredAt:'2026-09-20'}]};
+ const original=buildBillAnalysis({alipay:source},'本月支出',Date.parse('2026-09-24'));
+ const changed=buildBillAnalysis({alipay:{...source,transactions:[{...source.transactions[0],title:'超市'}]}},'本月支出',Date.parse('2026-09-24'));
+ expect(original.expense).toBe(changed.expense);
+ expect(billLedgerFingerprint(original)).not.toBe(billLedgerFingerprint(changed));
 });
 it('恢复只保留界面意图，丢弃非法结构与伪造的金额或交易对象',()=>{
  for(const raw of [null,'{','{}','null'])expect(restoreBillScenes(raw)).toEqual({});

@@ -20,6 +20,9 @@ const TURN_SAVED='zhiyin-workspace-turn-saved';
 export function StewardWorkspaces({route,...props}:Props){
  const [state,setState]=useState(emptyWorkspaces),[loaded,setLoaded]=useState(false),[error,setError]=useState('');
  const [active,setActive]=useState(()=>localStorage.getItem('zhiyin-workspace-active')||'');
+ const [selectedConversationId,setSelectedConversationId]=useState(()=>localStorage.getItem('zhiyin-conversation-selected')||'');
+ const [sessionOpen,setSessionOpen]=useState(false),[sessionQuery,setSessionQuery]=useState(''),[sessionFilter,setSessionFilter]=useState<'active'|'archived'>('active');
+ const [editingTitle,setEditingTitle]=useState<{id:string;value:string}>(),[deleteId,setDeleteId]=useState('');
  const [claimAttempt,setClaimAttempt]=useState(0);
  const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
  const currentState=useRef(state);currentState.current=state;
@@ -31,6 +34,10 @@ export function StewardWorkspaces({route,...props}:Props){
  const busy=Boolean(activeRun);
  const phase=activeRun?.trace.at(-1)?.stage;
  const work=state.items.find(w=>w.id===(job?.taskId||active)&&w.status==='active');
+ const sessions=[...state.items].sort((a,b)=>b.updatedAt-a.updatedAt);
+ const selectedConversation=state.items.find(w=>w.id===selectedConversationId)||state.items.find(w=>w.title.startsWith('赛题验收·'));
+ const managedConversation=selectedConversation?.status==='active'&&(selectedConversationId||selectedConversation.title.startsWith('赛题验收·'))?selectedConversation:null;
+ const visibleSessions=sessions.filter(item=>item.status===sessionFilter&&item.title.toLowerCase().includes(sessionQuery.trim().toLowerCase()));
  const accept=useCallback((next:ReturnType<typeof emptyWorkspaces>)=>{setState(current=>next.revision>current.revision?next:current);},[]);
  useSceneContinuation(loaded&&!route,accept,JSON.stringify({items:state.items.map(t=>({id:t.id,status:t.status,sceneId:t.sceneId,book:t.expenseBookId,food:t.progress?.food?.orderId})),runs:state.runs?.map(r=>({id:r.id,status:r.status}))}));
  async function resumeScene(next:SceneNext){
@@ -49,6 +56,31 @@ export function StewardWorkspaces({route,...props}:Props){
    throw new Error('任务正在保存，请重试');
   });saveTail.current=result.catch(()=>undefined);return result;
  }
+  function selectConversation(id:string){
+    setSelectedConversationId(id);
+    localStorage.setItem('zhiyin-conversation-selected',id);
+    if(state.items.some(item=>item.id===id&&item.status==='active')){setActive(id);localStorage.setItem('zhiyin-workspace-active',id);}
+    setSessionOpen(false);
+  }
+  async function createConversation(){
+    const id=crypto.randomUUID();
+    try{await save({type:'create',id,title:'新对话',kind:'general'});selectConversation(id);setActive(id);localStorage.setItem('zhiyin-workspace-active',id);setError('');}
+    catch(e){setError(e instanceof Error?e.message:'无法新建对话');}
+  }
+  async function renameConversation(){
+    if(!editingTitle)return;
+    try{await save({type:'rename',id:editingTitle.id,title:editingTitle.value});setEditingTitle(undefined);setError('');}
+    catch(e){setError(e instanceof Error?e.message:'无法重命名对话');}
+  }
+  async function statusConversation(id:string,status:'active'|'archived'){
+    try{await save({type:'status',id,status});if(status==='archived'&&active===id){setActive('');localStorage.removeItem('zhiyin-workspace-active');}setError('');}
+    catch(e){setError(e instanceof Error?e.message:'无法更改对话状态');}
+  }
+  async function deleteConversation(){
+    const id=deleteId;if(!id)return;
+    try{await save({type:'delete',id});if(active===id){setActive('');localStorage.removeItem('zhiyin-workspace-active');}if(selectedConversationId===id){setSelectedConversationId('');localStorage.removeItem('zhiyin-conversation-selected');}setDeleteId('');setError('');}
+    catch(e){setError(e instanceof Error?e.message:'无法删除对话');setDeleteId('');}
+  }
  // Explicit route injection is used by isolated component tests. Production
  // classification always runs in the server worker; both paths use its reducer.
  async function request(operation?:MessageClientOperation){
@@ -78,7 +110,7 @@ export function StewardWorkspaces({route,...props}:Props){
   if(!loaded||!activeRun||activeRun.status!=='ready'||claiming.current)return;
   const next=activeRun.jobs.find(j=>j.status==='queued');if(!next)return;
   claiming.current=true;
-  void request({type:'claim',id:activeRun.id,jobId:next.id,owner:owner.current}).then(result=>{setActive(next.taskId);localStorage.setItem('zhiyin-workspace-active',next.taskId);accept(result);setError('');}).catch(cause=>{setError(cause instanceof Error?cause.message:'这条消息暂时未能领取');}).finally(()=>{claiming.current=false;});
+  void request({type:'claim',id:activeRun.id,jobId:next.id,owner:owner.current}).then(result=>{setActive(next.taskId);localStorage.setItem('zhiyin-workspace-active',next.taskId);if(managedConversation){setSelectedConversationId(next.taskId);localStorage.setItem('zhiyin-conversation-selected',next.taskId);}accept(result);setError('');}).catch(cause=>{setError(cause instanceof Error?cause.message:'这条消息暂时未能领取');}).finally(()=>{claiming.current=false;});
  },[loaded,activeRun,route,accept,claimAttempt]);
  async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string}){
   if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
@@ -86,11 +118,11 @@ export function StewardWorkspaces({route,...props}:Props){
   try{
    const last=currentState.current.runs?.filter(r=>r.status==='waiting_user').at(-1);
    const source=route&&last?`${last.prompt}；补充：${text}`:text;
-   let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:work?.id||'',memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
+   let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:managedConversation?.id||work?.id||'',memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
    if(route){
     const tasks=next.items.map(t=>({...t,progress:t.memoryRevision===revision?t.progress:undefined,memoryRevision:revision,messages:t.messages.filter(m=>m.memoryRevision===revision)}));
     const known=knownBillTaskId?tasks.find(t=>t.id===knownBillTaskId):undefined;
-    const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!last&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,tasks,work?.id||''):null)||await route(source,tasks,work?.id||'','',recent);
+    const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!last&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,tasks,managedConversation?.id||work?.id||''):null)||await route(source,tasks,managedConversation?.id||work?.id||'','',recent);
     next=await save({type:'message-routed',id,...result});accept(next);
    }
    setError('');
@@ -116,8 +148,37 @@ export function StewardWorkspaces({route,...props}:Props){
  },[loaded,route,accept]);
   return <div className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
-    <StewardChatHome {...props}
-      seamless
+    <div className="conversation-toolbar">
+      <button type="button" onClick={()=>setSessionOpen(true)} aria-label="打开会话列表">☰ 会话 {state.items.some(item=>item.status==='active')&&<span>{state.items.filter(item=>item.status==='active').length}</span>}</button>
+      <strong>{selectedConversation?.title||'与宁宁对话'}</strong>
+      <button type="button" onClick={()=>void createConversation()} disabled={!loaded||busy}>＋ 新对话</button>
+    </div>
+    {sessionOpen&&<div className="conversation-sheet-backdrop" onClick={()=>setSessionOpen(false)}>
+      <aside className="conversation-sheet" role="dialog" aria-modal="true" aria-label="会话管理" onClick={event=>event.stopPropagation()}>
+        <div className="conversation-sheet-head"><strong>会话</strong><button type="button" onClick={()=>setSessionOpen(false)} aria-label="关闭会话列表">×</button></div>
+        <button type="button" className="conversation-sheet-new" onClick={()=>void createConversation()} disabled={busy}>＋ 新对话</button>
+        <label className="conversation-search">搜索会话<input value={sessionQuery} onChange={event=>setSessionQuery(event.target.value)} placeholder="搜索标题"/></label>
+        <div className="conversation-filter"><button type="button" aria-pressed={sessionFilter==='active'} onClick={()=>setSessionFilter('active')}>最近对话</button><button type="button" aria-pressed={sessionFilter==='archived'} onClick={()=>setSessionFilter('archived')}>已归档</button></div>
+        <div className="conversation-sheet-list">{visibleSessions.length?visibleSessions.map(item=><div className="conversation-list-item" key={item.id}>
+          <button type="button" className="conversation-list-select" aria-current={item.id===selectedConversation?.id?'page':undefined} onClick={()=>selectConversation(item.id)}><strong>{item.title}</strong><span>{item.messages.length/2} 轮 · {new Date(item.updatedAt).toLocaleDateString('zh-CN')}</span></button>
+          <div className="conversation-list-actions"><button type="button" onClick={()=>setEditingTitle({id:item.id,value:item.title})}>重命名</button><button type="button" onClick={()=>void statusConversation(item.id,item.status==='active'?'archived':'active')}>{item.status==='active'?'归档':'恢复'}</button><button type="button" onClick={()=>setDeleteId(item.id)}>删除</button></div>
+        </div>):<p className="conversation-list-empty">这里还没有对话。</p>}</div>
+      </aside>
+    </div>}
+    {editingTitle&&<div className="conversation-modal-backdrop"><div role="dialog" aria-modal="true" aria-label="重命名会话" className="conversation-modal"><strong>重命名会话</strong><input aria-label="会话标题" maxLength={60} value={editingTitle.value} onChange={event=>setEditingTitle({...editingTitle,value:event.target.value})} onKeyDown={event=>{if(event.key==='Enter')void renameConversation();}}/><div><button type="button" onClick={()=>setEditingTitle(undefined)}>取消</button><button type="button" disabled={!editingTitle.value.trim()} onClick={()=>void renameConversation()}>保存</button></div></div></div>}
+    {deleteId&&<div className="conversation-modal-backdrop"><div role="alertdialog" aria-modal="true" aria-label="确认删除会话" className="conversation-modal"><strong>删除这段对话？</strong><p>这会删除此会话的历史消息。资金操作记录仍以业务账本为准。</p><div><button type="button" onClick={()=>setDeleteId('')}>取消</button><button type="button" className="conversation-danger" onClick={()=>void deleteConversation()}>确认删除</button></div></div></div>}
+    {selectedConversation&&!managedConversation&&<section className="scenario-conversations" aria-label="当前会话记录">
+      <div className="scenario-conversations-heading"><strong>{selectedConversation.title}</strong><span>{Math.floor(selectedConversation.messages.length/2)} 轮对话</span></div>
+      <div className="scenario-conversation" role="log" aria-label={selectedConversation.title}>
+        {selectedConversation.messages.length?selectedConversation.messages.map(message=><p key={message.id} className={`scenario-message ${message.role}`}>
+          <b>{message.role==='user'?'用户':'宁宁'}</b><span>{message.content}</span>
+        </p>):<p className="scenario-conversation-empty">这里还没有消息，和宁宁说点什么吧。</p>}
+        <small>本区展示模型对话记录；资金和设置变更以业务回执为准。</small>
+      </div>
+    </section>}
+    <StewardChatHome key={managedConversation?.id||'frontstage'} {...props}
+      seamless={!managedConversation}
+      fullSession={Boolean(managedConversation)}
       sceneFlows={state.scenes}
       onResumeScene={resumeScene}
       conversationMessages={state.conversation}
@@ -134,7 +195,7 @@ export function StewardWorkspaces({route,...props}:Props){
         localStorage.setItem("zhiyin-transfer-workspace",receiptOwner.current);
         props.onPrepareTransfer?.('kind' in intent&&intent.kind==='records'?intent:{...intent,workspaceId:receiptOwner.current||undefined});
       }:undefined}
-      workspace={work || null}
+      workspace={managedConversation || work || null}
       onBillViewChange={async(id,view)=>{
         await save(latest=>{
           const task=latest.items.find(t=>t.id===id&&t.status==='active');

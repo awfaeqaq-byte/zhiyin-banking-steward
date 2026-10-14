@@ -62,12 +62,14 @@ describe("知银交互原型", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("收藏演示方案不会产生申购回执", async () => {
+  it("资金规划先进行风险测评，不展示固定资产配置", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: /帮我选一个稳妥/ }));
-    await user.click(screen.getByRole("button", { name: "收藏这份方案" }));
-    expect(screen.getByRole("button", { name: "已收藏这份方案" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "理财方案" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "开始风险测评" })).toBeInTheDocument();
+    expect(screen.queryByText("资产配置建议")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "生成待确认申购方案" })).not.toBeInTheDocument();
     expect(screen.queryByText(/沙箱申购已完成/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "返回" }));
     expect(screen.getByRole("heading", { name: "今天想办理什么？" })).toBeInTheDocument();
@@ -217,8 +219,8 @@ describe("知银交互原型", () => {
     render(<App />);
     await user.click(within(screen.getByRole("navigation",{name:"主导航"})).getByRole("button",{name:"资产"}));
     await user.click(screen.getByRole("button",{name:/理财风险测评与持仓/}));
-    expect(screen.getByRole("heading",{name:"理财风险测评与持仓"})).toBeInTheDocument();
-    expect(screen.getByRole("combobox",{name:"可承受亏损"})).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:"财富管理"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"开始风险测评"})).toBeInTheDocument();
     expect(screen.queryByText("当前建议仓位")).not.toBeInTheDocument();
   });
 });

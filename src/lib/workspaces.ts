@@ -71,6 +71,7 @@ export type WorkspaceOperation =
   | { type: "discard"; id: string; token: string }
   | { type: "status"; id: string; status: "active" | "archived" }
   | { type: "rename"; id: string; title: string }
+  | { type: "delete"; id: string }
   | { type: "link"; id: string; expenseBookId: string };
 export type WorkspaceCommand = WorkspaceOperation & {
   revision: number;
@@ -186,7 +187,12 @@ export function changeWorkspaces(
   } else {
     if (!current) throw new Error("任务不存在");
     if(command.type==='scene-parent'){attachSceneParent(next.items,command.id,command.parentId);}
-    else if(command.type==='progress') {
+    else if(command.type==='delete') {
+      if(current.pending?.length)throw new Error('这段对话还有待处理事项，请完成后再删除');
+      if(next.runs?.some(run=>['routing','ready','processing'].includes(run.status)&&(run.currentId===current.id||run.jobs.some(job=>job.taskId===current.id))))throw new Error('这段对话正在处理消息，请完成后再删除');
+      if(next.scenes?.some(scene=>scene.workspaceIds.includes(current.id)))throw new Error('这段对话关联了业务事项，请先归档');
+      next.items.splice(next.items.indexOf(current),1);
+    }else if(command.type==='progress') {
       if(current.status!=='active'||!validTaskProgress(command.progress)||!Number.isSafeInteger(command.memoryRevision)||command.memoryRevision<0
         ||command.kind!==undefined&&(!['general',command.kind].includes(current.kind)||(command.kind==='bills'?!command.progress.bill:command.kind==='food'?!command.progress.food:true)))throw new Error('任务现场无效，未更改记录');
       if(current.memoryRevision!==command.memoryRevision)current.summary='';
@@ -264,7 +270,7 @@ export function changeWorkspaces(
           (p) => p.token !== command.token,
         );
     } else throw new Error("不支持的任务操作");
-    current.updatedAt = Date.now();
+    if(command.type!=='delete')current.updatedAt = Date.now();
   }
   next.revision++;
   next.requests = [...next.requests, command.requestId].slice(-200);
