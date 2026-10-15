@@ -90,3 +90,20 @@ it('整理本次实付费用直接展示已有账本候选，不让模型重新�
  expect(answer).toContain('原订单');expect(answer).toContain('确认');expect(model).not.toHaveBeenCalled();expect(fresh).toHaveBeenCalled();
  expect(screen.getByRole('button',{name:'确认记入这 1 笔实付'})).toBeInTheDocument();
 });
+it('纯手工AA结算不被无关的跨场景订单读取失败阻塞',async()=>{
+ const group={id:'g',name:'聚餐群',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]};
+ let state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'book',title:'手工AA',group,participants:['me','li'],defaultPayerId:'me',revision:0,requestId:'create'});
+ state=changeExpenses(state,{type:'add',bookId:'book',entryId:'dinner',entry:{title:'餐费',amount:10000,payerId:'me',fixed:[],shares:[{memberId:'me',weight:1},{memberId:'li',weight:1}]},revision:1,requestId:'add'});
+ vi.spyOn(expenses,'expenseRequest').mockImplementation(async(op,revision)=>{if(op)state=changeExpenses(state,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);return state;});
+ vi.spyOn(sources,'sceneExpenseRequest').mockImplementation(async()=>({sources:[],state}));
+ const fresh=vi.fn<()=>Promise<void>>().mockRejectedValue(new Error('外卖不可用'));
+ const bridge=vi.spyOn(aa,'groupAARequest').mockImplementation(async(operation,payload)=>{
+  if(operation!=='publish')return {collections:[]};
+  const plan=payload?.plan as aa.AAPlan,result=aa.calculateGroupAA(group,plan);
+  return {collection:{...result,id:payload!.id as string,groupId:group.id,groupName:group.name,plan,status:'pending',createdAt:Date.now(),members:result.members.map(m=>({...m,paid:false}))}};
+ });
+ render(<ExpenseNotebook conversation activityKey="aa-workspace" initialBookId="book" onReconcileSources={fresh} onPrompt={vi.fn()}/>);
+ await userEvent.click(await screen.findByRole('button',{name:/手工AA/}));await userEvent.click(screen.getByRole('button',{name:'核对并结算'}));
+ await userEvent.click(screen.getByRole('button',{name:/没问题，去微信确认收款/}));
+ await waitFor(()=>expect(bridge).toHaveBeenCalled());expect(fresh).not.toHaveBeenCalled();expect(state.books[0].batches[0].status).toBe('published');
+});
