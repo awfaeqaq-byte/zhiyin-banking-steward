@@ -299,7 +299,7 @@ describe("宁宁真实对话首页", () => {
     expect(screen.queryByText(/已检查/)).not.toBeInTheDocument();
     expect(screen.queryByText("优酷VIP会员连续包月")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看全部订阅" })).toBeInTheDocument();
-    expect(screen.getByText("沙箱演示数据")).toBeInTheDocument();
+    expect(screen.queryByText("沙箱演示数据")).not.toBeInTheDocument();
     expect(screen.queryByText("转账与资金安排")).not.toBeInTheDocument();
     expect(screen.queryByText("直接告诉宁宁你想处理什么")).not.toBeInTheDocument();
   });

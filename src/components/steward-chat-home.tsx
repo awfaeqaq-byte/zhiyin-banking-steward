@@ -32,7 +32,6 @@ import {
   ArrowUpRight,
   BellRing,
   CircleAlert,
-  FlaskConical,
   FileSearch,
   LoaderCircle,
   Send,
@@ -786,9 +785,8 @@ export function StewardChatHome({
   return (
     <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
-        <div className="steward-thread-context" aria-label="演示环境">
+        <div className="steward-thread-context" aria-label="对话日期">
           <span>今天</span>
-          <span><FlaskConical size={13} />沙箱演示数据</span>
         </div>
         {wechatShare&&<WechatShareAttachment share={wechatShare} stewardName={stewardName} disabled={sending||externalBusy} onRemove={()=>onWechatShareDone?.(wechatShare.id)} onProcess={()=>{try{void sendPrompt(sharePrompt(wechatShare,input.trim()||wechatShare.instruction));}catch(cause){setError(cause instanceof Error?cause.message:'请核对分享材料');}}}/>}
         {onPrepareTransfer && !sending && !activeReplyId && !historyOpen && <TransferFollowUp onOpen={()=>onPrepareTransfer({kind:'records'})} onAttention={setTransferAttention}/>}

@@ -61,7 +61,7 @@ import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
 import { BillReports } from "./components/bill-reports";
 import { CardApplicationPanel } from "./components/card-application";
-import {OverseasPaymentDemo} from './components/overseas-payment-demo';
+import {WealthConversationProvider} from './components/wealth-conversation';
 import {parseCardIntent} from './lib/card-intent';
 import { AgentAutomationCenter } from "./components/agent-automation-center";
 import { FinancialFocusRules } from "./components/financial-focus-rules";
@@ -221,12 +221,18 @@ function Row({
 }
 
 export default function App() {
+  return <WealthConversationProvider><AppContent/></WealthConversationProvider>;
+}
+function AppContent() {
   const [mode, setMode] = useState<"classic" | "native">(() =>
     read<string>("zhiyin-mode", "classic") === "native" ? "native" : "classic",
   );
   const stewardWorkerStarted=useRef(mode==='native');
   if(mode==='native')stewardWorkerStarted.current=true;
   const [page, setPage] = useState<Page>("home");
+  const [fundDetailId,setFundDetailId]=useState<string>();
+  const [wealthFocusProductId,setWealthFocusProductId]=useState<string>();
+  function openFunds(id?:string){setFundDetailId(id);go("funds");}
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [stewardId, setStewardId] = useState<StewardId>(() => {
     const saved = read<string>("zhiyin-steward", "ningning");
@@ -571,7 +577,7 @@ export default function App() {
         <div className="bank-card-top">
           <span>
             <Landmark size={23} />
-            知银 · 演示账户
+            知银 · 常用账户
           </span>
           <span>储蓄卡</span>
         </div>
@@ -637,7 +643,7 @@ export default function App() {
           <CalendarDays size={19} />
           自动任务
         </button>
-        <button className="sidebar-link" onClick={() => go("funds")}>
+        <button className="sidebar-link" onClick={() => openFunds()}>
           <TrendingUp size={19} />
           大数据选基
         </button>
@@ -653,7 +659,7 @@ export default function App() {
           </button>
           <div className="demo-tag">
             <span />
-            交互演示 · 虚拟账户
+            你的个人银行管家
           </div>
         </div>
       </aside>
@@ -906,13 +912,13 @@ export default function App() {
           )}
           {page === "assets" && (
             <>
-              <Heading title="我的资产" subtitle="银行沙箱账户 · 按账面现金与持仓本金汇总" />
+              <Heading title="我的资产" subtitle="按账户现金与持仓本金汇总" />
               {bank.error&&<div className="operation-error" role="alert"><p>资产暂未能更新。{bank.state?'以下保留上次成功读取的快照，不代表当前可用资金。':'请重试读取后再安排资金。'}</p><button type="button" className="text-link" onClick={()=>void bank.refresh()}>重新读取资产</button></div>}
               <div className="detail-grid assets-layout">
                 <div>
-                  <section className="account-summary asset-overview" aria-label="演示账户资产概览">
+                  <section className="account-summary asset-overview" aria-label="账户资产概览">
                     <div className="section-line">
-                      <span>总资产（元）<span className="asset-demo-label">演示账户</span></span>
+                      <span>总资产（元）</span>
                       <button
                         className="icon-control"
                         aria-label={hidden ? "显示资产金额" : "隐藏资产金额"}
@@ -971,14 +977,14 @@ export default function App() {
                     <Row
                       icon={ShieldCheck}
                       title="理财风险测评与持仓"
-                      subtitle="核对适当性、产品和沙箱持仓"
+                      subtitle="核对风险、产品和持仓"
                       onClick={() => go("risk")}
                     />
                     <Row
                       icon={TrendingUp}
                       title="大数据选基"
-                      subtitle="人气口碑 · 业绩表现 · 热门板块"
-                      onClick={() => go("funds")}
+                      subtitle="产品类型 · 历史表现 · 宁宁分析"
+                      onClick={() => openFunds()}
                     />
                     <Row
                       icon={CalendarDays}
@@ -998,7 +1004,7 @@ export default function App() {
             </>
           )}
           {page === "deposits" && <><Heading title="存款" subtitle="同一银行账本，先核对资金影响再由你确认"/>{hidden?<button type="button" className="primary-button" onClick={()=>setHidden(false)}>显示金额，继续办理</button>:<TermDepositPanel/>}</>}
-          {page === "funds" && <FundDiscovery onOpenRisk={() => go("risk")} onBack={goBack} />}
+          {page === "funds" && <FundDiscovery initialFundId={fundDetailId} onOpenRisk={() => go("risk")} onBack={goBack} onAskNingning={id=>{setWealthFocusProductId(id);go("risk");}}/>}
           {page === "plan" && (
             <>
               <Heading
@@ -1012,18 +1018,12 @@ export default function App() {
                 onOpenAutomations={() => go("automations")}
                 onAsk={(prompt) => { setChatDraft(prompt); go("home"); }}
               />
-              <WealthOperationMvp amount="30000" term="12" availableBalance={bank.state?.balance} />
+              <WealthOperationMvp availableBalance={bank.state?.balance} stewardName={steward.name} onOpenFund={openFunds} focusProductId={wealthFocusProductId} onFocusHandled={()=>setWealthFocusProductId(undefined)}/>
             </>
           )}
           {page === "risk" && (
             <>
-              <Heading title="财富管理" />
-              <button className="asset-funding-entry" onClick={() => go("funds")}>
-                <TrendingUp size={20} aria-hidden="true" />
-                <span><strong>大数据选基</strong><small>人气、业绩与热门板块榜单</small></span>
-                <ArrowRight size={18} aria-hidden="true" />
-              </button>
-              <WealthOperationMvp amount="30000" term="12" availableBalance={bank.state?.balance} />
+              <WealthOperationMvp onBack={goBack} availableBalance={bank.state?.balance} stewardName={steward.name} onOpenFund={openFunds} focusProductId={wealthFocusProductId} onFocusHandled={()=>setWealthFocusProductId(undefined)}/>
             </>
           )}
           {page === "cards" && (
@@ -1039,7 +1039,7 @@ export default function App() {
                     <ShieldCheck size={19} />
                     <span>
                       {!bank.state?'账户状态待读取':frozen
-                        ? "此演示卡已挂失，支付功能已关闭"
+                        ? "此卡已挂失，支付功能已关闭"
                         : "卡片状态正常，安全保护已开启"}
                     </span>
                   </div>
@@ -1051,8 +1051,8 @@ export default function App() {
                     {bank.error&&<p role="alert">{bank.error}</p>}
                     <h3>银行转账账单</h3>
                     {!!bank.state?.collections?.length&&<div className="bank-ledger-list">{[...bank.state.collections].reverse().map(c=><details key={c.id}><summary><span>AA收款 · {bankRecipients.find(r=>r.id===c.recipientId)?.name}<small>{new Date(c.completedAt).toLocaleString('zh-CN')}</small></span><strong>+{bankMoney(c.amount)}</strong></summary><p>已到账 · 常用卡8888 · 入账后余额 {bankMoney(c.balanceAfter)}</p><small>回执 {c.id}</small></details>)}</div>}
-                    {bank.state?.transactions.length?<div className="bank-ledger-list">{[...bank.state.transactions].reverse().map(t=><details key={t.id}><summary><span>转给{bankRecipients.find(r=>r.id===t.recipientId)?.name}<small>{new Date(t.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(t.amount)}</strong></summary><p>已完成 · 付款卡8888 · 收款尾号{bankRecipients.find(r=>r.id===t.recipientId)?.accountLast4}</p><p>交易后余额 {bankMoney(t.balanceAfter)}</p><small>回执 {t.id}</small></details>)}</div>:<p className="fine-print left">尚无银行沙箱转账记录。</p>}
-                    {!!bank.state?.payments?.length&&<div className="bank-ledger-list">{[...bank.state.payments].reverse().map(p=><details key={p.id}><summary><span>{p.merchant}<small>{p.channel==='wechat'?'微信支付':p.channel==='alipay'?'支付宝':'境外沙箱支付'} · {new Date(p.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(p.amount)}</strong></summary><p>付款卡8888 · 交易后余额 {bankMoney(p.balanceAfter)}</p>{p.refundedAt!==undefined&&<p>已原路退款 +{bankMoney(p.amount)} · {new Date(p.refundedAt).toLocaleString('zh-CN')}</p>}<small>{p.channel==='overseas'?'沙箱交易回执':'关联订单'} {p.id}</small></details>)}</div>}
+                    {bank.state?.transactions.length?<div className="bank-ledger-list">{[...bank.state.transactions].reverse().map(t=><details key={t.id}><summary><span>转给{bankRecipients.find(r=>r.id===t.recipientId)?.name}<small>{new Date(t.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(t.amount)}</strong></summary><p>已完成 · 付款卡8888 · 收款尾号{bankRecipients.find(r=>r.id===t.recipientId)?.accountLast4}</p><p>交易后余额 {bankMoney(t.balanceAfter)}</p><small>回执 {t.id}</small></details>)}</div>:<p className="fine-print left">尚无转账记录。</p>}
+                    {!!bank.state?.payments?.length&&<div className="bank-ledger-list">{[...bank.state.payments].reverse().map(p=><details key={p.id}><summary><span>{p.merchant}<small>{p.channel==='wechat'?'微信支付':p.channel==='alipay'?'支付宝':'境外支付'} · {new Date(p.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(p.amount)}</strong></summary><p>付款卡8888 · 交易后余额 {bankMoney(p.balanceAfter)}</p>{p.refundedAt!==undefined&&<p>已原路退款 +{bankMoney(p.amount)} · {new Date(p.refundedAt).toLocaleString('zh-CN')}</p>}<small>{p.channel==='overseas'?'交易回执':'关联订单'} {p.id}</small></details>)}</div>}
                   </section>
                   <div className="explanation">
                     <h3>用卡小贴士</h3>
@@ -1103,7 +1103,6 @@ export default function App() {
                       />
                     ))}
                   </section>
-                  <OverseasPaymentDemo bank={bank.state} onRefresh={bank.refresh}/>
                   <Button
                     variant="danger"
                     className="full-width spaced"
@@ -1120,11 +1119,11 @@ export default function App() {
                       disabled={bank.busy}
                       onClick={() => setModal("unfreeze")}
                     >
-                      恢复演示卡（仅用于重新体验）
+                      恢复卡片
                     </Button>
                   )}
                   <p className="fine-print">
-                    设置保存到银行沙箱。挂失、单笔限额、夜间保护和无卡支付会拦截相应付款；境外交易开关会拦截上方的境外沙箱渠道。不影响真实银行账户。
+                    挂失、单笔限额、夜间保护、无卡支付和境外交易设置会共同控制付款权限。
                   </p>
                   {lastCardAction&&<div className="card-action-receipt" role="status"><CheckCircle2 size={18}/><span><strong>最近卡片变更</strong><small>{lastCardAction}</small></span></div>}
                   <CardApplicationPanel bank={bank.state} onRefresh={bank.refresh}/>
@@ -1140,7 +1139,7 @@ export default function App() {
                   <div className="profile-person">
                     <span className="user-avatar"><UserRound size={28} aria-hidden="true" /></span>
                     <div><h2>叶先生</h2><p>手机 138 **** 6688</p></div>
-                    <span className="pill">演示用户</span>
+
                   </div>
                   <div className="profile-steward">
                     <Avatar />
@@ -1209,7 +1208,7 @@ export default function App() {
                 <Landmark size={22} aria-hidden="true" />
                 <strong>知银</strong>
                 <span>知你所需，认真对待每一笔。</span>
-                <small>交互原型 v0.1 · 所有账户数据均为演示</small>
+                <small>知银 v0.1 · 当前使用本地账户账本</small>
               </div>
             </>
           )}
@@ -1440,7 +1439,7 @@ export default function App() {
             <span className="composer-hint">
               {attachment
                 ? `已选择：${attachment}`
-                : "账户与操作均为演示，你可以放心体验"}
+                : "涉及资金的操作仍需你确认"}
             </span>
           </div>
         )}
@@ -1537,7 +1536,7 @@ export default function App() {
         }
         description={
           transferStep === 2
-            ? "演示流程已完成，未发生真实扣款。"
+            ? "本地流程已完成，未发生银行扣款。"
             : "尚未执行，需要你本人确认"
         }
       >
@@ -1563,7 +1562,7 @@ export default function App() {
                 className="full-width"
                 onClick={() => {
                   setModal(null);
-                  setToast("预约已撤销（演示）");
+                  setToast("预约已撤销");
                 }}
               >
                 撤销这笔预约
@@ -1627,7 +1626,7 @@ export default function App() {
               <p className="fine-print left">
                 {transferStep === 0
                   ? "日期表示计划发起时间，实际到账以银行处理为准。"
-                  : "确认后仅更新本地演示状态，不会连接银行。"}
+                  : "确认后更新本地账户状态。"}
               </p>
               <Button
                 className="full-width"
@@ -1644,7 +1643,7 @@ export default function App() {
                   ) {
                     setTransferError(
                       frozen
-                        ? "演示卡已挂失，请先在银行卡页面恢复。"
+                        ? "卡片已挂失，请先在卡片页面恢复。"
                         : `请填写收款人、日期，金额保留两位以内小数且不超过 ${num(Math.min(Number(limit), 42300))}。`,
                     );
                     return;
@@ -1679,7 +1678,7 @@ export default function App() {
         onSelect={(nextRecipient) => {
           setRecipient(nextRecipient);
           setTransferError("");
-          setToast(`已匹配${nextRecipient}的演示收款账户`);
+          setToast(`已匹配${nextRecipient}的收款账户`);
         }}
       />
       <Dialog
@@ -1795,13 +1794,13 @@ export default function App() {
             onChange={(e) => setDraftLimit(e.target.value)}
           />
         </label>
-        <p className="fine-print left">演示可选范围：¥100 — ¥50,000</p>
+        <p className="fine-print left">可设置范围：¥100 — ¥50,000</p>
         {bank.error&&<p role="alert">{bank.error}</p>}
         <Button
           className="full-width"
           disabled={!bank.state || bank.busy || Number(draftLimit) < 100 || Number(draftLimit) > 50000}
           onClick={async() => {
-            if(await bank.change({limit:Math.round(Number(draftLimit)*100)})){setModal(null);setToast("单笔限额已更新（银行沙箱）");recordCardAction(`单笔限额已调整为 ${num(Number(draftLimit))}`);}
+            if(await bank.change({limit:Math.round(Number(draftLimit)*100)})){setModal(null);setToast("单笔限额已更新");recordCardAction(`单笔限额已调整为 ${num(Number(draftLimit))}`);}
           }}
         >
           确认调整
@@ -1826,7 +1825,7 @@ export default function App() {
             variant="danger"
             disabled={bank.busy || !bank.state}
             onClick={async() => {
-              if(await bank.change({frozen:true})){setModal(null);setToast("演示卡已挂失");recordCardAction('演示卡已挂失');}
+              if(await bank.change({frozen:true})){setModal(null);setToast("卡片已挂失");recordCardAction('卡片已挂失');}
             }}
           >
             确认模拟挂失
@@ -1837,10 +1836,10 @@ export default function App() {
         open={modal === "unfreeze"}
         onOpenChange={(open) => !open && setModal(null)}
         title="确认恢复这张卡？"
-        description="恢复后沙箱支付与转账能力将重新开启"
+        description="恢复后支付与转账能力将重新开启"
       >
         <div className="warning-box"><CircleAlert size={22}/><p>请确认卡片已找回且近期交易无异常。</p></div>
-        <div className="form-grid"><Button variant="secondary" onClick={()=>setModal(null)}>暂不恢复</Button><Button disabled={bank.busy} onClick={async()=>{if(await bank.change({frozen:false})){setModal(null);setToast("沙箱卡已恢复，可以重新体验转账流程");recordCardAction('演示卡已恢复');}}}>确认恢复演示卡</Button></div>
+        <div className="form-grid"><Button variant="secondary" onClick={()=>setModal(null)}>暂不恢复</Button><Button disabled={bank.busy} onClick={async()=>{if(await bank.change({frozen:false})){setModal(null);setToast("卡片已恢复");recordCardAction('卡片已恢复');}}}>确认恢复卡片</Button></div>
       </Dialog>
       <Dialog
         open={modal === "cardControl"}
@@ -1848,8 +1847,8 @@ export default function App() {
         title={`确认${pendingControl?.enabled?'开启':'关闭'}${pendingControl?.title||'支付功能'}？`}
         description="请核对变更前后状态和支付影响"
       >
-        <div className="warning-box"><ShieldCheck size={22}/><p>{pendingControl?.title}：当前{pendingControl&&controls[pendingControl.key]?'开启':'关闭'} → 拟{pendingControl?.enabled?'开启':'关闭'}。夜间保护与无卡支付会影响沙箱付款；境外交易目前仅保存偏好。</p></div>
-        <div className="form-grid"><Button variant="secondary" onClick={()=>{setModal(null);setPendingControl(null);}}>取消</Button><Button disabled={bank.busy||!pendingControl} onClick={async()=>{if(!pendingControl)return;const {title,key,enabled}=pendingControl;if(await bank.change({controls:{...controls,[key]:enabled}})){setModal(null);setPendingControl(null);const text=`${title}已${enabled?'开启':'关闭'}（银行沙箱）`;setToast(text);recordCardAction(text);}}}>确认{pendingControl?.enabled?'开启':'关闭'}</Button></div>
+        <div className="warning-box"><ShieldCheck size={22}/><p>{pendingControl?.title}：当前{pendingControl&&controls[pendingControl.key]?'开启':'关闭'} → 拟{pendingControl?.enabled?'开启':'关闭'}。关闭境外交易将拦截境外渠道付款；夜间保护与无卡支付也会按设置限制付款。</p></div>
+        <div className="form-grid"><Button variant="secondary" onClick={()=>{setModal(null);setPendingControl(null);}}>取消</Button><Button disabled={bank.busy||!pendingControl} onClick={async()=>{if(!pendingControl)return;const {title,key,enabled}=pendingControl;if(await bank.change({controls:{...controls,[key]:enabled}})){setModal(null);setPendingControl(null);const text=`${title}已${enabled?'开启':'关闭'}`;setToast(text);recordCardAction(text);}}}>确认{pendingControl?.enabled?'开启':'关闭'}</Button></div>
       </Dialog>
       <Dialog
         open={modal === "help"}
@@ -1932,7 +1931,7 @@ export default function App() {
           />
         </label>
       </Dialog>
-      <Dialog open={!!bankIntent} onOpenChange={open=>{if(!open)setBankIntent(null);}} title="智能转账" description="转账、预约和AA收款 · 常用卡8888 · 沙箱资金">
+      <Dialog open={!!bankIntent} onOpenChange={open=>{if(!open)setBankIntent(null);}} title="智能转账" description="转账、预约和AA收款 · 常用卡8888">
         {bankIntent&&<SmartTransfers initial={bankIntent} onDone={setBankReceipt}/>}
       </Dialog>
     </div>

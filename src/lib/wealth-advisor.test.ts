@@ -27,6 +27,9 @@ describe('产品比较与推荐的 LLM 数据边界',()=>{
   it('有测评和银行余额时提供已核验边界，不让模型绕过服务端',()=>{
     const text=prompt('比较这几款基金',{bank:{revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:false},transactions:[]},wealthSnapshot:assessed()});
     expect(text).toContain('"bankBalanceCents":4230000');
+    expect(text).toContain('"id":"medical"');
+    expect(text).toContain('汇添富纳斯达克生物科技ETF发起式联接A');
+    expect(text).toContain('selectionFunds');
     expect(text).toContain('"risk":"low","valid":true');
     expect(text).toContain('具体适当性仍由服务端');
     expect(text).toContain('申购、赎回只在独立核对页由用户确认');
@@ -38,4 +41,9 @@ describe('产品比较与推荐的 LLM 数据边界',()=>{
     expect(text).toContain('"status":"conflict"');
     expect(text).not.toContain('"value":0.9852');
   });
+});
+
+it('完整选基目录与450字记忆同时保留在6000字预算内',()=>{
+ const text=prompt('推荐医疗主题的基金',{wealthSnapshot:assessed(),marketContext:market,memoryContext:'记'.repeat(450),bank:{revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:false},transactions:[],assetSummary:{cash:4230000,availableCash:4230000,reservedCash:0,wealth:3000000,deposits:5000000,total:12230000,holdingCount:1,depositCount:5},termDeposits:Array.from({length:5},(_,index)=>({id:`deposit-${index}`,amount:1000000,months:12,rateBps:150,openedAt:1700000000000,maturesAt:1731600000000}))},savedGoal:{name:'出行准备',target:20000,months:12,current:3000,savedAt:Date.now()},fundSamples:{provider:'issuer_akshare',message:'样本',records:[{code:'110006',metric:'per_10k_income',status:'ready',date:'2026-10-08',value:0.2437,sevenDayAnnualizedPct:1.002,source:'https://www.efunds.com.cn/fund/110006.shtml',crossCheck:'issuer_only'},{code:'026197',metric:'unit_nav',status:'ready',date:'2026-10-08',value:0.9852,source:'https://www.efunds.com.cn/fund/026197.shtml',crossCheck:'matched'},{code:'510330',metric:'unit_nav',status:'ready',date:'2026-10-08',value:4.5699,source:'https://www.chinaamc.com/fund/510330/index.shtml',crossCheck:'matched'}]}});
+ expect(text).toContain('"id":"medical"');expect(text).toContain('"id":"csi"');expect(text).toContain('风险等级、费用、流动性和在售状态未知');expect(text.length).toBeLessThanOrEqual(6000);
 });

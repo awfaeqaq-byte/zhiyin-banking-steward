@@ -103,7 +103,7 @@ it("经典模式保留，AI 原生首页可切换并记住选择", async () => {
   expect(screen.getAllByRole("banner").some(item=>item.classList.contains("fixed-chat-header"))).toBe(true);
   const navigation=screen.getByRole('navigation',{name:'主导航'});
   await user.click(within(navigation).getByRole('button',{name:'财富'}));
-  expect(screen.getByRole('heading',{name:'财富管理'})).toBeInTheDocument();
+  expect(screen.getByRole('heading',{name:'财富'})).toBeInTheDocument();
   await user.click(within(navigation).getByRole('button',{name:'管家'}));
   expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBeInTheDocument();
 

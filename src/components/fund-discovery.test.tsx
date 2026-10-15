@@ -1,33 +1,96 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import App from '../App';
+import { FundDiscovery } from './fund-discovery';
 
-beforeEach(() => { localStorage.clear(); vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}')); });
+beforeEach(() => { localStorage.clear(); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-it('opens selection from wealth, switches rankings, searches, saves and makes a local demo record', async () => {
+function fundNames() {
+  return within(screen.getByRole('list', { name: '基金列表' }))
+    .getAllByRole('button', { name: /^查看 / }).map(button => button.textContent);
+}
+
+it('shows the complete catalog and sorts by the actual selected period', async () => {
   const user = userEvent.setup();
-  render(<App />);
-  await user.click(within(screen.getByRole('navigation', { name:'主导航' })).getByRole('button', { name:'财富' }));
-  await user.click(screen.getByRole('button', { name:/大数据选基 人气/ }));
-  expect(screen.getByRole('heading', { name:'大数据选基' })).toBeInTheDocument();
-  await user.click(screen.getByRole('tab', { name:'业绩表现' }));
-  expect(screen.getByRole('heading', { name:'近3个月涨幅领先的基金' })).toBeInTheDocument();
-  await user.click(screen.getAllByRole('button', { name:/更多/ })[0]);
-  await user.selectOptions(screen.getByRole('combobox', { name:'筛选周涨跌' }), 'positive');
-  await user.click(screen.getByRole('button', { name:'返回选基首页' }));
-  await user.type(screen.getByRole('textbox', { name:'搜索基金名称或代码' }), 'DEMO008');
-  await user.click(screen.getByRole('button', { name:'搜索' }));
-  expect(screen.getByText(/找到 1 项演示样本/)).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name:/加入自选 天弘中证油气产业指数发起A/ }));
-  await user.click(screen.getByRole('button', { name:'查看我的自选' }));
-  await user.click(screen.getByRole('button', { name:'买一笔' }));
-  await user.clear(screen.getByRole('spinbutton', { name:'演示申购金额' }));
-  await user.type(screen.getByRole('spinbutton', { name:'演示申购金额' }), '300');
-  await user.click(screen.getByRole('button', { name:'确认模拟申购' }));
-  expect(within(screen.getByRole('dialog', { name:'模拟申购核对' })).getByText(/未发生真实交易/)).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name:'完成' }));
-  expect(screen.getByRole('heading', { name:'模拟申购记录' })).toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem('zhiyin-fund-demo-orders') || '[]')).toHaveLength(1);
+  render(<FundDiscovery onOpenRisk={vi.fn()} />);
+  expect(screen.getByRole('heading', { name: '基金筛选' })).toBeInTheDocument();
+  expect(fundNames()).toHaveLength(11);
+  expect(fundNames()[0]).toContain('易方达供给改革混合');
+  await user.selectOptions(screen.getByRole('combobox', { name: '排序指标' }), 'week');
+  expect(fundNames()[0]).toContain('天弘中证油气产业指数发起A');
+  await user.click(screen.getByRole('button', { name: '切换为从低到高排序' }));
+  expect(fundNames()[0]).toContain('汇添富纳斯达克生物科技ETF发起式联接A');
+  await user.selectOptions(screen.getByRole('combobox', { name: '排序指标' }), 'year');
+  expect(fundNames()[0]).toContain('银华体育文化灵活配置混合A');
+  expect(screen.getByText(/2026-10-14 · 非实时/)).toBeInTheDocument();
+  expect(screen.queryByText(/人气榜|连续三年|DEMO00/)).not.toBeInTheDocument();
+});
+
+it('combines actual fund types, search and weekly filters and can recover an empty result', async () => {
+  const user = userEvent.setup();
+  render(<FundDiscovery onOpenRisk={vi.fn()} />);
+  await user.selectOptions(screen.getByRole('combobox', { name: '基金类型' }), '海外指数');
+  expect(fundNames()).toHaveLength(4);
+  await user.selectOptions(screen.getByRole('combobox', { name: '周涨跌' }), 'negative');
+  expect(fundNames()).toHaveLength(2);
+  await user.type(screen.getByRole('searchbox', { name: '搜索基金名称或方向' }), '不存在');
+  expect(screen.getByText('没有符合条件的基金')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '清除筛选' }));
+  expect(fundNames()).toHaveLength(11);
+  await user.type(screen.getByRole('searchbox', { name: '搜索基金名称或方向' }), '人工智能');
+  expect(fundNames()).toEqual(['西部利得中证人工智能主题指数增强A']);
+});
+
+it('persists favorites and retains the previous filter when returning from details', async () => {
+  const user = userEvent.setup();
+  render(<FundDiscovery onOpenRisk={vi.fn()} />);
+  await user.type(screen.getByRole('searchbox', { name: '搜索基金名称或方向' }), '油气');
+  await user.click(screen.getByRole('button', { name: '加入自选 天弘中证油气产业指数发起A' }));
+  expect(JSON.parse(localStorage.getItem('zhiyin-fund-watchlist')!)).toEqual(['energy']);
+  await user.click(screen.getByRole('button', { name: '查看 天弘中证油气产业指数发起A' }));
+  expect(screen.getByRole('region', { name: '基金详情' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '返回基金列表' }));
+  expect(screen.getByRole('searchbox', { name: '搜索基金名称或方向' })).toHaveValue('油气');
+  expect(screen.getByRole('button', { name: '查看 天弘中证油气产业指数发起A' })).toHaveFocus();
+  await user.click(screen.getByRole('button', { name: /我的自选/ }));
+  expect(fundNames()).toEqual(['天弘中证油气产业指数发起A']);
+  await user.click(screen.getByRole('button', { name: '取消自选 天弘中证油气产业指数发起A' }));
+  expect(screen.getByText('还没有自选基金')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '浏览全部基金' }));
+  expect(fundNames()).toHaveLength(11);
+});
+
+it('opens a shared product directly and hands its stable ID to the wealth conversation', async () => {
+  const user = userEvent.setup();
+  const onAskNingning = vi.fn();
+  const onOpenRisk = vi.fn();
+  render(<FundDiscovery initialFundId="energy" onOpenRisk={onOpenRisk} onAskNingning={onAskNingning} />);
+  const details = screen.getByRole('region', { name: '基金详情' });
+  expect(within(details).getByRole('heading', { name: '天弘中证油气产业指数发起A' })).toBeInTheDocument();
+  expect(within(details).getByText(/截图录入/)).toBeInTheDocument();
+  expect(within(details).getByText(/风险等级、申购费用和赎回规则待核验/)).toBeInTheDocument();
+  await user.click(within(details).getByRole('button', { name: '请宁宁分析' }));
+  expect(onAskNingning).toHaveBeenCalledWith('energy');
+  await user.click(within(details).getByRole('button', { name: '查看风险测评' }));
+  expect(onOpenRisk).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('button', { name: /买入|申购|确认支付/ })).not.toBeInTheDocument();
+  expect(localStorage.getItem('zhiyin-fund-demo-orders')).toBeNull();
+});
+
+it('ignores unknown deep links and malformed favorites without fabricating orders', () => {
+  localStorage.setItem('zhiyin-fund-watchlist', '{broken');
+  localStorage.setItem('zhiyin-fund-demo-orders', '[{"id":"legacy"}]');
+  render(<FundDiscovery initialFundId="unknown" onOpenRisk={vi.fn()} />);
+  expect(fundNames()).toHaveLength(11);
+  expect(screen.queryByText(/模拟申购记录|演示产品|仅供学习/)).not.toBeInTheDocument();
+  expect(localStorage.getItem('zhiyin-fund-demo-orders')).toBe('[{"id":"legacy"}]');
+});
+
+it('returns to wealth with the existing navigation callback', async () => {
+  const user = userEvent.setup();
+  const onBack = vi.fn();
+  render(<FundDiscovery onBack={onBack} onOpenRisk={vi.fn()} />);
+  await user.click(screen.getByRole('button', { name: '返回财富' }));
+  expect(onBack).toHaveBeenCalledOnce();
 });

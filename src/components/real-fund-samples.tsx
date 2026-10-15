@@ -14,7 +14,7 @@ export function RealFundSamples(){
   const [error,setError]=useState('');
   useEffect(()=>{let active=true;void fundSamplesRequest().then(value=>{if(active)setSamples(value);}).catch(()=>{if(active)setError('暂无法读取基金样本缓存。');});return()=>{active=false;};},[]);
   async function refresh(){setBusy(true);setError('');try{setSamples(await fundSamplesRequest(true));}catch(value){setError(value instanceof Error?value.message:'基金样本更新失败');}finally{setBusy(false);}}
-  return <details className="wealth-real-examples"><summary>查看真实基金资料样本（仅学习比较）</summary>
+  return <details className="wealth-real-examples"><summary>查看发行方基金资料</summary>
     <p>优先读取发行方披露：货币基金展示万份收益和七日年化，其他基金展示单位净值；债券基金和 ETF 再用 AKShare 核对同日净值。不同指标不能直接比高低，也不是实时成交价或可售证明。</p>
     <button type="button" className="wealth-sample-refresh" disabled={busy} onClick={()=>void refresh()}>{busy?'获取中…':'更新基金市场样本'}</button>
     <p role="status">{error||samples?.message||'尚未读取基金样本。'}</p>

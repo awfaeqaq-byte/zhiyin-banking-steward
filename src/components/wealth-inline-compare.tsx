@@ -50,12 +50,12 @@ export function WealthInlineCompare({reply,replyAssessedAt,stewardName,onExplain
   return <section className="steward-wealth-inline" aria-label="互动理财比较工具">
     <div className="wealth-inline-heading"><div><span className="wealth-inline-kicker">已完成测评</span><h3>{riskName[risk]}型 · 产品比较</h3></div>{onOpenWealth&&<button type="button" onClick={onOpenWealth}>调整风险偏好</button>}</div>
     <p className="wealth-inline-brief">{replyIsCurrent?briefReply(reply):'测评结果已更新。可以按当前风险等级重新比较，再请管家解释。'}</p>
-    {replyIsCurrent?<details className="wealth-inline-disclosure"><summary>查看管家完整分析</summary><StewardReplyContent content={reply} stewardName={stewardName}/></details>:<button className="wealth-inline-reask" type="button" onClick={()=>onExplain('我已完成或更新风险测评，请按当前风险等级、可用金额和计划期限，简短说明哪些演示产品值得进一步核对。')}>按新测评重新询问</button>}
+    {replyIsCurrent?<details className="wealth-inline-disclosure"><summary>查看管家完整分析</summary><StewardReplyContent content={reply} stewardName={stewardName}/></details>:<button className="wealth-inline-reask" type="button" onClick={()=>onExplain('我已完成或更新风险测评，请按当前风险等级、可用金额和计划期限，简短说明哪些产品值得进一步核对。')}>按新测评重新询问</button>}
     <details className="wealth-inline-disclosure wealth-inline-tool"><summary>调整金额与期限，比较产品</summary>
       <div className="wealth-compare-controls"><label>试算投入（元）<input type="number" aria-label="对话试算金额" min="100" max="1000000" step="100" value={amount} onChange={event=>{setAmount(event.target.value);setSelected('');}}/></label><label>计划持有（月）：<strong>{term}</strong><input type="range" aria-label="对话试算期限" min="0" max="36" step="1" value={term} onChange={event=>{setTerm(event.target.value);setSelected('');}}/></label></div>
       <WealthComparisonLab products={products} amount={numericAmount} selected={selected} onSelect={setSelected} market={market} onRefreshMarket={()=>void refreshMarket()} marketBusy={marketBusy} marketError={marketError}/>
       <RealFundSamples/>
-      <div className="steward-wealth-inline-actions"><button type="button" disabled={!chosen||!Number.isFinite(numericAmount)||numericAmount<=0} onClick={()=>onExplain(`请基于我在比较工具中的选择继续解释：演示产品 ${chosen?.name}（ID ${chosen?.id}），试算投入 ${numericAmount} 元，计划持有 ${numericTerm} 个月。这个选择只是比较偏好，不是申购授权；请核对风险、费用、流动性和缺失信息。`)}>让管家解释我的选择</button>{onOpenWealth&&<button type="button" onClick={onOpenWealth}>去理财页核对</button>}</div>
+      <div className="steward-wealth-inline-actions"><button type="button" disabled={!chosen||!Number.isFinite(numericAmount)||numericAmount<=0} onClick={()=>onExplain(`请基于我在比较工具中的选择继续解释：产品 ${chosen?.name}（ID ${chosen?.id}），试算投入 ${numericAmount} 元，计划持有 ${numericTerm} 个月。这个选择只是比较偏好，不是申购授权；请核对风险、费用、流动性和缺失信息。`)}>让管家解释我的选择</button>{onOpenWealth&&<button type="button" onClick={onOpenWealth}>去理财页核对</button>}</div>
     </details>
   </section>;
 }

@@ -1,8 +1,21 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it } from "vitest";
 import App from "./App";
 import type { ConnectedFinancialSource } from "./lib/financial-connections";
+
+it('财富和选基共享产品，带回分析不会覆盖尚未发送的计划',async()=>{
+  localStorage.setItem('zhiyin-mode','"native"');
+  const user=userEvent.setup();render(<App/>);
+  await user.click(within(screen.getByRole('navigation',{name:'主导航'})).getByRole('button',{name:'财富'}));
+  await user.type(screen.getByRole('textbox',{name:'和宁宁聊财富计划'}),'先聊聊我的安排');
+  await user.click(screen.getByRole('button',{name:'基金筛选'}));
+  await user.click(screen.getByRole('button',{name:'查看 招商前沿医疗保健股票A'}));
+  await user.click(screen.getByRole('button',{name:'请宁宁分析'}));
+  expect(screen.getByRole('textbox',{name:'和宁宁聊财富计划'})).toHaveValue('先聊聊我的安排\n请帮我分析招商前沿医疗保健股票A');
+  expect(screen.queryByRole('spinbutton',{name:'试算投入金额'})).not.toBeInTheDocument();
+  expect(screen.queryByText(/计划投入.*30,000/)).not.toBeInTheDocument();
+});
 
 const wechat: ConnectedFinancialSource = {
   provider: "wechat_pay",

@@ -15,6 +15,7 @@ import {VoiceConfigPanel} from './VoiceConfigPanel';
 import { consoleStrings } from './res/strings';
 import { StewardResetPanel } from './StewardResetPanel';
 import { LocalBillReplayPanel } from './LocalBillReplayPanel';
+import { OverseasPaymentTestPanel } from './OverseasPaymentTestPanel';
 
 export type SandboxConsolePhase = 'idle' | 'confirming' | 'running' | 'success' | 'error';
 
@@ -97,6 +98,7 @@ export function SandboxConsoleView({
           <details className="sandbox-category" name="sandbox-category" onToggle={event=>setFinanceOpen(event.currentTarget.open)}>
             <summary><span>财务测试<small>场景、余额、时间与扣费</small></span></summary>
             <FinanceTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} />
+            <OverseasPaymentTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} onBusyChange={onStewardBusyChange} />
             <LocalBillReplayPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} onBusyChange={onStewardBusyChange} />
           </details>
           <details className="sandbox-category" name="sandbox-category">

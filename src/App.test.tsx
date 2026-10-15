@@ -21,9 +21,9 @@ describe("知银交互原型", () => {
     await user.click(screen.getByRole("button", { name: "挂失这张卡" }));
     await user.click(screen.getByRole("button", { name: "确认模拟挂失" }));
     await user.click(
-      screen.getByRole("button", { name: "恢复演示卡（仅用于重新体验）" }),
+      screen.getByRole("button", { name: "恢复卡片" }),
     );
-    await user.click(screen.getByRole("button", { name: "确认恢复演示卡" }));
+    await user.click(screen.getByRole("button", { name: "确认恢复卡片" }));
     await user.click(
       within(screen.getByRole("navigation", { name: "主导航" })).getByRole(
         "button",
@@ -56,7 +56,7 @@ describe("知银交互原型", () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认模拟预约" }));
     expect(
-      screen.getByText("演示流程已完成，未发生真实扣款。"),
+      screen.getByText("本地流程已完成，未发生银行扣款。"),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "撤销这笔预约" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("知银交互原型", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: /帮我选一个稳妥/ }));
-    expect(screen.getByRole("heading", { name: "理财方案" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "财富" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "开始风险测评" })).toBeInTheDocument();
     expect(screen.queryByText("资产配置建议")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "生成待确认申购方案" })).not.toBeInTheDocument();
@@ -219,7 +219,7 @@ describe("知银交互原型", () => {
     render(<App />);
     await user.click(within(screen.getByRole("navigation",{name:"主导航"})).getByRole("button",{name:"资产"}));
     await user.click(screen.getByRole("button",{name:/理财风险测评与持仓/}));
-    expect(screen.getByRole("heading",{name:"财富管理"})).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:"财富"})).toBeInTheDocument();
     expect(screen.getByRole("button",{name:"开始风险测评"})).toBeInTheDocument();
     expect(screen.queryByText("当前建议仓位")).not.toBeInTheDocument();
   });

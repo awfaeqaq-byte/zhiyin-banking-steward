@@ -1,4 +1,4 @@
-import {render,screen,within} from '@testing-library/react';
+import {act,render,screen,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {mkdtempSync,rmSync} from 'node:fs';
@@ -7,6 +7,8 @@ import {join} from 'node:path';
 import {createWealthStore} from '../../server/wealth-store';
 import {createBankStore} from '../../server/bank-store';
 import {WealthOperationMvp} from './wealth-operation-mvp';
+import {WealthConversationProvider,useWealthConversation} from './wealth-conversation';
+function UpdatePlan(){const {setPlan}=useWealthConversation();return <button onClick={()=>setPlan({amountYuan:50000})}>调整计划为五万元</button>;}
 
 let directory='';
 afterEach(()=>{vi.restoreAllMocks();if(directory)rmSync(directory,{recursive:true,force:true});directory='';});
@@ -27,6 +29,15 @@ async function answer(user:ReturnType<typeof userEvent.setup>,choice='0'){
 }
 
 describe('理财操作页面端到端沙箱场景',()=>{
+ it('控制台更新银行后同步财富余额和申购约束',async()=>{
+  const store=mockServer(),user=userEvent.setup();render(<WealthOperationMvp amount="30000" term="12"/>);
+  await answer(user);
+  store.confirm(store.prepare({productId:'cash-plus',amount:2000000,term:12}).id);
+  act(()=>window.dispatchEvent(new Event('zhiyin-bank-updated')));
+  expect(await screen.findByText('¥22,300.00')).toBeInTheDocument();
+  await user.click(within(screen.getByRole('group',{name:'候选产品'})).getByRole('button',{name:/灵活现金管理/}));
+  expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeDisabled();
+ });
  it('未填投入计划也能浏览基金目录，通过宁宁对话补全条件',async()=>{
   mockServer();render(<WealthOperationMvp amount="" term=""/>);
   expect(screen.queryByRole('spinbutton',{name:'试算投入金额'})).not.toBeInTheDocument();
@@ -36,7 +47,7 @@ describe('理财操作页面端到端沙箱场景',()=>{
   expect(screen.getByRole('textbox',{name:'和宁宁聊财富计划'})).toBeInTheDocument();
  });
  it('真实市场样本只作背景；交互比较会同步费用、期限和余额约束',async()=>{
-  mockServer();const user=userEvent.setup();render(<WealthOperationMvp amount="30000" term="12"/>);
+  mockServer();const user=userEvent.setup();render(<WealthConversationProvider initialPlan={{amountYuan:30000,termMonths:12}}><WealthOperationMvp/><UpdatePlan/></WealthConversationProvider>);
   expect(screen.getByText(/完成并保存风险测评后/)).toBeInTheDocument();
   expect(screen.queryByRole('region',{name:'真实市场观察'})).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:/稳健固收组合/})).not.toBeInTheDocument();
@@ -51,14 +62,13 @@ describe('理财操作页面端到端沙箱场景',()=>{
   await user.click(within(screen.getByRole('group',{name:'候选产品'})).getByRole('button',{name:/稳健固收组合/}));
   expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeEnabled();
   await user.click(screen.getByRole('button',{name:/返回产品列表/}));
-  await user.clear(screen.getByRole('spinbutton',{name:'试算投入金额'}));
-  await user.type(screen.getByRole('spinbutton',{name:'试算投入金额'}),'50000');
+  await user.click(screen.getByRole('button',{name:'调整计划为五万元'}));
   await user.click(within(screen.getByRole('group',{name:'候选产品'})).getByRole('button',{name:/稳健固收组合/}));
   expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeDisabled();
   expect(screen.getByText(/连同申购费超过常用卡余额/)).toBeInTheDocument();
   await user.click(screen.getByRole('button',{name:/返回产品列表/}));
   expect(screen.getByText(/仅作市场背景，不是下方产品的净值或预期收益/)).toBeInTheDocument();
-  await user.click(screen.getByText('查看真实基金资料样本（仅学习比较）'));
+  await user.click(screen.getByText('查看发行方基金资料'));
   const realTable=screen.getByRole('table',{name:'真实基金资料的比较维度'});
   expect(within(realTable).getByText(/易方达货币A/)).toBeInTheDocument();
   expect(within(realTable).getByText(/易方达悦恒稳健债券A/)).toBeInTheDocument();
@@ -83,13 +93,13 @@ describe('理财操作页面端到端沙箱场景',()=>{
   await user.click(within(dialog).getByRole('button',{name:'返回修改'}));
   expect(store.get().holdings).toHaveLength(0);
   await user.click(screen.getByRole('button',{name:'生成待确认申购方案'}));
-  await user.click(screen.getByRole('button',{name:'确认沙箱申购'}));
-  expect(await screen.findByText(/沙箱申购已完成/)).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'确认申购'}));
+  expect(await screen.findByText(/申购已完成/)).toBeInTheDocument();
   expect(store.get().cashBalance).toBe(1230000);
   await user.click(screen.getByRole('button',{name:'赎回持仓'}));
   expect(await screen.findByRole('dialog',{name:'请核对并确认赎回'})).toBeInTheDocument();
-  await user.click(screen.getByRole('button',{name:'确认沙箱赎回'}));
-  expect(await screen.findByText(/沙箱赎回已完成/)).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'确认赎回'}));
+  expect(await screen.findByText(/赎回已完成/)).toBeInTheDocument();
   expect(store.get().cashBalance).toBe(4230000);
   expect(store.get().holdings?.[0].redeemedAt).toBeDefined();
  });
