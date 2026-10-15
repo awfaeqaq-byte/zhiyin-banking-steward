@@ -36,3 +36,15 @@ it('拒绝伪造核价、同一订单变价、跨任务跳转；只返回本事�
  state.orders[0].status='ACCEPTED';const records=await accessFoodOrder('records',{taskId:'task'});expect(records.orders[0].status).toBe('ACCEPTED');expect((await accessFoodOrder('records',{taskId:'other'})).orders).toEqual([]);
  await accessFoodOrder('open',{taskId:'task',orderId:'order'});expect(window.__OS__.openApp).toHaveBeenLastCalledWith('fooddelivery','/orders/order');
 });
+it('订单记录只在有实际付款凭据后提供实付，退款以原付款编号回传',async()=>{
+ const {catalog}=await accessFoodOrder('catalog',{taskId:'dinner'});
+ await accessFoodOrder('prepare',{taskId:'dinner',orderId:'dinner-order',draft,quote:foodQuote(catalog,draft),authorized:true});
+ expect((await accessFoodOrder('records',{taskId:'dinner'})).orders?.[0]).not.toHaveProperty('payment');
+ const backend=createMemoryFoodDeliveryPaymentBackend({orders:state.orders,wechat:{wallet:{balanceCents:20000,transfers:[]},payLedger:{transactions:[],monthlyHistory:[],settings:{dailyReport:true,includeManualRecords:true}}},alipay:{balance:{total:200,dailyIncome:0},transferRecords:[]}});
+ const paid=await backend.pay('dinner-order','wechat_pay',1791513000000);
+ state.orders=(await backend.getSnapshot()).orders;
+ expect((await accessFoodOrder('records',{taskId:'dinner'})).orders?.[0]).toMatchObject({payment:{id:paid.recordId,amount:680,refundedAmount:0,paidAt:1791513000000,merchant:config.merchant.name}});
+ await backend.refund('dinner-order','人数变化',1791514000000);
+ state.orders=(await backend.getSnapshot()).orders;
+ expect((await accessFoodOrder('records',{taskId:'dinner'})).orders?.[0]).toMatchObject({status:'REFUNDED',payment:{id:paid.recordId,amount:680,refundedAmount:680}});
+});
