@@ -1,0 +1,26 @@
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {ExpenseNotebook} from './expense-notebook';
+import {changeExpenses,emptyExpenseState,type ExpenseCommand} from '../lib/expense-notebook';
+import * as sources from '../lib/scene-expenses';
+import * as expenses from '../lib/expense-service';
+import * as aa from '../lib/group-aa';
+afterEach(()=>vi.restoreAllMocks());
+it('同一事项显示实际订单待确认入账，点确认只记账不发起微信收款',async()=>{
+ const group={id:'g',name:'生日群',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]};
+ let state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'book',title:'王芳生日',group,participants:['me','li'],defaultPayerId:'me',revision:0,requestId:'create'});
+ const receipt:sources.SceneExpenseSource={id:'payment-a',workspaceId:'birthday',orderId:'order-a',paymentId:'payment-a',kind:'occasion',title:'生日蛋糕',merchant:'蛋糕店',paidAmount:20600,refundedAmount:0,paidAt:1790000000000,checkedAt:1790000000000};
+ vi.spyOn(expenses,'expenseRequest').mockImplementation(async(op,revision)=>{if(op)state=changeExpenses(state,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);return state;});
+ const sourceRequest=vi.spyOn(sources,'sceneExpenseRequest').mockImplementation(async(_workspace,op)=>{if(op)state=sources.importSceneExpenses(state,'book',[receipt]);return {sources:[receipt],state};});
+ const bridge=vi.spyOn(aa,'groupAARequest');
+ render(<ExpenseNotebook conversation activityKey="aa-workspace" initialBookId="book" onPrompt={vi.fn()}/>);
+ expect(await screen.findByText('生日蛋糕')).toBeInTheDocument();
+ const button=await screen.findByRole('button',{name:'确认记入这 1 笔实付'});
+ expect(state.books[0].entries).toHaveLength(0);
+ await userEvent.click(button);
+ await waitFor(()=>expect(state.books[0].entries).toHaveLength(1));
+ expect(sourceRequest).toHaveBeenCalledWith('aa-workspace',expect.objectContaining({bookId:'book',references:[{id:'payment-a',paidAmount:20600,refundedAmount:0}]}));
+ expect(bridge).not.toHaveBeenCalled();
+ expect(screen.queryByRole('button',{name:'确认记入这 1 笔实付'})).not.toBeInTheDocument();
+});
