@@ -75,6 +75,7 @@ import {StewardVoice} from './steward-voice';
 import type {VoiceBusiness} from '../lib/realtime-voice';
 
 import type {SceneFlow,SceneNext} from '../lib/scene-flow';
+import {reconcileSceneSources} from '../lib/scene-service';
 
 type DisplayMessage = StewardChatMessage & {
   id: string;
@@ -274,6 +275,11 @@ export function StewardChatHome({
   const [waitingForAA,setWaitingForAA]=useState<Record<string,boolean>>({});
   const referenceTime = now ?? fundingReferenceTime(connections);
   const [taskAttention,setTaskAttention]=useState(false);
+  async function reconcileExpenseSources(taskId:string){
+    const state=await reconcileSceneSources();
+    const scene=state.scenes?.find(item=>item.workspaceIds.includes(taskId));
+    if(!scene||scene.error)throw new Error(scene?.error||'原事项的付款记录暂未核对，请稍后重试');
+  }
   const funding = useMemo(() => buildFundingForecast(connections, referenceTime), [connections, referenceTime]);
   const fundingAttention = (seamless || !workspace) && !refreshError && !refreshing && onOpenFunding
     ? funding.accounts.find(account => account.status === "shortfall") : undefined;
@@ -1040,20 +1046,20 @@ export function StewardChatHome({
           )}
         </div>
         {!seamless && !fullSession && messages.length > 0 && <button className="desk-history-toggle" aria-expanded={historyOpen} aria-controls="steward-records" onClick={()=>setHistoryOpen(!historyOpen)}><History size={16} />对话记录 · {messages.length}<ChevronDown size={15} /></button>}
-        {!seamless&&onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook ref={expenseNotebook} activityKey={workspace?.id} initialBookId={workspace?.expenseBookId} onBookSelected={onWorkspaceBook} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
+        {!seamless&&onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook ref={expenseNotebook} activityKey={workspace?.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace?.id||''))?.context} onReconcileSources={workspace?()=>reconcileExpenseSources(workspace.id):undefined} initialBookId={workspace?.expenseBookId} onBookSelected={onWorkspaceBook} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
         {seamless&&onOpenGroupAA&&contextWorkspaces.filter(w=>w.kind==='aa'&&(w.id===workspace?.id&&injectedPrompt||messages.some(m=>m.workspaceId===w.id))).map(w=><div key={w.id} hidden={w.id!==workspace?.id&&!waitingForAA[w.id]}>
-          <ExpenseNotebook conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={w.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision||0))}
+          <ExpenseNotebook conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(w.id))?.context} onReconcileSources={()=>reconcileExpenseSources(w.id)} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={w.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision||0))}
             onBookSelected={async id=>{await onBackgroundBook?.(w.id,id);}}
             onNeedsInput={needs=>setWaitingForAA(current=>current[w.id]===needs?current:{...current,[w.id]:needs})}
             onRecorded={async(user,text)=>{const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:text,workspaceId:w.id}]);setActiveReplyId(id);await onBackgroundTurn?.(w.id,user,text,memory?.current.current.revision||0);}}
             getMemoryContext={async prompt=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,prompt):'';}} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>
         </div>)}
-        {workspace?.kind==='occasion'&&(!seamless||injectedPrompt||messages.some(m=>m.workspaceId===workspace.id))&&<OccasionPlanner key={workspace.id} embedded conversation={seamless} stewardName={stewardName} initialPlanId={workspace.id} initialHistory={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{
+        {workspace?.kind==='occasion'&&(!seamless||injectedPrompt||messages.some(m=>m.workspaceId===workspace.id))&&<OccasionPlanner key={workspace.id} embedded conversation={seamless} stewardName={stewardName} initialPlanId={workspace.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace.id))?.context} initialHistory={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{
           if(seamless){const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:answer,workspaceId:workspace.id}]);setActiveReplyId(id);setActiveBill(null);}
           await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);
         }}/>}
 
-        {workspace?.kind==='food'&&<FoodOrderPlanner key={`${workspace.id}:${memory?.current.current.revision??0}`} taskId={workspace.id} stewardName={stewardName} initialDraft={workspace.memoryRevision===(memory?.current.current.revision??0)?workspace.progress?.food||{items:[],note:''}:{items:[],note:''}} history={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt}
+        {workspace?.kind==='food'&&<FoodOrderPlanner key={`${workspace.id}:${memory?.current.current.revision??0}`} taskId={workspace.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace.id))?.context} stewardName={stewardName} initialDraft={workspace.memoryRevision===(memory?.current.current.revision??0)?workspace.progress?.food||{items:[],note:''}:{items:[],note:''}} history={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt}
           getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}}
           onPrompt={text=>{void sendPrompt(text);}}
           onDraftChange={async food=>{await onBackgroundProgress?.(workspace.id,{goal:workspace.title,stage:'waiting_authorization',food},memory?.current.current.revision??0);}}

@@ -44,6 +44,16 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
  const accept=useCallback((next:ReturnType<typeof emptyWorkspaces>)=>{setState(current=>next.revision>current.revision?next:current);},[]);
  useSceneContinuation(loaded&&!route,accept,JSON.stringify({items:state.items.map(t=>({id:t.id,status:t.status,sceneId:t.sceneId,book:t.expenseBookId,food:t.progress?.food?.orderId})),runs:state.runs?.map(r=>({id:r.id,status:r.status}))}));
  async function resumeScene(next:SceneNext){
+  if(next.action==='prepare_expenses'){
+   if(busy)throw new Error('请等当前交代处理完成，再整理费用');
+   const scene=currentState.current.scenes?.find(item=>item.id===next.id&&item.workspaceIds.includes(next.workspaceId));
+   if(!scene)throw new Error('原事项已变化，请重新核对');
+   const updated=await save({type:'scene-expense-task',id:next.workspaceId,taskId:crypto.randomUUID()});
+   const task=updated.items.find(item=>item.status==='active'&&item.kind==='aa'&&(item.id===scene.id||item.sceneId===scene.id));
+   if(!task)throw new Error('费用事项暂未建立，请重试');
+   setActive(task.id);localStorage.setItem('zhiyin-workspace-active',task.id);
+   await arrange('整理本次实付费用',[],undefined,undefined,task.id);return;
+  }
   setActive(next.workspaceId);localStorage.setItem('zhiyin-workspace-active',next.workspaceId);
   try{if(next.kind==='food'){if(next.channel==='occasion')await occasionFoodRequest('open',{planId:next.workspaceId,orderId:next.id});else await foodOrderRequest('open',{taskId:next.workspaceId,orderId:next.id});}
    else if(next.kind==='occasion')props.onOpenOccasions?.(undefined,next.id);else if(next.kind==='calendar')props.onOpenTasks?.(next.date);else if(next.kind==='bank')props.onPrepareTransfer?.({kind:'records'});
@@ -115,17 +125,18 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   claiming.current=true;
   void request({type:'claim',id:activeRun.id,jobId:next.id,owner:owner.current}).then(result=>{setActive(next.taskId);localStorage.setItem('zhiyin-workspace-active',next.taskId);accept(result);setError('');}).catch(cause=>{setError(cause instanceof Error?cause.message:'这条消息暂时未能领取');}).finally(()=>{claiming.current=false;});
  },[loaded,activeRun,route,accept,claimAttempt]);
- async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string}){
+ async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string},currentTaskId?:string){
   if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
+  const contextId=currentTaskId||work?.id||'';
   const id=meta?.messageId||crypto.randomUUID();const refreshed=props.memory?await props.memory.refresh():null;const revision=refreshed?.revision??props.memory?.current.current.revision??0;
   try{
    const last=currentState.current.runs?.filter(r=>r.status==='waiting_user').at(-1);
    const source=route&&last?`${last.prompt}；补充：${text}`:text;
-   let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:work?.id||'',memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
+   let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:contextId,memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
    if(route){
     const tasks=next.items.map(t=>({...t,progress:t.memoryRevision===revision?t.progress:undefined,memoryRevision:revision,messages:t.messages.filter(m=>m.memoryRevision===revision)}));
     const known=knownBillTaskId?tasks.find(t=>t.id===knownBillTaskId):undefined;
-    const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!last&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,tasks,work?.id||''):null)||await route(source,tasks,work?.id||'','',recent);
+    const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!last&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,tasks,contextId):null)||await route(source,tasks,contextId,'',recent);
     next=await save({type:'message-routed',id,...result});accept(next);
    }
    setError('');

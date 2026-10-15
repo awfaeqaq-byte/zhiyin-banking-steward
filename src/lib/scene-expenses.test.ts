@@ -18,10 +18,13 @@ describe('订单实付进入同一活动账本',()=>{
   expect(()=>importSceneExpenses(state,'other',[source],at)).toThrow(/已记入/);expect(validExpenseState(state)).toBe(true);
  });
  it('未结算退款按真实净额更新，拒绝用旧回执回滚；全退后不允许继续收款',()=>{
+  expect(expenseActivityClosed(opened().books[0])).toBe(false);
   let state=imported();state=syncSceneExpenses(state,[{...source,refundedAmount:600,checkedAt:at+1}]);
+  expect(expenseActivityClosed(state.books[0])).toBe(false);
   expect(state.books[0].entries[0].amount).toBe(20000);expect(syncSceneExpenses(state,[source])).toEqual(state);
   state=syncSceneExpenses(state,[{...source,refundedAmount:20600,checkedAt:at+2}]);
   expect(()=>settlementPlan(state.books[0],[state.books[0].entries[0].id])).toThrow(/退款/);expect(validExpenseState(state)).toBe(true);
+  expect(expenseActivityClosed(state.books[0])).toBe(true);
  });
  it('待微信确认时退款使旧草案失效，保留原批次锁直到核对平台结果',()=>{
   let state=imported();const id=state.books[0].entries[0].id;
@@ -58,6 +61,6 @@ describe('订单实付进入同一活动账本',()=>{
   expect(()=>importSceneExpenses(opened(),'book',[{...source,paidAmount:0}],at)).toThrow();
   expect(()=>syncSceneExpenses(imported(),[{...source,refundedAmount:20601,checkedAt:at+1}])).toThrow();
   expect(()=>syncSceneExpenses(imported(),[{...source,paidAmount:30000,checkedAt:at+1}])).toThrow(/不一致/);
-  expect(syncSceneExpenses(imported(),[])).toEqual(imported());
+  const state=imported();expect(syncSceneExpenses(state,[])).toEqual(state);
  });
 });

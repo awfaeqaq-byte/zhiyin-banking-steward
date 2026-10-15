@@ -21,6 +21,7 @@ import {
   type ExpenseState,
   type ExpenseBook,
   type ExpenseBatch,
+  type ExpenseEntry,
 } from "../lib/expense-notebook";
 import {
   expenseRequest,
@@ -31,6 +32,8 @@ import {
 import "./expense-notebook.css";
 import {collectionProgress,expenseActivityClosed,expenseProgressText} from '../lib/expense-follow-up';
 import {remindExpenseTomorrow,finishExpenseReminder} from '../lib/expense-reminder';
+import {sceneExpenseRequest,sceneExpenseCandidates,sourceExpenseNet,sourceExpenseIssue,sourceExpenseAdjustment,type SceneExpenseSource} from '../lib/scene-expenses';
+import type {SceneContext} from '../lib/scene-context';
 export type ExpenseNotebookHandle = {
   handle: (prompt: string) => Promise<string | null>;
 };
@@ -39,8 +42,8 @@ const startPattern =
   /随手记|零散消费|记个账|帮我记|开始记|新活动|我先[付垫]|最后一起算|先垫付/;
 export const ExpenseNotebook = forwardRef<
   ExpenseNotebookHandle,
-  { onPrompt: (text: string) => void; activityKey?:string; activityTitle?:string; conversation?:boolean; onRecorded?:(prompt:string,text:string)=>Promise<void>; onNeedsInput?:(needs:boolean)=>void; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
->(function ExpenseNotebook({ onPrompt,activityKey,activityTitle,conversation=false,onRecorded,onNeedsInput,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
+  { onPrompt: (text: string) => void; activityKey?:string; sourceWorkspaceId?:string; sceneContext?:SceneContext; onReconcileSources?:()=>Promise<void>; activityTitle?:string; conversation?:boolean; onRecorded?:(prompt:string,text:string)=>Promise<void>; onNeedsInput?:(needs:boolean)=>void; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
+>(function ExpenseNotebook({ onPrompt,activityKey,sourceWorkspaceId,sceneContext,onReconcileSources,activityTitle,conversation=false,onRecorded,onNeedsInput,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
   const activeKey=activityKey?`zhiyin-expense-active-${activityKey}`:'zhiyin-expense-active';
   const memoryEpoch=useRef(0);
   useEffect(()=>{const reset=()=>{memoryEpoch.current++;history.current=[];};window.addEventListener('zhiyin-memory-context-reset',reset);return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);},[]);
@@ -62,10 +65,13 @@ export const ExpenseNotebook = forwardRef<
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState("");
+  const [sources,setSources]=useState<SceneExpenseSource[]>([]),[sourceError,setSourceError]=useState('');
+  const sourceTask=sourceWorkspaceId||activityKey;
   const history = useRef<{ role: "user" | "assistant"; content: string }[]>(initialHistory.slice(-6));
   const book = state.books.find((b) => b.id === active);
   useEffect(()=>{onNeedsInput?.(setup);},[setup,onNeedsInput]);
   function accept(s: ExpenseState) {
+    if(s.revision<current.current.revision)return current.current;
     current.current = s;
     setState(s);
     return s;
@@ -80,6 +86,43 @@ export const ExpenseNotebook = forwardRef<
   }
   async function load() {
     return accept(await expenseRequest());
+  }
+  async function loadSources(){
+    if(!sourceTask)return;
+    const result=await sceneExpenseRequest(sourceTask);accept(result.state);setSources(result.sources);setSourceError('');return result;
+  }
+  async function verifySourceEntries(entries:ExpenseEntry[]){
+    const sourced=entries.filter(entry=>entry.source);if(!sourced.length)return;
+    await onReconcileSources?.();
+    const latest=await loadSources();
+    for(const entry of sourced){
+      const original=entry.source!;
+      const verified=latest?.sources.find(source=>source.id===original.id&&source.paymentId===original.paymentId&&source.orderId===original.orderId&&source.workspaceId===original.workspaceId&&source.kind===original.kind);
+      if(!verified)throw new Error('原订单来源暂不可核对，请恢复原事项后重新核对；原记录已保留，尚未发起收款');
+      if(verified.paidAmount!==original.paidAmount||verified.refundedAmount!==original.refundedAmount||verified.merchant!==original.merchant||verified.paidAt!==original.paidAt||sourceExpenseNet(verified)!==entry.amount)throw new Error('原订单实付或退款已变化，请按最新回执重新核对分摊');
+    }
+  }
+  const sourceRefresh=useRef<()=>void>(()=>{});
+  sourceRefresh.current=()=>{if(sourceTask&&!busyRef.current)void loadSources().catch(e=>{if(sources.length||book?.entries.some(entry=>entry.source))setSourceError(e instanceof Error?e.message:'订单实付暂未核对');});};
+  useEffect(()=>{
+    let live=true;
+    if(sourceTask)void sceneExpenseRequest(sourceTask).then(result=>{if(live){accept(result.state);setSources(result.sources);setSourceError('');}}).catch(()=>{});
+    const refresh=()=>sourceRefresh.current();
+    window.addEventListener('zhiyin-phone-foreground',refresh);window.addEventListener('zhiyin-bank-updated',refresh);window.addEventListener('zhiyin-expenses-updated',refresh);
+    return()=>{live=false;window.removeEventListener('zhiyin-phone-foreground',refresh);window.removeEventListener('zhiyin-bank-updated',refresh);window.removeEventListener('zhiyin-expenses-updated',refresh);};
+  },[sourceTask]);
+  async function importSources(){
+    if(!book||!sourceTask)return;
+    await run(async()=>{
+      const references=sceneExpenseCandidates(current.current,sources).map(({id,paidAmount,refundedAmount})=>({id,paidAmount,refundedAmount}));
+      await onReconcileSources?.();
+      const latest=await loadSources();
+      const available=latest?sceneExpenseCandidates(latest.state,latest.sources):[];
+      if(!latest||references.some(reference=>!available.some(source=>source.id===reference.id&&source.paidAmount===reference.paidAmount&&source.refundedAmount===reference.refundedAmount)))throw new Error('订单实付或退款已变化，请按最新金额重新确认');
+      const result=await sceneExpenseRequest(sourceTask,{bookId:book.id,references,revision:current.current.revision});
+      accept(result.state);setSources(result.sources);setSourceError('');setExpanded(true);setReview(false);
+      setNotice('实付已记入，按本次参与人平分。可以直接告诉我谁不参与或怎样分；尚未发起收款。');
+    });
   }
   async function save(op: ExpenseOperation) {
     return accept(await expenseRequest(op, current.current.revision));
@@ -153,7 +196,7 @@ export const ExpenseNotebook = forwardRef<
     // whether the model mistakes the existing collection bridge for a payment.
     const result: ExpenseReply = isExpenseReviewPrompt(prompt)
       ? { action: "review" as const }
-      : await requestExpenseReply(b, prompt, history.current,{memoryContext:remembered,stewardName});
+      : await requestExpenseReply(b, prompt, history.current,{memoryContext:remembered,stewardName,sceneContext});
     if(epoch!==memoryEpoch.current)throw new Error('记忆已更新，本轮未保存，请重新交代。');
     if (
       /群收款|一起算|结算/.test(prompt) &&
@@ -171,7 +214,7 @@ export const ExpenseNotebook = forwardRef<
         b.entries
           .filter(
             (e) =>
-              !e.batchId &&
+              !e.batchId && !(e.source&&sourceExpenseNet(e.source)===0) &&
               (!/今天|今晚/.test(prompt) ||
                 new Date(e.at).toLocaleDateString("zh-CN") === today),
           )
@@ -202,7 +245,7 @@ export const ExpenseNotebook = forwardRef<
         !/不要|不用|别|取消/.test(prompt)
       ) {
         const updated = current.current.books.find((x) => x.id === b.id)!;
-        setSelected(updated.entries.filter((e) => !e.batchId).map((e) => e.id));
+        setSelected(updated.entries.filter((e) => !e.batchId&&!(e.source&&sourceExpenseNet(e.source)===0)).map((e) => e.id));
         setReview(true);
         setExpanded(true);
         text += " 已展开结算，去微信前请核对。";
@@ -228,6 +271,19 @@ export const ExpenseNotebook = forwardRef<
       // Routing may arrive before the initial fetch paints the linked activity.
       const book=active?(await load()).books.find(b=>b.id===active):undefined;
       if(active&&!book)throw new Error('没有找到此任务关联的活动，请重新选择账本。');
+      if(prompt.trim()==='整理本次实付费用'){
+        busyRef.current=true;setBusy(true);setError('');
+        try{
+          await onReconcileSources?.();
+          const latest=await loadSources();
+          if(!latest)return '当前事项尚未关联原订单，不能推断实付金额。';
+          const candidates=sceneExpenseCandidates(latest.state,latest.sources);
+          setExpanded(true);
+          if(!book&&candidates.length){setPending(prompt);setSetup(true);return '已从本次原订单整理实付费用。先选择微信群和参与人，再确认记入；不用重新填写金额。';}
+          if(candidates.length)return '已从本次原订单整理实付费用。请确认记入当前活动，再告诉我哪些费用由谁承担；尚未发起收款。';
+          return book?.entries.some(entry=>entry.source)?'本次原订单实付已经记入，已展开原记录，可以核对分摊与退款差额。':'本次原订单暂时没有可确认的实付费用，原记录已保留。';
+        }finally{busyRef.current=false;setBusy(false);}
+      }
       if (
         (startPattern.test(prompt)||Boolean(activityKey&&!book)) &&
         (!book || /新活动|重新开始/.test(prompt))
@@ -245,7 +301,7 @@ export const ExpenseNotebook = forwardRef<
         busyRef.current=true;setBusy(true);setError('');
         try {
           setExpanded(true);
-          if(!book.batches.length)return '这次活动还没有发起群收款。';
+          if(!book.batches.length)return expenseProgressText(book);
           const latest=await refreshProgress(book);
           return asksReminder?await remindExpenseTomorrow(latest):expenseProgressText(latest);
         } finally {busyRef.current=false;setBusy(false);}
@@ -256,7 +312,7 @@ export const ExpenseNotebook = forwardRef<
       }
       // Do not intercept ordinary banking requests just because an activity exists.
       if (
-        !/\d|一半|半份|平分|均摊|分摊|[aA]{2}|收款|结算|记下|记录|刚才|上一笔|那笔|没吃|没喝|删除|算一下/.test(
+        !/\d|一半|半份|平分|均摊|分摊|[aA]{2}|收款|结算|记下|记录|刚才|上一笔|那笔|没吃|没喝|删除|算一下|请客|我请|我来付|我承担|算我的/.test(
           prompt,
         ) &&
         history.current.at(-1)?.role !== "assistant"
@@ -306,6 +362,9 @@ export const ExpenseNotebook = forwardRef<
     });
   }
   async function publish(batch: ExpenseBatch, b: ExpenseBook) {
+    await verifySourceEntries(b.entries.filter(entry=>batch.entryIds.includes(entry.id)));
+    const currentBook=current.current.books.find(x=>x.id===b.id),currentBatch=currentBook?.batches.find(x=>x.id===batch.id);
+    if(!currentBook||!currentBatch||currentBatch.sourceChanged)throw new Error('原订单退款或金额已变化，请先核对原微信群收款，再返回修改');
     const response = await groupAARequest("publish", {
       id: batch.id,
       groupId: b.group.id,
@@ -326,7 +385,11 @@ export const ExpenseNotebook = forwardRef<
   async function submitSettlement() {
     if (!book) return;
     await run(async () => {
+      const reviewed=JSON.stringify(book.entries.filter(e=>selected.includes(e.id)).map(e=>({id:e.id,amount:e.amount,fixed:e.fixed,shares:e.shares,refund:e.source?.refundedAmount})));
       await load();
+      await verifySourceEntries(book.entries.filter(entry=>selected.includes(entry.id)));
+      const latest=current.current.books.find(b=>b.id===book.id);
+      if(!latest||reviewed!==JSON.stringify(latest.entries.filter(e=>selected.includes(e.id)).map(e=>({id:e.id,amount:e.amount,fixed:e.fixed,shares:e.shares,refund:e.source?.refundedAmount}))))throw new Error('费用或退款已变化，请按最新金额重新核对分摊');
       const id = crypto.randomUUID();
       const next = await save({
         type: "prepare",
@@ -374,7 +437,8 @@ export const ExpenseNotebook = forwardRef<
       reviewError = e instanceof Error ? e.message : "无法结算";
     }
   }
-  const outstanding = book?.entries.filter((e) => !e.batchId) ?? [];
+  const outstanding = book?.entries.filter((e) => !e.batchId&&!(e.source&&sourceExpenseNet(e.source)===0)) ?? [];
+  const candidates=sceneExpenseCandidates(state,sources);
   const splitSummary = book && review ? expenseSplitSummary(book, selected) : null;
   return (
     <section
@@ -383,6 +447,13 @@ export const ExpenseNotebook = forwardRef<
       aria-busy={busy}
     >
       <fieldset disabled={busy}>
+        {candidates.length>0&&<section className="expense-source-review" aria-label="本次订单实付">
+          <strong>这次已经付过的费用</strong>
+          <p>从原订单带入实付，不用再填写金额。{book?'先按本次参与人平分，可继续调整。':'选择微信群和参与人后，再确认记入。'}</p>
+          {candidates.map(source=><div className="expense-source-row" key={source.id}><span><strong>{source.title}</strong><small>{source.merchant}</small><small>原实付 {money(source.paidAmount)}{source.refundedAmount>0?` · 已退款 ${money(source.refundedAmount)}`:''}</small></span><span className="expense-source-amount"><small>本次记入</small><b>{money(sourceExpenseNet(source))}</b></span></div>)}
+          {book?<button className="expense-primary" onClick={()=>void importSources()}>确认记入这 {candidates.length} 笔费用</button>:!setup&&<button className="expense-primary" onClick={()=>{setSetup(true);setExpanded(true);}}>选择这次参与人</button>}
+        </section>}
+        {sourceError&&<p className="expense-source-warning" role="alert">{sourceError}<button onClick={()=>void run(async()=>{await loadSources();})}>重新核对订单</button></p>}
         {!conversation && !book && !setup && (
           <div className="expense-launch">
             <button
@@ -449,7 +520,7 @@ export const ExpenseNotebook = forwardRef<
                 {book.entries.map((e) => (
                   <div className="expense-row" key={e.id}>
                     <div className="expense-row-main">
-                      {review && !e.batchId && (
+                      {review && !e.batchId && !(e.source&&sourceExpenseNet(e.source)===0) && (
                         <label className="expense-row-choice">
                           <input
                             type="checkbox"
@@ -480,9 +551,12 @@ export const ExpenseNotebook = forwardRef<
                                 ?.name}
                           垫付{e.batchId ? " · 已进入结算" : ""}
                         </small>
+                        {e.source&&<small>原订单实付 {money(e.source.paidAmount)}{e.source.refundedAmount>0?` · 已退款 ${money(e.source.refundedAmount)}`:''}</small>}
                       </span>
                       <b>{money(e.amount)}</b>
                     </div>
+                    {sourceExpenseIssue(e)&&<p className="expense-source-warning">{sourceExpenseIssue(e)}{sourceExpenseAdjustment(e)>0&&e.batchId?`，差额 ${money(sourceExpenseAdjustment(e))} 待核对。`:''}</p>}
+                    {e.source&&<details><summary>订单与付款依据</summary><p>{e.source.merchant} · {new Date(e.source.paidAt).toLocaleString('zh-CN')}</p><p className="expense-source-id">订单 {e.source.orderId}<br/>付款 {e.source.paymentId}</p></details>}
                     <details>
                       <summary>分摊依据</summary>
                       <p>
@@ -495,7 +569,7 @@ export const ExpenseNotebook = forwardRef<
                           .join(" · ")}
                       </p>
                     </details>
-                    {!e.batchId && (
+                    {!e.batchId && !(e.source&&sourceExpenseNet(e.source)===0) && (
                       <div className="expense-row-actions">
                         <button
                           onClick={() =>
@@ -504,7 +578,7 @@ export const ExpenseNotebook = forwardRef<
                         >
                           修改
                         </button>
-                        <button onClick={() => setRemoving(e.id)}>删除</button>
+                        {!e.source&&<button onClick={() => setRemoving(e.id)}>删除</button>}
                       </div>
                     )}
                     {removing === e.id && !e.batchId && (
@@ -591,8 +665,9 @@ export const ExpenseNotebook = forwardRef<
                     </strong>
                     {batch.status === "prepared" ? (
                       <>
-                        <p>这些记录已锁定，避免重复发起。</p>
+                        <p>{batch.sourceChanged?'原订单发生退款，旧收款方案已失效。先核对微信结果；确认未发布后才能返回修改。':'这些记录已锁定，避免重复发起。'}</p>
                         <button
+                          disabled={batch.sourceChanged}
                           onClick={() =>
                             void run(async () => {
                               await load();
@@ -611,6 +686,7 @@ export const ExpenseNotebook = forwardRef<
                       </>
                     ) : (
                       <>
+                        {batch.sourceChanged&&<p className="expense-source-warning">原订单退款产生差额，原收款记录已保留。请在微信核对已付成员与退款，处理完成前不会标记结清。</p>}
                         <p>
                           {(() => {
                             const c = batch.receipt;

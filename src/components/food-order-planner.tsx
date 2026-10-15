@@ -2,10 +2,11 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,MapPin,Minus,Plus,ShoppingBag} from 'lucide-react';
 import {foodQuote,requestFoodAdvice,type FoodCatalog,type FoodDraft,type FoodReceipt} from '../lib/food-order';
 import {foodOrderRequest} from '../lib/food-order-bridge';
+import type {SceneContext} from '../lib/scene-context';
 import type {TaskProgress} from '../lib/task-progress-schema';
 import {Button} from './ui/button';
 import './food-order-planner.css';
-type Props={taskId:string;stewardName:string;initialDraft:FoodDraft;history:Array<{role:'user'|'assistant';content:string}>;injectedPrompt?:{token:string;text:string};getMemoryContext?:(text:string)=>Promise<string>;onPrompt?:(text:string)=>void;onTurn?:(user:string,answer:string,failed:boolean,progress:TaskProgress)=>Promise<void>|void;onDraftChange?:(draft:FoodDraft)=>Promise<void>|void};
+type Props={sceneContext?:SceneContext;taskId:string;stewardName:string;initialDraft:FoodDraft;history:Array<{role:'user'|'assistant';content:string}>;injectedPrompt?:{token:string;text:string};getMemoryContext?:(text:string)=>Promise<string>;onPrompt?:(text:string)=>void;onTurn?:(user:string,answer:string,failed:boolean,progress:TaskProgress)=>Promise<void>|void;onDraftChange?:(draft:FoodDraft)=>Promise<void>|void};
 const money=(value:number)=>`¥${(value/100).toFixed(2)}`;
 const statusLabel:Record<string,string>={PENDING_PAYMENT:'待付款',PAID:'已付款',ACCEPTED:'商家已接单',PREPARING:'正在制作',READY_FOR_DELIVERY:'等待配送',DELIVERY_ASSIGNED:'骑手已接单',DELIVERING:'配送中',COMPLETED:'已送达',CANCELLED:'已取消',REFUNDING:'退款中',REFUNDED:'已退款'};
 /** One inline plan, not a second chat. Model suggestions never invoke the order bridge. */
@@ -31,7 +32,7 @@ export function FoodOrderPlanner(props:Props){
   if(!catalog||lock.current)return;lock.current=true;setBusy(true);setError('');let answer='',failed=false;let next=current.current;
   try{
    const memory=await callbacks.current.getMemoryContext?.(text)||'';
-   const result=await requestFoodAdvice(text,catalog,next,history.current,memory,stewardName);if(!alive.current)return;
+   const result=await requestFoodAdvice(text,catalog,next,history.current,memory,stewardName,callbacks.current.sceneContext);if(!alive.current)return;
    answer=result.text;setChoices(result.choices);
    if(result.intent!=='answer'&&result.intent!=='clarify'&&result.draft&&!next.orderId){next={...result.draft,...(result.draft.address===undefined&&next.address?{address:next.address}:{}),...(result.draft.contact===undefined&&next.contact?{contact:next.contact}:{})};update(next);orderId.current='';}
    else if(result.intent!=='answer'&&result.intent!=='clarify'&&result.draft&&next.orderId){answer='这笔已经生成订单，不能在这里修改。我可以带你回原订单核对。';setChoices([]);}

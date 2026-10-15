@@ -67,7 +67,8 @@ it('已有订单的任务在首次打开时也不能被模型悄悄改金额；�
  vi.mocked(occasionFoodRequest).mockResolvedValue({status:'ok',orders:[{id:link.orderId,status:'COMPLETED'}]});
  try{
   render(<OccasionPlanner stewardName="宁宁" initialPlanId="birthday" initialPrompt="改成2000"/>);
-  await screen.findByText(/建议改为2000/);expect(screen.getByLabelText('预算（元）')).toHaveValue(1000);
+  await screen.findByText(/建议改为2000/);expect(screen.getByLabelText('预算（元）')).toHaveValue(2000);expect(bank.get().occasions![0].budget).toBe(100000);
+  fireEvent.click(screen.getByRole('button',{name:'放弃本次修改'}));expect(screen.getByLabelText('预算（元）')).toHaveValue(1000);
   fireEvent.click(screen.getByRole('button',{name:'核对订单状态'}));await waitFor(()=>expect(screen.getByRole('button',{name:'确认已收到，完成安排'})).not.toBeDisabled());
   fireEvent.click(screen.getByRole('button',{name:'确认已收到，完成安排'}));fireEvent.click(screen.getByRole('button',{name:'确认完成并释放余款'}));await screen.findByText('安排已完成，余款已释放');
  }finally{rmSync(dir,{recursive:true,force:true});}

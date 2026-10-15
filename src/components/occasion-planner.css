@@ -21,3 +21,5 @@
 .occasion-review>summary span {color:var(--muted);font-size:12px;}
 .occasion-review>summary:focus-visible {outline:2px solid var(--teal);outline-offset:3px;}
 .occasion-review[open]>summary {margin-bottom:12px;}
+
+.occasion-amendment{margin:12px 0 16px;padding:0 0 16px;border-bottom:1px solid var(--line,#d8e6e4);overflow-wrap:anywhere}.occasion-amendment ul{padding:0;margin:10px 0;list-style:none}.occasion-amendment li{display:grid;grid-template-columns:6em minmax(0,1fr);gap:10px;margin:8px 0;font-size:13px}.occasion-amendment li>span:first-child{color:var(--muted,#61757d)}.occasion-amendment p{font-size:13px;margin:10px 0;color:var(--muted,#61757d)}.occasion-amendment strong{color:var(--ink,#142b38)}.occasion-amendment-blocked{border-left:3px solid #a66d24;padding-left:12px;margin:14px 0}.occasion-amendment-blocked button{max-width:100%;text-align:left;font-size:13px}.occasion-order-history{margin:16px 0;font-size:13px}.occasion-order-history summary{min-height:44px;padding:10px 0;cursor:pointer}.occasion-order-history p{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}

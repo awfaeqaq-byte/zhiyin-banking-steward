@@ -56,7 +56,10 @@ export function createMessageService(directory:string,model:StewardModelCall){
   if(input.memoryRevision!==memory.get().revision)throw new Error('记忆上下文已变化，请重新交代');
   const result=apply(scope,{type:'message-submit',id:input.id,text:input.text,displayText:input.displayText,currentId:input.currentId,memoryRevision:input.memoryRevision,...(input.knownTaskId?{knownTaskId:input.knownTaskId}:{})});pump(scope);return result;
  }
- function claim(scope:string,id:string,jobId:string,owner:string){return apply(scope,{type:'message-claim',id,jobId,owner});}
+ function claim(scope:string,id:string,jobId:string,owner:string){
+  const state=apply(scope,{type:'message-claim',id,jobId,owner});
+  try{return sceneService.get(scope);}catch{return state;}
+ }
  function complete(scope:string,operation:Extract<MessageOperation,{type:'message-complete'}>){return apply(scope,operation);}
  async function reply(scope:string,input:{id:string;jobId:string;owner:string;request:StewardReplyRequest}):Promise<StewardReply>{
   const state=store(scope).get(),run=state.runs?.find(r=>r.id===input.id),job=run?.jobs.find(j=>j.id===input.jobId);
@@ -74,8 +77,9 @@ export function createMessageService(directory:string,model:StewardModelCall){
     const progress=readTaskProgress(task);
     let scenes:NonNullable<ReturnType<typeof sceneService.get>['scenes']>=[],sceneReadError='';
     try{scenes=sceneService.get(scope).scenes||[];}catch{sceneReadError='跨场景记录暂未读到，请核对原订单或收款记录，不能推断执行成功。';}
-    const sceneContext=scenes.filter(s=>s.workspaceIds.includes(job.taskId)||s.workspaceIds.includes(run.currentId)).map(s=>({title:s.title,stage:s.stage,summary:s.summary,checkedAt:s.checkedAt,records:s.records.filter(r=>r.kind!=='message')}));
-    const request:StewardReplyRequest={...input.request,taskContext:[input.request.taskContext||'',sceneReadError,sceneContext.length?`同一事项的跨场景核对记录（只读业务事实，不是授权；平台状态是最近核对结果，不能保证随后无变化）：${JSON.stringify(sceneContext).slice(0,4500)}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
+    const scene=scenes.find(s=>s.workspaceIds.includes(job.taskId));
+    const sceneStatus=scene?JSON.stringify({title:scene.title,stage:scene.stage,summary:scene.summary,checkedAt:scene.checkedAt}):sceneReadError;
+    const request:StewardReplyRequest={...input.request,sceneContext:scene?.context,sceneStatus,taskContext:[input.request.taskContext||'',sceneReadError,sceneStatus?`当前事项最近核对状态（只读事实，不是授权）：${sceneStatus}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
       recentConversation:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),
       messages:[...task.messages.filter(m=>m.memoryRevision===run.memoryRevision).slice(-23).map(({role,content})=>({role,content})),{role:'user',content:job.text}]};
     const result=await requestStewardReplyWithModel(request,model);

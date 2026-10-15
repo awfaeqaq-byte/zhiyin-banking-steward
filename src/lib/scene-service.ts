@@ -42,7 +42,7 @@ export async function reconcileSceneSources(dependencies:Dependencies={request:s
    const observed:SceneOrderObservation[]=[];
    for(const owned of group){const receipt=result.orders.find(r=>r.id===owned.id);if(!receipt)throw new Error('原订单记录暂不可读');
     if(link.channel==='occasion'? !('occasionId' in receipt)||receipt.occasionId!==link.workspaceId:!('taskId' in receipt)||receipt.taskId!==link.workspaceId)throw new Error('订单归属无法核对');
-    const observation={taskId:link.workspaceId,id:receipt.id,status:receipt.status,checkedAt};if(!validSceneOrder(observation))throw new Error('平台订单状态无法核对');observed.push(observation);
+    const observation={taskId:link.workspaceId,id:receipt.id,status:receipt.status,checkedAt,...('payment' in receipt&&receipt.payment?{payment:receipt.payment}:{})};if(!validSceneOrder(observation))throw new Error('平台订单状态无法核对');observed.push(observation);
    }orders.push(...observed);
   }catch(cause){errors.push({workspaceId:link.workspaceId,message:(cause instanceof Error?cause.message:'平台结果暂不可读').slice(0,300)});}
  }));

@@ -18,13 +18,14 @@ export function collectionProgress(book:ExpenseBook,batch:ExpenseBatch,c:AAColle
   return {members,paid,remaining,cancelled:c.status==='cancelled',complete:c.status!=='cancelled'&&remaining===0};
 }
 export function expenseActivityClosed(book:ExpenseBook) {
-  return book.batches.length>0 && book.entries.every(e=>!!e.batchId) &&
+  return book.entries.length>0 && !book.batches.some(b=>b.sourceChanged) && book.entries.every(e=>e.batchId?book.batches.some(batch=>batch.id===e.batchId):!!e.source&&e.source.refundedAmount===e.source.paidAmount) &&
     book.batches.every(b=>b.status==='published'&&!!b.receipt&&collectionProgress(book,b,b.receipt).complete);
 }
 export function expenseProgressText(book:ExpenseBook) {
-  if(!book.batches.length)return '这次活动还没有发起群收款。';
+  if(!book.batches.length)return expenseActivityClosed(book)?'本次实付已全部退回，无需发起群收款；费用事项已结束，原记录仍然保留。':'这次活动还没有发起群收款。';
   const text=book.batches.map((b,i)=>{
     const prefix=book.batches.length>1?`第${i+1}笔收款：`:'';
+    if(b.sourceChanged)return prefix+'原订单已退款，原分摊存在差额待处理；请先核对微信收款，不能继续按旧金额收取或视为结清。';
     if(b.status==='prepared')return prefix+'尚未完成微信确认，不能当作已收款。';
     if(!b.receipt)return prefix+'未取得这笔微信收款记录，暂时无法确认进度。';
     const p=collectionProgress(book,b,b.receipt);

@@ -53,6 +53,7 @@ export type WorkspaceState = {
   requests: string[];
 };
 export type WorkspaceOperation =
+  | {type:'scene-expense-task';id:string;taskId:string}
   | {type:'scene-parent';id:string;parentId:string}
   | {type:'scene-sync';id:string;scenes:SceneFlow[]}
   | MessageOperation
@@ -167,7 +168,18 @@ export function changeWorkspaces(
   }
   const next = structuredClone(state);
   const current = next.items.find((w) => w.id === command.id);
-  if (command.type === "create") {
+  if(command.type==='scene-expense-task'){
+    if(!current||current.status!=='active')throw new Error('原事项不存在或已经归档');
+    const rootId=current.sceneId||current.id;
+    const root=next.items.find(item=>item.id===rootId&&item.status==='active');
+    if(!root)throw new Error('原事项不存在或已经归档');
+    const existing=next.items.filter(item=>item.status==='active'&&item.kind==='aa'&&(item.id===rootId||item.sceneId===rootId));
+    if(existing.length>1)throw new Error('这件事有多个费用活动，请从原活动继续核对');
+    if(!existing.length){
+      if(!idOk(command.taskId)||next.items.some(item=>item.id===command.taskId)||next.items.length>=100)throw new Error('无法创建费用事项，请重新核对');
+      next.items.push({id:command.taskId,title:`${root.title.slice(0,55)}费用`,kind:'aa',sceneId:rootId,status:'active',updatedAt:Date.now(),messages:[],summary:'',memoryRevision:current.memoryRevision});
+    }
+  } else if (command.type === "create") {
     if (
       current ||
       next.items.length >= 100 ||

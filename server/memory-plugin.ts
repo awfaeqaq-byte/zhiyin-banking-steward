@@ -7,6 +7,8 @@ import {createTaskStore,taskMiddleware} from './task-store';
 import {expenseMiddleware} from './expense-store';
 import {workspaceMiddleware} from './workspace-store';
 import {sceneMiddleware} from './scene-service';
+import {sceneExpensesMiddleware} from './scene-expenses';
+import {createSceneExpenseResolver} from './scene-expense-sources';
 import {messageMiddleware} from './message-service';
 import {localStewardModel} from './model-reply';
 import {stewardResetMiddleware} from './steward-reset';
@@ -20,6 +22,7 @@ export function memoryPlugin():Plugin {
   const reset=stewardResetMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const workspaces=workspaceMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const scenes=sceneMiddleware(fileURLToPath(new URL('../',import.meta.url)));
+  const sceneExpenses=sceneExpensesMiddleware(fileURLToPath(new URL('../',import.meta.url)),createSceneExpenseResolver(fileURLToPath(new URL('../',import.meta.url))));
   const messages=messageMiddleware(fileURLToPath(new URL('../',import.meta.url)),localStewardModel);
   const expenses=expenseMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const middleware=memoryMiddleware(createMemoryStore(fileURLToPath(new URL('../.zhiyin-memory.local.json',import.meta.url))));
@@ -46,7 +49,7 @@ export function memoryPlugin():Plugin {
   };
   const routes=[
     ['/api/sandbox/voice-config',voiceMiddleware(voiceConfig)],['/api/zhiyin/voice/status',voiceStatusMiddleware(voiceConfig)],['/api/zhiyin/voice/offer',voiceOfferMiddleware(voiceConfig)],
-    ['/api/zhiyin/scenes',scenes],['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/messages',messages],['/api/zhiyin/expenses',expenses],
+    ['/api/zhiyin/scenes',scenes],['/api/zhiyin/scene-expenses',sceneExpenses],['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/messages',messages],['/api/zhiyin/expenses',expenses],
     ['/api/zhiyin/memory',middleware],['/api/zhiyin/bank',bank],['/api/zhiyin/tasks',tasks],
     ['/api/zhiyin/wealth',wealth],['/api/zhiyin/bill-source',billSource],
     ['/api/zhiyin/market-context',market],['/api/zhiyin/fund-samples',fundSamples],

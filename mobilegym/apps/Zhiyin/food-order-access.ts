@@ -11,7 +11,7 @@ export async function accessFoodOrder(operation:string,payload:Record<string,unk
  const catalog:FoodCatalog={storeId:merchant.id,storeName:merchant.name,deliveryFee:merchant.deliveryFee,discount:merchant.discount,deliveryMinutes:merchant.deliveryMinutes,address:config.user.address,contact:`${config.user.name} ${config.user.phone}`,products:merchant.products.map(p=>({id:p.id,name:p.name,description:p.description,price:p.price,image:new URL(productImage(p.id),window.location.href).href}))};
  if(operation==='catalog')return {status:'ok',catalog};
  const store=useFoodDeliveryStore.getState();
- if(operation==='records')return {status:'ok',orders:store.orders.filter(o=>o.stewardTaskId===payload.taskId).map(o=>({id:o.id,taskId:o.stewardTaskId!,status:o.status,payable:o.payable}))};
+ if(operation==='records')return {status:'ok',orders:store.orders.filter(o=>o.stewardTaskId===payload.taskId).map(o=>({id:o.id,taskId:o.stewardTaskId!,status:o.status,payable:o.payable,...(o.paymentRecordId&&o.paidAt&&o.status!=='PENDING_PAYMENT'?{payment:{id:o.paymentRecordId,amount:o.payable,refundedAmount:o.refundRecordId&&o.refundedAt?o.payable:0,paidAt:o.paidAt,merchant:o.lines[0]?.storeName||config.merchant.name}}:{})}))};
  if(!window.__OS__)throw new Error('手机服务未就绪，请重试');
  if(operation==='open'){
   const order=store.orders.find(o=>o.id===payload.orderId&&o.stewardTaskId===payload.taskId);if(!order)throw new Error('当前事项未找到订单，请重新核对');

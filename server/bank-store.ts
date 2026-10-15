@@ -8,7 +8,7 @@ import type {WealthBookState} from './wealth-store';
 import {validWealthDraft,validWealthSnapshot} from '../src/lib/wealth-operation';
 import {buildBankAssetSummary,validDepositDraft,validDepositWithdrawalDraft,type DepositDraft,type DepositWithdrawalDraft} from '../src/lib/bank-assets';
 import {prepareTermDeposit,confirmTermDeposit,prepareTermWithdrawal,confirmTermWithdrawal} from './term-deposits';
-import {availableBankFunds, heldOccasionBudget, occasionTotals, occasionProducts, validateOccasionDraft, validOccasionId, type OccasionDraft, type OccasionOrder, type OccasionPlan} from '../src/lib/occasion-plans';
+import {availableBankFunds, heldOccasionBudget, occasionTotals, occasionChangeImpact, occasionProducts, validateOccasionDraft, validOccasionId, type OccasionDraft, type OccasionOrder, type OccasionPlan} from '../src/lib/occasion-plans';
 type State=SmartState & {version:1;wealth?:Omit<WealthBookState,'cashBalance'>;wealthMigrated?:boolean;termDeposits?:BankSnapshot['termDeposits'];depositDrafts?:DepositDraft[];depositWithdrawalDrafts?:DepositWithdrawalDraft[]};
 function snapshot(s:State):BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[],occasions=[],cardApplications=[],termDeposits=[]}=s;return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections,occasions,cardApplications,termDeposits,assetSummary:buildBankAssetSummary(s,s.wealth?.holdings,termDeposits)};}
 function occasion(s:State,id:string){const plan=s.occasions?.find(p=>p.id===id);if(!plan)throw new Error('筹备安排不存在');return plan;}
@@ -44,15 +44,16 @@ export function createBankStore(file:string) {
   confirmDeposit(id:string,now=Date.now()){return mutate(s=>{if(!s.termDeposits?.some(d=>d.id===id))guard(s,now);checkOccasionFunds(s,s.depositDrafts?.find(d=>d.id===id)?.amount??0);return confirmTermDeposit(s,id,buildBankAssetSummary(s).availableCash,now);});},
   prepareDepositWithdrawal(id:string,now=Date.now()){return mutate(s=>prepareTermWithdrawal(s,id,now));},
   confirmDepositWithdrawal(id:string,now=Date.now()){return mutate(s=>confirmTermWithdrawal(s,id,now));},
-  saveOccasion(input:{id:string;revision:number;draft:OccasionDraft},now=Date.now()){return mutate(s=>{
+  saveOccasion(input:{id:string;revision:number;draft:OccasionDraft;authorized?:boolean},now=Date.now()){return mutate(s=>{
    if(input.revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
    if(!validOccasionId(input.id))throw new Error('安排编号无效');validateOccasionDraft(input.draft,now);
    const plans=s.occasions??=[];const old=plans.find(p=>p.id===input.id);
    if(old&&old.status!=='draft'&&old.status!=='reserved')throw new Error('安排已结束，请新建');
-   if(old?.orders.length)throw new Error('已准备订单，修改需取消当前安排后重新核对；已付款订单请单独退款');
+   if(old?.status==='reserved'&&input.authorized!==true)throw new Error('请本人确认本次变更，已有原订单和已付金额将保留');
+   if(old){const impact=occasionChangeImpact(old,input.draft,s);if(impact.blockedOrders.length)throw new Error(impact.blockedOrders[0].reason+' 原订单 '+impact.blockedOrders[0].order.orderId);if(input.draft.budget<impact.spent)throw new Error('预算不能低于已实际支付的金额');}
    if(!old&&plans.length>=100)throw new Error('筹备安排已达上限');
-   if(old?.status==='reserved')checkOccasionFunds(s,input.draft.budget,old.id);
-   const plan:OccasionPlan={...input.draft,id:input.id,productIds:[...input.draft.productIds],title:input.draft.title.trim(),status:old?.status??'draft',orders:[],createdAt:old?.createdAt??now,updatedAt:now};
+   if(old?.status==='reserved')checkOccasionFunds(s,input.draft.budget-occasionTotals(old,s).spent,old.id);
+   const plan:OccasionPlan={...input.draft,id:input.id,productIds:[...input.draft.productIds],title:input.draft.title.trim(),status:old?.status??'draft',orders:old?.orders.map(order=>({...order}))??[],createdAt:old?.createdAt??now,updatedAt:now};
    s.occasions=old?plans.map(p=>p.id===plan.id?plan:p):[...plans,plan];s.revision++;return snapshot(s);
   });},
   reserveOccasion(id:string,revision:number,now=Date.now()){return mutate(s=>{
@@ -69,14 +70,16 @@ export function createBankStore(file:string) {
   completeOccasion(id:string,revision:number,now=Date.now()){return mutate(s=>{
    const plan=occasion(s,id);if(plan.status==='completed')return snapshot(s);
    if(revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
-   if(plan.status!=='reserved'||!plan.orders.length||plan.orders.some(o=>!s.payments?.some(p=>p.id===o.paymentId&&p.refundedAt===undefined)))throw new Error('还有商品未付款或已退款，请先核对订单');
-   if(plan.orders.length!==plan.productIds.length)throw new Error('还有商品未准备订单');
+   const currentOrders=plan.orders.filter(order=>plan.productIds.includes(order.productId));
+   if(plan.status!=='reserved'||!currentOrders.length||currentOrders.some(o=>!s.payments?.some(p=>p.id===o.paymentId&&p.refundedAt===undefined)))throw new Error('还有商品未付款或已退款，请先核对订单');
+   if(currentOrders.length!==plan.productIds.length)throw new Error('还有商品未准备订单');
    plan.status='completed';plan.updatedAt=now;s.revision++;return snapshot(s);
   });},
   prepareOccasionOrder(id:string,productId:string,revision:number,now=Date.now()):OccasionOrder{return mutate(s=>{
    const plan=occasion(s,id);if(plan.status!=='reserved')throw new Error('请先确认预留预算，安排不能已经结束');
    if(plan.deliverAt<=now)throw new Error('送达时间已过，请取消后重新安排');
-   const existing=plan.orders.find(o=>o.productId===productId);if(existing)return existing;
+   if(!plan.productIds.includes(productId))throw new Error('商品已移出当前安排，不能使用原订单付款');
+   const existing=plan.orders.find(o=>o.productId===productId);if(existing){if(s.payments?.some(payment=>payment.id===existing.paymentId&&payment.refundedAt!==undefined))throw new Error('原订单已退款，不能重复使用同一商品订单付款，请选择其他商品');return existing;}
    if(revision!==s.revision)throw new Error('安排或账户已变化，请刷新后重试');
    const product=occasionProducts.find(p=>p.id===productId&&p.available);if(!product||!plan.productIds.includes(productId))throw new Error('商品不在本次安排中');
    const order={productId,orderId:`ZY-${id}-${productId}`,paymentId:`occasion:${id}:${productId}`,amount:product.price+product.deliveryFee,merchant:product.merchant,createdAt:now};
@@ -111,7 +114,7 @@ export function createBankStore(file:string) {
    if(input.occasionId!==undefined){
     const plan=occasion(s,input.occasionId),order=plan.orders.find(o=>o.paymentId===input.id);
     if(plan.status!=='reserved')throw new Error('安排已取消或结束，不能付款');
-    if(!order||order.amount!==input.amount||order.merchant!==input.merchant)throw new Error('付款与筹备订单不一致');
+    if(!order||!plan.productIds.includes(order.productId)||order.amount!==input.amount||order.merchant!==input.merchant)throw new Error('付款与筹备订单不一致');
     if(plan.deliverAt<=now)throw new Error('送达时间已过，请重新核对安排');
     if(input.amount>occasionTotals(plan,s).held)throw new Error('本次预留预算不足');
     if(s.balance-heldOccasionBudget(s,plan.id)<input.amount)throw new Error('银行卡可用资金不足');

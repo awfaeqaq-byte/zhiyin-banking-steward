@@ -17,13 +17,13 @@ it('同一事项显示实际订单待确认入账，点确认只记账不发起�
  const bridge=vi.spyOn(aa,'groupAARequest');
  render(<ExpenseNotebook conversation activityKey="aa-workspace" initialBookId="book" onPrompt={vi.fn()}/>);
  expect(await screen.findByText('生日蛋糕')).toBeInTheDocument();
- const button=await screen.findByRole('button',{name:'确认记入这 1 笔实付'});
+ const button=await screen.findByRole('button',{name:'确认记入这 1 笔费用'});
  expect(state.books[0].entries).toHaveLength(0);
  await userEvent.click(button);
  await waitFor(()=>expect(state.books[0].entries).toHaveLength(1));
  expect(sourceRequest).toHaveBeenCalledWith('aa-workspace',expect.objectContaining({bookId:'book',references:[{id:'payment-a',paidAmount:20600,refundedAmount:0}]}));
  expect(bridge).not.toHaveBeenCalled();
- expect(screen.queryByRole('button',{name:'确认记入这 1 笔实付'})).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'确认记入这 1 笔费用'})).not.toBeInTheDocument();
 });
 it('待确认收款发生退款后禁用旧确认入口，保留核对与返回修改',async()=>{
  const group={id:'g',name:'生日群',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]};
@@ -52,14 +52,14 @@ it('入账确认先等待原平台核对，读取失败保留候选且不提交�
  const sourceRequest=vi.spyOn(sources,'sceneExpenseRequest').mockImplementation(async(_workspace,op)=>{events.push(op?'import':'sources');if(op)state=sources.importSceneExpenses(state,'book',[receipt]);return {sources:[receipt],state};});
  const fresh=vi.fn<()=>Promise<void>>(async()=>{events.push('platform');throw new Error('原平台暂不可读');});
  render(<ExpenseNotebook conversation activityKey="aa-workspace" initialBookId="book" onReconcileSources={fresh} onPrompt={vi.fn()}/>);
- const confirm=await screen.findByRole('button',{name:'确认记入这 1 笔实付'});events.length=0;
+ const confirm=await screen.findByRole('button',{name:'确认记入这 1 笔费用'});events.length=0;
  await userEvent.click(confirm);
  expect(await screen.findByText('原平台暂不可读')).toBeInTheDocument();expect(state.books[0].entries).toHaveLength(0);
- expect(sourceRequest.mock.calls.every(call=>!call[1])).toBe(true);expect(screen.getByRole('button',{name:'确认记入这 1 笔实付'})).toBeEnabled();
+ expect(sourceRequest.mock.calls.every(call=>!call[1])).toBe(true);expect(screen.getByRole('button',{name:'确认记入这 1 笔费用'})).toBeEnabled();
  fresh.mockImplementation(async()=>{events.push('platform');receipt={...receipt,refundedAmount:600,checkedAt:receipt.checkedAt+1};});
- events.length=0;await userEvent.click(screen.getByRole('button',{name:'确认记入这 1 笔实付'}));
+ events.length=0;await userEvent.click(screen.getByRole('button',{name:'确认记入这 1 笔费用'}));
  expect(await screen.findByText(/订单实付或退款已变化/)).toBeInTheDocument();expect(events).toEqual(['platform','sources']);expect(state.books[0].entries).toHaveLength(0);
- events.length=0;await userEvent.click(screen.getByRole('button',{name:'确认记入这 1 笔实付'}));
+ events.length=0;await userEvent.click(screen.getByRole('button',{name:'确认记入这 1 笔费用'}));
  await waitFor(()=>expect(state.books[0].entries).toHaveLength(1));expect(events).toEqual(['platform','sources','import']);expect(state.books[0].entries[0].amount).toBe(20000);
 });
 it('蛋糕我请直接修改已有实付条目的份额，不重新问金额或增加一笔',async()=>{
@@ -88,7 +88,7 @@ it('整理本次实付费用直接展示已有账本候选，不让模型重新�
  await screen.findByRole('button',{name:/生日实付入口/});
  let answer:string|null=null;await act(async()=>{answer=await ref.current!.handle('整理本次实付费用');});
  expect(answer).toContain('原订单');expect(answer).toContain('确认');expect(model).not.toHaveBeenCalled();expect(fresh).toHaveBeenCalled();
- expect(screen.getByRole('button',{name:'确认记入这 1 笔实付'})).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'确认记入这 1 笔费用'})).toBeInTheDocument();
 });
 it('纯手工AA结算不被无关的跨场景订单读取失败阻塞',async()=>{
  const group={id:'g',name:'聚餐群',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]};

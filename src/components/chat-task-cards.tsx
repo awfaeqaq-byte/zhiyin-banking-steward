@@ -45,7 +45,7 @@ const nextLabels:Record<SceneNext['kind'],string>={food:'查看原订单',occasi
 export function SceneProgressCard({scene,onResume,disabled=false}:{scene:SceneFlow;onResume?:(next:SceneNext)=>Promise<unknown>|void;disabled?:boolean}){
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  const records=scene.records.filter(r=>r.kind!=='message');
- async function resume(){if(!scene.next||!onResume||busy||disabled)return;setBusy(true);setError('');try{await onResume(scene.next);}catch(cause){setError(cause instanceof Error?cause.message:'原事项暂未打开，请稍后重试。');}finally{setBusy(false);}}
+ async function resume(next=scene.next){if(!next||!onResume||busy||disabled)return;setBusy(true);setError('');try{await onResume(next);}catch(cause){setError(cause instanceof Error?cause.message:'原事项暂未打开，请稍后重试。');}finally{setBusy(false);}}
  return <section className="steward-task-card scene-progress-card" aria-label="跨场景进度">
   <header><span><Layers3 size={19} aria-hidden="true"/><strong>{scene.title}</strong></span><span className="task-card-status">{stages[scene.stage]}</span></header>
   <p className="task-card-explanation">{scene.summary}</p>
@@ -53,7 +53,8 @@ export function SceneProgressCard({scene,onResume,disabled=false}:{scene:SceneFl
   {records.length>5&&<p className="task-card-explanation">已关联 {records.length} 条业务记录，可进入原事项核对完整详情。</p>}
   <p className="task-card-note"><Clock3 size={14} aria-hidden="true"/>{scene.checkedAt?`${date(scene.checkedAt)}核对的结果`:'尚未完成状态核对'} · 返回后继续核对</p>
   {scene.error&&<p className="task-card-explanation">{scene.error}</p>}{error&&<p role="alert">{error}</p>}
-  {scene.next&&onResume&&<Button disabled={disabled||busy} onClick={()=>void resume()}>{busy?'正在打开…':nextLabels[scene.next.kind]}<ArrowUpRight size={15} aria-hidden="true"/></Button>}
+  {!!scene.expenses?.pendingCount&&onResume&&<Button disabled={disabled||busy||!!scene.error} onClick={()=>void resume({kind:'expense',id:scene.id,workspaceId:scene.workspaceIds[0],action:'prepare_expenses'})}>整理本次费用<ArrowUpRight size={15} aria-hidden="true"/></Button>}
+  {scene.next&&onResume&&<Button variant={scene.expenses?.pendingCount?'secondary':'primary'} disabled={disabled||busy} onClick={()=>void resume()}>{busy?'正在打开…':nextLabels[scene.next.kind]}<ArrowUpRight size={15} aria-hidden="true"/></Button>}
   <p className="task-card-note"><ShieldCheck size={14} aria-hidden="true"/>此处只查看进度，付款与预算操作仍需单独确认。</p>
  </section>;
 }

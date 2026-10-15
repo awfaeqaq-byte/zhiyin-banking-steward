@@ -2,28 +2,31 @@
  * Dates separate preparation from delivery; the budget rail shows held, spent and remaining.
  * Users review changes, authorize funds, then inspect the same order in the food app. */
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,CalendarDays,Check,Gift,LoaderCircle,Plus,Send,ShieldCheck} from 'lucide-react';
-import {availableBankFunds,heldOccasionBudget,occasionProducts,occasionQuote,occasionTotals,occasionRequest,requestOccasionAdvice,validateOccasionDraft,type OccasionDraft,type OccasionPlan} from '../lib/occasion-plans';
+import {ArrowLeft,ArrowUpRight,CalendarDays,Gift,LoaderCircle,Plus,Send,ShieldCheck} from 'lucide-react';
+import {availableBankFunds,heldOccasionBudget,occasionProducts,occasionQuote,occasionChangeImpact,occasionTotals,occasionRequest,requestOccasionAdvice,validateOccasionDraft,type OccasionDraft,type OccasionPlan} from '../lib/occasion-plans';
 import {validBankSnapshot,type BankSnapshot} from '../lib/bank-transfer';
 import {formatCny} from '../lib/financial-connections';
 import {localTaskTime} from '../lib/task-calendar';
 import {occasionFoodRequest} from '../lib/occasion-food-bridge';
+import type {SceneContext} from '../lib/scene-context';
 import './occasion-planner.css';
 const blank=():OccasionDraft=>({title:'生日筹备',recipient:'',budget:100000,prepareAt:0,deliverAt:0,address:'',contact:'',note:'',productIds:['cake-light','flowers-roses']});
 const labels={draft:'待确认预算',reserved:'筹备中',cancelled:'已取消',completed:'已完成'};
 const date=(time:number)=>time?new Date(time).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'待补充';
-type Props={stewardName:string;initialPrompt?:string;initialPlanId?:string;getMemoryContext?:(prompt:string)=>Promise<string>;onOpenCalendar?:(date:number)=>void;embedded?:boolean;conversation?:boolean;injectedPrompt?:{token:string;text:string};initialHistory?:Array<{role:'user'|'assistant';content:string}>;onRoutePrompt?:(text:string)=>Promise<void>;externalBusy?:boolean;onConversationTurn?:(user:string,answer:string,failed:boolean)=>Promise<void>};
-export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',getMemoryContext,onOpenCalendar,embedded=false,conversation=false,injectedPrompt,initialHistory,onRoutePrompt,externalBusy=false,onConversationTurn}:Props){
+type Props={stewardName:string;sceneContext?:SceneContext;initialPrompt?:string;initialPlanId?:string;getMemoryContext?:(prompt:string)=>Promise<string>;onOpenCalendar?:(date:number)=>void;embedded?:boolean;conversation?:boolean;injectedPrompt?:{token:string;text:string};initialHistory?:Array<{role:'user'|'assistant';content:string}>;onRoutePrompt?:(text:string)=>Promise<void>;externalBusy?:boolean;onConversationTurn?:(user:string,answer:string,failed:boolean)=>Promise<void>};
+export function OccasionPlanner({stewardName,sceneContext,initialPrompt='',initialPlanId='',getMemoryContext,onOpenCalendar,embedded=false,conversation=false,injectedPrompt,initialHistory,onRoutePrompt,externalBusy=false,onConversationTurn}:Props){
  const [state,setState]=useState<BankSnapshot|null>(null),[selected,setSelected]=useState<string|null>(null),[draft,setDraft]=useState<OccasionDraft>(blank),[editing,setEditing]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false),[prompt,setPrompt]=useState('');
- const [advice,setAdvice]=useState(''),[options,setOptions]=useState<string[]>([]),[confirm,setConfirm]=useState<'reserve'|'cancel'|'complete'|null>(null);
+ const [advice,setAdvice]=useState(''),[options,setOptions]=useState<string[]>([]),[confirm,setConfirm]=useState<'reserve'|'cancel'|'complete'|'amend'|null>(null);
  const [foodOrders,setFoodOrders]=useState<Record<string,string>>({});
  const [catalogOpen,setCatalogOpen]=useState(false);
  const [editStep,setEditStep]=useState<'recipient'|'budget'|'time'|'shipping'|null>(null);
  const [ready,setReady]=useState(false);
  const consumed=useRef('');
+ const confirmationRevision=useRef<number>(-1),confirmationDraft=useRef<OccasionDraft|null>(null);
  const id=useRef(initialPlanId||crypto.randomUUID()),lock=useRef(false),started=useRef(false),turns=useRef<Array<{role:'user'|'assistant';content:string}>>([]);
  const plan=state?.occasions?.find(p=>p.id===selected),totals=plan&&state?occasionTotals(plan,state):null;
- const locked=!!plan?.orders.length||plan?.status==='cancelled'||plan?.status==='completed';
+ const locked=plan?.status==='cancelled'||plan?.status==='completed';
+ const impact=plan&&state?occasionChangeImpact(plan,draft,state):null;
  const dirty=plan?JSON.stringify(draft)!==JSON.stringify({title:plan.title,recipient:plan.recipient,budget:plan.budget,prepareAt:plan.prepareAt,deliverAt:plan.deliverAt,address:plan.address,contact:plan.contact,note:plan.note,productIds:plan.productIds}):true;
  const accept=useCallback((value:BankSnapshot)=>{if(!validBankSnapshot(value))throw new Error('账户数据无法核对，请重试');setState(prev=>!prev||value.revision>=prev.revision?value:prev);return value;},[]);
  const refresh=useCallback(async()=>{try{accept(await occasionRequest());setError('');}catch(e){setError(e instanceof Error?e.message:'加载失败，请重试');}},[accept]);
@@ -32,25 +35,27 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
  useEffect(()=>{void refresh();const run=()=>void refresh();window.addEventListener('zhiyin-phone-foreground',run);window.addEventListener('zhiyin-bank-updated',run);return()=>{window.removeEventListener('zhiyin-phone-foreground',run);window.removeEventListener('zhiyin-bank-updated',run);};},[refresh]);
  const advise=useCallback(async(text:string,current=draft)=>{if(!text.trim()||lock.current)return;lock.current=true;setBusy(true);setError('');setPrompt(text);
   let answer='',failed=false;
-  try{const memory=getMemoryContext?await getMemoryContext(text):'';const result=await requestOccasionAdvice(text,current,memory,turns.current);answer=result.text;setAdvice(result.text);setOptions(result.questions??[]);
+  try{const memory=getMemoryContext?await getMemoryContext(text):'';const result=await requestOccasionAdvice(text,current,memory,turns.current,sceneContext);answer=result.text;setAdvice(result.text);setOptions(result.questions??[]);
    const currentPlan=current as Partial<OccasionPlan>;
-   const cannotEdit=locked||!!currentPlan.orders?.length||currentPlan.status==='cancelled'||currentPlan.status==='completed';
-   if(result.patch&&Object.keys(result.patch).length&&!cannotEdit)setDraft(d=>({...d,...result.patch}));
-   if(cannotEdit&&result.patch&&Object.keys(result.patch).length){answer=result.text+' 当前已有订单或安排已结束，修改请先处理原订单再重新安排。';setAdvice(answer);}
+   const cannotEdit=locked||currentPlan.status==='cancelled'||currentPlan.status==='completed';
+   if(result.patch&&Object.keys(result.patch).length&&!cannotEdit){setDraft(d=>({...d,...result.patch}));setConfirm(null);}
+   if(cannotEdit&&result.patch&&Object.keys(result.patch).length){answer=result.text+' 当前安排已结束，需要重新安排。';setAdvice(answer);}
    if(conversation&&result.questions?.length)answer=[answer,...result.questions.filter(question=>!answer.includes(question))].join('\n');
    turns.current=[...turns.current,{role:'user' as const,content:text},{role:'assistant' as const,content:result.text}].slice(-8);setPrompt('');
   }catch(e){answer=e instanceof Error?e.message:'暂时无法整理，请重试';failed=true;setError(answer);}finally{try{await onConversationTurn?.(text,answer,failed);}finally{lock.current=false;setBusy(false);}}
- },[draft,getMemoryContext,locked,onConversationTurn,conversation]);
+ },[draft,getMemoryContext,locked,onConversationTurn,conversation,sceneContext]);
  useEffect(()=>{if(!state||started.current)return;started.current=true;const existing=state.occasions?.find(p=>p.id===initialPlanId);if(existing){select(existing);if(initialPrompt)void advise(initialPrompt,existing);}else if(initialPrompt){setEditing(true);void advise(initialPrompt,blank());}else if(embedded){setEditing(true);}
-  if(initialPlanId&&!existing?.orders.length&&!['cancelled','completed'].includes(existing?.status??''))try{const cached=JSON.parse(sessionStorage.getItem(`zhiyin-occasion-draft:${initialPlanId}`)||'null');const defaults=blank();if(cached&&Object.entries(defaults).every(([key,value])=>Array.isArray(value)?Array.isArray(cached[key])&&cached[key].every((id:string)=>occasionProducts.some(p=>p.id===id)):typeof cached[key]===typeof value&&(typeof value!=='number'||Number.isFinite(cached[key]))))setDraft(cached);}catch{/* A damaged draft must not replace verified account data. */}
+  if(initialPlanId&&!initialPrompt&&!['cancelled','completed'].includes(existing?.status??''))try{const stored=JSON.parse(sessionStorage.getItem(`zhiyin-occasion-draft:${initialPlanId}`)||'null');const cached=stored?.draft;const defaults=blank();if(stored?.planUpdatedAt===(existing?.updatedAt??null)&&cached&&Object.entries(defaults).every(([key,value])=>Array.isArray(value)?Array.isArray(cached[key])&&cached[key].every((id:string)=>occasionProducts.some(p=>p.id===id)):typeof cached[key]===typeof value&&(typeof value!=='number'||Number.isFinite(cached[key]))))setDraft(cached);}catch{/* A damaged draft must not replace verified account data. */}
   if(initialHistory)turns.current=initialHistory.slice(-8);
   setReady(true);
  },[state,initialPlanId,initialPrompt,advise,embedded,initialHistory]);
- useEffect(()=>{if(initialPlanId&&ready)try{sessionStorage.setItem(`zhiyin-occasion-draft:${initialPlanId}`,JSON.stringify(draft));}catch{/* Storage may be unavailable; explicit server saves remain usable. */}},[draft,initialPlanId,ready]);
+ useEffect(()=>{if(initialPlanId&&ready)try{sessionStorage.setItem(`zhiyin-occasion-draft:${initialPlanId}`,JSON.stringify({draft,planUpdatedAt:plan?.updatedAt??null}));}catch{/* Storage may be unavailable; explicit server saves remain usable. */}},[draft,initialPlanId,ready,plan?.updatedAt]);
  const adviseRef=useRef(advise);adviseRef.current=advise;
  useEffect(()=>{if(ready&&injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void adviseRef.current(injectedPrompt.text);}},[ready,injectedPrompt]);
  async function change(body:object){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const next=accept(await occasionRequest(body));setConfirm(null);const p=next.occasions?.find(x=>x.id===id.current);if(p)select(p);return next;}catch(e){setError(e instanceof Error?e.message:'保存失败，请刷新后重试');try{accept(await occasionRequest());}catch{/* Keep the form for retry. */}}finally{lock.current=false;setBusy(false);}}
- async function save(){if(!state)return;try{validateOccasionDraft(draft,Date.now());await change({type:'save-occasion',id:id.current,revision:state.revision,draft});}catch(e){setError(e instanceof Error?e.message:'请核对安排');}}
+ function askConfirmation(kind:'reserve'|'cancel'|'complete'|'amend'){if(!state)return;confirmationRevision.current=state.revision;confirmationDraft.current=kind==='amend'?structuredClone(draft):null;setConfirm(kind);}
+ useEffect(()=>{if(confirm&&state&&state.revision!==confirmationRevision.current){setConfirm(null);setError('安排或账户已变化，请重新核对本次变更。');}},[confirm,state]);
+ async function save(){if(!state)return;try{validateOccasionDraft(draft,Date.now());if(plan?.status==='reserved'){if(impact?.blockedOrders.length)throw new Error(impact.blockedOrders[0].reason);askConfirmation('amend');return;}await change({type:'save-occasion',id:id.current,revision:state.revision,draft});}catch(e){setError(e instanceof Error?e.message:'请核对安排');}}
  async function food(productId:string){if(!plan||lock.current)return;lock.current=true;setBusy(true);setError('');try{await occasionFoodRequest('prepare',{planId:plan.id,productId});accept(await occasionRequest());}catch(e){setError(e instanceof Error?e.message:'订单未能准备，请重试');}finally{lock.current=false;setBusy(false);}}
  async function records(){if(!plan||lock.current)return;lock.current=true;setBusy(true);setError('');try{const result=await occasionFoodRequest('records',{planId:plan.id});setFoodOrders(Object.fromEntries((result.orders??[]).map(o=>[o.id,o.status])));accept(await occasionRequest());}catch(e){setError(e instanceof Error?e.message:'订单状态未能读取');}finally{lock.current=false;setBusy(false);}}
  async function openOrder(orderId:string){try{await occasionFoodRequest('open',{planId:plan!.id,orderId});}catch(e){setError(e instanceof Error?e.message:'无法打开订单');}}
@@ -67,6 +72,18 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
   {editing&&<>
    <div className="occasion-heading"><h2>{plan?.title||(draft.title!=='生日筹备'?draft.title:draft.recipient?`${draft.recipient}的生日筹备`:'准备一个重要的日子')}</h2>{plan&&<span>{labels[plan.status]}</span>}</div>
    {conversation&&<div className="occasion-conversation-summary"><p><strong>{draft.recipient||'对象待确认'}</strong><span>预算 {formatCny(draft.budget)}</span></p><p>{occasionProducts.filter(p=>draft.productIds.includes(p.id)).map(p=>p.name).join(' + ')||'商品待选择'} · 合计 {formatCny(occasionQuote(draft))}</p><small>{plan?labels[plan.status]:missing==='recipient'?'还需要确认准备对象':missing==='time'?'送达与筹备时间待补充':missing==='shipping'?'收货信息待补充':'方案待核对，尚未预留或付款'}</small></div>}
+   {plan?.status==='reserved'&&dirty&&impact&&<section className="occasion-amendment" aria-label="本次变更">
+    <div className="occasion-section-heading"><h3>本次变更</h3><span>待你确认</span></div>
+    <ul>{impact.changes.map(item=><li key={item.field}><span>{item.label}</span><span>{item.field==='budget'?formatCny(Number(item.before)):item.field==='prepareAt'||item.field==='deliverAt'?date(Number(item.before)):String(item.before)||'未填写'} → {item.field==='budget'?formatCny(Number(item.after)):item.field==='prepareAt'||item.field==='deliverAt'?date(Number(item.after)):String(item.after)||'未填写'}</span></li>)}
+     {impact.removedProductIds.map(productId=><li key={`remove-${productId}`}><span>移除商品</span><span>{occasionProducts.find(product=>product.id===productId)?.name}</span></li>)}
+     {impact.addedProductIds.map(productId=><li key={`add-${productId}`}><span>添加商品</span><span>{occasionProducts.find(product=>product.id===productId)?.name}</span></li>)}
+    </ul>
+    <p>已付 {formatCny(impact.spent)} 保留，剩余预留由 {formatCny(impact.beforeHeld)} 调整为 <strong>{formatCny(impact.afterHeld)}</strong>。</p>
+    {!!impact.keptOrders.length&&<p>{impact.keptOrders.length} 笔原订单保留，商品与付款金额不变。</p>}
+    {!!impact.blockedOrders.length&&<div className="occasion-amendment-blocked"><p>这项变更涉及原订单，处理并核对退款后才能应用。这里只修改草案，不会修改已下单内容。</p>{impact.blockedOrders.map(({order,reason})=><div key={order.orderId}><p>{occasionProducts.find(product=>product.id===order.productId)?.name}：{reason}</p><button type="button" disabled={busy} onClick={()=>void openOrder(order.orderId)}>处理原订单 · {occasionProducts.find(product=>product.id===order.productId)?.name}<ArrowUpRight size={15}/></button></div>)}</div>}
+    <div className="occasion-actions"><button type="button" className="occasion-primary" disabled={busy||!!missing||!!impact.blockedOrders.length} onClick={()=>void save()}>核对本次变更</button><button type="button" disabled={busy} onClick={()=>select(plan)}>放弃本次修改</button></div>
+    {confirm==='amend'&&<div className="occasion-confirm" role="region" aria-label="确认本次变更"><strong>确认调整这份安排？</strong><p>按以上差异保存，重新核对其他预约与预留。已付款原单不会重复扣款，日历中的生日日期不变。</p><button type="button" className="occasion-primary" disabled={busy} onClick={()=>void change({type:'save-occasion',id:plan.id,revision:confirmationRevision.current,draft:confirmationDraft.current,authorized:true})}>确认变更并调整预留</button><button type="button" disabled={busy} onClick={()=>setConfirm(null)}>返回核对</button></div>}
+   </section>}
    <Review className="occasion-review">
    {conversation&&<summary>核对方案与授权<span>完整安排、商品与资金</span></summary>}
    {!conversation&&<form className="occasion-talk" onSubmit={e=>{e.preventDefault();if(onRoutePrompt){const text=prompt;void onRoutePrompt(text).then(()=>setPrompt('')).catch(e=>setError(e instanceof Error?e.message:'暂时未能整理，请重试'));}else void advise(prompt);}}><label htmlFor="occasion-prompt">交给{stewardName}整理</label><div><input id="occasion-prompt" maxLength={2000} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="说你的想法，或直接说哪里要改…"/><button className="occasion-primary" disabled={busy||externalBusy||!prompt.trim()} aria-label="整理筹备需求">{busy||externalBusy?<LoaderCircle className="occasion-spin" size={18}/>:<Send size={18}/>}</button></div></form>}
@@ -91,15 +108,16 @@ export function OccasionPlanner({stewardName,initialPrompt='',initialPlanId='',g
     <div className="occasion-products">{occasionProducts.map(p=>{const checked=draft.productIds.includes(p.id),link=plan?.orders.find(o=>o.productId===p.id),receipt=state?.payments?.find(r=>r.id===link?.paymentId);return <article key={p.id}><label><input type="checkbox" disabled={busy||locked} checked={checked} onChange={()=>update({productIds:checked?draft.productIds.filter(id=>id!==p.id):[...draft.productIds,p.id]})}/><span><strong>{p.name}</strong><small>{p.description}</small><small>配送 {formatCny(p.deliveryFee)}</small></span><b>{formatCny(p.price)}</b></label>{checked&&plan?.status==='reserved'&&!dirty&&<div className="occasion-product-action"><span>{receipt?.refundedAt?'已退款':foodOrders[link?.orderId??'']?orderLabels[foodOrders[link!.orderId]]||foodOrders[link!.orderId]:receipt?'已付款 · 配送待核对':link?'待付款':'未准备订单'}</span>{link?<button type="button" disabled={busy} onClick={()=>void openOrder(link.orderId)}>查看外卖订单<ArrowUpRight size={15}/></button>:<button type="button" disabled={busy} onClick={()=>void food(p.id)}>准备订单并去外卖<ArrowUpRight size={15}/></button>}</div>}{checked&&plan&&['cancelled','completed'].includes(plan.status)&&link&&<button type="button" onClick={()=>void openOrder(link.orderId)}>查看原订单<ArrowUpRight size={15}/></button>}</article>;})}</div>
     </div>
     <div className="occasion-quote"><span>商品与配送合计</span><strong>{formatCny(occasionQuote(draft))}</strong><small>{draft.budget>=occasionQuote(draft)?`预算内还余 ${formatCny(draft.budget-occasionQuote(draft))}`:'超出预算，请调整商品或预算'}</small></div>
-    {!locked&&(!plan||dirty)&&<button className="occasion-primary" disabled={busy||!!missing}>{busy?'正在处理…':plan?'保存修改':'保存筹备方案'}</button>}
+    {!locked&&(!plan||dirty&&plan.status!=='reserved')&&<button className="occasion-primary" disabled={busy||!!missing}>{busy?'正在处理…':plan?'保存修改':'保存筹备方案'}</button>}
    </form>
+   {plan?.orders.some(order=>!plan.productIds.includes(order.productId))&&<details className="occasion-order-history"><summary>查看已移除商品的原订单</summary>{plan.orders.filter(order=>!plan.productIds.includes(order.productId)).map(order=><p key={order.orderId}><span>{occasionProducts.find(product=>product.id===order.productId)?.name} · 已退款</span><button type="button" disabled={busy} onClick={()=>void openOrder(order.orderId)}>查看原订单<ArrowUpRight size={15}/></button></p>)}</details>}
    {plan&&state&&<section className="occasion-budget" aria-label="预算与执行"><div className="occasion-section-heading"><h3>资金安排</h3><span>{plan.status==='reserved'?'预算已预留':plan.status==='draft'?'尚未预留资金':plan.status==='cancelled'?'未用预算已释放':'安排已完成，余款已释放'}</span></div><dl><div><dt>预算</dt><dd>{formatCny(plan.budget)}</dd></div><div><dt>实际支出</dt><dd>{formatCny(totals!.spent)}</dd></div><div><dt>仍在预留</dt><dd>{formatCny(totals!.held)}</dd></div></dl><p>常用卡8888 · 可用 {formatCny(availableBankFunds(state))} · 全部安排预留 {formatCny(heldOccasionBudget(state))}</p>
-    {plan.status==='draft'&&<button className="occasion-primary" disabled={busy||dirty} onClick={()=>setConfirm('reserve')}><ShieldCheck size={17}/>预留这笔预算</button>}
-    {plan.status==='reserved'&&<><p><CalendarDays size={16}/>{date(plan.prepareAt)}开始筹备，{date(plan.deliverAt)}送达。{plan.prepareAt<=Date.now()?'已到筹备时间，可以核对订单。':'也可以提前准备订单。'}</p><div className="occasion-actions">{onOpenCalendar&&<button onClick={()=>onOpenCalendar(plan.prepareAt)}>在日历查看</button>}<button disabled={busy} onClick={()=>void records()}>核对订单状态</button><button disabled={busy||plan.orders.length!==plan.productIds.length||plan.orders.some(o=>foodOrders[o.orderId]!=='COMPLETED')} onClick={()=>setConfirm('complete')}>确认已收到，完成安排</button></div></>}
-    {['draft','reserved'].includes(plan.status)&&<button className="occasion-danger" disabled={busy} onClick={()=>setConfirm('cancel')}>取消安排</button>}
-    {confirm&&<div className="occasion-confirm" role="region" aria-label="确认资金安排"><strong>{confirm==='reserve'?'确认预留这笔资金？':confirm==='cancel'?'取消本次筹备？':'确认完成安排？'}</strong><p>{confirm==='reserve'?`预留 ${formatCny(plan.budget)} 后，其他付款不能使用这笔预算。银行卡总余额不会减少，实际支付时才扣款。`:confirm==='cancel'?'释放尚未使用的预算。已付款订单不会自动退款，请在外卖订单中单独处理；未付款订单将无法继续使用这笔预算。':'请确认商品已收到，完成后释放剩余预算。'}</p><button className="occasion-primary" disabled={busy} onClick={()=>void change({type:confirm==='reserve'?'reserve-occasion':confirm==='cancel'?'cancel-occasion':'complete-occasion',id:plan.id,revision:state.revision,authorized:true})}>{confirm==='reserve'?`确认预留 ${formatCny(plan.budget)}`:confirm==='cancel'?'确认取消并释放余款':'确认完成并释放余款'}</button><button disabled={busy} onClick={()=>setConfirm(null)}>返回核对</button></div>}
+    {plan.status==='draft'&&<button className="occasion-primary" disabled={busy||dirty} onClick={()=>askConfirmation('reserve')}><ShieldCheck size={17}/>预留这笔预算</button>}
+    {plan.status==='reserved'&&<><p><CalendarDays size={16}/>{date(plan.prepareAt)}开始筹备，{date(plan.deliverAt)}送达。{plan.prepareAt<=Date.now()?'已到筹备时间，可以核对订单。':'也可以提前准备订单。'}</p><div className="occasion-actions">{onOpenCalendar&&<button onClick={()=>onOpenCalendar(plan.prepareAt)}>在日历查看</button>}<button disabled={busy} onClick={()=>void records()}>核对订单状态</button><button disabled={busy||dirty||plan.orders.filter(o=>plan.productIds.includes(o.productId)).length!==plan.productIds.length||plan.orders.filter(o=>plan.productIds.includes(o.productId)).some(o=>foodOrders[o.orderId]!=='COMPLETED')} onClick={()=>askConfirmation('complete')}>确认已收到，完成安排</button></div></>}
+    {['draft','reserved'].includes(plan.status)&&<button className="occasion-danger" disabled={busy} onClick={()=>askConfirmation('cancel')}>取消安排</button>}
+    {confirm&&confirm!=='amend'&&<div className="occasion-confirm" role="region" aria-label="确认资金安排"><strong>{confirm==='reserve'?'确认预留这笔资金？':confirm==='cancel'?'取消本次筹备？':'确认完成安排？'}</strong><p>{confirm==='reserve'?`预留 ${formatCny(plan.budget)} 后，其他付款不能使用这笔预算。银行卡总余额不会减少，实际支付时才扣款。`:confirm==='cancel'?'释放尚未使用的预算。已付款订单不会自动退款，请在外卖订单中单独处理；未付款订单将无法继续使用这笔预算。':'请确认商品已收到，完成后释放剩余预算。'}</p><button className="occasion-primary" disabled={busy} onClick={()=>void change({type:confirm==='reserve'?'reserve-occasion':confirm==='cancel'?'cancel-occasion':'complete-occasion',id:plan.id,revision:confirmationRevision.current,authorized:true})}>{confirm==='reserve'?`确认预留 ${formatCny(plan.budget)}`:confirm==='cancel'?'确认取消并释放余款':'确认完成并释放余款'}</button><button disabled={busy} onClick={()=>setConfirm(null)}>返回核对</button></div>}
    </section>}
-   {locked&&plan?.orders.length!==0&&<p className="occasion-footnote"><Check size={15}/>已有订单绑定这份方案。需要修改时，先处理原订单，再重新安排。</p>}
+
    </Review>
   </>}
  </section>;

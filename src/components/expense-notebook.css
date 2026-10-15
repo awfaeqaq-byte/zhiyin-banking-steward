@@ -193,3 +193,14 @@
   background: var(--pale);
   color: var(--teal-dark);
 }
+
+.expense-source-review { margin: 10px 0; padding: 14px; background: #f0f9f8; border: 1px solid #cce6e3; border-radius: 16px; }
+.expense-source-review > p { margin: 7px 0 12px; color: #496c77; font-size: 13px; line-height: 1.55; }
+.expense-source-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; }
+.expense-source-row span { min-width: 0; }
+.expense-source-row strong, .expense-source-row small { display: block; }
+.expense-source-row small { color: #496c77; margin-top: 4px; font-size: 12px; }
+.expense-source-row b { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.expense-source-amount { flex-shrink: 0; text-align: right; }
+.expense-source-warning { color: #855a20; font-size: 13px; line-height: 1.6; }
+.expense-source-id { overflow-wrap: anywhere; font-size: 12px; }

@@ -63,6 +63,7 @@ export async function routeWorkspacePrompt(
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
+  if(current?.kind==='aa'&&prompt.trim()==='整理本次实付费用')return {parts:[{taskId:current.id,kind:'aa' as const,title:current.title,text:prompt}],clarification:undefined};
   const shared=prompt.startsWith(WECHAT_SHARE_PREFIX);
   if(shared&&!sharedTextPreview(prompt))throw new Error('微信分享材料无效，请重新核对');
   const conversational=shared?null:conversationRoute(prompt,tasks,currentId);if(conversational)return conversational;
