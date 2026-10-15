@@ -239,6 +239,7 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [message, setMessage] = useState("");
   const [chatDraft,setChatDraft]=useState('');
+  const [conversationListOpen,setConversationListOpen]=useState(false);
   const [automationSnapshot,setAutomationSnapshot]=useState<AutomationServerSnapshot>(emptyAutomationSnapshot);
   const [transferStep, setTransferStep] = useState(0);
   const [amount, setAmount] = useState("2000");
@@ -386,6 +387,7 @@ export default function App() {
     setToast(decision==='confirmed'?'已继续关注这笔支出':'已标记为正常消费');
   }
   function go(next: Page) {
+    setConversationListOpen(false);
     if (next !== page) setPageHistory((history) => [...history, page]);
     setPage(next);
     setModal(null);
@@ -656,7 +658,7 @@ export default function App() {
         </div>
       </aside>
       <div className="workspace">
-        {page === "home" && mode === 'native' && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} bank={bank.state} bankError={bank.error} hidden={hidden} onHiddenChange={setHidden} onRefresh={bank.refresh} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onAssets={()=>go('assets')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')}/>}
+        {page === "home" && mode === 'native' && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} bank={bank.state} bankError={bank.error} hidden={hidden} onHiddenChange={setHidden} onRefresh={bank.refresh} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onAssets={()=>go('assets')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')} onConversations={()=>setConversationListOpen(true)} conversationsOpen={conversationListOpen}/>}
         {page === "home" && mode === 'classic' && (
           <header className="topbar">
             <button
@@ -1353,6 +1355,8 @@ export default function App() {
             <div hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
+              conversationListOpen={conversationListOpen}
+              onConversationListOpenChange={setConversationListOpen}
               voiceEnabled={mode==='native'&&page==='home'&&!bankIntent&&!modal}
               homePreview
               wechatShare={wechatShare.share}

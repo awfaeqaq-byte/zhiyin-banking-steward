@@ -1,10 +1,10 @@
 import {useId,useState} from 'react';
-import {CalendarDays,BellRing,UserRound,ChevronDown,ChevronRight,Eye,EyeOff,ArrowUpRight,LoaderCircle,ChartNoAxesCombined,CalendarClock} from 'lucide-react';
+import {Menu,CalendarDays,BellRing,UserRound,ChevronDown,ChevronRight,Eye,EyeOff,ArrowUpRight,LoaderCircle,ChartNoAxesCombined,CalendarClock} from 'lucide-react';
 import type {BankSnapshot} from '../lib/bank-transfer';
 import {availableBankFunds} from '../lib/occasion-plans';
 import {Button} from './ui/button';
 import './home-ui-preview.css';
-type Props={stewardName:string;stewardImage:string;bank:BankSnapshot|null;bankError:string;hidden?:boolean;onHiddenChange?:(hidden:boolean)=>void;onRefresh:()=>unknown;onSwitchSteward:()=>void;onTasks:()=>void;onSubscriptions:()=>void;onProfile:()=>void;onAssets:()=>void;onWealth?:()=>void;onAutomations?:()=>void};
+type Props={stewardName:string;stewardImage:string;bank:BankSnapshot|null;bankError:string;hidden?:boolean;onHiddenChange?:(hidden:boolean)=>void;onRefresh:()=>unknown;onSwitchSteward:()=>void;onTasks:()=>void;onSubscriptions:()=>void;onProfile:()=>void;onAssets:()=>void;onWealth?:()=>void;onAutomations?:()=>void;onConversations?:()=>void;conversationsOpen?:boolean};
 const amount=(cents:number)=>(cents/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
 export function HomePreviewHeader(props:Props){
  const [expanded,setExpanded]=useState(false),[localHidden,setLocalHidden]=useState(false),[refreshing,setRefreshing]=useState(false),detailsId=useId();
@@ -14,7 +14,7 @@ export function HomePreviewHeader(props:Props){
  const allocation=assets?[{label:'银行卡',value:assets.cash,color:'cash'},{label:'定期存款',value:assets.deposits,color:'deposit'},{label:'银行理财',value:assets.wealth,color:'wealth'}]:[];
  return <header className="home-preview-header fixed-chat-header">
   <div className="home-preview-brand-row">
-   <div className="home-preview-brand"><svg className="home-preview-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="20" fill="currentColor"/><path d="m8 23 11-11 7 7 6-6M8 23l5 5 8-8 6 6 6-6" fill="none" stroke="white" strokeWidth="3.8" strokeLinecap="round" strokeLinejoin="round"/></svg><span><strong>知银</strong><small>更懂你的财富伙伴</small></span></div>
+   <button type="button" className="home-preview-conversations" aria-label="打开会话列表" aria-haspopup="dialog" aria-expanded={props.conversationsOpen??false} onClick={props.onConversations}><Menu size={24} aria-hidden="true"/><span>会话</span></button>
    <nav className="home-preview-nav" aria-label="首页导航">
     <button aria-label="任务日历" onClick={props.onTasks}><CalendarDays size={21}/><span>日程</span></button>
     <button aria-label="订阅" onClick={props.onSubscriptions}><BellRing size={21}/><span>订阅</span></button>

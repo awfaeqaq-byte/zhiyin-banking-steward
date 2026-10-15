@@ -14,16 +14,17 @@ import {occasionFoodRequest} from '../lib/occasion-food-bridge';
 import './steward-workspaces.css';
 import {voiceTaskResult,abortableVoicePause} from '../lib/voice-task-bridge';
 import type {VoiceBusiness} from '../lib/realtime-voice';
-type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt};
+type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt;conversationListOpen?:boolean;onConversationListOpenChange?:(open:boolean)=>void};
 type Queued={id:string;text:string;token:string;messageId:string;replyId:string;sourceText:string};
 const TURN_SAVED='zhiyin-workspace-turn-saved';
 /** Server owns originals, jobs and transcript. This view only claims the next
  * read/prepare task and supplies browser-authorized sandbox data. */
-export function StewardWorkspaces({route,...props}:Props){
+export function StewardWorkspaces({route,conversationListOpen,onConversationListOpenChange,...props}:Props){
  const [state,setState]=useState(emptyWorkspaces),[loaded,setLoaded]=useState(false),[error,setError]=useState('');
  const [active,setActive]=useState(()=>localStorage.getItem('zhiyin-workspace-active')||'');
  const [selectedConversationId,setSelectedConversationId]=useState(()=>localStorage.getItem('zhiyin-conversation-selected')||'');
- const [sessionOpen,setSessionOpen]=useState(false),[sessionQuery,setSessionQuery]=useState(''),[sessionFilter,setSessionFilter]=useState<'active'|'archived'>('active');
+ const [localSessionOpen,setLocalSessionOpen]=useState(false),[sessionQuery,setSessionQuery]=useState(''),[sessionFilter,setSessionFilter]=useState<'active'|'archived'>('active');
+ const sessionOpen=conversationListOpen??localSessionOpen,setSessionOpen=onConversationListOpenChange??setLocalSessionOpen;
  const [editingTitle,setEditingTitle]=useState<{id:string;value:string}>(),[deleteId,setDeleteId]=useState('');
  const [claimAttempt,setClaimAttempt]=useState(0);
  const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
@@ -160,11 +161,11 @@ export function StewardWorkspaces({route,...props}:Props){
  },[loaded,route,accept]);
   return <div className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
-    <div className="conversation-toolbar">
+    {conversationListOpen===undefined&&<div className="conversation-toolbar">
       <button type="button" onClick={()=>setSessionOpen(true)} aria-label="打开会话列表">☰ 会话 {state.items.some(item=>item.status==='active')&&<span>{state.items.filter(item=>item.status==='active').length}</span>}</button>
       <strong>{selectedConversation?.title||`与${props.stewardName}对话`}</strong>
       <button type="button" onClick={()=>void createConversation()} disabled={!loaded||busy}>＋ 新对话</button>
-    </div>
+    </div>}
     {sessionOpen&&<div className="conversation-sheet-backdrop" onClick={()=>setSessionOpen(false)}>
       <aside className="conversation-sheet" role="dialog" aria-modal="true" aria-label="会话管理" onClick={event=>event.stopPropagation()}>
         <div className="conversation-sheet-head"><strong>会话</strong><button type="button" onClick={()=>setSessionOpen(false)} aria-label="关闭会话列表">×</button></div>

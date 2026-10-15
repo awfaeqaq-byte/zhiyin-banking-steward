@@ -15,6 +15,8 @@ related_targets: ["src/components/home-ui-preview.css", "src/components/home-rep
 
 ## Composition and behavior
 
+2026-10-15 按用户要求移除左上角知银标志、名称及「更懂你的财富伙伴」，改为固定页头的「会话」菜单按钮；右侧保留日程、订阅和我的。会话抽屉开关由 App 管理，聊天滚动区不再重复放工具栏，新建对话保留在抽屉内。入口触控高度约46px，带展开状态和可见键盘焦点。实际沙箱聊天 scrollTop 从6396移至4836再返回时，按钮始终位于页头 top≈14px、left≈20px，草稿与后台处理组件不重建。
+
 默认资产快照收起，金额来自现有银行沙箱状态与资产汇总。隐藏金额覆盖快照及展开明细；只读更新不构成资金授权，错误时不显示旧金额为可用最新资产。头像入口继续使用已有管家选择流程，名字与肖像随选择变化。
 
 中间会话独立滚动，输入框与资金确认提示保持固定。后台工作组件在页面隐藏时继续挂载。首次加载会话按服务端顺序恢复同 ID 的最新内容，并选中最新管家回复；即使服务端回复 ID 与缓存相同，也触发首次定位，使回复身份和开头可见。长图解的下半部分通过自然滚动阅读，不强求首屏全部展示。
@@ -28,6 +30,8 @@ related_targets: ["src/components/home-ui-preview.css", "src/components/home-rep
 验收图为 `.impeccable/review/home-ui-preview/mobile-phone.png` 与 `mobile-expanded-phone.png`：来自本地手机预览，分别展示紧凑与展开资产状态，是渲染证据，不是界面素材。
 
 ## Proof and limits
+
+2026-10-15 固定菜单调整：新增 App 交互回归先验证失败，再验证页头打开/关闭/重新打开抽屉、单一入口和草稿保留。全量722项测试、类型检查及完整手机构建通过；触及代码lint无错误、4条既有hooks依赖提示。页头与工作区合计行覆盖95.16%、分支86.31%、函数81.25%。实际390px手机无横向溢出，截图为 `.impeccable/review/fixed-conversation-menu/home.png` 与 `sidebar.png`，均为实际沙箱截图裁剪，无图像生成或业务数据重置。
 
 2026-10-12 修正后完整回归通过（113 个文件、625 项测试）；TypeScript、手机同步构建与范围内 lint 通过。首次恢复与同 ID 更新定位有独立回归覆盖。
 
