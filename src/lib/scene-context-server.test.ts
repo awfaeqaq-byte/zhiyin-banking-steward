@@ -84,3 +84,15 @@ it('微信原文作为有来源证据保留，不升级成已确认预算或执�
   expect(JSON.stringify(scene)).not.toContain('"field":"budget"');
   expect(f.bank.get().payments).toHaveLength(0);
 });
+
+it('跨年复用下一次生日，闰日跳过不存在的日期，普通年度活动不冒充生日', () => {
+  const f = fixture(); f.saveBirthday('birthday-date', '2026-10-28');
+  f.calendar.change({type: 'save', revision: f.calendar.get().revision, id: 'anniversary', title: '周年纪念', dueAt: Date.parse('2026-11-01T00:00:00+08:00'), allDay: true, repeat: 'yearly', workspaceId: 'birthday'});
+  f.calendar.change({type: 'save', revision: f.calendar.get().revision, id: 'leap-birthday', title: '王芳生日', dueAt: Date.parse('2028-02-29T00:00:00+08:00'), allDay: true, repeat: 'yearly', workspaceId: 'birthday'});
+  vi.setSystemTime(Date.parse('2029-01-01T12:00:00+08:00'));
+  expect(f.service.get(scope).scenes!.find(item => item.id === 'birthday')).toMatchObject({context: {facts: expect.arrayContaining([
+    expect.objectContaining({field: 'birthdayDate', value: '2029-10-28'}),
+    expect.objectContaining({field: 'birthdayDate', value: '2032-02-29'}),
+    expect.objectContaining({field: 'eventDate', value: '2029-11-01'}),
+  ])}});
+});
