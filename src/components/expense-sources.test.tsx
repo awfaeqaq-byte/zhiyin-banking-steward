@@ -77,3 +77,16 @@ it('蛋糕我请直接修改已有实付条目的份额，不重新问金额或�
  expect(model).toHaveBeenCalledWith(expect.objectContaining({id:'book'}),'蛋糕我请',[],expect.any(Object));
  expect(state.books[0].entries).toHaveLength(1);expect(state.books[0].entries[0].amount).toBe(20600);expect(state.books[0].entries[0].shares).toEqual([{memberId:'me',weight:1}]);expect(state.books[0].entries[0].source).toEqual(receipt);
 });
+it('整理本次实付费用直接展示已有账本候选，不让模型重新追问金额',async()=>{
+ const group={id:'g',name:'生日群',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]};
+ const state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'book',title:'生日实付入口',group,participants:['me','li'],defaultPayerId:'me',revision:0,requestId:'create'});
+ const receipt:sources.SceneExpenseSource={id:'payment-a',workspaceId:'birthday',orderId:'order-a',paymentId:'payment-a',kind:'occasion',title:'生日蛋糕',merchant:'蛋糕店',paidAmount:20600,refundedAmount:0,paidAt:1790000000000,checkedAt:1790000000000};
+ vi.spyOn(expenses,'expenseRequest').mockResolvedValue(state);const model=vi.spyOn(expenses,'requestExpenseReply');
+ vi.spyOn(sources,'sceneExpenseRequest').mockResolvedValue({sources:[receipt],state});
+ const fresh=vi.fn<()=>Promise<void>>().mockResolvedValue();const ref=createRef<ExpenseNotebookHandle>();
+ render(<ExpenseNotebook conversation ref={ref} activityKey="aa-workspace" initialBookId="book" onReconcileSources={fresh} onPrompt={vi.fn()}/>);
+ await screen.findByRole('button',{name:/生日实付入口/});
+ let answer:string|null=null;await act(async()=>{answer=await ref.current!.handle('整理本次实付费用');});
+ expect(answer).toContain('原订单');expect(answer).toContain('确认');expect(model).not.toHaveBeenCalled();expect(fresh).toHaveBeenCalled();
+ expect(screen.getByRole('button',{name:'确认记入这 1 笔实付'})).toBeInTheDocument();
+});
