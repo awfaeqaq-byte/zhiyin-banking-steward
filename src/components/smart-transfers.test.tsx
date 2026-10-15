@@ -85,7 +85,7 @@ it('暂不撤销保持预约，确认撤销后同步转账标签，新预约也�
  await user.click(screen.getByRole('button',{name:'核对预约转账'}));
  await user.click(await screen.findByRole('button',{name:'确认预约转账（沙箱）'}));
  expect(await screen.findByText('预约已建立')).toBeVisible();
- await user.click(screen.getByRole('button',{name:'记录',exact:true}));
+ await user.click(screen.getByRole('button',{name:/^记录$/}));
  const records=await screen.findByRole('region',{name:'转账与收款记录'});
  await user.click(await within(records).findByRole('button',{name:'撤销预约'}));
  await user.click(screen.getByRole('button',{name:'暂不操作'}));
@@ -96,7 +96,7 @@ it('暂不撤销保持预约，确认撤销后同步转账标签，新预约也�
  await user.click(within(records).getByRole('button',{name:'撤销预约'}));
  await user.click(screen.getByRole('button',{name:'确认操作'}));
  expect(await within(records).findByText('已撤销')).toBeVisible();
- await user.click(screen.getByRole('button',{name:'转账',exact:true}));
+ await user.click(screen.getByRole('button',{name:/^转账$/}));
  expect(await screen.findByRole('heading',{name:'预约已撤销'})).toBeVisible();
  expect(screen.queryByText('预约已建立')).not.toBeInTheDocument();
  expect(screen.getByText('本预约已撤销，不会执行。未扣款、未冻结余额。')).toBeVisible();
@@ -105,12 +105,12 @@ it('暂不撤销保持预约，确认撤销后同步转账标签，新预约也�
  await user.click(screen.getByRole('button',{name:'核对预约转账'}));
  await user.click(await screen.findByRole('button',{name:'确认预约转账（沙箱）'}));
  expect(await screen.findByText('预约已建立')).toBeVisible();
- await user.click(screen.getByRole('button',{name:'记录',exact:true}));
+ await user.click(screen.getByRole('button',{name:/^记录$/}));
  const newRecords=await screen.findByRole('region',{name:'转账与收款记录'});
  await user.click(await screen.findByRole('button',{name:'撤销预约'}));
  await user.click(screen.getByRole('button',{name:'确认操作'}));
  await waitFor(()=>expect(within(newRecords).getAllByText('已撤销')).toHaveLength(2));
- await user.click(screen.getByRole('button',{name:'转账',exact:true}));
+ await user.click(screen.getByRole('button',{name:/^转账$/}));
  expect(await screen.findByRole('heading',{name:'预约已撤销'})).toBeVisible();
  expect(calls.filter(c=>c.type==='cancel-schedule')).toEqual([
   {type:'cancel-schedule',id:'schedule-1',authorized:true},
