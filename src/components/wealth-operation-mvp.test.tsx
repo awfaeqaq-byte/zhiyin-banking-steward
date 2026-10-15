@@ -27,6 +27,14 @@ async function answer(user:ReturnType<typeof userEvent.setup>,choice='0'){
 }
 
 describe('理财操作页面端到端沙箱场景',()=>{
+ it('未填投入计划也能浏览基金目录，通过宁宁对话补全条件',async()=>{
+  mockServer();render(<WealthOperationMvp amount="" term=""/>);
+  expect(screen.queryByRole('spinbutton',{name:'试算投入金额'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('slider',{name:'试算持有期限'})).not.toBeInTheDocument();
+  expect(screen.getByRole('region',{name:'基金目录'})).toBeInTheDocument();
+  expect(within(screen.getByRole('region',{name:'基金目录'})).getAllByRole('article')).toHaveLength(11);
+  expect(screen.getByRole('textbox',{name:'和宁宁聊财富计划'})).toBeInTheDocument();
+ });
  it('真实市场样本只作背景；交互比较会同步费用、期限和余额约束',async()=>{
   mockServer();const user=userEvent.setup();render(<WealthOperationMvp amount="30000" term="12"/>);
   expect(screen.getByText(/完成并保存风险测评后/)).toBeInTheDocument();
