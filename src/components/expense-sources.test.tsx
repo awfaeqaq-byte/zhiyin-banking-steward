@@ -1,7 +1,8 @@
 import {it,expect,vi,afterEach} from 'vitest';
-import {render,screen,waitFor} from '@testing-library/react';
+import {render,screen,waitFor,act} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {ExpenseNotebook} from './expense-notebook';
+import {createRef} from 'react';
+import {ExpenseNotebook,type ExpenseNotebookHandle} from './expense-notebook';
 import {changeExpenses,emptyExpenseState,type ExpenseCommand} from '../lib/expense-notebook';
 import * as sources from '../lib/scene-expenses';
 import * as expenses from '../lib/expense-service';
@@ -60,4 +61,19 @@ it('入账确认先等待原平台核对，读取失败保留候选且不提交�
  expect(await screen.findByText(/订单实付或退款已变化/)).toBeInTheDocument();expect(events).toEqual(['platform','sources']);expect(state.books[0].entries).toHaveLength(0);
  events.length=0;await userEvent.click(screen.getByRole('button',{name:'确认记入这 1 笔实付'}));
  await waitFor(()=>expect(state.books[0].entries).toHaveLength(1));expect(events).toEqual(['platform','sources','import']);expect(state.books[0].entries[0].amount).toBe(20000);
+});
+it('蛋糕我请直接修改已有实付条目的份额，不重新问金额或增加一笔',async()=>{
+ const group={id:'g',name:'生日群',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'}]};
+ let state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'book',title:'生日请客',group,participants:['me','li'],defaultPayerId:'me',revision:0,requestId:'create'});
+ const receipt:sources.SceneExpenseSource={id:'payment-a',workspaceId:'birthday',orderId:'order-a',paymentId:'payment-a',kind:'occasion',title:'生日蛋糕',merchant:'蛋糕店',paidAmount:20600,refundedAmount:0,paidAt:1790000000000,checkedAt:1790000000000};
+ state=sources.importSceneExpenses(state,'book',[receipt]);const entry=state.books[0].entries[0];
+ vi.spyOn(expenses,'expenseRequest').mockImplementation(async(op,revision)=>{if(op)state=changeExpenses(state,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);return state;});
+ vi.spyOn(sources,'sceneExpenseRequest').mockImplementation(async()=>({sources:[receipt],state}));
+ const model=vi.spyOn(expenses,'requestExpenseReply').mockResolvedValue({action:'edit',entryId:entry.id,entry:{...entry,fixed:[],shares:[{memberId:'me',weight:1}]}});
+ const ref=createRef<ExpenseNotebookHandle>();
+ render(<ExpenseNotebook conversation ref={ref} activityKey="aa-workspace" initialBookId="book" onPrompt={vi.fn()}/>);
+ await screen.findByRole('button',{name:/生日请客/});
+ await act(async()=>{await ref.current!.handle('蛋糕我请');});
+ expect(model).toHaveBeenCalledWith(expect.objectContaining({id:'book'}),'蛋糕我请',[],expect.any(Object));
+ expect(state.books[0].entries).toHaveLength(1);expect(state.books[0].entries[0].amount).toBe(20600);expect(state.books[0].entries[0].shares).toEqual([{memberId:'me',weight:1}]);expect(state.books[0].entries[0].source).toEqual(receipt);
 });
