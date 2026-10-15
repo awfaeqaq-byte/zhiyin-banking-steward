@@ -1312,6 +1312,19 @@ select {
   margin-bottom: 18px;
 }
 .wealth-mvp .section-title { margin: 0 0 5px; }
+.wealth-cash-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.wealth-cash-note strong { color: var(--ink); }
+.wealth-risk-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; margin: 18px 0 10px; }
+.wealth-risk-heading h3 { margin: 0 0 4px; font-size: 16px; }
+.wealth-risk-heading p { margin: 0; color: var(--teal-dark); font-size: 12px; line-height: 1.5; }
+.wealth-risk-heading > button { min-height: 40px; padding: 8px 12px; border: 1px solid #bed7cb; border-radius: 10px; background: #fff; color: var(--teal-dark); font: inherit; font-size: 12px; font-weight: 600; }
+.wealth-risk-form { padding: 14px; border: 1px solid #dbe9e1; border-radius: 14px; background: #f7fbf8; }
+.wealth-risk-form > p { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.wealth-risk-questions { display: grid; gap: 10px; }
+.wealth-risk-questions label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; }
+.wealth-risk-questions select { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); padding: 8px 10px; font: inherit; font-weight: 400; }
+.wealth-risk-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.wealth-risk-gate { margin: 14px 0 4px; padding: 13px 14px; border-radius: 11px; background: #edf6f0; color: var(--teal-dark); font-size: 12px; line-height: 1.55; }
 .wealth-evidence { display: grid; gap: 8px; padding: 14px; border-radius: 13px; background: #f6f8f5; border: 1px solid #e0e8e2; }
 .wealth-evidence h3 { margin: 0 0 3px; font-size: 13px; }
 .wealth-evidence > div { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; align-items: start; gap: 8px; color: var(--teal-dark); }
@@ -1340,7 +1353,7 @@ select {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--teal);
   color: white;
   font-size: 11px;
   flex: 0 0 auto;
@@ -1360,28 +1373,28 @@ select {
 }
 .wealth-risk-options button[aria-pressed="true"],
 .wealth-products button[aria-pressed="true"] {
-  border-color: var(--primary);
+  border-color: var(--teal);
   background: #f0f8f4;
-  box-shadow: 0 0 0 1px var(--primary);
+  box-shadow: 0 0 0 1px var(--teal);
 }
 .wealth-risk-options strong,
 .wealth-products strong { display: block; font-size: 12px; }
 .wealth-risk-options small,
 .wealth-products small { color: var(--muted); font-size: 10px; line-height: 1.5; }
 .wealth-products button > span { display: flex; justify-content: space-between; gap: 12px; }
-.wealth-products i { font-style: normal; font-size: 10px; color: var(--primary); }
+.wealth-products i { font-style: normal; font-size: 10px; color: var(--teal); }
 .wealth-products p { font-size: 11px; color: var(--muted); margin: 6px 0; line-height: 1.5; }
 .wealth-mvp > .button { margin-top: 14px; }
 .wealth-compare-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 14px 0; }
 .wealth-compare-controls label { display: grid; gap: 6px; font-size: 12px; color: var(--ink); }
 .wealth-compare-controls input[type="number"] { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 9px; font: inherit; }
-.wealth-compare-controls input[type="range"] { width: 100%; accent-color: var(--primary); }
+.wealth-compare-controls input[type="range"] { width: 100%; accent-color: var(--teal); }
 .wealth-lab { display: grid; gap: 14px; margin: 16px 0; }
 .wealth-lab-market,.wealth-lab-chart { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: #fbfcfa; }
 .wealth-lab-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .wealth-lab-heading h4 { margin: 0; font-size: 13px; }
 .wealth-lab-heading button { border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 6px 9px; font: inherit; font-size: 11px; }
-.wealth-lab-heading button[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
+.wealth-lab-heading button[aria-pressed="true"] { background: var(--teal); color: white; border-color: var(--teal); }
 .wealth-lab-heading [role="group"] { display: flex; gap: 5px; }
 .wealth-lab p { font-size: 11px; color: var(--muted); line-height: 1.55; margin: 8px 0 0; }
 .wealth-market-points { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
@@ -1392,11 +1405,11 @@ select {
 .wealth-bars button:hover,.wealth-bars button:focus-visible,.wealth-bars button[aria-pressed="true"] { background: #edf5ef; }
 .wealth-bar-name { min-width: 0; overflow-wrap: anywhere; }
 .wealth-bar-track { height: 13px; border-radius: 7px; background: #e8efea; overflow: hidden; }
-.wealth-bar-track > span { display: block; height: 100%; border-radius: inherit; background: var(--primary); transition: width .2s ease; }
+.wealth-bar-track > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); transition: width .2s ease; }
 .wealth-bars strong { min-width: 48px; text-align: right; white-space: nowrap; }
 .wealth-lab .wealth-lab-detail { color: var(--ink); }
 .wealth-real-examples { margin: 13px 0; font-size: 11px; }
-.wealth-real-examples summary { color: var(--primary); font-weight: 600; }
+.wealth-real-examples summary { color: var(--teal); font-weight: 600; }
 .wealth-real-examples p { line-height: 1.55; color: var(--muted); }
 .wealth-sample-refresh { border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 7px 10px; font: inherit; cursor: pointer; }
 .wealth-sample-refresh:disabled { opacity: .55; cursor: wait; }
@@ -2370,7 +2383,7 @@ select {
     background: #fffffffa;
     border-top: 1px solid #e5eee8;
     height: 76px;
-    padding: 6px 30px max(8px, env(safe-area-inset-bottom));
+    padding: 6px 10px max(8px, env(safe-area-inset-bottom));
     justify-content: space-around;
   }
   .bottom-nav button {
@@ -2379,7 +2392,8 @@ select {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    width: 72px;
+    flex: 1 1 0;
+    min-width: 0;
     border: 0;
     background: transparent;
     color: #788880;

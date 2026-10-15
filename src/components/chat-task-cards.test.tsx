@@ -30,9 +30,9 @@ it('转账组件把待核对方案与余额测算固定展示，点击只打开�
 it('卡片冻结、额度不足与未读取余额都不能冒充已可付款',()=>{
  const quote={balance:10000,limit:10000,frozen:true,capturedAt:1,impact:{pendingTotal:0,protectedAmount:0,available:0,remaining:-190000}};
  const view=render(<TransferPlanCard intent={{recipientId:'dad',amount:200000,executeAt:Date.parse('2026-10-14T16:00:00+08:00')}} quote={quote} onReview={vi.fn()}/>);
- expect(screen.getByRole('region',{name:'转账方案'})).toHaveTextContent('已挂失');expect(screen.getByRole('button',{name:'核对预约转账'})).toBeDisabled();
+ expect(screen.getByRole('region',{name:'转账方案'})).toHaveTextContent('已挂失');expect(screen.getByRole('region',{name:'转账方案'})).toHaveTextContent('卡片不可用');expect(screen.getByRole('button',{name:'核对预约转账'})).toBeDisabled();
  view.rerender(<TransferPlanCard intent={{recipientId:'dad',amount:200000}} quote={{...quote,frozen:false}} onReview={vi.fn()}/>);
- expect(screen.getByText(/可安排金额不足/)).toBeVisible();
+ expect(screen.getByText(/可安排金额不足/)).toBeVisible();expect(screen.getByRole('region',{name:'转账方案'})).toHaveTextContent('金额待调整');
  view.rerender(<TransferPlanCard intent={{recipientId:'dad',amount:200000}} onReview={vi.fn()}/>);
  expect(screen.getByText(/尚未读取/)).toBeVisible();expect(screen.queryByText('¥100')).not.toBeInTheDocument();
 });

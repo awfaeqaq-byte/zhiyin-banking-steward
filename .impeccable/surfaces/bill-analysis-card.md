@@ -32,3 +32,5 @@ related_targets: ["src/components/bill-analysis-card.css", "src/components/stewa
 2026-10-13：完整回归 `125` 文件、`689` 测试通过；新卡行／函数覆盖率 `100%`、分支 `93.02%`；TypeScript、`phone:sync`、新模块 lint 通过。检测器 `21` 条建议主要来自继承配色差异，无阻断，复核为 `ship`。
 
 证据位于 `.impeccable/review/bill-analysis-card/`：`preview-user.png` 为 `658px` 浏览器中的 `390px` 示例列；`live-top.png`、`live-details.png` 为真实只读查询的 `360px` 手机、约 `290px` 聊天卡。预览第四个“账单”页签标注示例数据。结论仅覆盖手机；IAB 宽度调整未生效、Chrome 不可用，桌面未验收，无效宽度截图已移除。
+
+本次主线合并复核（2026-10-13）：仅整理本轮首页、任务组件及账单修复的 21 笔提交，排除独立实时语音提交 `b81ba79`。分离后的版本重新通过 `118` 个文件、`659` 项测试和完整 `npm run build`（含 TypeScript 与手机沙箱构建）；变更文件 lint 为零错误、四条既有 Hook 依赖警告。上文 `689` 项为原开发分支的历史验证，含语音测试。依赖清单未变，`npm audit` 仍报告既有 `22` 项问题，本次未升级依赖。

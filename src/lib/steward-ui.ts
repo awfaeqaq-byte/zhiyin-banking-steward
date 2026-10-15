@@ -1,4 +1,5 @@
 import type {ExternalFinancialProvider} from './financial-connections';
+import type {BillAnalysis} from './bill-analysis';
 
 export type BillSection = 'overview' | 'categories' | 'trend' | 'transactions';
 export type BillUI = {sections:BillSection[];evidenceRefs:number[]};
@@ -10,9 +11,27 @@ export type BillScene = {
   focus?:BillFocus;
   category?:string;
   interpretationQuestion?:string;
+  interpretationLedger?:string;
 };
 const sections=['overview','categories','trend','transactions'];
 const marker=/\[\[bill-ui:([\s\S]*?)\]\]/g;
+
+/** Identify the ledger snapshot behind a model interpretation, including
+ * transaction details that can change without altering the totals. */
+export function billLedgerFingerprint(bill:BillAnalysis):string {
+  const facts=JSON.stringify({from:bill.from,to:bill.to,sources:bill.sources,coverage:bill.coverage,
+    count:bill.count,expense:bill.expense,income:bill.income,refund:bill.refund,
+    transferIn:bill.transferIn,transferOut:bill.transferOut,trend:bill.diagnosis.trend,
+    transactions:bill.transactions.map(({providerKey,id,title,amount,category,occurredAt,kind})=>
+      [providerKey,id,title,amount,category,occurredAt,kind])});
+  let left=2166136261,right=0x811c9dc7;
+  for(let i=0;i<facts.length;i++){
+    const code=facts.charCodeAt(i);
+    left=Math.imul(left^code,16777619);
+    right=Math.imul(right^code,2246822519);
+  }
+  return `${(left>>>0).toString(16)}:${(right>>>0).toString(16)}`;
+}
 
 /** Presentation only. No model-supplied amounts, URLs, code or executable actions. */
 export function validBillUI(value:unknown):BillUI|undefined {
@@ -52,6 +71,7 @@ export function restoreBillScenes(raw:string|null):Record<string,BillScene> {
       ...(v.focus&&['wechat_pay','alipay'].includes(v.focus.provider)&&typeof v.focus.id==='string'&&v.focus.id.length<=200?{focus:{provider:v.focus.provider,id:v.focus.id}}:{}),
       ...(typeof v.category==='string'&&v.category.length>0&&v.category.length<=80?{category:v.category}:{}),
       ...(typeof v.interpretationQuestion==='string'&&v.interpretationQuestion.length<=1000?{interpretationQuestion:v.interpretationQuestion}:{}),
+      ...(typeof v.interpretationLedger==='string'&&/^[\da-f]{1,8}:[\da-f]{1,8}$/.test(v.interpretationLedger)?{interpretationLedger:v.interpretationLedger}:{}),
     }]));
   }catch{return {};}
 }

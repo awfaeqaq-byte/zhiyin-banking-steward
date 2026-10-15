@@ -24,6 +24,18 @@ it('首页账单以同一回复组件展示，切平台即时更新结论并隐�
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
  expect(screen.getAllByRole('region',{name:'账单分析'})).toHaveLength(1);
 });
+it('授权账单刷新后即使总额不变，也不展示旧流水的模型解读',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'最大一笔是午餐，可以继续核对午餐用途。'}));
+ const props={...base,homePreview:true,connections:{wechat_pay:source},reply};
+ const view=render(<StewardChatHome {...props}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const card=await screen.findByRole('region',{name:'账单分析'});
+ expect(within(card).getByText('查看宁宁的补充解读')).toBeInTheDocument();
+ view.rerender(<StewardChatHome {...props} connections={{wechat_pay:{...source,transactions:[{...source.transactions[0],title:'超市'}]}}}/>);
+ await waitFor(()=>expect(within(card).getByText(/补充解读需重新生成/)).toBeInTheDocument());
+ expect(within(card).queryByText('查看宁宁的补充解读')).not.toBeInTheDocument();
+ expect(within(card).getByText('超市')).toBeInTheDocument();
+});
 it('分析按钮发送明确分析意图和当前平台，历史回复不能把全部平台改成支付宝',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'餐饮占主要部分。'}));
  const alipay={...source,provider:'alipay' as const,displayName:'支付宝',transactions:[{id:'metro',title:'地铁',amount:-500,category:'交通',occurredAt:'2026-09-20'}]};
@@ -49,6 +61,17 @@ it('模型给出平台切换选项时不再重复渲染发消息按钮，保留�
  expect(within(choices).queryByRole('button',{name:'只看支付宝'})).not.toBeInTheDocument();
  expect(within(choices).queryByRole('button',{name:'只看微信支付'})).not.toBeInTheDocument();
  expect(within(choices).getByRole('button',{name:'详细解释原因'})).toBeVisible();
+});
+it('账单交易与授权选项只由真实卡片或授权面板承接',async()=>{
+ const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'先看这笔。[[choices:查看这笔午餐交易详情|授权支付宝账单一起核对|详细解释原因]]'}));
+ render(<StewardChatHome {...base} homePreview connections={{wechat_pay:source}} reply={reply} onConnectSource={vi.fn()}/>);
+ await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ const card=await screen.findByRole('region',{name:'账单分析'});
+ expect(within(card).getByRole('button',{name:/请宁宁解释午餐/})).toBeInTheDocument();
+ const choices=screen.getByRole('group',{name:'你可以这样回答，也可以直接输入'});
+ expect(within(choices).queryByRole('button',{name:'查看这笔午餐交易详情'})).not.toBeInTheDocument();
+ expect(within(choices).queryByRole('button',{name:'授权支付宝账单一起核对'})).not.toBeInTheDocument();
+ expect(within(choices).getByRole('button',{name:'详细解释原因'})).toBeInTheDocument();
 });
 it('后台范围保存失败恢复原展示，并且不自动授权或生成问答',async()=>{
  const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'已整理。'}));

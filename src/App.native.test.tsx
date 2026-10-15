@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import * as phoneBridge from "./lib/phone-bridge";
@@ -78,6 +78,11 @@ it("经典模式保留，AI 原生首页可切换并记住选择", async () => {
   expect(screen.getByRole("heading", { name: "下午好，叶先生。" })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "和宁宁说点什么" })).toBeInTheDocument();
   expect(screen.getAllByRole("banner").some(item=>item.classList.contains("fixed-chat-header"))).toBe(true);
+  const navigation=screen.getByRole('navigation',{name:'主导航'});
+  await user.click(within(navigation).getByRole('button',{name:'财富'}));
+  expect(screen.getByRole('heading',{name:'财富管理'})).toBeInTheDocument();
+  await user.click(within(navigation).getByRole('button',{name:'管家'}));
+  expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBeInTheDocument();
 
   view.unmount();
   render(<App />);

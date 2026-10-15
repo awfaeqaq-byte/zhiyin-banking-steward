@@ -1,0 +1,100 @@
+.wealth-banking {
+  --wealth-ink: #18364b;
+  --wealth-muted: #687d8a;
+  --wealth-blue: #176d84;
+  --wealth-line: #e5edf0;
+  max-width: 720px;
+  margin: 0 auto 32px;
+  color: var(--wealth-ink);
+}
+.wealth-bank-top { padding: 4px 2px 18px; }
+.wealth-bank-eyebrow,.wealth-bank-panel-heading > span,.wealth-bank-section-title span { color: var(--wealth-blue); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.wealth-bank-top h2 { margin: 6px 0 4px; font-size: 27px; letter-spacing: -.04em; }
+.wealth-bank-top p,.wealth-bank-panel-heading p { margin: 0; color: var(--wealth-muted); font-size: 13px; line-height: 1.6; }
+.wealth-bank-balance { display: grid; gap: 7px; padding: 22px 24px; border-radius: 20px; background: linear-gradient(135deg,#123b53,#17566a 70%,#247783); color: #fff; box-shadow: 0 14px 28px rgba(15,68,83,.16); }
+.wealth-bank-balance > span { opacity: .83; font-size: 12px; }
+.wealth-bank-balance strong { font-size: clamp(28px,7vw,36px); font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.wealth-bank-balance small { opacity: .7; font-size: 11px; }
+.wealth-bank-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0; margin: 21px 0 18px; border-bottom: 1px solid var(--wealth-line); }
+.wealth-bank-tabs button { min-height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--wealth-muted); font: inherit; font-size: 14px; cursor: pointer; }
+.wealth-bank-tabs button[aria-current="page"] { border-bottom-color: var(--wealth-blue); color: var(--wealth-ink); font-weight: 700; }
+.wealth-bank-tabs span { padding: 1px 5px; border-radius: 7px; background: #eaf1f3; font-size: 10px; }
+.wealth-bank-risk,.wealth-bank-gate,.wealth-bank-panel,.wealth-bank-products > button,.wealth-bank-expand,.wealth-bank-empty { border: 1px solid var(--wealth-line); border-radius: 16px; background: #fff; }
+.wealth-bank-risk { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; }
+.wealth-bank-risk > div { display: grid; gap: 3px; }
+.wealth-bank-risk span,.wealth-bank-risk small { color: var(--wealth-muted); font-size: 11px; }
+.wealth-bank-risk strong { font-size: 15px; }
+.wealth-bank-risk button,.wealth-bank-back,.wealth-bank-empty button { min-height: 40px; border: 0; background: transparent; color: var(--wealth-blue); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.wealth-bank-gate { padding: 24px 20px; background: linear-gradient(145deg,#fff,#f1f8f8); }
+.wealth-bank-gate > span { color: var(--wealth-blue); font-size: 11px; font-weight: 700; }
+.wealth-bank-gate h3 { margin: 9px 0 7px; font-size: 20px; }
+.wealth-bank-gate p { max-width: 35em; margin: 0 0 18px; color: var(--wealth-muted); font-size: 13px; line-height: 1.65; }
+.wealth-bank-section-title { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin: 26px 2px 14px; }
+.wealth-bank-section-title h3 { margin: 5px 0 0; font-size: 20px; }
+.wealth-bank-section-title > small { color: var(--wealth-muted); font-size: 11px; text-align: right; }
+.wealth-banking .wealth-compare-controls { padding: 16px; margin: 0 0 14px; border: 1px solid var(--wealth-line); border-radius: 16px; background: #f6f9fa; }
+.wealth-banking .wealth-compare-controls label { color: var(--wealth-muted); font-size: 12px; }
+.wealth-banking .wealth-compare-controls input[type="number"] { min-height: 44px; border-radius: 10px; background: #fff; color: var(--wealth-ink); font-size: 16px; }
+.wealth-banking .wealth-compare-controls input[type="range"] { accent-color: var(--wealth-blue); }
+.wealth-bank-products { display: grid; gap: 11px; }
+.wealth-bank-products > button { display: grid; gap: 10px; width: 100%; padding: 18px; text-align: left; color: var(--wealth-ink); font: inherit; cursor: pointer; }
+.wealth-bank-products > button:hover,.wealth-bank-products > button:focus-visible { border-color: #80abb7; box-shadow: 0 5px 18px rgba(15,68,83,.07); }
+.wealth-bank-product-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.wealth-bank-product-top strong { font-size: 17px; }
+.wealth-bank-product-top i { padding: 4px 8px; border-radius: 8px; background: #eaf4f5; color: var(--wealth-blue); font-size: 11px; font-style: normal; font-weight: 700; }
+.wealth-bank-products p { margin: 0; color: var(--wealth-muted); font-size: 12px; line-height: 1.55; }
+.wealth-bank-product-facts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; padding: 13px 0; border-top: 1px solid var(--wealth-line); border-bottom: 1px solid var(--wealth-line); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wealth-bank-product-facts span { display: grid; gap: 4px; }
+.wealth-bank-product-facts small { color: var(--wealth-muted); font-size: 10px; font-weight: 400; }
+.wealth-bank-product-link { justify-self: end; color: var(--wealth-blue); font-size: 12px; font-weight: 700; }
+.wealth-bank-panel { padding: 20px; }
+.wealth-bank-back { padding: 0; margin: -6px 0 18px; }
+.wealth-bank-panel-heading h3 { margin: 6px 0 8px; font-size: 23px; }
+.wealth-assessment-progress { display: grid; gap: 9px; margin: 26px 0 30px; color: var(--wealth-muted); font-size: 12px; }
+.wealth-assessment-progress [role="progressbar"] { height: 6px; overflow: hidden; border-radius: 99px; background: #e5eef0; }
+.wealth-assessment-progress i { display: block; height: 100%; border-radius: inherit; background: var(--wealth-blue); transition: width .2s; }
+.wealth-assessment-question { margin: 0; padding: 0; border: 0; }
+.wealth-assessment-question legend { padding: 0 0 18px; font-size: 20px; font-weight: 700; }
+.wealth-assessment-options { display: grid; gap: 10px; }
+.wealth-assessment-options button { display: flex; justify-content: space-between; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 13px 16px; border: 1px solid var(--wealth-line); border-radius: 13px; background: #fff; color: var(--wealth-ink); text-align: left; font: inherit; font-size: 14px; cursor: pointer; }
+.wealth-assessment-options button[aria-pressed="true"] { border-color: var(--wealth-blue); background: #eef7f8; box-shadow: inset 0 0 0 1px var(--wealth-blue); }
+.wealth-assessment-options i { flex: 0 0 22px; width: 22px; height: 22px; border: 1px solid #a7bec5; border-radius: 50%; color: #fff; text-align: center; font-size: 15px; line-height: 20px; font-style: normal; }
+.wealth-assessment-options button[aria-pressed="true"] i { border-color: var(--wealth-blue); background: var(--wealth-blue); }
+.wealth-assessment-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 24px 0 0; }
+.wealth-assessment-actions .button { min-height: 46px; }
+.wealth-bank-footnote { margin: 18px 2px 0; color: var(--wealth-muted); font-size: 11px; line-height: 1.65; }
+.wealth-bank-expand { margin-top: 13px; padding: 15px 17px; }
+.wealth-bank-expand summary { color: var(--wealth-blue); font-size: 13px; font-weight: 700; cursor: pointer; }
+.wealth-bank-expand > :not(summary) { margin-top: 15px; }
+.wealth-product-detail > h3 { margin: 8px 0; font-size: 25px; }
+.wealth-product-detail > p:not(.wealth-bank-footnote) { color: var(--wealth-muted); font-size: 13px; line-height: 1.6; }
+.wealth-product-risk { display: grid; gap: 6px; margin: 20px 0; padding: 15px; border-radius: 12px; background: #fff7ed; color: #8a5a2d; font-size: 14px; font-weight: 700; }
+.wealth-product-risk span { font-size: 12px; font-weight: 400; line-height: 1.6; }
+.wealth-product-detail dl { margin: 0; }
+.wealth-product-detail dl > div { display: flex; justify-content: space-between; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--wealth-line); font-size: 13px; }
+.wealth-product-detail dt { color: var(--wealth-muted); }
+.wealth-product-detail dd { margin: 0; text-align: right; font-weight: 650; }
+.wealth-product-detail > .button { margin-top: 20px; min-height: 48px; }
+.wealth-bank-empty { padding: 28px 20px; text-align: center; }
+.wealth-bank-empty strong { font-size: 15px; }
+.wealth-bank-empty p { color: var(--wealth-muted); font-size: 12px; line-height: 1.6; }
+.wealth-bank-holdings { display: grid; gap: 12px; margin-top: 20px; }
+.wealth-bank-holdings article { display: grid; gap: 8px; padding: 17px; border: 1px solid var(--wealth-line); border-radius: 13px; }
+.wealth-bank-holdings article > span { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; }
+.wealth-bank-holdings i { color: var(--wealth-blue); font-style: normal; }
+.wealth-bank-holdings strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.wealth-bank-holdings small,.wealth-bank-holdings p { margin: 0; color: var(--wealth-muted); font-size: 11px; line-height: 1.6; }
+.wealth-bank-holdings button { justify-self: start; min-height: 40px; padding: 0 14px; border: 1px solid #b9d3d8; border-radius: 9px; background: #fff; color: var(--wealth-blue); font: inherit; font-size: 12px; font-weight: 700; }
+.wealth-bank-holdings button:disabled { opacity: .5; }
+.wealth-bank-alert,.wealth-bank-success { margin: 14px 0; padding: 12px 14px; border-radius: 11px; background: #fff5e9; color: #855827; font-size: 12px; line-height: 1.6; }
+.wealth-bank-success { background: #eaf6f0; color: #25634b; }
+@media (max-width:600px) {
+  .wealth-banking { margin-bottom: 20px; }
+  .wealth-bank-top h2 { font-size: 24px; }
+  .wealth-bank-balance { padding: 20px; }
+  .wealth-bank-section-title { align-items: start; }
+  .wealth-bank-section-title > small { max-width: 10em; }
+  .wealth-bank-risk { align-items: start; }
+  .wealth-bank-risk button { padding: 0; white-space: nowrap; }
+  .wealth-bank-panel { padding: 18px 16px; }
+}

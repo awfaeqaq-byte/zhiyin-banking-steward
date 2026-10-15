@@ -83,13 +83,12 @@
 }
 .mode-native {
   --chat-header-height: 88px;
-  --chat-composer-space: calc(112px + env(safe-area-inset-bottom));
+  --chat-composer-space: calc(188px + env(safe-area-inset-bottom));
   --chat-gutter: 28px;
   background: #fcfefd;
   min-height: 100dvh;
 }
 .mode-native .sidebar,
-.mode-native .bottom-nav,
 .native-root[hidden] {
   display: none;
 }

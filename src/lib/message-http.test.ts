@@ -3,7 +3,7 @@ import type {StewardModelPayload} from './steward-chat';
 import {messageMiddleware,createMessageService} from '../../server/message-service';import {createMemoryStore} from '../../server/memory-store';
 const dirs:string[]=[],servers:Server[]=[];afterEach(async()=>{await Promise.all(servers.splice(0).map(s=>new Promise<void>(r=>s.close(()=>r()))));dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true}));});
 it('消息API跨站防护、持久接收、领取和服务端回复构成完整链路',async()=>{
- const dir=mkdtempSync(join(tmpdir(),'zhiyin-messages-http-'));dirs.push(dir);const model=vi.fn(async(_payload:StewardModelPayload)=> '你好，我在。');const server=createServer(messageMiddleware(dir,model));servers.push(server);await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));const address=server.address();if(!address||typeof address==='string')throw new Error('address');const url=`http://127.0.0.1:${address.port}`,id=crypto.randomUUID(),owner=crypto.randomUUID();
+ const dir=mkdtempSync(join(tmpdir(),'zhiyin-messages-http-'));dirs.push(dir);const model=vi.fn(async(payload:StewardModelPayload)=> {void payload;return '你好，我在。';});const server=createServer(messageMiddleware(dir,model));servers.push(server);await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));const address=server.address();if(!address||typeof address==='string')throw new Error('address');const url=`http://127.0.0.1:${address.port}`,id=crypto.randomUUID(),owner=crypto.randomUUID();
  const headers={'Content-Type':'application/json','X-Zhiyin-Messages':'1','X-Zhiyin-Expense-Scope':'11111111-1111-4111-8111-111111111111'};
  const post=(body:object)=>fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
  expect((await fetch(url,{headers:{...headers,Origin:'https://foreign.example'}})).status).toBe(403);

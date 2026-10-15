@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createWechatContactChatProxyMiddleware,
   requestWechatContactReply,
+  requestWechatContactReplyResult,
 } from '../server/wechatContactChatProxy';
 
 const config = {
@@ -138,6 +139,47 @@ describe('WeChat contact chat server proxy', () => {
     await expect(requestWechatContactReply(payload, config, malformedFetcher)).rejects.toThrow('模型服务未返回有效内容');
   });
 
+  it('retries a truncated completion once and exposes safe debug metadata', async () => {
+    const incomplete = '这是一段用于验证自动重试的较长回答，它已经超过最短长度，但最后停在一个没有完成的句子中，用户无法据此判断建议是否完整，而且它仍然继续描述计划中的下一步，';
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [{ message: { content: incomplete }, finish_reason: 'stop' }],
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [{ message: { content: '建议完整回答，并在执行资金操作前单独核对。' }, finish_reason: 'stop' }],
+      }), { status: 200 }));
+
+    await expect(requestWechatContactReplyResult(payload, config, fetcher)).resolves.toEqual({
+      outputText: '建议完整回答，并在执行资金操作前单独核对。',
+      finishReason: 'stop',
+      retried: true,
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const retryBody = JSON.parse(String(fetcher.mock.calls[1][1]?.body));
+    expect(retryBody.messages[0].content).toContain('不得在句中停止');
+  });
+
+  it('accepts complete Zhiyin action and view markers at the end of a reply', async () => {
+    for (const marker of ['[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|50000]', '[ZHIYIN_VIEW:WEALTH_COMPARE]']) {
+      const answer = `已整理好方案，请在独立页面核对收款人、金额和风险，当前尚未执行。${marker}`;
+      const fetcher = vi.fn(async () => new Response(JSON.stringify({
+        choices: [{ message: { content: answer }, finish_reason: 'stop' }],
+      }), { status: 200 }));
+      await expect(requestWechatContactReply(payload, config, fetcher)).resolves.toBe(answer);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('rejects the response when both completion attempts are truncated', async () => {
+    const incomplete = '这是一段连续两次都没有正常结束的长回答，它的长度足以触发完整性检查，但内容停在句中，因此代理不能把它直接交给用户作为最终建议，';
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      choices: [{ message: { content: incomplete }, finish_reason: 'length' }],
+    }), { status: 200 }));
+
+    await expect(requestWechatContactReply(payload, config, fetcher)).rejects.toThrow('模型连续返回不完整回答');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it('validates server configuration and message roles', async () => {
     await expect(requestWechatContactReply(payload, { ...config, apiKey: '' })).rejects.toThrow('模型服务密钥未配置');
     await expect(requestWechatContactReply(payload, { ...config, model: '' })).rejects.toThrow('模型名称未配置');
@@ -158,7 +200,11 @@ describe('WeChat contact chat server proxy', () => {
       const success = await callMiddleware({ middleware });
       expect(success).toEqual(expect.objectContaining({
         status: 200,
-        body: { output_text: '烧烤。' },
+        body: {
+          output_text: '烧烤。',
+          finish_reason: null,
+          completeness_retried: false,
+        },
       }));
       expect(success.headers['Cache-Control']).toBe('no-store');
 

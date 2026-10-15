@@ -17,27 +17,38 @@ function mockServer(){directory=mkdtempSync(join(tmpdir(),'wealth-ui-'));const s
  try{const data=!body?store.get():body.type==='assess'?store.assess(body.answers):body.type==='prepare'?store.prepare(body):body.type==='confirm'?store.confirm(body.draftId):body.type==='prepare-redemption'?store.prepareRedemption(body.holdingId):store.confirmRedemption(body.draftId);return new Response(JSON.stringify(data));}
  catch(error){return new Response(JSON.stringify({error:(error as Error).message}),{status:400});}
 });return store;}
-async function answer(user:ReturnType<typeof userEvent.setup>,choice='0'){for(const label of ['投资经验','可承受亏损','资金使用期限','流动性需求','收入稳定性'])await user.selectOptions(screen.getByRole('combobox',{name:label}),choice);await user.click(screen.getByRole('button',{name:'保存风险测评'}));}
+async function answer(user:ReturnType<typeof userEvent.setup>,choice='0'){
+ await user.click(screen.getByRole('button',{name:'开始风险测评'}));
+ const options=choice==='2'?['经验较多','可接受较大波动','三年以上','短期无需动用','较稳定']:['没有经验','不能接受本金亏损','一年内需要','随时可能用钱','不稳定'];
+ for(let index=0;index<options.length;index++){
+  await user.click(screen.getByRole('button',{name:options[index]}));
+  await user.click(screen.getByRole('button',{name:index===options.length-1?'保存风险测评':'下一题'}));
+ }
+}
 
 describe('理财操作页面端到端沙箱场景',()=>{
  it('真实市场样本只作背景；交互比较会同步费用、期限和余额约束',async()=>{
   mockServer();const user=userEvent.setup();render(<WealthOperationMvp amount="30000" term="12"/>);
+  expect(screen.getByText(/完成并保存风险测评后/)).toBeInTheDocument();
+  expect(screen.queryByRole('region',{name:'真实市场观察'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:/稳健固收组合/})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'生成待确认申购方案'})).not.toBeInTheDocument();
+  await answer(user,'2');
+  await user.click(screen.getByText('展开对比分析与市场资料'));
   expect(await within(screen.getByRole('region',{name:'真实市场观察'})).findByText(/沪深300/)).toBeInTheDocument();
   expect(screen.getAllByText(/数据日 2026-10-08/)).toHaveLength(2);
-  expect(screen.getByText(/完成风险测评后才会生成适当性候选/)).toBeInTheDocument();
-  expect(screen.getByRole('button',{name:/稳健固收组合，本次申购费 60 元/})).toBeInTheDocument();
-  expect(within(screen.getByRole('group',{name:'候选产品'})).queryAllByRole('button')).toHaveLength(0);
-  expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeDisabled();
-  await answer(user,'2');
   expect(await screen.findByRole('button',{name:/稳健固收组合，本次申购费 60 元/})).toBeInTheDocument();
   await user.click(screen.getByRole('button',{name:'最短持有'}));
   expect(screen.getByRole('button',{name:/稳健固收组合，最短持有 6 个月/})).toBeInTheDocument();
-  await user.click(screen.getByRole('button',{name:/稳健固收组合，最短持有 6 个月/}));
+  await user.click(within(screen.getByRole('group',{name:'候选产品'})).getByRole('button',{name:/稳健固收组合/}));
   expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeEnabled();
+  await user.click(screen.getByRole('button',{name:/返回产品列表/}));
   await user.clear(screen.getByRole('spinbutton',{name:'试算投入金额'}));
   await user.type(screen.getByRole('spinbutton',{name:'试算投入金额'}),'50000');
+  await user.click(within(screen.getByRole('group',{name:'候选产品'})).getByRole('button',{name:/稳健固收组合/}));
   expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeDisabled();
   expect(screen.getByText(/连同申购费超过常用卡余额/)).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:/返回产品列表/}));
   expect(screen.getByText(/仅作市场背景，不是下方产品的净值或预期收益/)).toBeInTheDocument();
   await user.click(screen.getByText('查看真实基金资料样本（仅学习比较）'));
   const realTable=screen.getByRole('table',{name:'真实基金资料的比较维度'});
@@ -52,7 +63,7 @@ describe('理财操作页面端到端沙箱场景',()=>{
  });
  it('风险测评、取消方案、申购扣款、持仓复查、赎回入账',async()=>{
   const store=mockServer(),user=userEvent.setup();render(<WealthOperationMvp amount="30000" term="12"/>);
-  expect(screen.getByRole('button',{name:'生成待确认申购方案'})).toBeDisabled();
+  expect(screen.queryByRole('button',{name:'生成待确认申购方案'})).not.toBeInTheDocument();
   await answer(user);
   expect(await screen.findByText(/当前风险等级：谨慎型/)).toBeInTheDocument();
   expect(screen.queryByRole('button',{name:/稳健固收组合/})).not.toBeInTheDocument();
@@ -73,5 +84,22 @@ describe('理财操作页面端到端沙箱场景',()=>{
   expect(await screen.findByText(/沙箱赎回已完成/)).toBeInTheDocument();
   expect(store.get().cashBalance).toBe(4230000);
   expect(store.get().holdings?.[0].redeemedAt).toBeDefined();
+ });
+ it('重新测评可调整风险偏好，并在保存期间暂停产品比较',async()=>{
+  const store=mockServer(),user=userEvent.setup();render(<WealthOperationMvp amount="30000" term="12"/>);
+  await answer(user,'2');
+  expect(await screen.findByText(/当前风险等级：成长型/)).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:/均衡低波组合，本次申购费/})).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'调整风险偏好'}));
+  expect(screen.getByRole('button',{name:'经验较多'})).toHaveAttribute('aria-pressed','true');
+  expect(screen.queryByRole('button',{name:/均衡低波组合/})).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'下一题'}));
+  await user.click(screen.getByRole('button',{name:'不能接受本金亏损'}));
+  for(let index=0;index<3;index++)await user.click(screen.getByRole('button',{name:'下一题'}));
+  await user.click(screen.getByRole('button',{name:'保存新测评'}));
+  expect(await screen.findByText(/当前风险等级：谨慎型/)).toBeInTheDocument();
+  expect(store.get().assessment?.risk).toBe('low');
+  expect(screen.queryByRole('button',{name:/均衡低波组合/})).not.toBeInTheDocument();
+  expect(within(screen.getByRole('group',{name:'候选产品'})).getByRole('button',{name:/灵活现金管理/})).toBeInTheDocument();
  });
 });

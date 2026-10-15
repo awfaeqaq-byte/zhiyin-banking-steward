@@ -1,5 +1,5 @@
 import {changeWorkspaces,validateRoutes,type WorkspaceState,type WorkspaceRoute,type WorkspaceOperation} from './workspaces';
-import {advanceTaskProgress,clearBillIntent,readTaskProgress,type TaskProgress} from './task-progress';
+import {advanceTaskProgress,clearBillIntent,type TaskProgress} from './task-progress';
 import {readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
 export type ConversationEntry={id:string;role:'user'|'assistant';content:string;messageId?:string;workspaceId?:string;sceneId?:string;retryPrompt?:string;memoryRevision?:number};
 export type MessageJob={id:string;taskId:string;text:string;replyId:string;status:'queued'|'claimed'|'completed'|'failed';owner?:string;leaseUntil?:number};
