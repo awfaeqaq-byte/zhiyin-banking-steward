@@ -40,3 +40,13 @@
 独立界面复核为 `ship`。证据在 `.impeccable/review/calendar-ui/`：`live-phone.png`、`live-birthday-editor.png` 为实际384px沙箱；`phone-360.png`、`phone-320-detail.png`、`desktop.png` 为明确标注的内存示例，宽度分别360/320/1273px，均无横向溢出。复核记录为 `finish-review.md`。预览 `/__task-cards-preview/calendar-frame.html` 使用正式组件，不写真实任务。
 
 设计检测器 29 条均为建议项，主要来自旧全局设计与首页局部配色差异，无阻断。当前依赖审计为22项（11 moderate、8 high、3 critical），本次未改依赖。旧版本286项测试、0漏洞记录不代表本轮状态。
+
+## 2026-10-15 财富分支适配
+
+集成分支 `codex/adapt-finance-calendar-20261015` 接入 `origin/codex/finance-mobile-update` 的 `3de34b7`（包含主线 `05c677b`）。原日程分支保留。财富管理、风险测评、选基入口及会话管理接入当前首页；日程组件、日期草稿交接、语音桥接和跨场景续接继续保留。
+
+适配修复了历史会话选择引发的聊天组件重建：主输入框和处理器持续挂载，历史记录独立查看并可返回首页。执行上下文优先取已领取任务；自然换话题后的短回答跟随最新事项，避免旧历史覆盖。选择历史不清空草稿，也不重复调用正在执行的回复。服务端拒绝归档仍有 pending 或关联 routing/ready/processing 消息的会话，避免回复完成时无法保存；完成后可归档恢复，纯等待用户补充且无待处理任务时仍可归档。
+
+本轮知银 129 个文件、721 项测试通过；MobileGym 85 个文件、405 项测试通过。TypeScript、完整构建、最终手机同步、diff 检查通过；触及代码 ESLint 无错误，保留4条既有 hooks 依赖提示。新增回归先复现失败，再验证修复。两端依赖未改变；根审计22项，MobileGym审计25项（1 low、3 moderate、18 high、3 critical），尚未处理存量依赖漏洞。
+
+实际沙箱检查了历史查看/返回、日程、财富、选基与详情。首页内容宽390px，其余页面384px，均无横向溢出。截图位于 `.impeccable/review/finance-calendar-adapt/`。当次平台授权过期，账单与续费正确显示待核对；未重新授权、调用真实模型或执行金融操作。选基仍为11条静态演示样本和本地模拟记录；财富操作仍使用本地沙箱账本。

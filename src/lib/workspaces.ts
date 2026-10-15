@@ -202,6 +202,10 @@ export function changeWorkspaces(
     }else if (command.type === "status") {
       if (!["active", "archived"].includes(command.status))
         throw new Error("任务状态无效");
+      if(command.status==='archived'){
+        if(current.pending?.length)throw new Error('这段对话还有待处理事项，请完成后再归档');
+        if(next.runs?.some(run=>['routing','ready','processing'].includes(run.status)&&(run.currentId===current.id||run.jobs.some(job=>job.taskId===current.id))))throw new Error('这段对话正在处理消息，请完成后再归档');
+      }
       current.status = command.status;
     } else if (command.type === "enqueue") {
       if (

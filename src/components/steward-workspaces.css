@@ -5,8 +5,11 @@
 .workspace-feedback button {min-height:44px;border:0;background:transparent;color:var(--teal);cursor:pointer;font:inherit;margin-left:8px;}
 .workspace-feedback button:focus-visible {outline:2px solid var(--teal);outline-offset:3px;}
 .scenario-conversations{margin:12px 12px 4px;padding:12px;border:1px solid #d5e7e3;border-radius:16px;background:#f8fcfb;color:#173b39;}
-.scenario-conversations-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;}
-.scenario-conversations-heading span{color:#55716e;font-size:12px;}
+.scenario-conversations-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:8px;}
+.scenario-conversations-heading strong{flex:1;min-width:0;overflow-wrap:anywhere;}
+.scenario-conversations-heading span{color:#55716e;font-size:12px;white-space:nowrap;}
+.scenario-conversations-heading button{min-height:44px;padding:0 10px;border:1px solid #cadbd7;border-radius:10px;background:white;color:#196d65;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;}
+.scenario-conversations-heading button:focus-visible{outline:2px solid #147e75;outline-offset:2px;}
 .scenario-conversations-tabs{display:flex;gap:7px;overflow-x:auto;padding:10px 0 8px;scrollbar-width:thin;}
 .scenario-conversations-tabs button{flex:none;min-height:36px;padding:0 11px;border:1px solid #cadbd7;border-radius:18px;background:white;color:#315956;font:inherit;font-size:12px;cursor:pointer;}
 .scenario-conversations-tabs button[aria-selected="true"]{background:#147e75;border-color:#147e75;color:white;}

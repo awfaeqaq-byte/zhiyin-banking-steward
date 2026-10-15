@@ -117,15 +117,18 @@ it('后台回复期间查看其他会话不重新执行任务、不污染上下�
  const api=server(),user=userEvent.setup();
  await seedConversation(api,'first','周末读书','之前想读一本书','读书计划待定');
  await seedConversation(api,'second','杭州出行','计划去杭州','出行时间待定');
+ await seedConversation(api,'third','朋友聚会','计划和朋友聚会','聚会地点待定');
  let answer!:(value:{text:string})=>void;
  const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>(()=>new Promise(resolve=>{answer=resolve;}));
  const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:'second',kind:'general',title:'杭州出行',text}]}));
  render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await user.click(screen.getByRole('button',{name:'打开会话列表'}));
+ await user.click(await screen.findByRole('button',{name:/周末读书 1 轮/}));
  const input=await say('帮我整理出行清单');
  await waitFor(()=>expect(reply).toHaveBeenCalledOnce());
  await user.type(input,'下一条还在编辑');
  await user.click(screen.getByRole('button',{name:'打开会话列表'}));
- await user.click(screen.getByRole('button',{name:/周末读书 1 轮/}));
+ await user.click(screen.getByRole('button',{name:/朋友聚会 1 轮/}));
  expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
  expect(input).toHaveValue('下一条还在编辑');
  expect(reply).toHaveBeenCalledOnce();
@@ -134,8 +137,26 @@ it('后台回复期间查看其他会话不重新执行任务、不污染上下�
  await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
  expect(reply.mock.calls[0][0].messages).toEqual([{role:'user',content:'计划去杭州'},{role:'assistant',content:'出行时间待定'},{role:'user',content:'帮我整理出行清单'}]);
  expect(api.state().items.find(item=>item.id==='first')?.messages).toHaveLength(2);
+ expect(api.state().items.find(item=>item.id==='third')?.messages).toHaveLength(2);
  expect(api.state().items.find(item=>item.id==='second')?.messages.at(-1)?.content).toBe('杭州清单已整理。');
  expect(input).toHaveValue('下一条还在编辑');
+});
+
+it('从历史会话自然换话题后，短答案继续最新事项而不是旧历史',async()=>{
+ const api=server(),user=userEvent.setup();
+ await seedConversation(api,'first','周末读书','之前想读一本书','读书计划待定');
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'general',title:'杭州出行',text}]}));
+ const reply=vi.fn(async(request:StewardReplyRequest)=>request.messages.at(-1)?.content==='周六'?{text:'周六出发，记下了。'}:{text:'哪一天出发？',waitingQuestion:'哪一天出发？'});
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await user.click(screen.getByRole('button',{name:'打开会话列表'}));
+ await user.click(await screen.findByRole('button',{name:/周末读书 1 轮/}));
+ await say('帮我整理杭州出行');
+ await screen.findByText('哪一天出发？',{selector:'.steward-message.assistant p'});
+ await say('周六');
+ await screen.findByText('周六出发，记下了。',{selector:'.steward-message.assistant p'});
+ expect(route).toHaveBeenCalledOnce();
+ expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'帮我整理杭州出行'},{role:'assistant',content:'哪一天出发？'},{role:'user',content:'周六'}]);
+ expect(api.state().items).toHaveLength(2);
 });
 async function say(text:string) {
   const user=userEvent.setup();
