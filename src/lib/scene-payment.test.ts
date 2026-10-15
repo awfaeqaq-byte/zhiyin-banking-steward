@@ -2,7 +2,7 @@ import {afterEach,expect,it,vi} from 'vitest';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {validSceneOrder,type SceneFlow} from './scene-flow';
+import {validScene,validSceneOrder,type SceneFlow} from './scene-flow';
 import {emptyWorkspaces} from './workspaces';
 import {reconcileSceneSources} from './scene-service';
 import {createWorkspaceStore} from '../../server/workspace-store';
@@ -12,6 +12,15 @@ const payment={id:'pay-order',amount:680,refundedAmount:0,paidAt:1791513000000,m
 const observation={id:'order',taskId:'food',status:'ACCEPTED',checkedAt:Date.now(),payment};
 const dirs:string[]=[];
 afterEach(()=>{dirs.splice(0).forEach(dir=>rmSync(dir,{recursive:true,force:true}));vi.restoreAllMocks();});
+
+it('畸形费用摘要和续接入口只拒绝快照，不使会话恢复抛异常',()=>{
+ const scene:SceneFlow={id:'food',title:'聚餐',workspaceIds:['food'],links:[],records:[],stage:'waiting_user',summary:'待整理',orders:[],checkedAt:0,fingerprint:''};
+ expect(validScene(scene)).toBe(true);
+ for(const field of ['expenses','next'])for(const value of [null,false,123,'bad',[]]){
+  expect(()=>validScene({...scene,[field]:value})).not.toThrow();
+  expect(validScene({...scene,[field]:value})).toBe(false);
+ }
+});
 
 it('实付证据必须是合法金额和付款身份，待支付状态不能携带付款回执',()=>{
  expect(validSceneOrder(observation)).toBe(true);
