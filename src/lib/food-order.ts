@@ -26,7 +26,7 @@ export function foodQuote(catalog:FoodCatalog,draft:FoodDraft):FoodQuote {
  if(!amount(itemTotal))throw new Error('金额超出点餐范围');
  return {itemTotal,deliveryFee:catalog.deliveryFee,discount:catalog.discount,payable:Math.max(0,itemTotal+catalog.deliveryFee-catalog.discount)};
 }
-const competing=/群收款|AA|aa|平分|分摊|记(?:一下|一笔|账)|给.{0,15}转|转给|续费|订阅|会员|账单|支出|生日|纪念日|银行卡|挂失|冻结/;
+const competing=/群收款|AA|aa|平分|分摊|记(?:一下|一笔|账)|给.{0,15}转|转给|续费|订阅|会员|账单|支出|提醒|日程|生日|纪念日|银行卡|挂失|冻结/;
 const foodWords=/外卖|点餐|奶茶|便当|午餐|晚餐|吃饭/;
 const nutritionWords=/热量|卡路里|千卡|大卡|营养|蛋白质|脂肪|碳水|糖分/;
 /** A question about the existing meal is not permission to replace its draft. */
@@ -38,8 +38,20 @@ export function foodRoute(prompt:string,tasks:Workspace[],currentId:string):{par
  if(competing.test(prompt))return null;
  const current=tasks.find(t=>t.id===currentId&&t.status==='active');
  const continuing=current&&(current.kind==='food'||current.kind==='general'&&foodWords.test(current.title));
- const explicit=foodWords.test(prompt)&&(/点|订|叫|推荐|帮我|默认地址|外卖/.test(prompt)||continuing&&/喝|吃/.test(prompt));
- const short=continuing&&prompt.length<=100&&(/推荐|默认|地址|微糖|少糖|冰|热|换|改|份|杯|继续付款|查看订单|^好[的吧]?|^可以/.test(prompt)||foodQuestion(prompt));
+ const explicitFood=(part:string)=>foodWords.test(part)&&(/点|订|叫|推荐|帮我|默认地址|外卖/.test(part)||Boolean(continuing)&&/喝|吃/.test(part));
+ const foodAnswer=(part:string)=>/^(?:好的?|好吧|可以|继续付款|查看订单)$/.test(part)
+   ||/^(?:请|你|帮我|我让你|你来|还是你|就你)?推荐(?:一下|一个|吧|啊|呀)?$/.test(part)
+   ||/^(?:就|用|还是|改成|换成|改为|换为)?(?:默认(?:地址)?|微糖|少糖|无糖|半糖|少冰|去冰|多冰|常温|加冰|热的|冰的)(?:吧|的)?$/.test(part)
+   ||/^(?:地址|收货地址)(?:是|改成|换成|改为|换为).{1,60}$/.test(part)
+   ||/^(?:再来|加|减|换成|改成)?[一二三四五六七八九十\d]+(?:份|杯)(?:吧)?$/.test(part)
+   ||nutritionWords.test(part)
+   ||/^(?:(?:这个|这份|这杯|它|这样|这个套餐|这道菜)(?:的)?)?(?:味道(?:怎么样)?|辣不辣|油不油|饱腹(?:吗)?|多少钱|配送多久|怎么样|合适吗|可以吗)(?:啊|呀|呢)?$/.test(part);
+ // Every clause must clearly belong to this meal. An acknowledgment before a
+ // new request is not permission to swallow the rest of the user's message.
+ const clauses=prompt.split(/[，,；;。！？!?\n]/).map(part=>part.trim()).filter(Boolean);
+ if(!clauses.length||clauses.some(part=>!explicitFood(part)&&!foodAnswer(part)))return null;
+ const explicit=clauses.some(explicitFood);
+ const short=continuing&&prompt.length<=100&&clauses.every(foodAnswer);
  if(!explicit&&!short)return null;
  return {parts:[{taskId:continuing?current.id:null,kind:'food',title:continuing?current.title:'日常点餐',text:prompt}]};
 }

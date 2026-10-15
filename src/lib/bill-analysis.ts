@@ -15,14 +15,21 @@ export function billReferenceTime(connections: Connections, fallback = Date.now(
   return times.length ? Math.max(...times) : fallback;
 }
 
+function billConceptOrRefusal(question:string):boolean {
+  return /什么是|什么叫|是什么意思|定义|概念|(?:收入|支出|流水|账单).{0,12}区别/.test(question)
+    ||/(?:不要|不用|不需要|别|先不)(?:再)?(?:帮我)?(?:查询|查看|查|读取|分析|看).{0,10}(?:账单|流水|收支|消费|支出|收入|退款|转账记录)/.test(question);
+}
+
 export function isBillQuestion(question: string) {
   return /账单|收支|消费|花了|花费|花销|花在哪|花到哪|支出|收入|退款|转账记录|流水|大额/.test(question)
+    && !billConceptOrRefusal(question)
     && !/取消.*(续费|订阅)|关闭.*提醒/.test(question);
 }
 
 export function billQuestionForMessages(messages: Array<{role:string; content:string}>): string | null {
   const users = messages.filter(message=>message.role==='user');
   const latest = users.at(-1)?.content || '';
+  if(billConceptOrRefusal(latest))return null;
   if (isBillQuestion(latest)) return latest;
   if (/续费|订阅|会员|提醒|取消/.test(latest)) return null;
   const previous = users.slice(0,-1).reverse().find(message=>isBillQuestion(message.content));

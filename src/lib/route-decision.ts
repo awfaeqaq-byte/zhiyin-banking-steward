@@ -3,7 +3,7 @@ import {WECHAT_SHARE_PREFIX,sharedTextPreview} from './wechat-message-share';
 export type RoutingSegment={id:number;start:number;end:number;text:string};
 export function routingSegments(prompt:string):RoutingSegment[]{
  if(prompt.startsWith(WECHAT_SHARE_PREFIX))return [{id:0,start:0,end:prompt.length,text:prompt}];
- const result:RoutingSegment[]=[];const pattern=/[^，,；;\n]+/g;
+ const result:RoutingSegment[]=[];const pattern=/[^，,；;。！？!?\n]+/g;
  for(const match of prompt.matchAll(pattern)){const text=match[0].trim();if(text){const start=match.index!+match[0].indexOf(text);result.push({id:result.length,start,end:start+text.length,text});}}
  return result;
 }

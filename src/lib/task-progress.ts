@@ -12,6 +12,7 @@ const keys=(x:Record<string,unknown>,allowed:string[])=>Object.keys(x).every(k=>
 // These guards only bind clear read-only intent/short answers. Mixed or new business
 // still goes through semantic routing; no financial operation is inferred here.
 const otherBusiness=/群收款|(?:AA|aa)|平分|分摊|记.{0,3}(?:饮料|午餐|晚餐)|给.{0,15}转|转给|转\s*\d|取消|撤销|续费|订阅|会员|提醒|生日|纪念日|银行卡|挂失|冻结|限额|付款|支付\s*\d|买|下单/;
+const billPause=/^(?:算了|不要(?:了)?|不用(?:了)?|不需要(?:了)?|先不看了|暂停)[。！!\s]*$/;
 export function clearBillIntent(prompt:string) {
   return isBillQuestion(prompt)&&!otherBusiness.test(prompt);
 }
@@ -49,7 +50,7 @@ export function readTaskProgress(task:Workspace):TaskProgress {
 export function advanceTaskProgress(task:Workspace,prompt:string):TaskProgress {
   let progress=readTaskProgress(task);
   if(task.kind==='food')return {...progress,stage:'collecting',waitingFor:undefined,food:progress.food||{items:[],note:''}};
-  if(progress.bill&&/^(?:算了|不用了|先不看了|暂停)[。！!\s]*$/.test(prompt))return {...progress,stage:'paused',waitingFor:undefined};
+  if(progress.bill&&billPause.test(prompt.trim()))return {...progress,stage:'paused',waitingFor:undefined};
   if(clearBillIntent(prompt)||task.kind==='bills') {
     if(!progress.bill)progress={goal:prompt.slice(0,300),stage:'collecting',bill:{}};
     progress=mergeBill(progress,prompt);
@@ -65,6 +66,7 @@ export function billTaskQuestion(progress:TaskProgress):string {
   return `${progress.bill?.period||'本月'}账单${source}`;
 }
 export function settleTaskProgress(progress:TaskProgress,{bill,failed,waitingQuestion,needsAuthorization}:{bill?:BillAnalysis;failed?:boolean;waitingQuestion?:string;needsAuthorization?:boolean}):TaskProgress {
+  if(progress.stage==='paused')return {...progress,waitingFor:undefined};
   if(failed)return {...progress,stage:'failed'};
   if(bill?.needsClarification)return {...progress,stage:'waiting_user',waitingFor:{field:'period',question:'想看哪个时间范围的账单？'}};
   if(bill&&!bill.sources.length) {
@@ -87,12 +89,19 @@ export function taskContinuation(prompt:string,tasks:Workspace[],currentId:strin
   const billAnswer=progress.bill&&(clearBillIntent(p)||/^(?:补充[:：])?(?:就|只看|就看|仅看|先看|先|用|换成|改成|选|选择)?(?:微信(?:支付)?|支付宝|全部平台|所有平台|两个平台|都看|都要)(?:吧|的)?$/.test(compact)
     ||/^(?:那|好[的吧]?|帮我|请|先|给我|我想|我要|可以|就|把|现在)*(?:授权|连接|绑定|接入)(?:一下)?(?:微信(?:支付)?|支付宝)?(?:吧)?$/.test(compact)
     ||/^(?:怎么|如何)(?:授权|连接)|^我要授权$/.test(compact)
-    ||periodAnswer||/^(?:算了|不用了|先不看了|暂停|继续)$/.test(compact));
+    ||periodAnswer||billPause.test(p)||compact==='继续');
   const answer=progress.waitingFor&&(p===progress.waitingFor.question||/^(?:好|好的|可以|继续|同意|不用了|算了|简短一点|详细一点)[。！!]*$/.test(p)
     ||current.kind==='general'&&progress.waitingFor.field==='reply'&&/记住|记忆/.test(progress.waitingFor.question)&&/^(?:记忆|记住(?:吧|这个日期)?|帮我记住|记下来|要记住|不用记|不需要)[。！!]*$/.test(p)
-    ||progress.waitingFor.field==='reply'&&/^(?:\d+(?:\.\d+)?(?:元|块)?|明天|后天|今天|上午|下午|晚上|早上|周|星期|下周)/.test(p)&&!/[，；;]/.test(p));
+    ||progress.waitingFor.field==='reply'&&parameterAnswer(p,progress.waitingFor.question));
   if(!/^[？?]+$/.test(p)&&!billAnswer&&!answer)return null;
   return {parts:[{taskId:current.id,kind:current.kind,title:current.title,text:prompt}]};
+}
+
+function parameterAnswer(prompt:string,question:string):boolean {
+  const p=prompt.replace(/[。！!\s]+$/g,'').trim();
+  if(/金额|预算|多少|几(?:元|块|份|杯|人)|数量|人数/.test(question)&&/^\d+(?:\.\d+)?(?:元|块)?$/.test(p))return true;
+  if(!/时间|日期|哪天|何时|几点|什么时候|几月|几号/.test(question))return false;
+  return /^(?=.)(?:明天|后天|今天|(?:(?:下|这|本)?周|星期)[一二三四五六日天]|(?:\d{4}年)?\d{1,2}月\d{1,2}[日号])?(?:凌晨|清晨|早上|上午|中午|下午|傍晚|晚上)?(?:\d{1,2}:\d{2}|[一二三四五六七八九十两\d]{1,3}点(?:半|[一二三四五六七八九十\d]{1,3}分)?)?$/.test(p);
 }
 
 export function parseTaskWait(output:string):{text:string;waitingQuestion?:string} {
