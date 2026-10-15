@@ -12,6 +12,29 @@ import {join} from 'node:path';
 const messageDirs:string[]=[];
 afterEach(() => {vi.restoreAllMocks();messageDirs.splice(0).forEach(path=>rmSync(path,{recursive:true,force:true}));});
 
+it('固定页头打开会话抽屉，移除品牌文字和聊天区重复入口，开关不丢草稿',async()=>{
+  localStorage.setItem('zhiyin-mode','"native"');
+  const user=userEvent.setup();render(<App/>);
+  const header=screen.getByRole('banner');
+  const menu=within(header).getByRole('button',{name:'打开会话列表'});
+  expect(within(header).queryByText('知银')).not.toBeInTheDocument();
+  expect(within(header).queryByText('更懂你的财富伙伴')).not.toBeInTheDocument();
+  expect(screen.getAllByRole('button',{name:'打开会话列表'})).toHaveLength(1);
+  const input=screen.getByRole('textbox',{name:'和宁宁说点什么'});
+  await user.type(input,'尚未发送的安排');
+  await user.click(menu);
+  expect(menu).toHaveAttribute('aria-expanded','true');
+  expect(screen.getByRole('dialog',{name:'会话管理'})).toBeVisible();
+  expect(screen.getAllByRole('button',{name:'＋ 新对话'})).toHaveLength(1);
+  await user.click(screen.getByRole('button',{name:'关闭会话列表'}));
+  expect(screen.queryByRole('dialog',{name:'会话管理'})).not.toBeInTheDocument();
+  expect(menu).toHaveAttribute('aria-expanded','false');
+  expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
+  expect(input).toHaveValue('尚未发送的安排');
+  await user.click(menu);
+  expect(screen.getByRole('dialog',{name:'会话管理'})).toBeVisible();
+});
+
 it('保留同类订阅后刷新仍记住，可在订阅页撤回且不关闭续费提醒', async () => {
   const now = Date.parse('2026-09-24T10:00:00+08:00');
   vi.spyOn(Date, 'now').mockReturnValue(now);
