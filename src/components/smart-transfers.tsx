@@ -67,7 +67,7 @@ export function SmartTransfers({initial,onDone}:{initial:SmartIntent;onDone:(rec
  }
  return <div className="smart-transfers">
   <nav className="smart-tabs" aria-label="转账功能">{([['transfer','转账'],['aa','AA收款'],['records','记录']] as const).map(([key,label])=><button key={key} aria-pressed={tab===key} disabled={busy} onClick={()=>{setTab(key);setConfirmation(null);setError('');}}>{label}</button>)}</nav>
-  <div hidden={tab!=='transfer'}><BankTransfer key={transferKey} initial={transfer} onDone={onDone}/></div>
+  <div hidden={tab!=='transfer'}><BankTransfer key={transferKey} initial={transfer} onDone={onDone} schedules={bank.state?.schedules}/></div>
   <div hidden={tab!=='aa'}><AAForm initial={'kind' in initial && initial.kind==='aa'?initial:undefined} onCreated={()=>{setTab('records');void bank.refresh();}}/></div>
   {tab==='records'&&<section className="smart-records" aria-label="转账与收款记录">
    <div className="smart-record-heading"><h3>预约转账</h3><button disabled={busy} onClick={()=>void bank.refresh()}>刷新</button></div>
