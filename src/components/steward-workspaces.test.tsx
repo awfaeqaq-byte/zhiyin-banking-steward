@@ -65,7 +65,7 @@ it('会话抽屉支持新建、查看、重命名、归档恢复和删除',async
  await user.click(within(screen.getByRole('alertdialog',{name:'确认删除会话'})).getByRole('button',{name:'确认删除'}));
  await waitFor(()=>expect(api.state().items).toHaveLength(0));
 });
-it('选中历史会话后在该会话续聊，其他会话的消息不会串入',async()=>{
+it('历史会话可查看和续聊，首页对话与输入草稿始终连续',async()=>{
  const api=server(),user=userEvent.setup();
  for(const [id,title,userText,replyText] of [['first','转账场景','核对转账','尚未付款'],['second','卡片场景','查看卡片','尚未调额']]){
   const create={type:'create',id,title,kind:'general',revision:api.state().revision,requestId:crypto.randomUUID()};
@@ -75,18 +75,67 @@ it('选中历史会话后在该会话续聊，其他会话的消息不会串入'
  }
  const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:'first',kind:'general',title:'转账场景',text}]}));
  render(<StewardWorkspaces {...props} route={route} reply={async()=>({text:'甲的新回复，未执行转账。'})}/>);
+ const input=await screen.findByRole('textbox',{name:'和宁宁说点什么'});
+ await user.type(input,'这条草稿保留');
  await user.click(await screen.findByRole('button',{name:'打开会话列表'}));
  await user.click(screen.getByRole('button',{name:/转账场景 1 轮/}));
+ expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
+ expect(input).toHaveValue('这条草稿保留');
  expect(screen.getByText('尚未付款')).toBeInTheDocument();
  expect(screen.queryByText('尚未调额')).not.toBeInTheDocument();
  await say('继续核对第一段');
- await screen.findByText('甲的新回复，未执行转账。');
+ await screen.findByText('甲的新回复，未执行转账。',{selector:'.steward-message.assistant p'});
  await waitFor(()=>expect(api.state().items.find(item=>item.id==='first')?.messages).toHaveLength(4));
  expect(api.state().items.find(item=>item.id==='second')?.messages).toHaveLength(2);
  await user.click(screen.getByRole('button',{name:'打开会话列表'}));
  await user.click(screen.getByRole('button',{name:/卡片场景 1 轮/}));
  expect(screen.getByText('尚未调额')).toBeInTheDocument();
- expect(screen.queryByText('甲的新回复，未执行转账。')).not.toBeInTheDocument();
+ expect(within(screen.getByRole('region',{name:'当前会话记录'})).queryByText('甲的新回复，未执行转账。')).not.toBeInTheDocument();
+ expect(screen.getByText('甲的新回复，未执行转账。',{selector:'.steward-message.assistant p'})).toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'返回首页对话'}));
+ expect(screen.queryByRole('region',{name:'当前会话记录'})).not.toBeInTheDocument();
+ expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
+});
+
+async function seedConversation(api:ReturnType<typeof server>,id:string,title:string,userText:string,assistant:string){
+ for(const operation of [{type:'create',id,title,kind:'general'},{type:'turn',id,user:userText,assistant,memoryRevision:0}]){
+  await fetch('/api/zhiyin/workspaces',{method:'POST',body:JSON.stringify({...operation,revision:api.state().revision,requestId:crypto.randomUUID()})});
+ }
+}
+
+it('验收标题不会隐式选中历史会话或替换首页',async()=>{
+ const api=server();
+ await seedConversation(api,'scenario','赛题验收·财富推荐','旧的理财提问','这条历史只应主动查看');
+ render(<StewardWorkspaces {...props} route={async text=>({parts:[{taskId:null,kind:'general',title:'日常交代',text}]})} reply={async()=>({text:'收到。'})}/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'＋ 新对话'})).toBeEnabled());
+ expect(screen.getByText('与宁宁对话')).toBeInTheDocument();
+ expect(screen.queryByText('这条历史只应主动查看')).not.toBeInTheDocument();
+ expect(screen.queryByRole('region',{name:'当前会话记录'})).not.toBeInTheDocument();
+});
+
+it('后台回复期间查看其他会话不重新执行任务、不污染上下文或丢失草稿',async()=>{
+ const api=server(),user=userEvent.setup();
+ await seedConversation(api,'first','周末读书','之前想读一本书','读书计划待定');
+ await seedConversation(api,'second','杭州出行','计划去杭州','出行时间待定');
+ let answer!:(value:{text:string})=>void;
+ const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>(()=>new Promise(resolve=>{answer=resolve;}));
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:'second',kind:'general',title:'杭州出行',text}]}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ const input=await say('帮我整理出行清单');
+ await waitFor(()=>expect(reply).toHaveBeenCalledOnce());
+ await user.type(input,'下一条还在编辑');
+ await user.click(screen.getByRole('button',{name:'打开会话列表'}));
+ await user.click(screen.getByRole('button',{name:/周末读书 1 轮/}));
+ expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
+ expect(input).toHaveValue('下一条还在编辑');
+ expect(reply).toHaveBeenCalledOnce();
+ answer({text:'杭州清单已整理。'});
+ await screen.findByText('杭州清单已整理。',{selector:'.steward-message.assistant p'});
+ await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
+ expect(reply.mock.calls[0][0].messages).toEqual([{role:'user',content:'计划去杭州'},{role:'assistant',content:'出行时间待定'},{role:'user',content:'帮我整理出行清单'}]);
+ expect(api.state().items.find(item=>item.id==='first')?.messages).toHaveLength(2);
+ expect(api.state().items.find(item=>item.id==='second')?.messages.at(-1)?.content).toBe('杭州清单已整理。');
+ expect(input).toHaveValue('下一条还在编辑');
 });
 async function say(text:string) {
   const user=userEvent.setup();
