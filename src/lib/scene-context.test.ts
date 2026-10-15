@@ -24,3 +24,23 @@ it('上下文和金额有严格边界，不能携带执行授权或无限量原�
   expect(validSceneContext({...context, evidence: [{kind: 'user_message', id: 'm', workspaceId: 'birthday', text: 'x'.repeat(1201)}]})).toBe(false);
   expect(validSceneContext({...context, facts: Array.from({length: 101}, () => context.facts[0])})).toBe(false);
 });
+
+it('多笔同额付款仍是不同证据，不能把一个金额误当共同事项的付款总额', () => {
+  const receipts: SceneContext = {...context, facts: ['pay-one', 'pay-two'].map(id => ({field: 'paid', value: 20600, source: {kind: 'payment', id, workspaceId: 'prepare', label: '订单付款'}}))};
+  expect(contextValue(receipts, 'paid')).toBeUndefined();
+});
+
+it('格式化大量来源时保留完整JSON和截断标记，不输出无限量上下文', () => {
+  const many: SceneContext = {...context, workspaceIds: Array.from({length: 100}, (_, index) => `task-${index}-${'x'.repeat(150)}`), facts: [], evidence: []};
+  const formatted = formatSceneContext(many);
+  expect(formatted.length).toBeLessThan(10000);
+});
+
+it('业务模型可限制共享资料字数，原文超量时优先保留业务事实', () => {
+  const many: SceneContext = {...context, evidence: Array.from({length: 8}, (_, index) => ({kind: 'user_message', id: `message-${index}`, workspaceId: 'birthday', text: '甲'.repeat(1200)}))};
+  const formatted = formatSceneContext(many, 3500);
+  expect(formatted.length).toBeLessThanOrEqual(3500);
+  const data = JSON.parse(formatted.slice(formatted.indexOf('\n') + 1));
+  expect(data.facts).toEqual(context.facts); expect(data.truncated).toBe(true);
+  expect(formatSceneContext(many, 1).length).toBeLessThanOrEqual(1000);
+});
