@@ -65,3 +65,9 @@ it('未知平台状态和恢复失败如实展示，不自动付款或假装完�
  view.rerender(<SceneProgressCard scene={{...flow,stage:'completed',next:undefined}}/>);
  expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
+it('已付费用就地显示整理入口，点击只续接同一事项的费用草案',async()=>{
+ const resume=vi.fn(),scene={...flow,expenses:{pendingCount:1,netAmount:20600,sourceIds:['payment']}};
+ render(<SceneProgressCard scene={scene} onResume={resume}/>);
+ await userEvent.click(screen.getByRole('button',{name:'整理本次费用'}));
+ expect(resume).toHaveBeenCalledWith({kind:'expense',id:'birthday',workspaceId:'calendar',action:'prepare_expenses'});
+});
