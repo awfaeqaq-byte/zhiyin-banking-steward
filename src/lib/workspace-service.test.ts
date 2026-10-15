@@ -26,6 +26,16 @@ it('分流能看到上一轮管家的追问，授权和问号不被当作独立�
   expect(fetcher).not.toHaveBeenCalled();
 });
 afterEach(() => vi.restoreAllMocks());
+it('等待澄清时不让快捷确认跳过归属判断，完整保留原问题',async()=>{
+ const task:Workspace={id:'old',kind:'general',title:'已有任务',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[],progress:{goal:'已有任务',stage:'waiting_user',waitingFor:{field:'reply',question:'是这样吗？'}}};
+ const clarification=JSON.stringify({original:'关于安排'.repeat(200)+'给家人转783元',question:'给谁？'});
+ const model=vi.fn(async(payload:{instructions:string;input:{role:string;content:string}[]})=>{
+   expect(payload.input.map(m=>m.content).join('')).toContain('783');
+   return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人转账',segmentIds:[0]}],continuesClarification:true});
+ });
+ expect(await routeWorkspacePrompt('好的',[task],task.id,clarification,[],{model})).toMatchObject({continuesClarification:true});
+ expect(model).toHaveBeenCalledOnce();
+});
 it('积累一百个长任务后分流仍满足代理总大小和消息限制，保留当前事项',async()=>{
  const tasks:Workspace[]=Array.from({length:100},(_,i)=>({id:`task-${i}-${'x'.repeat(60)}`,kind:'general',title:`事项${i}${'安排'.repeat(26)}`,status:'active',updatedAt:i,summary:'',memoryRevision:0,messages:[{id:`u-${i}`,role:'user',content:'历史交代'.repeat(500),memoryRevision:0},{id:`a-${i}`,role:'assistant',content:'历史回复'.repeat(500),memoryRevision:0}],pending:Array.from({length:20},(_,j)=>({token:`p-${i}-${j}`,text:'未完成内容'.repeat(300)})),progress:{goal:'安排'.repeat(100),stage:'waiting_user',waitingFor:{field:'reply',question:'请补充'.repeat(100)}}}));
  const current=tasks[99];

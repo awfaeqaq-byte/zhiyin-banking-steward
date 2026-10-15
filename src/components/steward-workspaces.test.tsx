@@ -182,6 +182,50 @@ it('发送后立即清空，分流及回复晚到都不覆盖正在编辑的下�
  answered({text:'你好，我在。'});await screen.findByText('你好，我在。');
  expect(input).toHaveValue('下一条还没写完');
 });
+it('第一句尚在分流时仍可提交第二句，输入框立即清空并保持原节点',async()=>{
+ const api=server(),user=userEvent.setup();let routed!:(value:Awaited<ReturnType<typeof routeWorkspacePrompt>>)=>void;
+ const route=vi.fn<typeof routeWorkspacePrompt>().mockImplementationOnce(()=>new Promise(resolve=>{routed=resolve;})).mockImplementation(async text=>({parts:[{taskId:null,kind:'general',title:text,text}]}));
+ const reply=vi.fn(async(request:StewardReplyRequest)=>({text:`收到：${request.messages.at(-1)?.content}`}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ const input=await say('安排周末读书');await waitFor(()=>expect(route).toHaveBeenCalledOnce());
+ await user.type(input,'整理杭州出行');expect(screen.getByRole('button',{name:'发送给宁宁'})).toBeEnabled();
+ await user.click(screen.getByRole('button',{name:'发送给宁宁'}));expect(input).toHaveValue('');
+ await waitFor(()=>expect(api.state().runs).toHaveLength(2));expect(reply).not.toHaveBeenCalled();
+ routed({parts:[{taskId:null,kind:'general',title:'安排周末读书',text:'安排周末读书'}]});
+ await waitFor(()=>expect(api.state().runs?.every(run=>run.status==='completed')).toBe(true));
+ expect(reply.mock.calls.map(([request])=>request.messages.at(-1)?.content)).toEqual(['安排周末读书','整理杭州出行']);
+ expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
+});
+it('回复期间连续三句按序处理，各自上下文独立且不覆盖下一条草稿',async()=>{
+ const api=server(),user=userEvent.setup();let firstAnswer!:(value:{text:string})=>void;
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'general',title:text,text}]}));
+ const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>().mockImplementationOnce(()=>new Promise(resolve=>{firstAnswer=resolve;})).mockImplementation(async request=>({text:`已整理：${request.messages.at(-1)?.content}`}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ const input=await say('安排周末读书');await waitFor(()=>expect(reply).toHaveBeenCalledOnce());
+ for(const text of ['整理杭州出行','朋友聚会选址']){
+  await user.type(input,text);expect(screen.getByRole('button',{name:'发送给宁宁'})).toBeEnabled();
+  await user.click(screen.getByRole('button',{name:'发送给宁宁'}));expect(input).toHaveValue('');
+ }
+ await waitFor(()=>expect(api.state().runs).toHaveLength(3));expect(reply).toHaveBeenCalledOnce();
+ await user.type(input,'第四句仍在编辑');firstAnswer({text:'读书计划已整理。'});
+ await waitFor(()=>expect(api.state().runs?.every(run=>run.status==='completed')).toBe(true));
+ expect(reply.mock.calls.map(([request])=>request.messages)).toEqual(['安排周末读书','整理杭州出行','朋友聚会选址'].map(content=>[{role:'user',content}]));
+ expect(api.state().conversation?.filter(message=>message.role==='user').map(message=>message.content)).toEqual(['安排周末读书','整理杭州出行','朋友聚会选址']);
+ expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);expect(input).toHaveValue('第四句仍在编辑');
+});
+it('多任务部分失败后刷新仍可重试，只继续失败部分且不重复原句',async()=>{
+ const api=server(),user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'general',title:'读书',text:'安排读书'},{taskId:null,kind:'general',title:'出行',text:'整理出行'}]}));
+ const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>().mockResolvedValueOnce({text:'读书已整理。'}).mockRejectedValueOnce(new Error('出行服务暂时不可用')).mockResolvedValueOnce({text:'出行已恢复。'});
+ const view=render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await say('安排读书，整理出行');await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('failed'));
+ view.unmount();render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await user.click(await screen.findByRole('button',{name:'重试这条消息'}));
+ await screen.findByText('出行已恢复。');await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
+ expect(route).toHaveBeenCalledOnce();expect(reply.mock.calls.map(([request])=>request.messages.at(-1)?.content)).toEqual(['安排读书','整理出行','整理出行']);
+ expect(api.state().runs).toHaveLength(1);expect(api.state().conversation?.filter(message=>message.role==='user')).toHaveLength(1);
+ expect(api.state().items.every(task=>!task.pending?.length)).toBe(true);expect(screen.queryByRole('button',{name:'重试这条消息'})).not.toBeInTheDocument();
+});
 it('提交失败恢复发送框原文，有新草稿时不覆盖',async()=>{
  server();const user=userEvent.setup();let fail!:(reason:Error)=>void;
  const route=vi.fn<typeof routeWorkspacePrompt>(()=>new Promise((_,reject)=>{fail=reject;}));
