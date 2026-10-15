@@ -26,6 +26,33 @@ it('分流能看到上一轮管家的追问，授权和问号不被当作独立�
   expect(fetcher).not.toHaveBeenCalled();
 });
 afterEach(() => vi.restoreAllMocks());
+it('积累一百个长任务后分流仍满足代理总大小和消息限制，保留当前事项',async()=>{
+ const tasks:Workspace[]=Array.from({length:100},(_,i)=>({id:`task-${i}-${'x'.repeat(60)}`,kind:'general',title:`事项${i}${'安排'.repeat(26)}`,status:'active',updatedAt:i,summary:'',memoryRevision:0,messages:[{id:`u-${i}`,role:'user',content:'历史交代'.repeat(500),memoryRevision:0},{id:`a-${i}`,role:'assistant',content:'历史回复'.repeat(500),memoryRevision:0}],pending:Array.from({length:20},(_,j)=>({token:`p-${i}-${j}`,text:'未完成内容'.repeat(300)})),progress:{goal:'安排'.repeat(100),stage:'waiting_user',waitingFor:{field:'reply',question:'请补充'.repeat(100)}}}));
+ const current=tasks[99];
+ const model=vi.fn(async(payload:{instructions:string;input:{role:string;content:string}[]})=>{
+   expect(payload.instructions.length).toBeLessThanOrEqual(4000);
+   expect(payload.input.length).toBeLessThanOrEqual(30);
+   expect(Math.max(...payload.input.map(m=>m.content.length))).toBeLessThanOrEqual(2000);
+   expect(new TextEncoder().encode(JSON.stringify(payload)).length).toBeLessThanOrEqual(32*1024);
+   expect(payload.input.map(m=>m.content).join('')).toContain(current.id);
+   return JSON.stringify({parts:[{taskId:current.id,kind:'general',title:current.title,segmentIds:[0]}]});
+ });
+ expect((await routeWorkspacePrompt('继续梳理那个计划',tasks,current.id,'',[],{model})).parts[0].taskId).toBe(current.id);
+ expect(model).toHaveBeenCalledOnce();
+});
+it.each(['界'.repeat(2000),'"'.repeat(2000),Array.from({length:1000},()=> '甲').join('，')])('完整长原文分块后连同一次格式重试也不超过代理限制',async prompt=>{
+ let calls=0;
+ const model=vi.fn(async(payload:{instructions:string;input:{role:string;content:string}[]})=>{
+   expect(payload.input.length).toBeLessThanOrEqual(30);
+   expect(Math.max(...payload.input.map(m=>m.content.length))).toBeLessThanOrEqual(2000);
+   expect(new TextEncoder().encode(JSON.stringify(payload)).length).toBeLessThanOrEqual(32*1024);
+   expect(payload.input.map(m=>m.content).join('').split(prompt[0]).length-1).toBeGreaterThanOrEqual(prompt.split(prompt[0]).length-1);
+   if(calls++===0)return '{}';
+   return JSON.stringify({parts:[{taskId:null,kind:'general',title:'整理交代'}]});
+ });
+ expect((await routeWorkspacePrompt(prompt,[],'','',[],{model})).parts[0].text).toBe(prompt);
+ expect(model).toHaveBeenCalledTimes(2);
+});
 it('分流模型临时返回空内容时重试一次，仍为空时明确失败且不生成任务',async()=>{
  const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce(new Response(JSON.stringify({error:'模型服务未返回有效内容'}),{status:502}))
    .mockResolvedValueOnce(new Response(JSON.stringify({output_text:JSON.stringify({parts:[{taskId:null,kind:'general',title:'闲聊',text:'帮我梳理一下周末计划'}]})})));

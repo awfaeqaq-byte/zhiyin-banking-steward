@@ -74,4 +74,14 @@ describe('账单分析',()=>{
     expect(isBillQuestion('帮我取消自动续费')).toBe(false);
     expect(buildBillAnalysis({},'去年第三季度账单',now).needsClarification).toBe(true);
   });
+  it.each(['流水是什么意思','不要查账单，只解释什么叫流水','解释一下收入和支出的区别','不要查账单','不需要读取我的流水'])('账单概念或拒绝读取不生成查账请求：%s',prompt=>{
+    expect(isBillQuestion(prompt)).toBe(false);
+    expect(billQuestionForMessages([{role:'user',content:'本月账单'},{role:'user',content:prompt}])).toBeNull();
+  });
+  it.each(['帮我看看本月账单','解释一下我上个月为什么花了这么多','这笔退款是怎么回事','不要只看餐饮，分析本月全部支出','账单'])('真实查账与解释记录仍可触发分析：%s',prompt=>{
+    expect(isBillQuestion(prompt)).toBe(true);
+  });
+  it('旧账单上下文不吞掉“那流水是什么意思”的纯概念追问',()=>{
+    expect(billQuestionForMessages([{role:'user',content:'本月账单'},{role:'user',content:'那流水是什么意思'}])).toBeNull();
+  });
 });

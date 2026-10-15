@@ -23,6 +23,13 @@ describe('系统持有原文的分流协议',()=>{
   expect(()=>materializeRoutes({parts:[{taskId:null,kind:'payment',title:'付款'}]},'转500',[])).toThrow();
   expect(()=>materializeRoutes({parts:[]},'',[])).toThrow();
  });
+ it('中文句末标点允许多任务拆分，金额小数与原文范围不变',()=>{
+  const prompt='饮料18.50。给妈妈转500！明天提醒我开会？';
+  expect(routingSegments(prompt).map(segment=>segment.text)).toEqual(['饮料18.50','给妈妈转500','明天提醒我开会']);
+  const parts=[{taskId:null,kind:'aa',title:'饮料',segmentIds:[0]},{taskId:null,kind:'transfer',title:'转账',segmentIds:[1]},{taskId:null,kind:'reminder',title:'开会',segmentIds:[2]}];
+  expect(materializeRoutes({parts},prompt,[]).parts.map(part=>part.text)).toEqual(['饮料18.50','给妈妈转500','明天提醒我开会']);
+  expect(()=>materializeRoutes({parts:[parts[0],{...parts[1],segmentIds:[0,1,2]}]},prompt,[])).toThrow();
+ });
  it('你好不需要分类模型，对与没错接明确追问，新增业务不误续接',()=>{
   expect(conversationRoute('你好',[birthday],birthday.id)?.parts[0]).toMatchObject({kind:'general',text:'你好'});
   for(const answer of ['对','没错','是的','嗯'])expect(conversationRoute(answer,[birthday],birthday.id)?.parts[0].taskId).toBe('birthday');
