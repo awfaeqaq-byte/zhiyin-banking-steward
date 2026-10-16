@@ -219,6 +219,7 @@ it('多任务部分失败后刷新仍可重试，只继续失败部分且不重�
  const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>().mockResolvedValueOnce({text:'读书已整理。'}).mockRejectedValueOnce(new Error('出行服务暂时不可用')).mockResolvedValueOnce({text:'出行已恢复。'});
  const view=render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
  await say('安排读书，整理出行');await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('failed'));
+ expect(screen.queryByRole('button',{name:'重新发送'})).not.toBeInTheDocument();
  view.unmount();render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
  await user.click(await screen.findByRole('button',{name:'重试这条消息'}));
  await screen.findByText('出行已恢复。');await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
@@ -258,6 +259,21 @@ it('普通任务的模型追问落盘，刷新后短答案不重新分流或串�
  expect(route).toHaveBeenCalledTimes(1);expect(api.state().items).toHaveLength(1);
  expect(reply.mock.calls[1][0].messages).toEqual([{role:'user',content:'给妈妈转账'},{role:'assistant',content:'这次转多少元？'},{role:'user',content:'200元'}]);
  expect(reply.mock.calls[1][0].workspaceProgress?.goal).toBe('给妈妈生活费');
+});
+it.each(['error','pending'])('拒绝继续查账不再刷新平台，平台%s也能立即暂停并保存结果',async failure=>{
+ const api=server();
+ const refresh=vi.fn(async()=>({connections:{},error:''}));
+ const reply=vi.fn(async()=>({text:'不应调用模型'}));
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'bills',title:'本月支出',text}]}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply} refreshSubscriptions={refresh} onConnectSource={vi.fn()}/>);
+ await say('本月支出');await screen.findByRole('region',{name:'账单读取范围'});
+ await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
+ refresh.mockClear().mockImplementation(()=>failure==='error'?Promise.reject(new Error('平台暂时不可用')):new Promise(()=>undefined));
+ await say('不要');await screen.findByText('好，这次查账先不继续。没有撤回已有授权，也没有改动账户。');
+ await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
+ expect(refresh).not.toHaveBeenCalled();expect(reply).not.toHaveBeenCalled();
+ expect(api.state().items[0].progress?.stage).toBe('paused');
+ expect(screen.queryByRole('region',{name:'账单读取范围'})).not.toBeInTheDocument();
 });
 
 const billSource:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信支付',accountMasked:'测试',scopes:['transactions'],autopays:[],syncedAt:'2026-10-09',transactions:[{id:'lunch',title:'午餐套餐',amount:-2500,category:'餐饮',occurredAt:'2026-10-08'}]};
@@ -373,13 +389,17 @@ it('聊其他事再回来，前台聊天不断，模型只拿到所属任务的�
 it('有歧义就直接在对话里追问，不执行；用户补充后后台接着整理',async()=>{
   const api=server();
   const reply=vi.fn(async()=>({text:'好，继续处理今晚聚餐。'}));
-  const route=vi.fn(async(text:string)=> text==='改成30' ? {parts:[],clarification:'要改今晚聚餐的饮料，还是周末旅行的饮料？'} : {parts:[{taskId:null,kind:'general' as const,title:'今晚聚餐',text}]});
+  const route=vi.fn<typeof routeWorkspacePrompt>(async(text,_tasks,_id,clarification)=> text==='改成30' ? {parts:[],clarification:'要改今晚聚餐的饮料，还是周末旅行的饮料？'} : {parts:[{taskId:null,kind:'general' as const,title:'今晚聚餐',text}],...(clarification?{continuesClarification:true}:{})});
   render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
   await say('改成30');
   await screen.findByText('要改今晚聚餐的饮料，还是周末旅行的饮料？');
   expect(reply).not.toHaveBeenCalled(); expect(api.state().items).toHaveLength(0);
   await say('今晚聚餐'); await screen.findByText('好，继续处理今晚聚餐。');
-  expect(route.mock.calls[1][0]).toBe('改成30；补充：今晚聚餐');
+  expect(route.mock.calls[1][0]).toBe('今晚聚餐');
+  expect(route.mock.calls[1][3]).toContain('改成30');
+  expect(route.mock.calls[2][0]).toBe('改成30\n补充：今晚聚餐');
+  expect(api.state().runs?.at(-1)?.prompt).toBe('今晚聚餐');
+  expect(api.state().runs?.at(-1)?.sourcePrompt).toBe('改成30\n补充：今晚聚餐');
   expect(screen.getByText('改成30')).toBeInTheDocument();
 });
 
@@ -400,8 +420,9 @@ it('一项失败后停止后续处理，交代保留后台，不假装都已完�
   await say('查看甲，查看乙'); await screen.findByText('数据暂时不可用');
   await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));
   expect(reply).toHaveBeenCalledTimes(1);
-  expect(api.state().items[1].pending).toHaveLength(1);
-  expect(api.state().items[0].pending).toHaveLength(1);
+  expect(api.state().runs?.at(-1)?.jobs.map(job=>job.status)).toEqual(['failed','failed']);
+  expect(api.state().items[1].pending).toHaveLength(0);
+  expect(api.state().items[0].pending).toHaveLength(0);
 });
 
 it('生活筹备也在同一个首页输入，不换对话页、不自动付款',async()=>{
