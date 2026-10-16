@@ -25,7 +25,8 @@ export function StewardVoice({
   const [seconds, setSeconds] = useState(0);
   const connection = useRef<ReturnType<typeof createVoiceConnection>>();
   const callbacks = useRef({onRequest, getContext, onTurn, reviewing});
-  callbacks.current = {onRequest, getContext, onTurn, reviewing};
+  const inReview = reviewing || !!reviewHost;
+  callbacks.current = {onRequest, getContext, onTurn, reviewing: inReview};
   const entry = useRef<HTMLButtonElement>(null), beganAt = useRef(0);
   const active = state.phase !== 'idle' && state.phase !== 'error';
 
@@ -64,18 +65,18 @@ export function StewardVoice({
     return () => window.clearInterval(timer);
   }, [active, state.phase]);
   useEffect(() => {
-    if (!reviewing || !active) { setReviewHost(null); return; }
+    if (!active) { setReviewHost(null); return; }
     // Join the modal's own focus scope, rather than putting unreachable call
     // controls behind Radix's aria-hidden background and pointer-event lock.
-    const locate = () => setReviewHost([...document.querySelectorAll('[role="dialog"][data-state="open"]')].at(-1) ?? null);
+    const locate = () => setReviewHost([...document.querySelectorAll('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')].at(-1) ?? null);
     locate();
     const observer = new MutationObserver(locate);
     observer.observe(document.body, {childList: true, subtree: true});
     return () => observer.disconnect();
-  }, [reviewing, active]);
+  }, [active]);
 
   function minimize() { setOpen(false); entry.current?.focus(); }
-  usePhoneBack(() => { minimize(); return true; }, 120, open && !reviewing);
+  usePhoneBack(() => { minimize(); return true; }, 120, open && !inReview);
   const status = state.phase === 'connecting' ? '正在连接…'
     : state.muted ? '麦克风已静音'
     : state.userSpeaking ? '我在听'
@@ -91,18 +92,18 @@ export function StewardVoice({
       <PhoneOff size={22} aria-hidden="true"/><span>结束通话</span>
     </button>
   </>;
-  const compact = <section className="voice-call-bar" aria-label={reviewing ? '核对中的语音通话' : '持续语音通话'}>
-    {!reviewing && <button type="button" className="voice-resume" aria-label="展开语音通话" onClick={() => setOpen(true)}><AudioLines size={20} aria-hidden="true"/><span>和{stewardName}通话中<small>{clock} · {state.muted ? '已静音' : state.pending ? '事项处理中，仍在听' : '可以继续说'}</small></span></button>}
-    {reviewing && <p><strong>{stewardName}仍在线</strong><span>你来核对确认，我陪你看。</span></p>}
+  const compact = <section className="voice-call-bar" aria-label={inReview ? '核对中的语音通话' : '持续语音通话'}>
+    {!inReview && <button type="button" className="voice-resume" aria-label="展开语音通话" onClick={() => setOpen(true)}><AudioLines size={20} aria-hidden="true"/><span>和{stewardName}通话中<small>{clock} · {state.muted ? '已静音' : state.pending ? '事项处理中，仍在听' : '可以继续说'}</small></span></button>}
+    {inReview && <p><strong>{stewardName}仍在线</strong><span>你来核对确认，我陪你看。</span></p>}
     <div className="voice-compact-controls">{controls}</div>
   </section>;
 
   return <div className="steward-voice">
-    <button ref={entry} type="button" className="voice-entry" aria-label={'和' + stewardName + '语音对话'} aria-expanded={open && !reviewing} disabled={!enabled || disabled && !active || reviewing && !active} onClick={() => open ? minimize() : setOpen(true)}>
+    <button ref={entry} type="button" className="voice-entry" aria-label={'和' + stewardName + '语音对话'} aria-expanded={open && !inReview} disabled={!enabled || disabled && !active || inReview && !active} onClick={() => open ? minimize() : setOpen(true)}>
       <AudioLines size={22} aria-hidden="true"/>
     </button>
-    {active && (!open || reviewing) && (reviewing && reviewHost ? createPortal(<div className="voice-review-dock">{compact}</div>, reviewHost) : compact)}
-    {open && !reviewing && <section className="voice-call-stage" role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
+    {active && (!open || inReview) && (inReview && reviewHost ? createPortal(<div className="voice-review-dock">{compact}</div>, reviewHost) : compact)}
+    {open && !inReview && <section className="voice-call-stage" role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
       <header className="voice-call-heading">
         <div><strong>和{stewardName}通话</strong><span>{active && state.phase !== 'connecting' ? clock : '你的个人银行管家'}</span></div>
         <button type="button" className="voice-minimize" aria-label="收起语音面板" onClick={minimize}><ArrowDown size={21} aria-hidden="true"/><span>回首页</span></button>
