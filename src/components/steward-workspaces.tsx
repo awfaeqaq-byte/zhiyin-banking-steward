@@ -1,11 +1,11 @@
-import {useCallback,useEffect,useRef,useState,type ComponentProps} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState,type ComponentProps} from 'react';
 import {StewardChatHome,readConversationSnapshot} from './steward-chat-home';
 import {emptyWorkspaces,validWorkspaces,type WorkspaceOperation} from '../lib/workspaces';
 import {workspaceRequest,routeWorkspacePrompt} from '../lib/workspace-service';
 import {messageStateRequest,messageReplyRequest,type MessageClientOperation} from '../lib/message-service';
 import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-progress';
 import type {StewardChatMessage,StewardReplyRequest} from '../lib/steward-chat';
-import type {ConversationEntry,MessageOperation} from '../lib/message-flow';
+import {messageClarification,resolvedMessagePrompt,type ConversationEntry,type MessageOperation,type MessageRun} from '../lib/message-flow';
 import {WECHAT_SHARE_PREFIX} from '../lib/wechat-message-share';
 import {useSceneContinuation} from '../lib/use-scene-continuation';
 import type {SceneNext} from '../lib/scene-flow';
@@ -28,12 +28,21 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
  const [editingTitle,setEditingTitle]=useState<{id:string;value:string}>(),[deleteId,setDeleteId]=useState('');
  const [claimAttempt,setClaimAttempt]=useState(0);
  const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
+ const submitTail=useRef<Promise<unknown>>(Promise.resolve());
+ const routeTail=useRef<Promise<unknown>>(Promise.resolve());
  const currentState=useRef(state);currentState.current=state;
+ const conversationMessages=useMemo(()=>state.conversation?.map(message=>{
+  if(!message.retryPrompt||message.retryRunId||!message.messageId)return message;
+  const failed=state.runs?.find(run=>run.id===message.messageId&&['failed','interrupted'].includes(run.status));
+  // Older saved failures identify their run only through messageId. Restore
+  // that safe retry target instead of submitting the complete prompt again.
+  return failed?{...message,retryRunId:failed.id}:message;
+ }),[state.conversation,state.runs]);
  const voiceRequests=useRef(new Map<string,ReturnType<VoiceBusiness>>());
  const receiptOwner=useRef(localStorage.getItem('zhiyin-transfer-workspace')||'');
  const activeRun=state.runs?.find(r=>['routing','ready','processing'].includes(r.status));
  const job=activeRun?.jobs.find(j=>j.status==='claimed'&&j.owner===owner.current);
- const injected:Queued|undefined=job&&activeRun?{id:job.taskId,text:job.text,token:job.id,messageId:activeRun.id,replyId:job.replyId,sourceText:activeRun.prompt}:undefined;
+ const injected:Queued|undefined=job&&activeRun?{id:job.taskId,text:job.text,token:job.id,messageId:activeRun.id,replyId:job.replyId,sourceText:activeRun.sourcePrompt||activeRun.prompt}:undefined;
  const executing=useRef<Queued>();if(injected)executing.current=injected;
  const busy=Boolean(activeRun);
  const phase=activeRun?.trace.at(-1)?.stage;
@@ -100,6 +109,7 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   if(!route)return messageStateRequest(operation);
   if(!operation)return workspaceRequest();
   if(operation.type==='submit')return save({...operation,type:'message-submit'} as unknown as MessageOperation);
+  if(operation.type==='retry')return save({...operation,type:'message-retry'});
   if(operation.type==='claim')return save({type:'message-claim',id:operation.id,jobId:operation.jobId,owner:operation.owner});
   if(operation.type==='complete')return save({...operation,type:'message-complete'});
   return save({type:operation.type==='import'?'conversation-import':'conversation-append',id:operation.id,messages:operation.messages});
@@ -125,25 +135,62 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   claiming.current=true;
   void request({type:'claim',id:activeRun.id,jobId:next.id,owner:owner.current}).then(result=>{setActive(next.taskId);localStorage.setItem('zhiyin-workspace-active',next.taskId);accept(result);setError('');}).catch(cause=>{setError(cause instanceof Error?cause.message:'这条消息暂时未能领取');}).finally(()=>{claiming.current=false;});
  },[loaded,activeRun,route,accept,claimAttempt]);
+ async function routeInjectedRun(next:ReturnType<typeof emptyWorkspaces>,run:MessageRun,recent:StewardChatMessage[]=[]){
+  if(!route)return next;
+  const previous=messageClarification(next,run),revision=run.memoryRevision;
+  const tasks=next.items.map(t=>({...t,progress:t.memoryRevision===revision?t.progress:undefined,memoryRevision:revision,messages:t.messages.filter(m=>m.memoryRevision===revision)}));
+  const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId):undefined;
+  const source=run.sourcePrompt||run.prompt;
+  const clarification=previous?JSON.stringify({original:previous.sourcePrompt||previous.prompt,question:previous.clarification}):'';
+  let result:Awaited<ReturnType<typeof routeWorkspacePrompt>>&{continuesClarification?:boolean}=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!previous&&!source.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(source,tasks,run.currentId):null)||await route(source,tasks,run.currentId,clarification,recent);
+  let sourcePrompt=run.sourcePrompt,clarificationOf=run.clarificationOf;
+  if(result.continuesClarification&&previous){
+   sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;
+   if(!result.clarification)result=await route(sourcePrompt,tasks,run.currentId,'',recent);
+  }
+  return save({type:'message-routed',id:run.id,...result,...(sourcePrompt?{sourcePrompt,clarificationOf}:{})});
+ }
+ async function dispatchInjectedRun(id:string,recent:StewardChatMessage[]=[]){
+  const routed=routeTail.current.then(async()=>{
+   const latest=await request(),run=latest.runs?.find(item=>item.id===id);
+   if(!run||run.status!=='routing')return latest;
+   try{return await routeInjectedRun(latest,run,recent);}
+   catch(cause){
+    accept(await save({type:'message-fail',id,error:cause instanceof Error?cause.message:'暂时未能理解这条消息',stage:'routing'}));throw cause;
+   }
+  });routeTail.current=routed.catch(()=>undefined);return routed;
+ }
  async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string},currentTaskId?:string){
   if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
   const contextId=currentTaskId||work?.id||'';
-  const id=meta?.messageId||crypto.randomUUID();const refreshed=props.memory?await props.memory.refresh():null;const revision=refreshed?.revision??props.memory?.current.current.revision??0;
+  const id=meta?.messageId||crypto.randomUUID();
   try{
-   const last=currentState.current.runs?.filter(r=>r.status==='waiting_user').at(-1);
-   const source=route&&last?`${last.prompt}；补充：${text}`:text;
-   let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:contextId,memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
-   if(route){
-    const tasks=next.items.map(t=>({...t,progress:t.memoryRevision===revision?t.progress:undefined,memoryRevision:revision,messages:t.messages.filter(m=>m.memoryRevision===revision)}));
-    const known=knownBillTaskId?tasks.find(t=>t.id===knownBillTaskId):undefined;
-    const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!last&&!text.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(text,tasks,contextId):null)||await route(source,tasks,contextId,'',recent);
-    next=await save({type:'message-routed',id,...result});accept(next);
-   }
+   // Preserve click order even if memory refreshes or saves finish out of order.
+   // Routing/reply work runs after persistence so it never blocks the composer.
+   const submitted=submitTail.current.then(async()=>{
+    const refreshed=props.memory?await props.memory.refresh():null;const revision=refreshed?.revision??props.memory?.current.current.revision??0;
+    const next=await request({type:'submit',id,text,displayText:meta?.displayText||text,currentId:contextId,memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);return next;
+   });submitTail.current=submitted.catch(()=>undefined);
+   await submitted;
+   if(route)accept(await dispatchInjectedRun(id,recent));
    setError('');
   }catch(cause){
    if(route){try{accept(await save({type:'message-fail',id,error:cause instanceof Error?cause.message:'暂时未能理解这条消息',stage:'routing'}));}catch{/* Preserve the first error. */}}
    else setError(cause instanceof Error?cause.message:'这条消息暂时未能提交');
    throw cause;
+  }
+ }
+ async function retryMessage(id:string){
+  const retryId=crypto.randomUUID();
+  try{
+   const refreshed=props.memory?await props.memory.refresh():null,memoryRevision=refreshed?.revision??props.memory?.current.current.revision??0;
+   const next=await request({type:'retry',id,retryId,memoryRevision});accept(next);
+   const run=next.runs?.find(item=>item.id===id);
+   if(route&&run?.status==='routing')accept(await dispatchInjectedRun(id));
+   setError('');
+  }catch(cause){
+   if(route){try{accept(await save({type:'message-fail',id,error:cause instanceof Error?cause.message:'暂时未能重试这条消息',stage:'routing'}));}catch{/* Preserve the recovery error. */}}
+   setError(cause instanceof Error?cause.message:'这条消息暂时未能重试');throw cause;
   }
  }
  async function completed(_user:string,assistant:string,revision:number,failed:boolean,progress?:TaskProgress){
@@ -167,7 +214,11 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
  };
  const persistEntries=useCallback(async(entries:ConversationEntry[])=>{
   if(!loaded)return;
-  const known=new Set(currentState.current.conversation?.map(m=>m.id));const added=entries.filter(m=>!known.has(m.id));if(!added.length)return;
+  const known=new Set(currentState.current.conversation?.map(m=>m.id));
+  const owned=new Set(currentState.current.runs?.flatMap(run=>[`user-${run.id}`,...run.jobs.map(job=>job.replyId)]));
+  // Run originals and job replies are saved by submit/complete with authoritative
+  // metadata. Only independent local follow-ups use the generic append endpoint.
+  const added=entries.filter(message=>!message.messageId&&!owned.has(message.id)&&!known.has(message.id));if(!added.length)return;
   try{if(route)await save({type:'conversation-append',id:crypto.randomUUID(),messages:added});else accept(await messageStateRequest({type:'append',id:crypto.randomUUID(),messages:added}));}catch(cause){setError(cause instanceof Error?cause.message:'聊天记录尚未保存');}
  },[loaded,route,accept]);
   return <div className="steward-workspaces">
@@ -205,7 +256,7 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
       seamless
       sceneFlows={state.scenes}
       onResumeScene={resumeScene}
-      conversationMessages={state.conversation}
+      conversationMessages={conversationMessages}
       onConversationEntries={persistEntries}
       processingPhase={phase}
       reply={props.reply||serverReply}
@@ -231,6 +282,8 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
         });
       }}
       onRoutePrompt={arrange}
+      onRetryMessage={retryMessage}
+      submissionDisabled={!loaded}
       externalBusy={busy || !loaded}
       injectedPrompt={injected}
       onTurnComplete={completed}
