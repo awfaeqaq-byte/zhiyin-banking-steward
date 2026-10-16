@@ -8,6 +8,7 @@ it('财富和选基共享产品，带回分析不会覆盖尚未发送的计划'
   localStorage.setItem('zhiyin-mode','"native"');
   const user=userEvent.setup();render(<App/>);
   await user.click(within(screen.getByRole('navigation',{name:'主导航'})).getByRole('button',{name:'财富'}));
+  await user.click(screen.getByRole('button',{name:'展开和宁宁的财富对话'}));
   await user.type(screen.getByRole('textbox',{name:'和宁宁聊财富计划'}),'先聊聊我的安排');
   await user.click(screen.getByRole('button',{name:'基金筛选'}));
   await user.click(screen.getByRole('button',{name:'查看 招商前沿医疗保健股票A'}));

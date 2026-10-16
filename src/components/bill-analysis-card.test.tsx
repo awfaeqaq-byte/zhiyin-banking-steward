@@ -15,6 +15,23 @@ const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信
 const bill=buildBillAnalysis({wechat_pay:source},'本月支出',Date.parse('2026-10-13'));
 const props={bill,onInspect:vi.fn(),onAnalyze:vi.fn()};
 
+it('任务阶段区分分析就绪、核对、授权和缺少记录，读取性质不冒充完成状态',()=>{
+ const view=render(<BillAnalysisCard {...props}/>);
+ expect(screen.getByText('分析已就绪')).toBeVisible();expect(screen.getByText(/只读分析/)).toBeVisible();
+ view.rerender(<BillAnalysisCard {...props} loading/>);
+ expect(screen.getByText('正在核对')).toBeVisible();expect(screen.queryByText('分析已就绪')).not.toBeInTheDocument();
+ view.rerender(<BillAnalysisCard {...props} error="暂不可用"/>);
+ expect(screen.getByText('核对失败')).toBeVisible();
+ view.rerender(<BillAnalysisCard {...props} bill={buildBillAnalysis({},'本月支出')}/>);
+ expect(screen.getByText('等待授权')).toBeVisible();
+ view.rerender(<BillAnalysisCard {...props} bill={{...bill,count:0}}/>);
+ expect(screen.getByText('暂无记录')).toBeVisible();
+ view.rerender(<BillAnalysisCard {...props} bill={{...bill,needsClarification:true}}/>);
+ expect(screen.getByText('等待你补充')).toBeVisible();
+ view.rerender(<BillAnalysisCard {...props} bill={{...bill,coverageIncomplete:true}}/>);
+ expect(screen.getByText('待补全记录')).toBeVisible();
+});
+
 it('固定结论由真实分类占比和最大消费生成，转出和退款不混入收支',async()=>{
  render(<BillAnalysisCard {...props}/>);
  const card=screen.getByRole('region',{name:'账单分析'});

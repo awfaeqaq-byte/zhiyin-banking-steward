@@ -54,6 +54,39 @@ it('初版先补眼前缺少的时间，不摊开完整表单，也不把模型�
  expect(screen.queryByRole('button',{name:'希望哪天送达？'})).not.toBeInTheDocument();
  expect(screen.getByRole('button',{name:'保存筹备方案'})).toBeDisabled();
 });
+it('首页筹备把缺失信息留在折叠之外，核对方案不会自动预留资金',async()=>{
+ const turn=vi.fn();
+ const fetcher=vi.fn(async(url:string,init?:RequestInit)=>{
+  if(init?.body&&JSON.parse(init.body as string).type==='reserve-occasion')throw new Error('补充需求时不应自动预留资金');
+  return {ok:true,json:async()=>url.includes('steward-reply')?{output_text:'{"text":"先确定生日时间，再安排配送。","patch":{"recipient":"爱人"}}'}:{revision:0,balance:100000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}};
+ });
+ vi.stubGlobal('fetch',fetcher);
+ render(<OccasionPlanner stewardName="宁宁" embedded conversation initialPrompt="给爱人准备生日" onConversationTurn={turn}/>);
+ await waitFor(()=>expect(turn).toHaveBeenCalled());
+ const next=screen.getByRole('region',{name:'下一步需要确认'});
+ expect(next).toBeVisible();
+ expect(next.closest('details')).toBeNull();
+ expect(screen.getByRole('button',{name:'保存筹备方案'})).toBeDisabled();
+ expect(fetcher.mock.calls.some(([,init])=>init?.body&&JSON.parse(init.body as string).type==='reserve-occasion')).toBe(false);
+});
+it('首页已保存方案直接显示预算授权，仍需独立确认才能预留',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'occasion-visible-review-')),bank=createBankStore(join(dir,'bank.json'));
+ bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});
+ bank.saveOccasion({id:'birthday',revision:1,draft:{title:'爱人生日',recipient:'爱人',budget:100000,prepareAt:Date.now()+86400000,deliverAt:Date.now()+3*86400000,address:'测试地址',contact:'叶先生',note:'低甜',productIds:['cake-light']}});
+ vi.stubGlobal('fetch',vi.fn(async(_url:string,init?:RequestInit)=>{
+  const body=init?.body?JSON.parse(init.body as string):null;
+  return {ok:true,json:async()=>body?.type==='reserve-occasion'?bank.reserveOccasion(body.id,body.revision):bank.get()};
+ }));
+ try{
+  render(<OccasionPlanner stewardName="宁宁" embedded conversation initialPlanId="birthday"/>);
+  const reserve=await screen.findByRole('button',{name:'预留这笔预算'});
+  expect(reserve).toBeVisible();expect(reserve.closest('details')).toBeNull();
+  fireEvent.click(reserve);expect(bank.get().occasions![0].status).toBe('draft');
+  const confirm=screen.getByRole('button',{name:/^确认预留 ¥1,000(?:\.00)?$/});
+  expect(confirm).toBeVisible();fireEvent.click(confirm);
+  await waitFor(()=>expect(bank.get().occasions![0].status).toBe('reserved'));
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
 it('已有订单的任务在首次打开时也不能被模型悄悄改金额；到货核对后完成释放余款',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'occasion-lock-')),bank=createBankStore(join(dir,'bank.json'));
  bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});

@@ -1,3 +1,5 @@
+import {resolveRelativeAAShares} from './aa-relative-shares';
+
 export type AAMember = {
   id: string;
   name: string;
@@ -211,6 +213,12 @@ export async function requestGroupAAPlan(
 ) {
   if (!prompt.trim() || prompt.length > 1000)
     throw new Error("请用1000字以内说明如何分摊");
+  const participantIds = plan.items.length
+    ? [...new Set(plan.items.flatMap(item=>item.shares.map(share=>share.memberId)))]
+    : selected.filter(id=>group.members.some(member=>member.id===id));
+  const relative = resolveRelativeAAShares(group,participantIds,prompt);
+  if (relative.status==='clarify') return {message:relative.message};
+  if (relative.status==='resolved' && plan.items.length>1) return {message:'这份账单有多笔费用，请确认哪一笔按半份分摊。'};
   // Required-data check only. The model still interprets expenses and share rules.
   if (/(女生|男生|女性|男性|女孩|男孩)/.test(prompt)) {
     const participating = new Set(
@@ -259,7 +267,18 @@ export async function requestGroupAAPlan(
   const data = await res.json();
   if (!res.ok || typeof data.output_text !== "string")
     throw new Error(data.error || "宁宁暂时无法回复，请重试");
-  return parseGroupAAReply(data.output_text, group);
+  const reply = parseGroupAAReply(data.output_text, group);
+  if (relative.status==='resolved' && reply.plan) {
+    if (reply.plan.items.length!==1) return {message:'请确认要按半份分摊的是哪一笔费用，当前方案尚未修改。'};
+    const original = plan.items[0];
+    const item = reply.plan.items[0];
+    const amountChange = /(?:\d+(?:\.\d+)?|[一二三四五六七八九十百千万两]+)\s*(?:元|块)|(?:金额|总额|改成|改为|改到)\s*(?:\d|[一二三四五六七八九十百千万两])/.test(prompt);
+    const splitOnly = original && !amountChange;
+    const corrected = {...reply.plan,items:[{...item,...(splitOnly?{id:original.id,title:original.title,amount:original.amount}:{}),shares:relative.shares}]};
+    const calculated = calculateGroupAA(group,corrected);
+    return {plan:corrected,message:`${relative.description} ${calculated.members.map(member=>`${member.self?'你':member.name} ${(member.amount/100).toFixed(2)}元`).join('，')}。`};
+  }
+  return reply;
 }
 
 /** Scoped parent bridge. It cannot operate on a real WeChat installation. */

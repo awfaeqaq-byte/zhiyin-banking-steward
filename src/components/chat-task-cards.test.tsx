@@ -43,8 +43,22 @@ it('订阅组件只汇总同周期签约，取消只进入核对，提醒使用�
  expect(card).toHaveTextContent('按月签约');expect(card).toHaveTextContent('¥25');expect(card).not.toHaveTextContent('¥124');
  expect(card).toHaveTextContent('扣费时间待核对');expect(cancel).not.toHaveBeenCalled();
  await userEvent.click(within(card).getByRole('button',{name:'核对并取消视频会员'}));expect(cancel).toHaveBeenCalledWith('alipay','video');
- await userEvent.click(within(card).getByRole('button',{name:'关闭视频会员提醒'}));expect(reminder).toHaveBeenCalledWith('alipay:video',false);
+ const toggle=within(card).getByRole('switch',{name:'视频会员续费提醒'});
+ expect(toggle).toBeChecked();
+ await userEvent.click(toggle);expect(reminder).toHaveBeenCalledWith('alipay:video',false);
  await userEvent.click(within(card).getByRole('button',{name:'查看自动续费清单'}));expect(open).toHaveBeenCalledOnce();
+});
+it('订阅提醒明确呈现开关状态，键盘可开启且禁用时不修改偏好',async()=>{
+ const reminder=vi.fn(),props={onReviewCancel:vi.fn(),onToggleReminder:reminder,onOpen:vi.fn()};
+ const view=render(<SubscriptionReviewCard {...props} items={[{...item,reminderEnabled:false}]}/>);
+ const toggle=screen.getByRole('switch',{name:'视频会员续费提醒'});
+ expect(toggle).not.toBeChecked();expect(screen.getByText('已关闭')).toBeVisible();
+ toggle.focus();await userEvent.keyboard(' ');
+ expect(reminder).toHaveBeenCalledWith(item.key,true);
+ view.rerender(<SubscriptionReviewCard {...props} items={[item]} disabled/>);
+ expect(toggle).toBeChecked();expect(toggle).toBeDisabled();
+ await userEvent.click(toggle);expect(reminder).toHaveBeenCalledOnce();
+ expect(props.onReviewCancel).not.toHaveBeenCalled();
 });
 it('同步失败隐藏旧订阅金额与取消入口，空签约不冒充全部无订阅',()=>{
  const view=render(<SubscriptionReviewCard items={[item]} error="平台暂不可用" onReviewCancel={vi.fn()} onToggleReminder={vi.fn()} onOpen={vi.fn()}/>);

@@ -1,5 +1,5 @@
-import {createContext,useCallback,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
-import {ArrowUp,ChevronRight,MessageCircle} from 'lucide-react';
+import {createContext,useCallback,useContext,useEffect,useId,useRef,useState,type ReactNode} from 'react';
+import {ArrowUp,ChevronDown,ChevronRight,MessageCircle} from 'lucide-react';
 import {findWealthCatalogProduct} from '../lib/wealth-catalog';
 import {cleanWealthPlan,extractWealthPlan,requestWealthConversation,type WealthCandidate,type WealthConversationMessage,type WealthPlan} from '../lib/wealth-conversation';
 import type {StewardModelCall} from '../lib/steward-chat';
@@ -8,7 +8,7 @@ import './wealth-conversation.css';
 
 type Message=WealthConversationMessage & {id:number;candidates?:WealthCandidate[];assessmentAt?:number;planKey?:string};
 type SendOptions={snapshot?:WealthSnapshot|null;stewardName?:string;model?:StewardModelCall};
-type Session={plan:WealthPlan;setPlan:(patch:WealthPlan)=>void;messages:Message[];draft:string;setDraft:(value:string)=>void;busy:boolean;error:string;send:(options:SendOptions,retry?:boolean)=>Promise<void>};
+type Session={plan:WealthPlan;setPlan:(patch:WealthPlan)=>void;messages:Message[];draft:string;setDraft:(value:string)=>void;expanded:boolean;setExpanded:(value:boolean)=>void;busy:boolean;error:string;send:(options:SendOptions,retry?:boolean)=>Promise<void>};
 const Context=createContext<Session|null>(null);
 const planKey=(plan:WealthPlan)=>JSON.stringify({amountYuan:plan.amountYuan,termMonths:plan.termMonths});
 
@@ -16,6 +16,7 @@ function OwnedProvider({children,initialPlan}:{children:ReactNode;initialPlan?:W
  const [plan,updatePlan]=useState<WealthPlan>(()=>cleanWealthPlan(initialPlan||{}));
  const [messages,setMessages]=useState<Message[]>([]);
  const [draft,setDraft]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [expanded,setExpanded]=useState(false);
  const planRef=useRef(plan),messagesRef=useRef<Message[]>([]),busyRef=useRef(false),failedRef=useRef<WealthConversationMessage[]|null>(null),sequence=useRef(0),alive=useRef(true);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  const setPlan=useCallback((patch:WealthPlan)=>{const next=cleanWealthPlan({...planRef.current,...patch});planRef.current=next;updatePlan(next);},[]);
@@ -40,7 +41,7 @@ function OwnedProvider({children,initialPlan}:{children:ReactNode;initialPlan?:W
   }catch(reason){if(alive.current)setError(reason instanceof Error?reason.message:'暂时没有收到答复，请重试这条消息。');}
   finally{busyRef.current=false;if(alive.current)setBusy(false);}
  };
- return <Context.Provider value={{plan,setPlan,messages,draft,setDraft,busy,error,send}}>{children}</Context.Provider>;
+ return <Context.Provider value={{plan,setPlan,messages,draft,setDraft,expanded,setExpanded,busy,error,send}}>{children}</Context.Provider>;
 }
 
 /** A nested wrapper reuses the App session, while standalone views get their own safe session. */
@@ -53,23 +54,26 @@ export function useWealthConversation(){
  if(!session)throw new Error('WealthConversation requires WealthConversationProvider');
  return session;
 }
-export type WealthConversationProps={stewardName?:string;snapshot?:WealthSnapshot|null;onOpenRisk:()=>void;onViewProduct?:(id:string)=>void;focusProductId?:string;onFocusHandled?:()=>void;model?:StewardModelCall};
+export type WealthConversationProps={stewardName?:string;snapshot?:WealthSnapshot|null;onOpenRisk:()=>void;onViewProduct?:(id:string)=>void;focusProductId?:string;onFocusHandled?:()=>void;model?:StewardModelCall;compact?:boolean};
 export function WealthConversation(props:WealthConversationProps){return <WealthConversationProvider><ConversationContent {...props}/></WealthConversationProvider>;}
-function ConversationContent({stewardName='宁宁',snapshot,onOpenRisk,onViewProduct,focusProductId,onFocusHandled,model}:WealthConversationProps){
- const {plan,messages,draft,setDraft,busy,error,send}=useWealthConversation();
- const container=useRef<HTMLElement>(null),history=useRef<HTMLDivElement>(null),handled=useRef<string>();
- useEffect(()=>{if(history.current)history.current.scrollTop=history.current.scrollHeight;},[messages,busy,error]);
+function ConversationContent({stewardName='宁宁',snapshot,onOpenRisk,onViewProduct,focusProductId,onFocusHandled,model,compact=false}:WealthConversationProps){
+ const {plan,messages,draft,setDraft,expanded,setExpanded,busy,error,send}=useWealthConversation();
+ const container=useRef<HTMLElement>(null),history=useRef<HTMLDivElement>(null),input=useRef<HTMLTextAreaElement>(null),handled=useRef<string>();
+ const contentId=useId(),open=!compact||expanded;
+ useEffect(()=>{if(history.current)history.current.scrollTop=history.current.scrollHeight;},[messages,busy,error,open]);
+ useEffect(()=>{if(compact&&open)input.current?.focus({preventScroll:true});},[compact,open]);
  const assessment=snapshot?.assessment,valid=!!assessment&&assessment.expiresAt>Date.now();
  useEffect(()=>{
   if(!focusProductId){handled.current=undefined;return;}
   if(handled.current===focusProductId)return;
   const product=findWealthCatalogProduct(focusProductId);
-  if(product){setDraft(`${draft.trim()?`${draft}\n`:''}请帮我分析${product.name}`);container.current?.scrollIntoView?.({block:'nearest',behavior:'smooth'});}
+  if(product){setDraft(`${draft.trim()?`${draft}\n`:''}请帮我分析${product.name}`);setExpanded(true);container.current?.scrollIntoView?.({block:'nearest',behavior:'smooth'});}
   handled.current=focusProductId;onFocusHandled?.();
- },[focusProductId,onFocusHandled,setDraft,draft]);
+ },[focusProductId,onFocusHandled,setDraft,setExpanded,draft]);
  const submit=()=>void send({snapshot,stewardName,model});
- return <section className="wealth-conversation" aria-label={`和${stewardName}聊财富计划`} ref={container}>
-  <header><MessageCircle size={18}/><h3>和{stewardName}聊聊</h3><span>说说你的打算</span></header>
+ return <section className={`wealth-conversation${compact?' is-compact':''}`} aria-label={`和${stewardName}聊财富计划`} ref={container}>
+  {compact?<button className="wealth-conversation-toggle" type="button" aria-label={`${open?'收起':'展开'}和${stewardName}的财富对话`} aria-expanded={open} aria-controls={contentId} onClick={()=>setExpanded(!open)}><MessageCircle size={18} aria-hidden="true"/><span><strong>和{stewardName}聊聊</strong><small>{busy?'正在整理建议…':error?'答复未完成，点击重试':draft.trim()?'草稿已保留':messages.length?'继续聊你的计划':'说说投入计划或关注方向'}</small></span><ChevronDown size={18} aria-hidden="true"/></button>:<header><MessageCircle size={18} aria-hidden="true"/><h3>和{stewardName}聊聊</h3><span>说说你的打算</span></header>}
+  <div id={contentId} className="wealth-conversation-content" hidden={!open}>
   {(plan.amountYuan!==undefined||plan.termMonths!==undefined)&&<p className="wealth-conversation-plan" aria-label="当前投入计划">计划投入 <strong>{plan.amountYuan!==undefined?`${plan.amountYuan.toLocaleString('zh-CN')} 元`:'待确定'}</strong><span> · </span>持有 <strong>{plan.termMonths!==undefined?`${plan.termMonths} 个月`:'待确定'}</strong></p>}
   <div className="wealth-conversation-history" ref={history} role="log" aria-label="财富计划对话" aria-live="polite">
    {messages.length===0?<p className="wealth-conversation-intro">准备投入多少、多久会用到？也可以告诉我你关注的方向。</p>:messages.slice(-6).map(message=><div className={`wealth-conversation-message ${message.role}`} key={message.id}>
@@ -81,13 +85,14 @@ function ConversationContent({stewardName='宁宁',snapshot,onOpenRisk,onViewPro
     </div>;})}
    </div>)}
   </div>
-  {!valid&&<button className="wealth-conversation-risk" type="button" onClick={onOpenRisk}>完成风险测评，再比较产品<ChevronRight size={15}/></button>}
-  {messages.length===0&&<div className="wealth-conversation-examples" aria-label="可以这样说">{['投入1万元，持有一年','我想先了解医疗主题'].map(example=><button type="button" key={example} onClick={()=>setDraft(example)}>{example}</button>)}</div>}
+  {!valid&&!compact&&<button className="wealth-conversation-risk" type="button" onClick={onOpenRisk}>完成风险测评，再比较产品<ChevronRight size={15}/></button>}
+  {messages.length===0&&<details className="wealth-conversation-examples"><summary>看看提问示例</summary><div aria-label="可以这样说">{['投入1万元，持有一年','我想先了解医疗主题'].map(example=><button type="button" key={example} onClick={()=>{setDraft(example);input.current?.focus();}}>{example}</button>)}</div></details>}
   <form className="wealth-conversation-composer" onSubmit={event=>{event.preventDefault();submit();}}>
-   <textarea rows={2} aria-label={`和${stewardName}聊财富计划`} placeholder="说说投入计划，或问一只产品…" value={draft} maxLength={1500} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();submit();}}}/>
+   <textarea ref={input} rows={2} aria-label={`和${stewardName}聊财富计划`} placeholder="说说投入计划，或问一只产品…" value={draft} maxLength={1500} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();submit();}}}/>
    <button type="submit" disabled={busy||!draft.trim()} aria-label={`发送给${stewardName}`}><ArrowUp size={19}/></button>
   </form>
   {busy&&<p className="wealth-conversation-status" role="status">{stewardName}正在结合产品资料整理…</p>}
   {error&&<div className="wealth-conversation-error" role="alert"><p>{error}</p><button type="button" disabled={busy} onClick={()=>void send({snapshot,stewardName,model},true)}>重试这条消息</button></div>}
+  </div>
  </section>;
 }

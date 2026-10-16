@@ -505,9 +505,9 @@ function AppContent() {
   const activeNav =
     page === "cards" ? "cards"
       : page === "risk" || page === "plan" || page === "funds" ? "risk"
-      : page === "profile" || page === "settings" || page === "connections" || page === "subscriptions"
+      : page === "profile" || page === "settings" || page === "connections"
       ? "profile"
-      : ["assets", "funding", "deposits"].includes(page)
+      : ["assets", "funding", "deposits", "spending"].includes(page)
         ? "assets"
         : "home";
   const balance = hidden ? "¥ •••,•••.••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.total) : "待读取";
@@ -1045,7 +1045,7 @@ function AppContent() {
                   </div>
                   <section className="surface bank-ledger" aria-label="银行卡余额与流水">
                     <div className="section-line"><h3>可用余额</h3><button className="text-link" onClick={()=>void bank.refresh()}>刷新账户</button></div>
-                    <strong>{bank.state?bankMoney(availableBankFunds(bank.state)):'等待读取账户'}</strong>
+                    <strong>{bank.state?assetMoney(availableBankFunds(bank.state)):'等待读取账户'}</strong>
                     {bank.state&&heldOccasionBudget(bank.state)>0&&<p>账户余额 {bankMoney(bank.state.balance)} · 生活筹备预留 {bankMoney(heldOccasionBudget(bank.state))}</p>}
                     <Button disabled={!bank.state || bank.busy} onClick={()=>setBankIntent({recipientId:'mom',amount:0})}>智能转账与AA收款</Button>
                     {bank.error&&<p role="alert">{bank.error}</p>}

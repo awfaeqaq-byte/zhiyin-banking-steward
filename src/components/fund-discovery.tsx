@@ -79,8 +79,10 @@ export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning
 
   return <div className="fund-discovery">
     <header className="fund-catalog-header">
+      <div className="fund-catalog-topline">
       {(selectedFund || onBack) && <button type="button" className="fund-text-action" onClick={() => selectedFund ? setSelectedId(null) : onBack?.()} aria-label={selectedFund ? '返回基金列表' : '返回财富'}><ArrowLeft size={18} aria-hidden="true" />{selectedFund ? '基金列表' : '财富'}</button>}
       <h1>基金筛选</h1>
+      </div>
       <p>和财富页共用产品目录，选好后交给宁宁结合你的计划分析。</p>
     </header>
 

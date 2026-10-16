@@ -4,19 +4,25 @@
 
 :root {
   font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  color: #142b38;
-  background: #f4f7f6;
+  color: #133346;
+  background: #f1fafc;
   font-synthesis: none;
   font-weight: 400;
-  --ink: #142b38;
-  --muted: #61757d;
-  --teal: #206a70;
-  --teal-dark: #14545c;
-  --pale: #eaf4f3;
-  --line: #e4ebe8;
+  --ink: #133346;
+  --muted: #506d7c;
+  --teal: #007d7c;
+  --teal-dark: #006665;
+  --pale: #eaf8f7;
+  --line: #d5ebee;
   --paper: #fff;
+  --canvas: #f1fafc;
+  --text-secondary: var(--muted);
+  --control-hover: #dff2f4;
+  --font-body: 14px;
+  --font-caption: 12px;
+  --radius-control: 10px;
   --amber: #a06b25;
-  --radius: 16px;
+  --radius: 14px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 * {
@@ -1168,7 +1174,7 @@ select {
   justify-content: center;
   gap: 8px;
   border: 1px solid transparent;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   border-radius: 10px;
   min-height: 44px;
@@ -1192,18 +1198,18 @@ select {
   background: var(--teal-dark);
 }
 .button-secondary {
-  background: #e8f2ee;
+  background: var(--pale);
   color: var(--teal-dark);
 }
 .button-secondary:hover {
-  background: #dcebe5;
+  background: var(--control-hover);
 }
 .button-ghost {
   background: transparent;
-  color: #677d74;
+  color: var(--muted);
 }
 .button-ghost:hover {
-  background: #eaf1ed;
+  background: var(--pale);
 }
 .button-danger {
   background: #fff;
@@ -1217,8 +1223,8 @@ select {
   width: 100%;
 }
 .fine-print {
-  font-size: 10px;
-  color: #71847c;
+  font-size: 12px;
+  color: var(--muted);
   text-align: center;
   margin-top: 15px;
   line-height: 1.8;

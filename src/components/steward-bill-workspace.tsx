@@ -4,6 +4,7 @@ import {buildBillAnalysis,billReferenceTime} from '../lib/bill-analysis';
 import {billProvider,billScopeQuestion,type BillUI,type BillInteraction,type BillFocus} from '../lib/steward-ui';
 import {formatCny,type ConnectedFinancialSource,type ExternalFinancialProvider,type FinancialScope} from '../lib/financial-connections';
 import {Button} from './ui/button';
+import {TaskCardHeader} from './task-card-header';
 import './steward-bill-workspace.css';
 
 type Connections=Partial<Record<ExternalFinancialProvider,ConnectedFinancialSource>>;
@@ -45,7 +46,7 @@ export function InlineBillConsent({provider,connections,onConnect,onComplete,dis
     finally{lock.current=false;if(mounted.current)setBusy(null);}
   }
   return <section className="steward-inline-consent" aria-label="账单读取范围" aria-busy={Boolean(busy)}>
-    <header><ReceiptText size={21} aria-hidden="true"/><div><h2>这次看哪些账单？</h2><p>确认读取范围后，我接着整理刚才的问题。</p></div></header>
+    <TaskCardHeader title="这次看哪些账单？" icon={<ReceiptText/>} status={busy==='continuing'?'正在整理':busy?'等待平台确认':error?'待重新确认':allGranted?'已获读取授权':'等待你确认'} tone={error?'warning':busy?'neutral':allGranted?'success':'attention'} meta="确认读取范围后，我接着整理刚才的问题。"/>
     <fieldset className="bill-provider-choices"><legend className="sr-only">选择账单来源</legend>{providers.map(p=><label key={p.id}>
       <input type="checkbox" aria-label={p.name} checked={selected.includes(p.id)} disabled={Boolean(busy)||disabled} onChange={e=>setSelected(current=>e.target.checked?[...current,p.id]:current.filter(id=>id!==p.id))}/>
       <span>{p.name}</span><Check size={16} aria-hidden="true"/>
@@ -110,7 +111,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
     </div>;
   }
   return <section className="steward-bill-scene" aria-label="账单工作区" aria-busy={loading||disabled}>
-    <header className="bill-scene-heading"><h2>支出一起看清楚</h2><span>{bill.from} — {bill.to}</span></header>
+    <TaskCardHeader title="支出一起看清楚" icon={<ReceiptText/>} status={error?'核对失败':loading?'正在核对':bill.needsClarification?'等待你补充':!bill.sources.length?'等待授权':!bill.count?'暂无记录':bill.coverageIncomplete?'待补全记录':'分析已就绪'} tone={error?'danger':loading?'neutral':bill.needsClarification||!bill.sources.length||!bill.count||bill.coverageIncomplete?'attention':'success'} meta={<><p>{bill.needsClarification?'日期范围待确认':`${bill.from} — ${bill.to}`}</p><p>只读分析 · 基于当前已授权的沙箱账单</p></>}/>
     <div className="bill-scene-sources" role="group" aria-label="账单平台范围">
       <button aria-label="查看全部平台" aria-pressed={!provider} disabled={frozen} onClick={()=>switchSource()}>全部</button>
       {providers.map(p=><button key={p.id} aria-label={`只看${p.name}`} aria-pressed={provider===p.id} disabled={frozen} onClick={()=>switchSource(p.id)}>{p.name}</button>)}
@@ -135,6 +136,5 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
       </details>
       {onRequestConnection&&providers.filter(p=>!connections[p.id]?.scopes.includes('transactions')).map(p=><button key={p.id} className="bill-scene-link" disabled={frozen} onClick={()=>onRequestConnection(p.id)}>加入{p.name}账单<ArrowRight size={15} aria-hidden="true"/></button>)}
     </>}
-    <p className="bill-ui-note bill-scene-footer">只读分析 · 基于当前已授权的沙箱账单</p>
   </section>;
 }

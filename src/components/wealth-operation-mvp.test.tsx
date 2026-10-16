@@ -44,7 +44,9 @@ describe('理财操作页面端到端沙箱场景',()=>{
   expect(screen.queryByRole('slider',{name:'试算持有期限'})).not.toBeInTheDocument();
   expect(screen.getByRole('region',{name:'基金目录'})).toBeInTheDocument();
   expect(within(screen.getByRole('region',{name:'基金目录'})).getAllByRole('article')).toHaveLength(11);
-  expect(screen.getByRole('textbox',{name:'和宁宁聊财富计划'})).toBeInTheDocument();
+  expect(screen.queryByRole('textbox',{name:'和宁宁聊财富计划'})).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button',{name:'展开和宁宁的财富对话'}));
+  expect(screen.getByRole('textbox',{name:'和宁宁聊财富计划'})).toBeVisible();
  });
  it('真实市场样本只作背景；交互比较会同步费用、期限和余额约束',async()=>{
   mockServer();const user=userEvent.setup();render(<WealthConversationProvider initialPlan={{amountYuan:30000,termMonths:12}}><WealthOperationMvp/><UpdatePlan/></WealthConversationProvider>);

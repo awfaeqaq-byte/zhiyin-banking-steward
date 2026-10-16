@@ -95,8 +95,8 @@ function WealthOperationContent({availableBalance,stewardName='宁宁',onOpenFun
     </div>}
 
     {screen==='products'&&<>
-      <WealthConversation stewardName={stewardName} snapshot={snapshot} onOpenRisk={startAssessment} focusProductId={focusProductId||localFocus} onFocusHandled={()=>{setLocalFocus(undefined);onFocusHandled?.();}} onViewProduct={id=>{if(wealthProducts.some(item=>item.id===id)){setSelected(id);setScreen('detail');}else onOpenFund?.(id);}}/>
-      {assessment&&!editingRisk?<div className="wealth-bank-risk" role="status"><div><span>我的风险测评</span><strong>当前风险等级：{riskName[assessment.risk]}</strong><small>有效至 {new Date(assessment.expiresAt).toLocaleDateString('zh-CN')}</small></div><button type="button" onClick={startAssessment}>调整风险偏好</button></div>:<div className="wealth-bank-gate" role="status"><h3>先完成风险测评</h3><p>完成并保存风险测评后，宁宁会结合你的计划筛选产品。你也可以先浏览下方基金目录。</p><Button onClick={startAssessment}>开始风险测评</Button></div>}
+      <WealthConversation compact stewardName={stewardName} snapshot={snapshot} onOpenRisk={startAssessment} focusProductId={focusProductId||localFocus} onFocusHandled={()=>{setLocalFocus(undefined);onFocusHandled?.();}} onViewProduct={id=>{if(wealthProducts.some(item=>item.id===id)){setSelected(id);setScreen('detail');}else onOpenFund?.(id);}}/>
+      {assessment&&!editingRisk?<div className="wealth-bank-risk" role="status"><div><strong>当前风险等级：{riskName[assessment.risk]}</strong><small>有效至 {new Date(assessment.expiresAt).toLocaleDateString('zh-CN')}</small></div><button type="button" onClick={startAssessment}>调整风险偏好</button></div>:<div className="wealth-bank-gate" role="status"><h3>先完成风险测评</h3><p>完成并保存风险测评后，再结合你的计划筛选产品。</p><Button onClick={startAssessment}>开始风险测评</Button></div>}
       {canCompare&&<>
         <div className="wealth-bank-section-title"><div><h3>{hasPlan?'符合当前计划':'账户产品'}</h3></div><small>{hasPlan?'已结合风险、金额与持有期':'先了解规则，聊完计划再核对'}</small></div>
 

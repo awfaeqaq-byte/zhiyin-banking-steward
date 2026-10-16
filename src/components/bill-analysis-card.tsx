@@ -5,6 +5,7 @@ import {billReplyFacts} from '../lib/bill-reply-grounding';
 import {formatCny} from '../lib/financial-connections';
 import type {BillFocus} from '../lib/steward-ui';
 import {Button} from './ui/button';
+import {TaskCardHeader} from './task-card-header';
 import './chat-task-cards.css';
 import './bill-analysis-card.css';
 
@@ -17,8 +18,8 @@ export function BillAnalysisCard({bill,stewardName='宁宁',loading=false,error=
  const shares=billReplyFacts(bill).categoryShares;
  const top=shares[0],largest=bill.largest[0],trend=bill.diagnosis.trend;
  return <section className="steward-task-card bill-analysis-card" aria-label="账单分析" aria-busy={loading}>
-  <header><span><ReceiptText size={19} aria-hidden="true"/><strong>账单分析</strong></span><span className="task-card-status">{error||loading?'数据待核对':bill.coverageIncomplete?'部分记录':'只读分析'}</span></header>
-  <p className="bill-card-scope">{bill.needsClarification?'日期范围待确认':`${bill.from} — ${bill.to}`}<span>{bill.sources.join(' · ')||'账单来源待授权'}</span></p>
+  <TaskCardHeader title="账单分析" icon={<ReceiptText/>} status={error?'核对失败':loading?'正在核对':bill.needsClarification?'等待你补充':!bill.sources.length?'等待授权':!bill.count?'暂无记录':bill.coverageIncomplete?'待补全记录':'分析已就绪'} tone={error?'danger':loading?'neutral':!ready||bill.coverageIncomplete?'attention':'success'} meta={`只读分析 · ${bill.sources.join(' · ')||'账单来源待授权'}`}/>
+  <p className="bill-card-scope">{bill.needsClarification?'日期范围待确认':`${bill.from} — ${bill.to}`}</p>
   {error?<p role="alert">{error}。金额与分析待核对，请稍后重试。</p>:loading?<p className="task-card-explanation" role="status">正在核对账单数据…</p>:bill.needsClarification?<p className="task-card-explanation">需要先确认月份或日期范围，再计算这次账单。</p>:!bill.sources.length?<p className="task-card-explanation">需要账单读取授权，才能分析这个范围。</p>:!bill.count?<p className="task-card-explanation">这段时间未返回交易记录，不代表没有消费。</p>:<>
    {bill.coverageIncomplete&&<p className="bill-card-limitation">{bill.coverage}</p>}
    <dl className="bill-card-totals"><div><dt>{bill.coverageIncomplete?'已返回消费小计':'消费支出'}</dt><dd>{formatCny(bill.expense)}</dd></div><div><dt>普通入账</dt><dd>{formatCny(bill.income)}</dd></div></dl>

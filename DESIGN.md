@@ -2,26 +2,26 @@
 name: 知银
 description: 亲切、可信、由用户掌握每一步的个人银行管家界面
 colors:
-  teal: "#206a70"
-  teal-dark: "#14545c"
-  pale: "#eaf4f3"
-  ink: "#142b38"
-  muted: "#61757d"
-  canvas: "#f4f7f6"
-  mobile-canvas: "#fafcfb"
+  teal: "#007d7c"
+  teal-dark: "#006665"
+  pale: "#eaf8f7"
+  ink: "#133346"
+  muted: "#506d7c"
+  canvas: "#f1fafc"
+  mobile-canvas: "#f1fafc"
   paper: "#fff"
-  line: "#e4ebe8"
+  line: "#d5ebee"
   sidebar: "#f0f5f2"
   nav-selected: "#dfece5"
-  secondary: "#e8f2ee"
-  secondary-hover: "#dcebe5"
-  ghost: "#677d74"
-  ghost-hover: "#eaf1ed"
+  secondary: "#eaf8f7"
+  secondary-hover: "#dff2f4"
+  ghost: "#506d7c"
+  ghost-hover: "#eaf8f7"
   danger: "#b34c51"
   danger-hover: "#fff2f1"
   status: "#477962"
   status-bg: "#e9f3ec"
-  focus: "#68aab0"
+  focus: "#007d7c"
 typography:
   display:
     fontFamily: '"PingFang SC", "Microsoft YaHei", system-ui, sans-serif'
@@ -40,19 +40,19 @@ typography:
     fontWeight: 600
     lineHeight: 1.5
   body:
-    fontSize: "12px"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.7
   label:
-    fontSize: "13px"
+    fontSize: "14px"
     fontWeight: 500
     lineHeight: 1.5
 rounded:
   chip: "6px"
-  field: "9px"
+  field: "10px"
   button: "10px"
   inset: "12px"
-  card: "16px"
+  card: "14px"
   dialog: "22px"
   sheet: "24px"
 spacing:
@@ -60,8 +60,8 @@ spacing:
   compact: "12px"
   row: "18px"
   panel: "24px"
-  desktop-gutter: "46px"
-  mobile-gutter: "22px"
+  desktop-gutter: "28px"
+  mobile-gutter: "18px"
 components:
   button-primary:
     backgroundColor: "{colors.teal}"
@@ -128,7 +128,7 @@ components:
 
 **Creative North Star: "亲切可信的私人银行管家"**
 
-知银以深墨蓝文字、克制的青绿强调和接近暖白的底色呈现个人银行服务。留白与细边框组织信息，数字保持清楚，语气温和而不轻佻。宁宁与阿衡采用同一界面系统，以人物肖像和引导文案表达陪伴方式的差异。
+知银以首页的浅蓝白画布、墨蓝文字和青绿操作色呈现个人银行服务。留白与细边框组织信息，数字保持清楚，语气温和而不轻佻。宁宁与阿衡采用同一界面系统，以人物肖像和引导文案表达陪伴方式的差异。
 
 这是已实现原型的视觉记录，依据 `PRODUCT.md`、`src/index.css`、`src/App.tsx` 和 `src/components/ui/`。前置 token 是后续页面的基准；组件和断点中的局部值以当前样式表为事实来源。
 
@@ -136,13 +136,21 @@ components:
 
 - 深色文字、青绿操作与浅色承载面形成清楚层级。
 - 以圆角卡片、带图标的列表和简短解释降低阅读负担。
-- 桌面侧栏与移动底栏共享“管家、资产、我的”三个入口。
+- 桌面侧栏与移动底栏共享“管家、资产、财富、卡片、我的”入口。
 - 管家解释、方案核对和用户确认保持视觉区分。
 - AI 原生首页是一条默认安静的连续会话，只让明确需要处理的授权事件进入首屏。
 
+## 2026-10-16 统一规则
+
+用户指定首页为全站视觉基准。`src/components/app-theme.css` 负责画布、页标题、通用控件与弹层；业务组件继承根 token，并保留月历、账本、商品和图表的必要布局。经典模式继续可用。
+
+任务统一采用 `TaskCardHeader`：标题与真实阶段在首行，来源和操作性质位于次级元信息。正文展示当前方案，一处主要下一步；证据和完整编辑按需展开。不得用“只读分析”“平台签约”充当阶段，也不得仅凭有金额或有订单就显示完成。
+
+移动页边距 18px、窄屏 12px，控件至少 44px，控件圆角 10px、内容面 14px。账户余额固定两位小数，业务金额保留准确的分值。详情页底色与首页一致，返回按钮及导航归属稳定。
+
 ## Colors
 
-主色沉静，背景略带灰绿；暖白人物选择面板增加亲近感。
+主色沿用首页青绿，背景采用浅蓝白；平台来源和风险状态保留各自语义色。
 
 ### Primary
 
@@ -169,9 +177,9 @@ components:
 使用系统中文无衬线字体，无外部字体依赖。金额采用等宽数字排列；字形大小与权重优先表达层级，少用额外装饰。
 
 - **Display**：账户余额；普通桌面使用前置 token，大屏为 43px，手机为 35px，窄屏为 31px。
-- **Headline**：首页问候；手机为 28px，最窄断点为 26px。详情页标题桌面为 27px，手机为 23px。
-- **Title**：板块标题；对话框标题为 21px。
-- **Body**：说明通常为 12–13px，行高为 1.7–1.9；辅助标签常为 10–11px。保留原型的实际尺度，不把小号辅助字推广为新的正文默认值。
+- **Headline**：首页问候；手机为 28px，最窄断点为 26px。统一详情页标题桌面为 22px，手机为 21px。
+- **Title**：板块标题 16px；对话框标题 20px。
+- **Body**：正文 14px，辅助信息至少 12px，行高 1.6–1.7；来源、核对时间与状态不能继续以 10px 承担重要信息。
 - **Label**：按钮为前置 token；列表标题通常为 13–14px、550–600 字重。
 
 金额展示保留货币符号和小数精度，说明文字不与数字争夺主视觉。移动表单输入为 16px，普通桌面输入为 15px。

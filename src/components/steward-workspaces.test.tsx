@@ -6,13 +6,31 @@ import { changeWorkspaces, emptyWorkspaces } from '../lib/workspaces';
 import type { StewardReplyRequest } from '../lib/steward-chat';
 import * as expenseService from '../lib/expense-service';
 import * as groupAA from '../lib/group-aa';
-import { changeExpenses, emptyExpenseState, type ExpenseCommand } from '../lib/expense-notebook';
+import { changeExpenses, emptyExpenseState, entryAllocations, type ExpenseCommand } from '../lib/expense-notebook';
 import type {routeWorkspacePrompt} from '../lib/workspace-service';
 import type {ConnectedFinancialSource} from '../lib/financial-connections';
 import {buildWechatShare} from '../lib/wechat-message-share';
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 const props = { stewardName:'宁宁', stewardImage:'/n.png', connections:{}, disabledReminders:[], onToggleReminder:vi.fn(), onOpenSubscriptions:vi.fn(), onPrepareCancel:vi.fn() };
+it('一句总额加明细的AA说明只记20元并回复一次，个人可乐不重复均摊',async()=>{
+ const api=server(),group={id:'dinner-group',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true},{id:'li',name:'李娜'},{id:'wang',name:'小王'}]};
+ let expenses=changeExpenses(emptyExpenseState(),{type:'create',bookId:'dinner-book',title:'周末聚餐',group,participants:['me','li','wang'],defaultPayerId:'me',revision:0,requestId:'create-book'});
+ vi.spyOn(expenseService,'expenseRequest').mockImplementation(async(op,revision)=>{if(op)expenses=changeExpenses(expenses,{...op,revision,requestId:crypto.randomUUID()} as ExpenseCommand);return expenses;});
+ const interpret=vi.spyOn(expenseService,'requestExpenseReply');
+ for(const operation of [{type:'create',id:'dinner-task',title:'周末聚餐',kind:'aa'},{type:'link',id:'dinner-task',expenseBookId:'dinner-book'}])await fetch('/api/zhiyin/workspaces',{method:'POST',body:JSON.stringify({...operation,revision:api.state().revision,requestId:crypto.randomUUID()})});
+ localStorage.setItem('zhiyin-workspace-active','dinner-task');
+ render(<StewardWorkspaces {...props} onOpenGroupAA={vi.fn()} route={async text=>({parts:text.split('，').map(part=>({taskId:'dinner-task',kind:'aa',title:'周末聚餐',text:part}))})}/>);
+ const prompt='饮料20，我可乐4块，然后买了4瓶啤酒16aa';await say(prompt);
+ await screen.findByText('饮料共20元：可乐4元由你承担，啤酒16元按本次参与人平分。');
+ await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
+ expect(interpret).toHaveBeenCalledTimes(1);expect(interpret.mock.calls[0][1]).toBe(prompt);
+ expect(expenses.books[0].entries).toHaveLength(1);
+ expect(expenses.books[0].entries[0]).toMatchObject({amount:2000,fixed:[{memberId:'me',amount:400}]});
+ expect(entryAllocations(group,expenses.books[0].entries[0]).reduce((total,member)=>total+member.amount,0)).toBe(2000);
+ expect(api.state().conversation?.filter(message=>message.role==='assistant')).toHaveLength(1);
+ expect(document.querySelectorAll('.steward-message.assistant')).toHaveLength(1);
+});
 it('分流失败在用户消息旁给出说明和重试入口，重试成功才启动回复',async()=>{
  server();const user=userEvent.setup();
  const route=vi.fn<typeof routeWorkspacePrompt>().mockRejectedValueOnce(new Error('模型服务未返回有效内容')).mockImplementation(async text=>({parts:[{taskId:null,kind:'general',title:'闲聊',text}]}));

@@ -42,6 +42,16 @@ it('已授权来源不重复申请，缺少选择时禁止继续',async()=>{
  await user.click(screen.getByRole('button',{name:'继续分析账单'}));
  expect(connect).not.toHaveBeenCalled();expect(complete).toHaveBeenCalled();
 });
+it('平台已授权后继续整理时不再显示等待平台确认',async()=>{
+ let finish!:()=>void;
+ const complete=vi.fn(()=>new Promise<void>(resolve=>{finish=resolve;}));
+ render(<InlineBillConsent provider="wechat_pay" connections={{wechat_pay:wechat}} onConnect={vi.fn()} onComplete={complete}/>);
+ await userEvent.click(screen.getByRole('button',{name:'继续分析账单'}));
+ expect(screen.getByText('正在整理')).toBeVisible();
+ expect(screen.queryByText('等待平台确认')).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'继续整理原问题…'})).toBeDisabled();
+ await act(async()=>{finish();});
+});
 it('平台和分类仅切换展示，明确请宁宁解释时才发起问答',async()=>{
  const user=userEvent.setup(),change=vi.fn(),viewChange=vi.fn();
  render(<StewardBillWorkspace question="本月支出" connections={{wechat_pay:wechat,alipay}} onInteract={change} onViewChange={viewChange}/>);

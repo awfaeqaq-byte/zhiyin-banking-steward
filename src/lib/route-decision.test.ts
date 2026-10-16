@@ -3,6 +3,27 @@ import {routingSegments,materializeRoutes,conversationRoute} from './route-decis
 import {sharePrompt,buildWechatShare} from './wechat-message-share';
 import type {Workspace} from './workspaces';
 const birthday:Workspace={id:'birthday',kind:'general',title:'朋友生日',status:'active',updatedAt:0,memoryRevision:0,summary:'',messages:[],progress:{goal:'生日',stage:'waiting_user',waitingFor:{field:'reply',question:'7月15号，对吗？'}}};
+const dinner:Workspace={...birthday,id:'dinner',kind:'aa',title:'周末聚餐',progress:undefined};
+it('同一AA事项的总额和个人明细保留为完整的一次处理，模型分句不能重复记账',()=>{
+ const prompt='饮料20，我可乐4块，然后买了4瓶啤酒16aa';
+ const parts=['饮料','个人可乐','啤酒'].map((title,id)=>({taskId:dinner.id,kind:'aa',title,segmentIds:[id]}));
+ const result=materializeRoutes({parts},prompt,[dinner]);
+ expect(result.parts).toHaveLength(1);expect(result.parts[0]).toMatchObject({taskId:dinner.id,kind:'aa',text:prompt});
+});
+it('新AA的总额明细也一起处理，但不同活动和独立消费不能按数字碰巧相等合并',()=>{
+ const breakdown='饮料20，我可乐4块，然后买了4瓶啤酒16aa';
+ const parts=['饮料','可乐','啤酒'].map((title,id)=>({taskId:null,kind:'aa',title,segmentIds:[id]}));
+ expect(materializeRoutes({parts},breakdown,[]).parts).toHaveLength(1);
+ const independent='午餐20，停车4，晚饭16';
+ expect(materializeRoutes({parts},independent,[]).parts).toHaveLength(3);
+ const other={...dinner,id:'other'};
+ expect(materializeRoutes({parts:parts.map((p,i)=>({...p,taskId:i===0?dinner.id:other.id}))},breakdown,[dinner,other]).parts).toHaveLength(3);
+});
+it('含总额字样的不同餐次仍保持为两个新事项',()=>{
+ const prompt='早餐共20，其中咖啡4；晚饭啤酒16';
+ const parts=[{taskId:null,kind:'aa',title:'早餐',segmentIds:[0,1]},{taskId:null,kind:'aa',title:'晚饭',segmentIds:[2]}];
+ expect(materializeRoutes({parts},prompt,[]).parts.map(part=>part.text)).toEqual(['早餐共20，其中咖啡4','晚饭啤酒16']);
+});
 describe('系统持有原文的分流协议',()=>{
  it('单任务只使用分类信息，模型改写text也不会改变用户原话',()=>{
   expect(materializeRoutes({parts:[{taskId:null,kind:'general',title:'咨询',text:'旧消息里的另一句话'}]},'最近有点困惑',[]).parts[0].text).toBe('最近有点困惑');

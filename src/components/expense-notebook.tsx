@@ -34,6 +34,8 @@ import {collectionProgress,expenseActivityClosed,expenseProgressText} from '../l
 import {remindExpenseTomorrow,finishExpenseReminder} from '../lib/expense-reminder';
 import {sceneExpenseRequest,sceneExpenseCandidates,sourceExpenseNet,sourceExpenseIssue,sourceExpenseAdjustment,type SceneExpenseSource} from '../lib/scene-expenses';
 import type {SceneContext} from '../lib/scene-context';
+import {TaskCardHeader} from './task-card-header';
+import {expenseBreakdownSummary} from '../lib/expense-breakdown';
 export type ExpenseNotebookHandle = {
   handle: (prompt: string) => Promise<string | null>;
 };
@@ -236,7 +238,7 @@ export const ExpenseNotebook = forwardRef<
       const allocations = entryAllocations(b.group, entry).filter(
         (m) => m.amount > 0,
       );
-      text = `${result.action === "edit" ? "已更正" : "记下了"}：${entry.title} ${money(entry.amount)}。${isDefaultExpenseSplit(b, entry) ? "按这次参与人平分" : allocations.length <= 4 ? allocations.map((m) => `${m.self ? "你" : m.name} ${money(m.amount)}`).join("，") : `共 ${allocations.length} 人分摊，可展开明细核对`}。`;
+      text = expenseBreakdownSummary(b,prompt,entry) || `${result.action === "edit" ? "已更正" : "记下了"}：${entry.title} ${money(entry.amount)}。${isDefaultExpenseSplit(b, entry) ? "按这次参与人平分" : allocations.length <= 4 ? allocations.map((m) => `${m.self ? "你" : m.name} ${money(m.amount)}`).join("，") : `共 ${allocations.length} 人分摊，可展开明细核对`}。`;
       setReview(false);
       setExpanded(false);
       setNotice("");
@@ -440,18 +442,23 @@ export const ExpenseNotebook = forwardRef<
   const outstanding = book?.entries.filter((e) => !e.batchId&&!(e.source&&sourceExpenseNet(e.source)===0)) ?? [];
   const candidates=sceneExpenseCandidates(state,sources);
   const splitSummary = book && review ? expenseSplitSummary(book, selected) : null;
+  const closed=!!book&&expenseActivityClosed(book);
+  const needsReconciliation=!!book?.batches.some(batch=>batch.sourceChanged);
+  const phase=error||sourceError?'需要重新核对':setup?'待确认参与人':needsReconciliation?'待核对差额':review?'待核对分摊':candidates.length?'待确认费用':closed?'已结清':book?.batches.some(batch=>batch.status==='prepared')?'待微信确认':outstanding.length?'待结算':book?.batches.length?'待核对收款':book?'记录中':'待确认费用';
+  const activeWorkspace=!!book||setup||candidates.length>0;
   return (
     <section
-      className="expense-notebook"
+      className={`expense-notebook${activeWorkspace?' expense-notebook-active':''}`}
       aria-label="随手记消费"
       aria-busy={busy}
     >
       <fieldset disabled={busy}>
+        {activeWorkspace&&<TaskCardHeader title={book?.title||activityTitle||'AA消费记录'} icon={<BookOpen size={18}/>} status={phase} tone={error||sourceError||needsReconciliation?'warning':closed?'success':phase==='记录中'?'neutral':'attention'} meta={book?`${book.group.name} · ${book.participants.length} 人参与`:undefined}/>}
         {candidates.length>0&&<section className="expense-source-review" aria-label="本次订单实付">
           <strong>这次已经付过的费用</strong>
           <p>从原订单带入实付，不用再填写金额。{book?'先按本次参与人平分，可继续调整。':'选择微信群和参与人后，再确认记入。'}</p>
           {candidates.map(source=><div className="expense-source-row" key={source.id}><span><strong>{source.title}</strong><small>{source.merchant}</small><small>原实付 {money(source.paidAmount)}{source.refundedAmount>0?` · 已退款 ${money(source.refundedAmount)}`:''}</small></span><span className="expense-source-amount"><small>本次记入</small><b>{money(sourceExpenseNet(source))}</b></span></div>)}
-          {book?<button className="expense-primary" onClick={()=>void importSources()}>确认记入这 {candidates.length} 笔费用</button>:!setup&&<button className="expense-primary" onClick={()=>{setSetup(true);setExpanded(true);}}>选择这次参与人</button>}
+          {book?<button className={review?'':'expense-primary'} onClick={()=>void importSources()}>确认记入这 {candidates.length} 笔费用</button>:!setup&&<button className="expense-primary" onClick={()=>{setSetup(true);setExpanded(true);}}>选择这次参与人</button>}
         </section>}
         {sourceError&&<p className="expense-source-warning" role="alert">{sourceError}<button onClick={()=>void run(async()=>{await loadSources();})}>重新核对订单</button></p>}
         {!conversation && !book && !setup && (
@@ -485,20 +492,29 @@ export const ExpenseNotebook = forwardRef<
           <>
             <button
               className="expense-heading"
+              aria-label={`${book.title} · ${expanded?'收起账本':'展开账本'}`}
               aria-expanded={expanded}
               onClick={() => setExpanded(!expanded)}
             >
-              <BookOpen size={18} />
               <span>
-                <strong>{book.title}</strong>
-                <small>
-                  {expenseActivityClosed(book) ? '已结清归档 · 明细保留' : outstanding.length
+                <strong>
+                  {closed ? '已结清归档 · 明细保留' : outstanding.length
                     ? `${outstanding.length} 笔待结算 · ${money(outstanding.reduce((n, e) => n + e.amount, 0))}`
                     : book.batches.length ? '群收款跟进 · 展开查看' : "随时告诉我下一笔消费"}
-                </small>
+                </strong>
+                <small>{expanded?'收起账本':'查看消费与分摊依据'}</small>
               </span>
               <ChevronDown size={17} />
             </button>
+            {outstanding.length > 0 && !review && (
+              <button className={candidates.length?'':'expense-primary'} onClick={() => {
+                setSelected(outstanding.map((e) => e.id));
+                setReview(true);
+                setExpanded(true);
+              }}>核对并结算</button>
+            )}
+            {review&&!expanded&&<button className="expense-primary" onClick={()=>setExpanded(true)}>继续核对分摊</button>}
+            {!expanded&&!review&&!outstanding.length&&book.batches.length>0&&!closed&&<button className="expense-primary" onClick={()=>{setExpanded(true);void run(async()=>{await refreshProgress(book);});}}>核对收款进度</button>}
             {expanded && (
               <div className="expense-body">
                 <div className="expense-tools">
@@ -606,17 +622,6 @@ export const ExpenseNotebook = forwardRef<
                     )}
                   </div>
                 ))}
-                {outstanding.length > 0 && !review && (
-                  <button
-                    className="expense-primary"
-                    onClick={() => {
-                      setSelected(outstanding.map((e) => e.id));
-                      setReview(true);
-                    }}
-                  >
-                    核对并结算
-                  </button>
-                )}
                 {review && (
                   <div className="expense-review">
                     <h3>这样分可以吗？</h3>

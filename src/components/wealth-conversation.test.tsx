@@ -47,3 +47,40 @@ it('计划修改后不展示旧候选，即使旧请求刚刚返回',async()=>{
  fireEvent.click(screen.getByRole('button',{name:'改计划'}));resolve(JSON.stringify({text:'这份计划可以先核对现金管理。',candidates:[{id:'cash-plus',reason:'流动性'}]}));
  expect(await screen.findByText('计划已更新，可重新分析')).toBeInTheDocument();expect(screen.queryByRole('button',{name:'查看产品'})).not.toBeInTheDocument();
 });
+
+it('紧凑入口按需展开，收起与跨页返回仍保留未发送草稿',async()=>{
+ const user=userEvent.setup();
+ const View=({show}:{show:boolean})=><WealthConversationProvider>{show&&<WealthConversation compact snapshot={snapshot} onOpenRisk={()=>{}}/>}</WealthConversationProvider>;
+ const view=render(<View show/>);
+ expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'展开和宁宁的财富对话'}));
+ const input=screen.getByRole('textbox',{name:'和宁宁聊财富计划'});
+ expect(input).toHaveFocus();
+ await user.type(input,'年底之前都不用这笔钱');
+ await user.click(screen.getByRole('button',{name:'收起和宁宁的财富对话'}));
+ expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+ expect(screen.getByText('草稿已保留')).toBeInTheDocument();
+ view.rerender(<View show={false}/>);view.rerender(<View show/>);
+ expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'展开和宁宁的财富对话'}));
+ expect(screen.getByRole('textbox')).toHaveValue('年底之前都不用这笔钱');
+});
+
+it('收起时返回的答复保留在原对话，产品分析会展开并追加草稿',async()=>{
+ const user=userEvent.setup();let resolve!:(value:string)=>void;
+ const model=vi.fn(()=>new Promise<string>(r=>{resolve=r;}));
+ const View=({focus}:{focus?:string})=><WealthConversationProvider><WealthConversation compact model={model} snapshot={snapshot} onOpenRisk={()=>{}} focusProductId={focus}/></WealthConversationProvider>;
+ const view=render(<View/>);
+ await user.click(screen.getByRole('button',{name:'展开和宁宁的财富对话'}));
+ await user.type(screen.getByRole('textbox'),'投入1000元，持有3个月');
+ await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+ await user.type(screen.getByRole('textbox'),'先不要调整我的金额');
+ await user.click(screen.getByRole('button',{name:'收起和宁宁的财富对话'}));
+ resolve(JSON.stringify({text:'先关注这笔钱的流动性。',candidates:[]}));
+ await waitFor(()=>expect(screen.getByText('先关注这笔钱的流动性。')).toBeInTheDocument());
+ view.rerender(<View focus="medical"/>);
+ expect(screen.getByRole('textbox')).toHaveValue('先不要调整我的金额\n请帮我分析招商前沿医疗保健股票A');
+ expect(screen.getByRole('log')).toHaveTextContent('投入1000元，持有3个月');
+ expect(screen.getByRole('log')).toHaveTextContent('先关注这笔钱的流动性。');
+ expect(model).toHaveBeenCalledTimes(1);
+});

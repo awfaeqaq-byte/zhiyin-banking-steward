@@ -3,6 +3,15 @@ import {changeWorkspaces,emptyWorkspaces,type WorkspaceCommand} from './workspac
 import type {MessageOperation} from './message-flow';
 const uuid=()=>crypto.randomUUID();
 function fixture(){let state=emptyWorkspaces();return {get:()=>state,apply:(op:MessageOperation)=>state=changeWorkspaces(state,{...op,revision:state.revision,requestId:uuid()} as WorkspaceCommand)};}
+it('AA总额与分配细节只排一个业务任务，一次完成仅产生一条回复',()=>{
+ const f=fixture(),id=uuid(),owner=uuid(),prompt='饮料20，我可乐4块，然后买了4瓶啤酒16aa';
+ f.apply({type:'message-submit',id,text:prompt,currentId:'',memoryRevision:0});
+ f.apply({type:'message-routed',id,parts:['饮料20','我可乐4块','然后买了4瓶啤酒16aa'].map(text=>({taskId:null,kind:'aa',title:'聚餐饮料',text}))});
+ const run=f.get().runs![0];expect(run.jobs).toHaveLength(1);expect(run.jobs[0].text).toBe(prompt);
+ f.apply({type:'message-claim',id,jobId:run.jobs[0].id,owner});
+ f.apply({type:'message-complete',id,jobId:run.jobs[0].id,owner,assistant:'饮料共20元：可乐4元由你承担，啤酒16元按本次参与人平分。',memoryRevision:0,failed:false});
+ expect(f.get().runs![0].status).toBe('completed');expect(f.get().conversation?.filter(m=>m.role==='assistant')).toHaveLength(1);
+});
 describe('服务端消息状态与串行任务',()=>{
  it('原消息先持久化，同ID重试不会复制用户消息或替换原文',()=>{
   const f=fixture(),id=uuid();f.apply({type:'message-submit',id,text:'你好',currentId:'',memoryRevision:0});

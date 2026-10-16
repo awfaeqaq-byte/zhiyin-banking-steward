@@ -1,0 +1,12 @@
+.task-card-header { display:grid; gap:6px; min-width:0; color:var(--ink,#133346); text-align:left; }
+.task-card-heading-row { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:8px 12px; min-width:0; }
+.task-card-heading { display:flex; align-items:flex-start; gap:8px; flex:1 1 140px; min-width:0; }
+.task-card-heading-icon { display:inline-flex; flex:none; align-items:center; color:var(--teal,#007d7c); margin-top:2px; }
+.task-card-heading-icon svg { width:18px; height:18px; }
+.task-card-header .task-card-heading h2 { margin:0; min-width:0; font-size:16px; font-weight:650; line-height:1.45; letter-spacing:0; text-wrap:balance; overflow-wrap:anywhere; color:var(--ink,#133346); }
+.task-card-header .task-card-status { flex:none; max-width:100%; padding:3px 8px; border-radius:6px; background:var(--canvas,#f1fafc); color:var(--muted,#506d7c); font-size:12px; font-weight:500; line-height:1.5; overflow-wrap:anywhere; }
+.task-card-header .task-card-status[data-tone="attention"],.task-card-header .task-card-status[data-tone="success"] { background:var(--pale,#eaf8f7); color:var(--teal,#007d7c); }
+.task-card-header .task-card-status[data-tone="warning"] { background:var(--warning-bg,#fff5df); color:var(--warning,#865416); }
+.task-card-header .task-card-status[data-tone="danger"] { background:var(--danger-hover,#fff2f1); color:var(--danger,#983c35); }
+.task-card-meta { color:var(--muted,#506d7c); font-size:12px; line-height:1.65; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.task-card-meta p { margin:0; color:inherit; font-size:inherit; line-height:inherit; }
