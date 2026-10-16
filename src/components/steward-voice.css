@@ -1,27 +1,55 @@
 .steward-voice { position: relative; flex: 0 0 auto; }
 .steward-chat-composer.has-voice { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
 .steward-chat-composer.has-voice .steward-composer-note { grid-column: 1 / -1; }
-.steward-chat-composer.has-voice .steward-voice > button.voice-entry { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--pale,#eaf4f3); color: var(--teal-dark); cursor: pointer; }
-.steward-chat-composer.has-voice .steward-voice > button.voice-entry:hover:not(:disabled),.steward-chat-composer.has-voice .steward-voice > button.voice-entry[aria-expanded=true] { background: var(--teal); color: white; }
+.steward-chat-composer.has-voice .steward-voice > button.voice-entry { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--pale); color: var(--teal-dark); cursor: pointer; }
+.steward-chat-composer.has-voice .steward-voice > button.voice-entry:hover:not(:disabled), .steward-chat-composer.has-voice .steward-voice > button.voice-entry[aria-expanded=true] { background: var(--teal); color: var(--paper,#fff); }
 .steward-chat-composer.has-voice .steward-voice > button.voice-entry:disabled { opacity: .5; cursor: default; }
-.voice-strip { position: absolute; z-index: 12; inset: auto 0 calc(100% + 12px) auto; width: min(350px,calc(100vw - 40px)); max-height: min(480px,calc(100dvh - 160px)); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--teal) var(--pale,#eaf4f3); padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface,#fff); color: var(--ink); transform-origin: bottom right; animation: voice-reveal 180ms cubic-bezier(.16,1,.3,1); }
-.voice-strip header { display: flex; align-items: center; gap: 10px; }
-.voice-strip header img { width: 38px; height: 38px; object-fit: cover; border-radius: 50%; }
-.voice-strip header div { flex: 1; min-width: 0; display: grid; gap: 3px; }
-.voice-strip header strong { font-size: 16px; }
-.voice-strip header span { color: var(--muted); font-size: 12px; line-height: 1.5; }
-.steward-chat-composer .steward-voice .voice-strip header button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 10px; color: var(--muted); background: transparent; cursor: pointer; }
-.voice-consent,.voice-notice,.voice-error { margin: 12px 0; font-size: 13px; line-height: 1.65; }
-.voice-consent,.voice-notice { color: var(--muted); }
-.voice-error { color: #a13d30; }
-.voice-caption { max-height: 104px; overflow: auto; margin: 12px 0; padding: 0; color: var(--ink); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
-.voice-caption span { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 12px; }
-.voice-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 8px; }
-.steward-chat-composer .steward-voice .voice-strip .voice-controls button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; width: auto; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--pale,#eaf4f3); color: var(--teal-dark); font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
-.steward-chat-composer .steward-voice .voice-strip .voice-controls button.voice-start { border-color: var(--teal); background: var(--teal); color: #fff; }
-.steward-chat-composer .steward-voice .voice-strip .voice-controls button.voice-end { color: #a13d30; background: #fff5f1; border-color: #ebcfc7; }
-.steward-chat-composer .steward-voice .voice-strip .voice-controls button:disabled { opacity: .5; cursor: default; }
-.voice-strip small { display: block; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.voice-entry:focus-visible,.voice-strip button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
-@keyframes voice-reveal { from { clip-path: inset(8% 0 0 0 round 16px); transform: translateY(4px); } to { clip-path: inset(0 round 16px); transform: translateY(0); } }
-@media (prefers-reduced-motion:reduce) { .voice-strip { animation: none; } }
+.voice-call-stage { position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; width: min(100%,800px); margin-inline: auto; color: var(--ink); background: var(--canvas,#f1fafc); padding: 20px max(20px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)); animation: voice-call-enter 220ms cubic-bezier(.16,1,.3,1); }
+.voice-call-stage *, .voice-call-bar * { box-sizing: border-box; }
+.voice-call-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.voice-call-heading > div { display: grid; gap: 4px; }
+.voice-call-heading strong { font-size: 17px; font-weight: 600; }
+.voice-call-heading span { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.steward-chat-composer .steward-voice .voice-call-stage button, .voice-review-dock button, .steward-chat-composer .steward-voice .voice-call-bar button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-width: 48px; min-height: 48px; padding: 12px; border: 0; border-radius: 12px; background: var(--pale); color: var(--teal-dark); font: inherit; font-size: 14px; cursor: pointer; }
+.steward-chat-composer .steward-voice .voice-call-stage .voice-minimize { background: transparent; }
+.voice-call-body { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--teal) var(--pale); }
+.voice-presence { position: relative; display: grid; place-items: center; width: 144px; height: 144px; flex: 0 0 auto; border-radius: 50%; background: var(--pale); }
+.voice-presence img { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); }
+.voice-presence > span { position: absolute; inset: 0; border: 1px solid var(--teal); border-radius: 50%; opacity: .35; }
+.voice-presence[data-speaking=true] > span { animation: voice-speaking 1200ms ease-out infinite; }
+.voice-call-body h2 { margin: 20px 0 8px; font-size: 30px; line-height: 1.4; font-weight: 600; letter-spacing: -.025em; }
+.voice-call-body p { margin: 0; }
+.voice-status { min-height: 28px; color: var(--teal-dark); font-size: 17px; line-height: 1.5; text-align: center; }
+.voice-call-body .voice-consent { max-width: 40ch; margin-top: 24px; color: var(--muted); font-size: 14px; line-height: 1.7; text-align: left; }
+.voice-call-body .voice-call-hint, .voice-call-body .voice-pending { margin-top: 16px; color: var(--muted); font-size: 14px; line-height: 1.7; text-align: center; }
+.voice-captions { display: grid; gap: 16px; width: 100%; max-width: 48ch; margin-top: 24px; }
+.voice-captions:empty { display: none; }
+.voice-captions p { font-size: 17px; line-height: 1.6; overflow-wrap: anywhere; }
+.voice-captions p > span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.voice-call-body .voice-error, .voice-call-body .voice-notice { max-width: 44ch; margin-top: 20px; color: var(--muted); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.voice-call-body .voice-error { color: var(--danger,#b34c51); }
+.voice-call-footer { flex: 0 0 auto; display: grid; gap: 16px; text-align: center; }
+.voice-call-footer > p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.voice-controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; }
+.steward-chat-composer .steward-voice .voice-call-stage button.voice-start { min-width: 200px; min-height: 56px; background: var(--teal); color: var(--paper,#fff); }
+.steward-chat-composer .steward-voice .voice-call-stage button.voice-control { flex-direction: column; min-width: 104px; padding: 16px; }
+.steward-chat-composer .steward-voice button.voice-end, .voice-review-dock button.voice-end { color: var(--danger,#b34c51); background: var(--danger-hover,#fff2f1); }
+.steward-chat-composer .steward-voice .voice-call-stage button:disabled { opacity: .5; cursor: default; }
+.voice-call-footer > small { font-size: 12px; line-height: 1.5; color: var(--muted); }
+.voice-call-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; color: var(--ink); background: var(--paper,#fff); border: 1px solid var(--line); border-radius: 14px; }
+.steward-voice > .voice-call-bar { position: absolute; right: 0; bottom: calc(100% + 16px); width: min(460px,calc(100vw - 40px)); }
+.steward-chat-composer .steward-voice .voice-call-bar button.voice-resume { justify-content: flex-start; gap: 10px; padding: 0; background: transparent; text-align: left; font-size: 14px; }
+.voice-resume > span { display: grid; gap: 4px; }
+.voice-resume small { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.voice-compact-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.voice-compact-controls .voice-control > span { display: none; }
+.voice-review-dock { width: 100%; margin-top: 16px; }
+.voice-review-dock .voice-call-bar { padding: 12px; }
+.voice-review-dock p { display: grid; gap: 4px; margin: 0; font-size: 14px; line-height: 1.5; }
+.voice-review-dock p > span { font-size: 12px; color: var(--muted); }
+.steward-voice button:focus-visible, .voice-review-dock button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.steward-chat-composer .steward-voice .voice-call-stage button:hover:not(:disabled), .voice-review-dock button:hover { filter: brightness(.96); }
+@keyframes voice-call-enter { from { clip-path: inset(2% 0 0 round 24px); } to { clip-path: inset(0); } }
+@keyframes voice-speaking { from { transform: scale(1); opacity: .5; } to { transform: scale(1.15); opacity: 0; } }
+@media (max-height: 560px) { .voice-call-stage { padding-block: 12px; } .voice-call-body { padding: 8px 0; } .voice-presence { width: 80px; height: 80px; } .voice-presence img { width: 64px; height: 64px; } .voice-call-body h2 { margin-top: 8px; font-size: 24px; } .voice-captions, .voice-call-body .voice-consent { margin-top: 12px; } .voice-call-footer { gap: 8px; } .steward-chat-composer .steward-voice .voice-call-stage button.voice-control { flex-direction: row; padding: 12px; } }
+@media (prefers-reduced-motion: reduce) { .voice-call-stage, .voice-presence[data-speaking=true] > span { animation: none; } }

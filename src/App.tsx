@@ -1357,6 +1357,7 @@ function AppContent() {
               conversationListOpen={conversationListOpen}
               onConversationListOpenChange={setConversationListOpen}
               voiceEnabled={mode==='native'&&page==='home'&&!['steward','privacy','memory'].includes(modal||'')}
+              voiceReviewing={!!bankIntent||!!modal}
               homePreview
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
