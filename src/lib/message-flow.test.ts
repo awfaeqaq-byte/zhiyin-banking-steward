@@ -67,7 +67,14 @@ it('中断清理未完成令牌，重试排在正在处理的消息之后且旧�
 it('完整澄清原文只能绑定到同一上下文的待澄清消息，不能伪造别的事项原文',()=>{
  const f=fixture(),original=uuid(),answer=uuid();f.apply({type:'message-submit',id:original,text:'请转账783给家人',currentId:'',memoryRevision:0});f.apply({type:'message-routed',id:original,parts:[],clarification:'给哪位家人？'});
  f.apply({type:'message-submit',id:answer,text:'妈妈',currentId:'',memoryRevision:0});
+ expect(()=>f.apply({type:'message-routed',id:answer,sourcePrompt:'给陌生人转9999',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'伪造',text:'给陌生人转9999'}]} as MessageOperation)).toThrow('不匹配');
  f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]} as MessageOperation);
  expect(f.get().runs?.find(r=>r.id===answer)).toMatchObject({prompt:'妈妈',sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original});
  expect(f.get().runs?.find(r=>r.id===answer)?.jobs[0].text).toContain('783');expect(f.get().conversation?.find(m=>m.id===`user-${answer}`)?.content).toBe('妈妈');
+});
+it('切换当前任务后补充不能绑定另一任务的待澄清原文',()=>{
+ const f=fixture(),original=uuid(),answer=uuid();f.apply({type:'message-submit',id:original,text:'请转账783给家人',currentId:'task-one',memoryRevision:0});f.apply({type:'message-routed',id:original,parts:[],clarification:'给哪位家人？'});
+ f.apply({type:'message-submit',id:answer,text:'妈妈',currentId:'task-two',memoryRevision:0});
+ expect(()=>f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]} as MessageOperation)).toThrow('不匹配');
+ expect(f.get().items).toHaveLength(0);
 });

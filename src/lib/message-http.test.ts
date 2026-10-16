@@ -22,3 +22,18 @@ it('旧记忆版本提交被拒绝，不把重置前的请求自动重新发送'
  const model=vi.fn(),service=createMessageService(dir,model);
  expect(()=>service.submit('11111111-1111-4111-8111-111111111111',{id:crypto.randomUUID(),text:'旧交代',currentId:'',memoryRevision:0})).toThrow('已变化');expect(model).not.toHaveBeenCalled();
 });
+it('HTTP失败后的原消息重试使用新领取令牌，并清除旧重试入口与残留待办',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'zhiyin-retry-http-'));dirs.push(dir);
+ const model=vi.fn().mockRejectedValueOnce(new Error('模型暂时不可用')).mockResolvedValue('现在可以继续了。');
+ const server=createServer(messageMiddleware(dir,model));servers.push(server);await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();if(!address||typeof address==='string')throw new Error('address');
+ const url=`http://127.0.0.1:${address.port}`,id=crypto.randomUUID(),owner=crypto.randomUUID(),headers={'Content-Type':'application/json','X-Zhiyin-Messages':'1','X-Zhiyin-Expense-Scope':'11111111-1111-4111-8111-111111111111'};
+ const post=(body:object)=>fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
+ await post({type:'submit',id,text:'你好',currentId:'',memoryRevision:0});let state=await (await fetch(url,{headers})).json();for(let i=0;i<5&&state.runs[0].status==='routing';i++)state=await (await fetch(url,{headers})).json();
+ const originalJob=state.runs[0].jobs[0],request={stewardName:'宁宁',subscriptions:[],messages:[]};await post({type:'claim',id,jobId:originalJob.id,owner});
+ expect((await post({type:'reply',id,jobId:originalJob.id,owner,request})).status).toBe(400);
+ state=await (await fetch(url,{headers})).json();expect(state.items[0].pending).toHaveLength(0);expect(state.conversation.at(-1).retryRunId).toBe(id);
+ const retry={type:'retry',id,retryId:crypto.randomUUID(),memoryRevision:0};state=await (await post(retry)).json();const job=state.runs[0].jobs[0];expect(job.id).not.toBe(originalJob.id);expect(state.conversation.at(-1)).not.toHaveProperty('retryRunId');
+ await post({type:'claim',id,jobId:job.id,owner});expect((await post({type:'reply',id,jobId:job.id,owner,request})).status).toBe(200);
+ state=await (await post(retry)).json();expect(state.runs).toHaveLength(1);expect(state.runs[0].status).toBe('completed');expect(model).toHaveBeenCalledTimes(2);
+ expect((await post({type:'retry',id,retryId:crypto.randomUUID(),memoryRevision:1})).status).toBe(409);
+});

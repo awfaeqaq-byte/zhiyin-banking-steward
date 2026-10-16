@@ -79,3 +79,37 @@ it('服务端失败重试复用原消息且不重放已经成功的事项',async
  expect(state.runs).toHaveLength(1);expect(state.runs![0].jobs[0].status).toBe('completed');expect(state.runs![0].jobs[1].status).toBe('queued');expect(model).toHaveBeenCalledOnce();
  service.retry(scope,{id,retryId,memoryRevision:0});expect(service.get(scope).runs![0].jobs).toEqual(state.runs![0].jobs);
 });
+it('重试旧分类不把后来新消息的追问绑定成自己的前文',async()=>{
+ const dir=fixture();let count=0;const model=vi.fn(async()=>{
+  count++;if(count===1)throw new Error('分类暂时失败');
+  if(count===2)return JSON.stringify({parts:[],clarification:'要改今晚聚餐还是周末旅行？'});
+  return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'妈妈生活费'}],continuesClarification:true});
+ });const service=createMessageService(dir,model),oldId=crypto.randomUUID();
+ service.submit(scope,{id:oldId,text:'给妈妈转500',currentId:'',memoryRevision:0});await service.idle(scope);
+ service.submit(scope,{id:crypto.randomUUID(),text:'把聚餐改成30',currentId:'',memoryRevision:0});await service.idle(scope);
+ service.retry(scope,{id:oldId,retryId:crypto.randomUUID(),memoryRevision:0});await service.idle(scope);
+ const run=service.get(scope).runs!.find(r=>r.id===oldId)!;
+ expect(run.status).toBe('ready');expect(run.jobs[0].text).toBe('给妈妈转500');expect(run).not.toHaveProperty('sourcePrompt');expect(model).toHaveBeenCalledTimes(3);
+});
+it('澄清后二次分类失败仍保存完整参数，原消息重试后可继续分类',async()=>{
+ const dir=fixture();let count=0;const model=vi.fn(async()=>{
+  count++;if(count===1)return JSON.stringify({parts:[],clarification:'给哪位家人？'});
+  if(count===2)return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'生活费'}],continuesClarification:true});
+  if(count===3)throw new Error('分类服务断开');
+  return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'生活费'}]});
+ });const service=createMessageService(dir,model),answer=crypto.randomUUID();
+ service.submit(scope,{id:crypto.randomUUID(),text:'请转账783给家人',currentId:'',memoryRevision:0});await service.idle(scope);
+ service.submit(scope,{id:answer,text:'妈妈',currentId:'',memoryRevision:0});await service.idle(scope);
+ expect(service.get(scope).runs!.find(r=>r.id===answer)).toMatchObject({status:'failed',sourcePrompt:'请转账783给家人\n补充：妈妈',jobs:[]});
+ service.retry(scope,{id:answer,retryId:crypto.randomUUID(),memoryRevision:0});await service.idle(scope);
+ expect(service.get(scope).runs!.find(r=>r.id===answer)?.jobs[0].text).toBe('请转账783给家人\n补充：妈妈');expect(model).toHaveBeenCalledTimes(4);
+});
+it('澄清超出容量明确提示重述，不截断原交代中的金额',async()=>{
+ const original=`${'用途说明'.repeat(497)}请转账783给家人`,dir=fixture();let count=0;
+ const model=vi.fn(async()=>++count===1?JSON.stringify({parts:[],clarification:'给哪位家人？'}):JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'生活费'}],continuesClarification:true}));
+ const service=createMessageService(dir,model),first=crypto.randomUUID(),answer=crypto.randomUUID();
+ service.submit(scope,{id:first,text:original,currentId:'',memoryRevision:0});await service.idle(scope);
+ service.submit(scope,{id:answer,text:'我的妈妈，她叫李梅',currentId:'',memoryRevision:0});await service.idle(scope);
+ const state=service.get(scope);expect(state.runs!.find(r=>r.id===answer)).toMatchObject({status:'failed',jobs:[],error:expect.stringContaining('超过2000字')});
+ expect(state.runs!.find(r=>r.id===first)?.prompt).toBe(original);expect(state.items).toHaveLength(0);
+});
