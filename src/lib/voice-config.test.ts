@@ -57,6 +57,7 @@ describe('语音 API 边界',()=>{
   await http(voiceOfferMiddleware(s,upstream),async base=>{
    const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Voice':'1'},body:JSON.stringify({offer:'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',stewardName:'阿衡'})});
    expect(r.status).toBe(200);const body=await r.json();expect(body.answer).toContain('m=audio');expect(body.session.audio.output.voice).toBe('Zane');expect(JSON.stringify(body)).not.toContain(config.apiKey);
+   expect(body.session.input_audio_transcription).toEqual({model:'qwen3-asr-flash-realtime'});expect(body.session.turn_detection.interrupt_response).toBe(true);expect(body.session.tools[0].function.description).toContain('普通交流不调用');
    expect(upstream.mock.calls[0][0]).toBe('https://ws-example.cn-beijing.maas.aliyuncs.com/api/v1/webrtc/realtime?model=qwen3.8-omni-flash-realtime');
    expect(upstream.mock.calls[0][1]).toMatchObject({redirect:'error',headers:{Authorization:'Bearer test-only-key'}});
   });

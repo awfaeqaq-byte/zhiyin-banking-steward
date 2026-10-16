@@ -25,3 +25,8 @@ it('旧结果迟到不会把新播报切回聆听；结束后的事件不能再�
  say('u2','先跟我说说什么是AA','r2');e.receive({type:'response.audio_transcript.delta',response_id:'r2',delta:'AA就是分摊共同的费用。'});finish({text:'原账单已整理'});await new Promise(r=>setTimeout(r,0));expect(e.getState().phase).toBe('speaking');
  e.close();const count=onTurn.mock.calls.length;e.receive({type:'response.done',response:{id:'r2',status:'completed',output:[]}});expect(onTurn).toHaveBeenCalledTimes(count);
 });
+it('同轮重复转录不能在工具提交前悄悄改变原始金额',async()=>{
+ const business=vi.fn<VoiceBusiness>(async()=>({text:'待核对'}));const e=createVoiceEvents({send:vi.fn(),audio:vi.fn(),onState:vi.fn(),business});
+ e.receive({type:'input_audio_buffer.speech_started',item_id:'u1'});e.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'u1',transcript:'转2000给妈妈'});e.receive({type:'response.created',response:{id:'r1'}});e.receive({type:'response.output_item.done',response_id:'r1',item:{type:'function_call',name:'ask_steward',call_id:'c1',arguments:'{"text":"转2000给妈妈"}'}});e.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'u1',transcript:'转3000给妈妈'});
+ await vi.waitFor(()=>expect(business).toHaveBeenCalledOnce());expect(business.mock.calls[0][0]).toBe('转2000给妈妈');
+});
