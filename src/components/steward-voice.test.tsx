@@ -28,6 +28,9 @@ it('首页可找到连续语音入口，不能在页面载入时自行录音',()
  render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onVoiceRequest={vi.fn()}/>);
  expect(screen.getByRole('button',{name:'和宁宁语音对话'})).toBeInTheDocument();expect(media).not.toHaveBeenCalled();
 });
+it('通话画布离开输入区的层叠上下文，自己的返回和结束控件不被首页固定顶部遮住',()=>{
+ render(<form aria-label="首页输入区"><StewardVoice stewardName="宁宁" stewardImage="/n.png" onRequest={vi.fn()}/></form>);fireEvent.click(screen.getByRole('button',{name:'和宁宁语音对话'}));expect(screen.getByRole('region',{name:'语音对话'}).closest('form')).toBeNull();
+});
 it('未配置如实提示恢复路径，可以收起，不能伪装正在通话',async()=>{
  vi.stubGlobal('isSecureContext',true);vi.stubGlobal('RTCPeerConnection',vi.fn());vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({configured:false})));
  render(<StewardVoice stewardName="宁宁" stewardImage="/n.png" onRequest={vi.fn()}/>);
