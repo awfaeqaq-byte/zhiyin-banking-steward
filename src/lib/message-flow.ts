@@ -21,9 +21,10 @@ export function validMessageRun(x:MessageRun):boolean{return !!x&&idOk(x.id)&&te
 /** User-message order is stable even when retries move runs to the queue tail. */
 export function messageClarification(state:WorkspaceState,run:MessageRun):MessageRun|undefined{
  if(run.sourcePrompt)return undefined;
- const index=state.conversation?.findIndex(entry=>entry.role==='user'&&entry.messageId===run.id)??-1;
+ const matches=(entry:ConversationEntry,id:string)=>entry.messageId?entry.messageId===id:entry.id===`user-${id}`;
+ const index=state.conversation?.findIndex(entry=>entry.role==='user'&&matches(entry,run.id))??-1;
  const previousMessage=index>0?state.conversation?.slice(0,index).reverse().find(entry=>entry.role==='user'):undefined;
- const previous=previousMessage?.messageId?state.runs?.find(item=>item.id===previousMessage.messageId):undefined;
+ const previous=previousMessage?state.runs?.find(item=>matches(previousMessage,item.id)):undefined;
  return previous?.status==='waiting_user'&&previous.memoryRevision===run.memoryRevision&&previous.currentId===run.currentId?previous:undefined;
 }
 export function resolvedMessagePrompt(previous:MessageRun,answer:string):string{
