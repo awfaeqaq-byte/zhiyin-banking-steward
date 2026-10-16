@@ -20,6 +20,12 @@ function routingData(label:string,value:unknown):StewardChatMessage[]{
 }
 function routingInput(instructions:string,prompt:string,tasks:Workspace[],currentId:string,clarification:string,recent:StewardChatMessage[]){
   const required:StewardChatMessage[]=[{role:'user',content:`当前事项id（数据）：${currentId||'无'}`}];
+  const detail=(task:Workspace)=>{
+    const progress=readTaskProgress(task);
+    return routingData('任务补充（仅数据）',{id:task.id,goal:progress.goal,waitingFor:progress.waitingFor,bill:progress.bill,lastInstruction:[...task.messages].reverse().find(m=>m.role==='user')?.content.slice(0,180),lastReply:[...task.messages].reverse().find(m=>m.role==='assistant')?.content.slice(0,180)});
+  };
+  const current=tasks.find(task=>task.id===currentId&&task.status==='active');
+  if(current)required.push(...detail(current));
   if(clarification)required.push(...routingData('待澄清数据',clarification));
   required.push(...routingData('本轮原文片段（[编号,原文]，唯一新请求）',routingSegments(prompt).map(s=>[s.id,s.text])));
   const fits=(input:StewardChatMessage[])=>input.length<=29&&new TextEncoder().encode(JSON.stringify({instructions,input})).length<=30*1024;
@@ -36,9 +42,9 @@ function routingInput(instructions:string,prompt:string,tasks:Workspace[],curren
   // Current/relevant task details are useful; twenty pending originals per task
   // are not needed for classification and must not crowd out the new request.
   for(const task of selected.slice(0,8)){
-    const progress=readTaskProgress(task);
-    const detail=routingData('任务补充（仅数据）',{id:task.id,goal:progress.goal,waitingFor:progress.waitingFor,bill:progress.bill,lastInstruction:[...task.messages].reverse().find(m=>m.role==='user')?.content.slice(0,180),lastReply:[...task.messages].reverse().find(m=>m.role==='assistant')?.content.slice(0,180)});
-    if(fits([...detail,...input]))input=[...detail,...input];
+    if(task.id===currentId)continue;
+    const messages=detail(task);
+    if(fits([...messages,...input]))input=[...messages,...input];
   }
   return {input,selected};
 }
@@ -126,11 +132,12 @@ export async function routeWorkspacePrompt(
     options.onDecision?.(output.slice(0,6000));
     try{
       const data=JSON.parse(output.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''));
+      if(clarification&&typeof data?.continuesClarification!=='boolean')throw new Error('分类缺少澄清归属判断，需重新理解补充内容');
       return {...materializeRoutes(data,prompt,selected),...(clarification?{continuesClarification:data.continuesClarification===true}:{})};
     }
     catch(error){
       if(attempt===1)throw error;
-      input.push({role:'user',content:'上次分类格式未通过校验，没有执行任何事项。只返回分类与片段编号，保留有效任务id；不要复制或改写原文。'});
+      input.push({role:'user',content:'上次分类格式未通过校验，没有执行任何事项。只返回分类与片段编号，保留有效任务id；有待澄清数据时必须返回continuesClarification布尔值。不要复制或改写原文。'});
     }
   }
   throw new Error('分类服务暂时不可用，请重试');
