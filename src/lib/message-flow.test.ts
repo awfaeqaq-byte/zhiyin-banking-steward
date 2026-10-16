@@ -78,3 +78,12 @@ it('切换当前任务后补充不能绑定另一任务的待澄清原文',()=>{
  expect(()=>f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]} as MessageOperation)).toThrow('不匹配');
  expect(f.get().items).toHaveLength(0);
 });
+it('历史乐观消息缺少messageId时仍能用稳定用户消息ID找回待澄清原交代',()=>{
+ const f=fixture(),original=uuid(),answer=uuid();
+ f.apply({type:'conversation-append',id:uuid(),messages:[{id:`user-${original}`,role:'user',content:'请转账783给家人'}]});
+ f.apply({type:'message-submit',id:original,text:'请转账783给家人',currentId:'',memoryRevision:0});f.apply({type:'message-routed',id:original,parts:[],clarification:'给哪位家人？'});
+ f.apply({type:'conversation-append',id:uuid(),messages:[{id:`user-${answer}`,role:'user',content:'妈妈'}]});
+ f.apply({type:'message-submit',id:answer,text:'妈妈',currentId:'',memoryRevision:0});
+ f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]});
+ expect(f.get().runs!.find(run=>run.id===answer)?.jobs[0].text).toContain('783');expect(f.get().conversation?.filter(entry=>entry.role==='user')).toHaveLength(2);
+});
