@@ -18,11 +18,12 @@ const idOk=(x:unknown):x is string=>typeof x==='string'&&/^[\w-]{1,82}$/.test(x)
 const textOk=(x:unknown,max:number):x is string=>typeof x==='string'&&!!x.trim()&&x.length<=max;
 export function validConversationEntry(x:ConversationEntry):boolean{return !!x&&idOk(x.id)&&['user','assistant'].includes(x.role)&&textOk(x.content,12000)&&(x.messageId===undefined||idOk(x.messageId))&&(x.workspaceId===undefined||idOk(x.workspaceId))&&(x.sceneId===undefined||idOk(x.sceneId))&&(x.retryPrompt===undefined||textOk(x.retryPrompt,2000))&&(x.retryRunId===undefined||idOk(x.retryRunId))&&(x.memoryRevision===undefined||Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0);}
 export function validMessageRun(x:MessageRun):boolean{return !!x&&idOk(x.id)&&textOk(x.prompt,2000)&&textOk(x.displayText,2000)&&typeof x.currentId==='string'&&(!x.currentId||idOk(x.currentId))&&(x.knownTaskId===undefined||idOk(x.knownTaskId))&&(x.sourcePrompt===undefined||textOk(x.sourcePrompt,2000))&&(x.clarificationOf===undefined||idOk(x.clarificationOf))&&((x.sourcePrompt===undefined)===(x.clarificationOf===undefined))&&(x.retryIds===undefined||Array.isArray(x.retryIds)&&x.retryIds.length<=30&&x.retryIds.every(idOk)&&new Set(x.retryIds).size===x.retryIds.length)&&Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0&&['routing','ready','processing','waiting_user','completed','failed','interrupted'].includes(x.status)&&Number.isFinite(x.createdAt)&&Number.isFinite(x.updatedAt)&&Array.isArray(x.jobs)&&x.jobs.length<=4&&x.jobs.every(j=>j&&idOk(j.id)&&idOk(j.taskId)&&idOk(j.replyId)&&textOk(j.text,2000)&&['queued','claimed','completed','failed'].includes(j.status)&&(j.owner===undefined||idOk(j.owner))&&(j.leaseUntil===undefined||Number.isFinite(j.leaseUntil)))&&Array.isArray(x.trace)&&x.trace.length<=30&&x.trace.every(t=>t&&textOk(t.stage,80)&&Number.isFinite(t.at)&&(t.detail===undefined||typeof t.detail==='string'&&t.detail.length<=1000))&&(x.error===undefined||textOk(x.error,1000))&&(x.clarification===undefined||textOk(x.clarification,300))&&(x.decision===undefined||typeof x.decision==='string'&&x.decision.length<=6000);}
-/** Only the immediately preceding unanswered clarification in this task context is eligible. */
+/** User-message order is stable even when retries move runs to the queue tail. */
 export function messageClarification(state:WorkspaceState,run:MessageRun):MessageRun|undefined{
  if(run.sourcePrompt)return undefined;
- const index=state.runs?.findIndex(item=>item.id===run.id)??-1;
- const previous=index>0?state.runs?.[index-1]:undefined;
+ const index=state.conversation?.findIndex(entry=>entry.role==='user'&&entry.messageId===run.id)??-1;
+ const previousMessage=index>0?state.conversation?.slice(0,index).reverse().find(entry=>entry.role==='user'):undefined;
+ const previous=previousMessage?.messageId?state.runs?.find(item=>item.id===previousMessage.messageId):undefined;
  return previous?.status==='waiting_user'&&previous.memoryRevision===run.memoryRevision&&previous.currentId===run.currentId?previous:undefined;
 }
 export function resolvedMessagePrompt(previous:MessageRun,answer:string):string{
