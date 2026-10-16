@@ -211,6 +211,7 @@ it('回复期间连续三句按序处理，各自上下文独立且不覆盖下�
  await waitFor(()=>expect(api.state().runs?.every(run=>run.status==='completed')).toBe(true));
  expect(reply.mock.calls.map(([request])=>request.messages)).toEqual(['安排周末读书','整理杭州出行','朋友聚会选址'].map(content=>[{role:'user',content}]));
  expect(api.state().conversation?.filter(message=>message.role==='user').map(message=>message.content)).toEqual(['安排周末读书','整理杭州出行','朋友聚会选址']);
+ expect(api.state().conversation?.filter(message=>message.role==='user').map(message=>message.messageId)).toEqual(api.state().runs?.map(run=>run.id));
  expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);expect(input).toHaveValue('第四句仍在编辑');
 });
 it.each(['current','legacy'])('多任务部分失败后刷新仍可重试，只继续失败部分且不重复原句（%s记录）',async version=>{
