@@ -213,13 +213,14 @@ it('回复期间连续三句按序处理，各自上下文独立且不覆盖下�
  expect(api.state().conversation?.filter(message=>message.role==='user').map(message=>message.content)).toEqual(['安排周末读书','整理杭州出行','朋友聚会选址']);
  expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);expect(input).toHaveValue('第四句仍在编辑');
 });
-it('多任务部分失败后刷新仍可重试，只继续失败部分且不重复原句',async()=>{
+it.each(['current','legacy'])('多任务部分失败后刷新仍可重试，只继续失败部分且不重复原句（%s记录）',async version=>{
  const api=server(),user=userEvent.setup();
  const route=vi.fn<typeof routeWorkspacePrompt>(async()=>({parts:[{taskId:null,kind:'general',title:'读书',text:'安排读书'},{taskId:null,kind:'general',title:'出行',text:'整理出行'}]}));
  const reply=vi.fn<(request:StewardReplyRequest)=>Promise<{text:string}>>().mockResolvedValueOnce({text:'读书已整理。'}).mockRejectedValueOnce(new Error('出行服务暂时不可用')).mockResolvedValueOnce({text:'出行已恢复。'});
  const view=render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
  await say('安排读书，整理出行');await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('failed'));
  expect(screen.queryByRole('button',{name:'重新发送'})).not.toBeInTheDocument();
+ if(version==='legacy')for(const message of api.state().conversation||[])delete message.retryRunId;
  view.unmount();render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
  await user.click(await screen.findByRole('button',{name:'重试这条消息'}));
  await screen.findByText('出行已恢复。');await waitFor(()=>expect(api.state().runs?.at(-1)?.status).toBe('completed'));
