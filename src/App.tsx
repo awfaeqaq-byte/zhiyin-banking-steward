@@ -1356,7 +1356,7 @@ function AppContent() {
             <StewardWorkspaces
               conversationListOpen={conversationListOpen}
               onConversationListOpenChange={setConversationListOpen}
-              voiceEnabled={mode==='native'&&page==='home'&&!bankIntent&&!modal}
+              voiceEnabled={mode==='native'&&page==='home'&&!['steward','privacy','memory'].includes(modal||'')}
               homePreview
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}

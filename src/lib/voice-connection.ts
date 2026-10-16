@@ -22,7 +22,7 @@ export function createVoiceConnection({stewardName,business,onState,fetcher=fetc
    const peer=new RTCPeerConnection({iceServers:[]});pc=peer;audio=new Audio();audio.autoplay=true;audio.muted=true;
    let configured=false;const channels=new Set<RTCDataChannel>();
    const send=(event:Record<string,unknown>)=>{if(channel?.readyState==='open')channel.send(JSON.stringify(event));};
-   events=createVoiceEvents({business,onState:next=>{if(run===epoch)update(next);},send,audio:enabled=>{if(audio)audio.muted=!enabled;},onWorking:busy=>{working=busy;media?.getAudioTracks().forEach(track=>{track.enabled=!muted&&!busy&&configured;});}});
+   events=createVoiceEvents({business,onState:next=>{if(run===epoch)update(next);},send,audio:enabled=>{if(audio)audio.muted=!enabled;}});
    const settings:{session?:Record<string,unknown>}={};let sessionSent=false;
    function configure(){if(!sessionSent&&settings.session&&channel?.readyState==='open'){sessionSent=true;send({type:'session.update',session:settings.session});}}
    function bind(data:RTCDataChannel){channels.add(data);data.onmessage=message=>{
@@ -51,5 +51,5 @@ export function createVoiceConnection({stewardName,business,onState,fetcher=fetc
    const deadline=setTimeout(()=>{if(run===epoch&&!configured)fail('语音会话没有就绪，麦克风已关闭；请检查模型权限后重试。');},15000);
    signal.addEventListener('abort',()=>clearTimeout(deadline),{once:true});
   }catch(cause){if(run!==epoch)return;const denied=cause instanceof DOMException&&cause.name==='NotAllowedError';fail(denied?'麦克风未获允许。请在浏览器权限中允许麦克风，再重新开始。':cause instanceof Error?cause.message:'语音连接失败，请重试');}
- },stop,setMuted(next:boolean){muted=next;media?.getAudioTracks().forEach(track=>{track.enabled=!muted&&!working&&state.phase!=='connecting';});events?.setMuted(muted);update({muted});},async play(){try{await audio?.play();update({notice:''});}catch{update({notice:'声音仍被浏览器阻止，请检查网站声音权限。'});}},getState:()=>({...state})};
+ },stop,setMuted(next:boolean){muted=next;media?.getAudioTracks().forEach(track=>{track.enabled=!muted&&state.phase!=='connecting';});events?.setMuted(muted);update({muted});},async play(){try{await audio?.play();update({notice:''});}catch{update({notice:'声音仍被浏览器阻止，请检查网站声音权限。'});}},getState:()=>({...state})};
 }
