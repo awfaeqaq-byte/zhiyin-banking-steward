@@ -2,6 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {advanceTaskProgress,billTaskQuestion,clearBillIntent,readTaskProgress,settleTaskProgress,taskContinuation,validTaskProgress,parseTaskWait} from './task-progress';
 import type {Workspace} from './workspaces';
 import {buildBillAnalysis} from './bill-analysis';
+import {routeWorkspacePrompt} from './workspace-service';
 
 const task=(overrides:Partial<Workspace>={}):Workspace=>({id:'bill',kind:'bills',title:'本月支出',status:'active',updatedAt:0,summary:'',memoryRevision:0,messages:[],...overrides});
 describe('任务现场而非对话猜测',()=>{
@@ -46,6 +47,22 @@ describe('任务现场而非对话猜测',()=>{
  it.each(['流水是什么意思','不要查账单，只解释什么叫流水','解释一下收入和支出的区别','什么是大额转账记录'])('账单术语咨询不触发读账：%s',prompt=>{
   expect(clearBillIntent(prompt)).toBe(false);
  });
+ it.each(['帮我看看本月账单，帮我点外卖','看看账单。介绍一下杭州','看看本月账单，解释一下复利','解释一下这笔消费为什么这么高，再介绍一下杭州'])('账单快捷路径不吞掉独立分句：%s',async prompt=>{
+  expect(clearBillIntent(prompt)).toBe(false);
+  const current=task({progress:advanceTaskProgress(task(),'本月支出')});
+  expect(taskContinuation(prompt,[current],current.id)).toBeNull();
+  let calls=0;
+  const result=await routeWorkspacePrompt(prompt,[current],current.id,'',[],{model:async()=>{calls++;return JSON.stringify({parts:[{taskId:current.id,kind:'bills',title:'分析账单',segmentIds:[0]},{taskId:null,kind:'general',title:'新问题',segmentIds:[1]}]});}});
+  expect(calls).toBe(1);expect(result.parts).toHaveLength(2);
+ });
+ it.each(['看本月账单，只看支付宝','看账单，最近30天','看看本月账单，收入支出各多少','解释一下这笔退款是怎么回事'])('账单查询和明确范围补充仍可快捷续接：%s',prompt=>{
+  expect(clearBillIntent(prompt)).toBe(true);
+ });
+ it('授权帮助必须完整匹配，不能吞掉逗号后的新话题',()=>{
+  const current=task({progress:advanceTaskProgress(task(),'支付宝本月支出')});
+  expect(taskContinuation('怎么授权，解释一下复利',[current],current.id)).toBeNull();
+  expect(taskContinuation('怎么授权',[current],current.id)?.parts[0].taskId).toBe(current.id);
+ });
  it.each(['500字介绍一下杭州','明天天气怎么样','明天','200元，解释一下复利'])('金额追问不能把新话题当作参数：%s',prompt=>{
   const current=task({kind:'transfer',progress:{goal:'给妈妈转账',stage:'waiting_user',waitingFor:{field:'reply',question:'这次转多少元？'}}});
   expect(taskContinuation(prompt,[current],current.id)).toBeNull();
@@ -55,6 +72,8 @@ describe('任务现场而非对话猜测',()=>{
   for(const answer of ['500','500元','500.25块'])expect(taskContinuation(answer,[transfer],transfer.id)?.parts[0].taskId).toBe(transfer.id);
   const appointment={...transfer,progress:{...transfer.progress!,waitingFor:{field:'reply' as const,question:'您希望明天什么时间转账？'}}};
   for(const answer of ['明天','明天下午3点','中午12点','周五上午九点'])expect(taskContinuation(answer,[appointment],appointment.id)?.parts[0].taskId).toBe(appointment.id);
+  const departure={...transfer,kind:'general' as const,progress:{...transfer.progress!,waitingFor:{field:'reply' as const,question:'哪一天出发？'}}};
+  expect(taskContinuation('周六',[departure],departure.id)?.parts[0].taskId).toBe(departure.id);
  });
  it('普通任务的追问也可持久化，跨话题不会冒充付款授权',()=>{
   const p=settleTaskProgress(advanceTaskProgress(task({kind:'transfer',title:'给妈妈生活费'}),'给妈妈转账'),{waitingQuestion:'这次转多少元？'});
