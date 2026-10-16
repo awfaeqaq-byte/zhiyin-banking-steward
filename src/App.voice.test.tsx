@@ -4,7 +4,7 @@ vi.mock('./components/steward-workspaces',()=>({StewardWorkspaces:({voiceEnabled
 vi.mock('./components/smart-transfers',()=>({SmartTransfers:()=> <section role="dialog" aria-label="资金核对测试"/>}));
 import App from './App';
 afterEach(()=>vi.restoreAllMocks());
-it('进入金融核对面板时，即使仍在首页也停止语音收音',async()=>{
+it('进入金融核对面板时保留同一语音连接，口头不能代替授权',async()=>{
  localStorage.setItem('zhiyin-mode','"native"');vi.spyOn(globalThis,'fetch').mockImplementation(async()=>new Response(JSON.stringify({version:1,revision:0,enabled:false,items:[],tasks:[]})));
- render(<App/>);expect(screen.getByText('首页可收音')).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'测试转账核对入口'}));await screen.findByRole('dialog',{name:'资金核对测试'});await waitFor(()=>expect(screen.getByText('首页停止收音')).toBeInTheDocument());
+ render(<App/>);expect(screen.getByText('首页可收音')).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'测试转账核对入口'}));await screen.findByRole('dialog',{name:'资金核对测试'});await waitFor(()=>expect(screen.getByText('首页可收音')).toBeInTheDocument());
 });

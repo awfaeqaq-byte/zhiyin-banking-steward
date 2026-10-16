@@ -4,6 +4,22 @@ const tool=(id='call-1')=>({type:'response.output_item.done',response_id:'respon
 function fixture(){const send=vi.fn(),business=vi.fn<VoiceBusiness>(async()=>({text:'金额2000，等待你核对。'})),audio=vi.fn();const events=createVoiceEvents({send,business,audio,onState:vi.fn()});return {events,send,business,audio};}
 function turn(f:ReturnType<typeof fixture>){f.events.receive({type:'input_audio_buffer.speech_started',item_id:'user-1'});f.events.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-1',transcript:'给妈妈转2000'});f.events.receive({type:'response.created',response:{id:'response-1'}});}
 describe('语音业务桥',()=>{
+ it('普通交谈直接流式回应，没有工具也不是错误或银行任务',()=>{
+  const f=fixture();turn(f);f.events.receive({type:'response.audio_transcript.delta',response_id:'response-1',delta:'我在呢，慢慢说。'});
+  expect(f.events.getState().answer).toBe('我在呢，慢慢说。');expect(f.audio).toHaveBeenLastCalledWith(true);
+  f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});
+  expect(f.events.getState().phase).toBe('listening');expect(f.business).not.toHaveBeenCalled();
+ });
+ it('办理期间允许新交代，旧回执回填但不能抢答新问题',async()=>{
+  const f=fixture();let finish:(value:{text:string})=>void=()=>{};f.business.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));turn(f);f.events.receive(tool());f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});await vi.waitFor(()=>expect(f.business).toHaveBeenCalledOnce());
+  f.events.receive({type:'input_audio_buffer.speech_started',item_id:'user-2'});f.events.receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-2',transcript:'金额改成3000'});f.events.receive({type:'response.created',response:{id:'response-2'}});
+  finish({text:'旧的2000元方案仅供核对'});await vi.waitFor(()=>expect(f.send.mock.calls.filter(([e])=>e.item?.type==='function_call_output')).toHaveLength(1));
+  expect(f.send.mock.calls.filter(([e])=>e.type==='response.create')).toHaveLength(0);
+  f.events.receive({type:'response.audio_transcript.delta',response_id:'response-2',delta:'好的，我继续整理你的修改。'});expect(f.events.getState().answer).toContain('修改');
+ });
+ it('自然交谈不强制每句话调用工具，实时模型不能自行编造账户事实',()=>{
+  const instructions=voiceSessionInstructions('宁宁');expect(instructions).not.toContain('每一轮用户交代必须先调用');expect(instructions).toContain('普通交流');expect(instructions).toContain('不能编造');
+ });
  it('失败的响应及时退出，成功播报后返回可继续说的状态',async()=>{
   const failed=fixture();turn(failed);failed.events.receive({type:'response.done',response:{id:'response-1',status:'failed',output:[]}});expect(failed.events.getState().phase).toBe('error');
   const f=fixture();turn(f);f.events.receive(tool());f.events.receive({type:'response.done',response:{id:'response-1',status:'completed',output:[]}});await vi.waitFor(()=>expect(f.send.mock.calls.some(([e])=>e.type==='response.create')).toBe(true));f.events.receive({type:'response.created',response:{id:'response-2'}});f.events.receive({type:'response.audio_transcript.delta',response_id:'response-2',delta:'请核对首页方案。'});expect(f.events.getState().phase).toBe('speaking');f.events.receive({type:'response.done',response:{id:'response-2',status:'completed',output:[]}});expect(f.events.getState().phase).toBe('listening');
