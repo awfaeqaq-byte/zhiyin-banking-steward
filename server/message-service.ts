@@ -10,7 +10,7 @@ import {parseImpression} from '../src/lib/steward-profile';
 import {settleTaskProgress,readTaskProgress} from '../src/lib/task-progress';
 import {requestStewardReplyWithModel,type StewardReply,type StewardReplyRequest,type StewardModelCall} from '../src/lib/steward-chat';
 import {recentConversation} from '../src/lib/conversation-context';
-import type {MessageOperation,MessageRun} from '../src/lib/message-flow';
+import {messageClarification,resolvedMessagePrompt,type MessageOperation,type MessageRun} from '../src/lib/message-flow';
 const terminal=(run:MessageRun)=>!['routing','ready','processing'].includes(run.status);
 export function createMessageService(directory:string,model:StewardModelCall){
  const routing=new Map<string,Promise<void>>(),replies=new Map<string,Promise<StewardReply>>();
@@ -35,19 +35,23 @@ export function createMessageService(directory:string,model:StewardModelCall){
   const work=Promise.resolve().then(async()=>{
    while(true){
     const state=store(scope).get(),run=state.runs?.find(r=>r.status==='routing');if(!run)return;
-    let decision='';
+    let decision='',sourcePrompt:string|undefined,clarificationOf:string|undefined;
     try{
      const currentMemory=memory.get();
      if(run.memoryRevision!==currentMemory.revision)throw new Error('记忆上下文已变化，请重新交代');
      const tasks=state.items.map(task=>({...task,progress:task.memoryRevision===run.memoryRevision?task.progress:undefined,memoryRevision:run.memoryRevision,messages:task.messages.filter(m=>m.memoryRevision===run.memoryRevision)}));
-     const previous=state.runs?.[state.runs.findIndex(r=>r.id===run.id)-1];
-     const clarification=previous?.status==='waiting_user'&&previous.memoryRevision===run.memoryRevision?JSON.stringify({original:previous.prompt,question:previous.clarification}):'';
+     const previous=messageClarification(state,run);
+     const clarification=previous?JSON.stringify({original:previous.sourcePrompt||previous.prompt,question:previous.clarification}):'';
      const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId&&t.status==='active'&&(t.kind==='bills'||t.kind==='general'&&readTaskProgress(t).bill)):undefined;
      if(run.knownTaskId&&!known)throw new Error('这份账单事项已变化，请重新选择范围');
-     const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.prompt}]}:await routeWorkspacePrompt(run.prompt,tasks,run.currentId,clarification,recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}});
+     let result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}});
+     if(previous&&'continuesClarification' in result&&result.continuesClarification){
+      sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;
+      if(!result.clarification)result=await routeWorkspacePrompt(sourcePrompt,tasks,run.currentId,'',[],{model,onDecision:value=>{decision=value;}});
+     }
      if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，请重新交代');
-     apply(scope,{type:'message-routed',id:run.id,...result,decision});
-    }catch(error){apply(scope,{type:'message-fail',id:run.id,error:error instanceof Error?error.message:'分类暂时不可用',stage:'routing',decision} as MessageOperation);}
+     apply(scope,{type:'message-routed',id:run.id,...result,decision,...(sourcePrompt?{sourcePrompt,clarificationOf}:{})});
+    }catch(error){apply(scope,{type:'message-fail',id:run.id,error:error instanceof Error?error.message:'分类暂时不可用',stage:'routing',decision,...(sourcePrompt?{sourcePrompt,clarificationOf}:{})} as MessageOperation);}
    }
   }).finally(()=>routing.delete(scope));
   routing.set(scope,work);void work.catch(()=>undefined);
@@ -55,6 +59,10 @@ export function createMessageService(directory:string,model:StewardModelCall){
  function submit(scope:string,input:{id:string;text:string;displayText?:string;currentId:string;memoryRevision:number;knownTaskId?:string}){
   if(input.memoryRevision!==memory.get().revision)throw new Error('记忆上下文已变化，请重新交代');
   const result=apply(scope,{type:'message-submit',id:input.id,text:input.text,displayText:input.displayText,currentId:input.currentId,memoryRevision:input.memoryRevision,...(input.knownTaskId?{knownTaskId:input.knownTaskId}:{})});pump(scope);return result;
+ }
+ function retry(scope:string,input:{id:string;retryId:string;memoryRevision:number}){
+  if(input.memoryRevision!==memory.get().revision)throw new Error('记忆上下文已变化，请重新交代');
+  const result=apply(scope,{type:'message-retry',id:input.id,retryId:input.retryId,memoryRevision:input.memoryRevision});pump(scope);return result;
  }
  function claim(scope:string,id:string,jobId:string,owner:string){
   const state=apply(scope,{type:'message-claim',id,jobId,owner});
@@ -95,7 +103,7 @@ export function createMessageService(directory:string,model:StewardModelCall){
   })();
   replies.set(job.id,work);void work.finally(()=>replies.delete(job.id)).catch(()=>undefined);return work;
  }
- return {get,submit,claim,complete,reply,operate:apply,idle:async(scope:string)=>{await routing.get(scope);}};
+ return {get,submit,retry,claim,complete,reply,operate:apply,idle:async(scope:string)=>{await routing.get(scope);}};
 }
 export function messageMiddleware(directory:string,model:StewardModelCall){
  const service=createMessageService(directory,model);
@@ -110,6 +118,7 @@ export function messageMiddleware(directory:string,model:StewardModelCall){
    let raw='';for await(const chunk of req){raw+=chunk.toString();if(Buffer.byteLength(raw)>128*1024)return send(413,{error:'消息上下文过长'});}
    const body=JSON.parse(raw);
    if(body.type==='submit')return send(200,service.submit(scope,body));
+   if(body.type==='retry')return send(200,service.retry(scope,body));
    if(body.type==='claim')return send(200,service.claim(scope,body.id,body.jobId,body.owner));
    if(body.type==='complete')return send(200,service.complete(scope,{...body,type:'message-complete'}));
    if(body.type==='reply')return send(200,{reply:await service.reply(scope,body),state:service.get(scope)});

@@ -2,6 +2,7 @@ import {afterEach,it,expect,vi} from 'vitest';
 import {mkdtempSync,rmSync} from 'node:fs';import {join} from 'node:path';import {tmpdir} from 'node:os';
 import {createMessageService} from '../../server/message-service';
 import {createWorkspaceStore} from '../../server/workspace-store';
+import type {StewardModelPayload} from './steward-chat';
 const dirs:string[]=[];afterEach(()=>dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true})));
 const scope='11111111-1111-4111-8111-111111111111';
 function fixture(){const dir=mkdtempSync(join(tmpdir(),'zhiyin-message-'));dirs.push(dir);return dir;}
@@ -32,23 +33,26 @@ it('并发重试共用模型调用，完成后的其他归属仍不能写结果'
 });
 it('分类追问的补充带上待澄清原请求，同时保持这轮原文不可变',async()=>{
  const dir=fixture(),model=vi.fn(async(payload:{instructions:string;input:Array<{role:string;content:string}>})=>{
-  if(payload.input.some(m=>m.content.includes('本轮原文片段 0（系统编号，唯一新请求）："改成30"')))return JSON.stringify({parts:[],clarification:'要改今晚聚餐还是周末旅行？'});
-  expect(payload.input.some(m=>m.content.includes('待澄清数据：')&&m.content.includes('改成30')&&m.content.includes('今晚聚餐还是周末旅行'))).toBe(true);
-  return JSON.stringify({parts:[{taskId:null,kind:'general',title:'今晚聚餐',segmentIds:[0]}]});
+  const source=payload.input.filter(m=>m.content.startsWith('本轮原文片段')).map(m=>m.content).join('');
+  if(!source.includes('今晚聚餐'))return JSON.stringify({parts:[],clarification:'要改今晚聚餐还是周末旅行？'});
+  if(payload.input.some(m=>m.content.includes('待澄清数据'))){
+   expect(payload.input.some(m=>m.content.includes('改成30')&&m.content.includes('今晚聚餐还是周末旅行'))).toBe(true);
+   return JSON.stringify({parts:[{taskId:null,kind:'general',title:'今晚聚餐',segmentIds:[0]}],continuesClarification:true});
+  }
+  return JSON.stringify({parts:[{taskId:null,kind:'general',title:'今晚聚餐'}]});
  });const service=createMessageService(dir,model);service.submit(scope,{id:crypto.randomUUID(),text:'改成30',currentId:'',memoryRevision:0});await service.idle(scope);
  const id=crypto.randomUUID();service.submit(scope,{id,text:'今晚聚餐',currentId:'',memoryRevision:0});await service.idle(scope);
- const run=service.get(scope).runs!.find(r=>r.id===id)!;expect(run.status).toBe('ready');expect(run.prompt).toBe('今晚聚餐');expect(run.jobs[0].text).toBe('今晚聚餐');
+ const run=service.get(scope).runs!.find(r=>r.id===id)!;expect(run.status).toBe('ready');expect(run.prompt).toBe('今晚聚餐');expect(run.jobs[0].text).toBe('改成30\n补充：今晚聚餐');
 });
 
 it('长请求经两轮澄清仍完整到达转账处理，补充内容不替换原始交代',async()=>{
  const original=`请先理解这笔转账的用途。${'用于家庭日常生活开支，'.repeat(18)}请转账783给家人`;
- const dir=fixture();let count=0;const model=vi.fn(async()=>{
-  count++;
+ const dir=fixture();let count=0;const model=vi.fn(async(payload:StewardModelPayload)=>{
+  void payload;count++;
   if(count===1)return JSON.stringify({parts:[],clarification:'给哪位家人？'});
   if(count===2)return JSON.stringify({parts:[],clarification:'是现在办理还是预约？',continuesClarification:true});
-  if(count===3)return JSON.stringify({parts:[],clarification:'是现在办理还是预约？'});
-  if(count===4)return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人生活费',segmentIds:[0]}],continuesClarification:true});
-  if(count===5)return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人生活费'}]});
+  if(count===3)return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人生活费',segmentIds:[0]}],continuesClarification:true});
+  if(count===4)return JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人生活费'}]});
   return '已为妈妈整理783元转账方案，请确认。[ZHIYIN_ACTION:TRANSFER|妈妈|783]';
  });
  const service=createMessageService(dir,model),first=crypto.randomUUID(),second=crypto.randomUUID(),third=crypto.randomUUID(),owner=crypto.randomUUID();

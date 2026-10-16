@@ -3,6 +3,7 @@ import type {StewardReply,StewardReplyRequest} from './steward-chat';
 import type {ConversationEntry} from './message-flow';
 export type MessageClientOperation=
  |{type:'submit';id:string;text:string;displayText?:string;currentId:string;memoryRevision:number;knownTaskId?:string}
+ |{type:'retry';id:string;retryId:string;memoryRevision:number}
  |{type:'claim';id:string;jobId:string;owner:string}
  |{type:'complete';id:string;jobId:string;owner:string;assistant:string;memoryRevision:number;failed:boolean;progress?:import('./task-progress').TaskProgress}
  |{type:'import'|'append';id:string;messages:ConversationEntry[]};
