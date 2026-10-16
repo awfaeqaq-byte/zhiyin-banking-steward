@@ -140,7 +140,9 @@ export function createVoiceEvents(options: {
       } else if (event.type === 'conversation.item.input_audio_transcription.delta' && event.item_id === currentInput) {
         update({heard: ((typeof event.text === 'string' ? event.text : '') + (typeof event.stash === 'string' ? event.stash : '')).slice(0, 2000)});
       } else if (event.type === 'conversation.item.input_audio_transcription.completed' && text(event.item_id, 160) && text(event.transcript)) {
-        utterance(event.item_id).text = event.transcript.trim();
+        const source = utterance(event.item_id);
+        if (source.text !== undefined) return;
+        source.text = event.transcript.trim();
         if (!currentInput) currentInput = event.item_id;
         if (event.item_id === currentInput) update({heard: event.transcript.trim(), userSpeaking: false});
         for (const [id, response] of responses) {

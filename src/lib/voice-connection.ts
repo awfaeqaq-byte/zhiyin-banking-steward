@@ -17,6 +17,7 @@ export function createVoiceConnection({stewardName,business,onState,fetcher=fetc
    if(!navigator.mediaDevices?.getUserMedia||typeof RTCPeerConnection==='undefined')throw new Error('当前浏览器不支持实时语音，请用最新版 Chrome 或 Safari 打开。');
    const status=await fetcher('/api/zhiyin/voice/status',{cache:'no-store',signal});if(!status.ok)throw new Error('语音服务暂不可用，请重试');
    const available=await status.json();if(available.configured!==true)throw new Error(typeof available.error==='string'?available.error:'尚未配置实时语音。请在本机沙箱控制台 → 模型配置 → 实时语音，填写百炼凭证。');
+   if(run!==epoch)return;
    const context=await getContext?.();
    if(run!==epoch)return;
    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
