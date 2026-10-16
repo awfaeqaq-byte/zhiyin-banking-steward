@@ -38,13 +38,14 @@ it('等待澄清时不让快捷确认跳过归属判断，完整保留原问题'
 });
 it('积累一百个长任务后分流仍满足代理总大小和消息限制，保留当前事项',async()=>{
  const tasks:Workspace[]=Array.from({length:100},(_,i)=>({id:`task-${i}-${'x'.repeat(60)}`,kind:'general',title:`事项${i}${'安排'.repeat(26)}`,status:'active',updatedAt:i,summary:'',memoryRevision:0,messages:[{id:`u-${i}`,role:'user',content:'历史交代'.repeat(500),memoryRevision:0},{id:`a-${i}`,role:'assistant',content:'历史回复'.repeat(500),memoryRevision:0}],pending:Array.from({length:20},(_,j)=>({token:`p-${i}-${j}`,text:'未完成内容'.repeat(300)})),progress:{goal:'安排'.repeat(100),stage:'waiting_user',waitingFor:{field:'reply',question:'请补充'.repeat(100)}}}));
- const current=tasks[99];
+ const current=tasks[99];current.messages[0].content='当前事项待确认的是783元家庭生活费';
  const model=vi.fn(async(payload:{instructions:string;input:{role:string;content:string}[]})=>{
    expect(payload.instructions.length).toBeLessThanOrEqual(4000);
    expect(payload.input.length).toBeLessThanOrEqual(30);
    expect(Math.max(...payload.input.map(m=>m.content.length))).toBeLessThanOrEqual(2000);
    expect(new TextEncoder().encode(JSON.stringify(payload)).length).toBeLessThanOrEqual(32*1024);
    expect(payload.input.map(m=>m.content).join('')).toContain(current.id);
+   expect(payload.input.map(m=>m.content).join('')).toContain('783元家庭生活费');
    return JSON.stringify({parts:[{taskId:current.id,kind:'general',title:current.title,segmentIds:[0]}]});
  });
  expect((await routeWorkspacePrompt('继续梳理那个计划',tasks,current.id,'',[],{model})).parts[0].taskId).toBe(current.id);
@@ -115,7 +116,7 @@ it("分流器只接受合法原话路由，服务失败不自行猜测执行", a
   fetcher.mockResolvedValueOnce(
     new Response(
       JSON.stringify({
-        output_text: JSON.stringify({ parts: [], clarification: "哪次活动？" }),
+        output_text: JSON.stringify({ parts: [], clarification: "哪次活动？",continuesClarification:true }),
       }),
     ),
   );
@@ -156,4 +157,12 @@ it("分流输出遗漏时只重试分流，不执行遗漏后的半份请求", a
 it('服务端模型空内容只重试一次，编号分类仍恢复当前原文',async()=>{
  const model=vi.fn().mockRejectedValueOnce(new Error('模型服务未返回有效内容')).mockResolvedValue(JSON.stringify({parts:[{taskId:null,kind:'general',title:'周末计划',segmentIds:[0]}]}));
  const result=await routeWorkspacePrompt('帮我梳理一下周末计划',[],'','',[],{model});expect(model).toHaveBeenCalledTimes(2);expect(result.parts[0].text).toBe('帮我梳理一下周末计划');
+});
+it('澄清归属字段缺失时重新询问分类器，不能静默丢掉原请求',async()=>{
+ const missing=JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人转账'}]});
+ const model=vi.fn().mockResolvedValueOnce(missing).mockResolvedValueOnce(JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'家人转账'}],continuesClarification:true}));
+ expect(await routeWorkspacePrompt('妈妈',[],'','请转账783给家人',[],{model})).toMatchObject({continuesClarification:true});
+ expect(model).toHaveBeenCalledTimes(2);
+ model.mockReset().mockResolvedValue(missing);
+ await expect(routeWorkspacePrompt('妈妈',[],'','请转账783给家人',[],{model})).rejects.toThrow('澄清');
 });
