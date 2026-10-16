@@ -1,5 +1,6 @@
 import {fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {afterEach,expect,it,vi} from 'vitest';
+import userEvent from '@testing-library/user-event';
 import {StewardVoice} from './steward-voice';
 import {StewardChatHome} from './steward-chat-home';
 import * as transport from '../lib/voice-connection';
@@ -30,6 +31,14 @@ it('首页可找到连续语音入口，不能在页面载入时自行录音',()
 });
 it('通话画布离开输入区的层叠上下文，自己的返回和结束控件不被首页固定顶部遮住',()=>{
  render(<form aria-label="首页输入区"><StewardVoice stewardName="宁宁" stewardImage="/n.png" onRequest={vi.fn()}/></form>);fireEvent.click(screen.getByRole('button',{name:'和宁宁语音对话'}));expect(screen.getByRole('region',{name:'语音对话'}).closest('form')).toBeNull();
+});
+it('全屏通话接管键盘焦点，Tab留在可见控件，Escape收起后焦点回入口',async()=>{
+ const user=userEvent.setup();render(<><button>首页隐藏操作</button><StewardVoice stewardName="宁宁" stewardImage="/n.png" onRequest={vi.fn()}/></>);
+ const entry=screen.getByRole('button',{name:'和宁宁语音对话'});await user.click(entry);
+ const back=screen.getByRole('button',{name:'收起语音面板'});await waitFor(()=>expect(back).toHaveFocus());
+ expect(screen.queryByRole('button',{name:'首页隐藏操作'})).not.toBeInTheDocument();
+ await user.tab({shift:true});expect(screen.getByRole('button',{name:'开始语音对话'})).toHaveFocus();await user.tab();expect(back).toHaveFocus();
+ await user.keyboard('{Escape}');expect(screen.queryByRole('region',{name:'语音对话'})).not.toBeInTheDocument();expect(entry).toHaveFocus();
 });
 it('未配置如实提示恢复路径，可以收起，不能伪装正在通话',async()=>{
  vi.stubGlobal('isSecureContext',true);vi.stubGlobal('RTCPeerConnection',vi.fn());vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({configured:false})));
