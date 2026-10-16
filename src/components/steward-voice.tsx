@@ -103,7 +103,7 @@ export function StewardVoice({
       <AudioLines size={22} aria-hidden="true"/>
     </button>
     {active && (!open || inReview) && (inReview && reviewHost ? createPortal(<div className="voice-review-dock">{compact}</div>, reviewHost) : compact)}
-    {open && !inReview && <section className="voice-call-stage" role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
+    {open && !inReview && createPortal(<div className="voice-call-root"><section className="voice-call-stage" role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
       <header className="voice-call-heading">
         <div><strong>和{stewardName}通话</strong><span>{active && state.phase !== 'connecting' ? clock : '你的个人银行管家'}</span></div>
         <button type="button" className="voice-minimize" aria-label="收起语音面板" onClick={minimize}><ArrowDown size={21} aria-hidden="true"/><span>回首页</span></button>
@@ -129,6 +129,6 @@ export function StewardVoice({
         </div>
         <small>离开知银或切到后台会停止收音 · 单次最多5分钟</small>
       </footer>
-    </section>}
+    </section></div>, entry.current?.closest('.app-shell') ?? document.body)}
   </div>;
 }
