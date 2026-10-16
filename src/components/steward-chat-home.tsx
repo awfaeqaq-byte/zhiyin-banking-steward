@@ -73,6 +73,7 @@ import {depositRequestForMessages} from '../lib/bank-assets';
 import {TermDepositPanel} from './term-deposit-panel';
 import {StewardVoice} from './steward-voice';
 import type {VoiceBusiness} from '../lib/realtime-voice';
+import type {VoiceContextLoader,VoiceTurn} from '../lib/voice-conversation';
 
 import type {SceneFlow,SceneNext} from '../lib/scene-flow';
 import {reconcileSceneSources} from '../lib/scene-service';
@@ -106,6 +107,9 @@ type AttentionEvent =
 
 type Props = {
   voiceEnabled?:boolean;
+  voiceReviewing?:boolean;
+  getVoiceContext?:VoiceContextLoader;
+  onVoiceTurn?:(turn:VoiceTurn)=>void;
   onVoiceRequest?:VoiceBusiness;
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
@@ -236,6 +240,7 @@ function actionSubscription(
 
 export function StewardChatHome({
   voiceEnabled=true,
+  voiceReviewing=false,getVoiceContext,onVoiceTurn,
   onVoiceRequest,
   wechatShare,onWechatShareDone,
   seamless=false, homePreview=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
@@ -1116,7 +1121,7 @@ export function StewardChatHome({
               {sending&&!onRoutePrompt ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
             </button>
           </div>
-          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} enabled={voiceEnabled} disabled={sending||externalBusy||viewSaving||!!wechatShare} onActiveChange={setVoiceActive}/>}
+          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} getContext={getVoiceContext} onTurn={onVoiceTurn} reviewing={voiceReviewing} enabled={voiceEnabled} disabled={!!wechatShare} onActiveChange={setVoiceActive}/>}
           <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />涉及资金的操作仍需你确认</span>
         </form>
       </section>

@@ -14,6 +14,7 @@ import {occasionFoodRequest} from '../lib/occasion-food-bridge';
 import './steward-workspaces.css';
 import {voiceTaskResult,abortableVoicePause} from '../lib/voice-task-bridge';
 import type {VoiceBusiness} from '../lib/realtime-voice';
+import {buildVoiceContext,type VoiceTurn} from '../lib/voice-conversation';
 type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt;conversationListOpen?:boolean;onConversationListOpenChange?:(open:boolean)=>void};
 type Queued={id:string;text:string;token:string;messageId:string;replyId:string;sourceText:string};
 const TURN_SAVED='zhiyin-workspace-turn-saved';
@@ -202,11 +203,11 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   }catch(cause){setError(cause instanceof Error?cause.message:'回复保存状态尚未核实，请勿重复资金操作');}
  }
  async function serverReply(context:StewardReplyRequest){const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});accept(result.state);return result.reply;}
- const voiceRequest:VoiceBusiness=(text,id,signal)=>{
+ const voiceRequest:VoiceBusiness=(text,id,signal,context)=>{
   const previous=voiceRequests.current.get(id);if(previous)return previous;
   const result=(async()=>{
    if(signal.aborted)throw new Error('语音已结束');
-   await arrange(text,[],undefined,{messageId:id});
+   await arrange(text,context?.recent||[],undefined,{messageId:id});
    const deadline=Date.now()+120000;
    while(!signal.aborted&&Date.now()<deadline){const next=await request();if(signal.aborted)throw new Error('语音已结束');accept(next);const answer=voiceTaskResult(next,id);if(answer)return answer;await abortableVoicePause(signal);}
    throw new Error('语音已结束或处理超时，请在首页核对原事项，不要重复提交。');
@@ -253,6 +254,8 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
     </section>}
     <StewardChatHome {...props}
       onVoiceRequest={voiceRequest}
+      getVoiceContext={async()=>{if(!loaded)throw new Error('首页记录尚未载入，请稍后开始通话');const memory=props.memory?await props.memory.refresh():undefined;if(props.memory&&!memory)throw new Error('上下文暂未核对，请稍后开始通话');return buildVoiceContext(currentState.current.conversation||[],memory??undefined);}}
+      onVoiceTurn={(turn:VoiceTurn)=>{const memoryRevision=props.memory?.current.current.revision??0;void persistEntries([{id:`user-${turn.id}`,role:'user',content:turn.user,memoryRevision},...(turn.assistant?[{id:`reply-${turn.id}`,role:'assistant' as const,content:turn.assistant,memoryRevision}]:[])]);}}
       seamless
       sceneFlows={state.scenes}
       onResumeScene={resumeScene}

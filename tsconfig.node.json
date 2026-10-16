@@ -16,6 +16,7 @@
     "server/**/*.ts",
     "src/lib/bank-assets.ts",
     "src/lib/realtime-voice.ts",
+    "src/lib/voice-conversation.ts",
     "src/lib/workspaces.ts",
     "src/lib/scene-flow.ts",
     "src/lib/task-progress-schema.ts",
