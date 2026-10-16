@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {ArrowDown, Mic, MicOff, PhoneOff, Volume2, AudioLines} from 'lucide-react';
 import {createVoiceConnection} from '../lib/voice-connection';
 import {initialVoiceState, type VoiceBusiness} from '../lib/realtime-voice';
@@ -68,7 +69,7 @@ export function StewardVoice({
     if (!active) { setReviewHost(null); return; }
     // Join the modal's own focus scope, rather than putting unreachable call
     // controls behind Radix's aria-hidden background and pointer-event lock.
-    const locate = () => setReviewHost([...document.querySelectorAll('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')].at(-1) ?? null);
+    const locate = () => setReviewHost([...document.querySelectorAll('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')].filter(element => !element.matches('.voice-call-root')).at(-1) ?? null);
     locate();
     const observer = new MutationObserver(locate);
     observer.observe(document.body, {childList: true, subtree: true});
@@ -103,14 +104,14 @@ export function StewardVoice({
       <AudioLines size={22} aria-hidden="true"/>
     </button>
     {active && (!open || inReview) && (inReview && reviewHost ? createPortal(<div className="voice-review-dock">{compact}</div>, reviewHost) : compact)}
-    {open && !inReview && createPortal(<div className="voice-call-root"><section className="voice-call-stage" role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
+    {open && !inReview && <DialogPrimitive.Root open onOpenChange={next => { if (!next) minimize(); }}><DialogPrimitive.Portal container={entry.current?.closest('.app-shell') ?? document.body}><DialogPrimitive.Content asChild aria-label="语音通话" aria-labelledby={undefined} aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); entry.current?.focus(); }}><div className="voice-call-root"><section className="voice-call-stage" role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
       <header className="voice-call-heading">
         <div><strong>和{stewardName}通话</strong><span>{active && state.phase !== 'connecting' ? clock : '你的个人银行管家'}</span></div>
         <button type="button" className="voice-minimize" aria-label="收起语音面板" onClick={minimize}><ArrowDown size={21} aria-hidden="true"/><span>回首页</span></button>
       </header>
       <div className="voice-call-body">
         <div className="voice-presence" data-speaking={state.phase === 'speaking' || state.userSpeaking}><img src={stewardImage} alt={stewardName}/><span aria-hidden="true"/></div>
-        <h2>{stewardName}</h2>
+        <DialogPrimitive.Title asChild><h2>{stewardName}</h2></DialogPrimitive.Title>
         <p className="voice-status" role="status" aria-atomic="true">{active ? status : state.error ? '语音尚未连接' : '像打电话一样，直接说就好'}</p>
         {!active && <p className="voice-consent">开启后，音频、近期对话、已确认偏好和必要的业务结果会发送至阿里云百炼处理。本项目不保存原始录音。</p>}
         {active && !state.heard && !state.answer && <p className="voice-call-hint">不需要逐句发送，也可以随时打断我。</p>}
@@ -129,6 +130,6 @@ export function StewardVoice({
         </div>
         <small>离开知银或切到后台会停止收音 · 单次最多5分钟</small>
       </footer>
-    </section></div>, entry.current?.closest('.app-shell') ?? document.body)}
+    </section></div></DialogPrimitive.Content></DialogPrimitive.Portal></DialogPrimitive.Root>}
   </div>;
 }
