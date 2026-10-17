@@ -8,6 +8,7 @@ import { conversationContext } from './conversation-context';
 import type { StewardChatMessage } from './steward-chat';
 import {isSubscriptionListQuestion} from './subscription-access';
 import {isSubscriptionRouteIntent} from './subscription-commands';
+import {transferAmountError} from './transfer-amount';
 import {clearBillIntent,readTaskProgress,taskContinuation} from './task-progress';
 import {foodRoute} from './food-order';
 import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
@@ -65,6 +66,11 @@ export async function routeWorkspacePrompt(
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
+  // Reject invalid transfer amounts before semantic routing can lose the intent.
+  const transfer=current?.kind==='transfer'?current:undefined;
+  if(transferAmountError([...(transfer?.messages??[]),{role:'user',content:prompt}])) {
+    return {parts:[{taskId:transfer?.id??null,kind:'transfer' as const,title:transfer?.title??'转账金额核对',text:prompt}]};
+  }
   const shared=prompt.startsWith(WECHAT_SHARE_PREFIX);
   if(shared&&!sharedTextPreview(prompt))throw new Error('微信分享材料无效，请重新核对');
   if(!shared&&(isSubscriptionListQuestion(prompt)||isSubscriptionRouteIntent(prompt,current?.kind==='subscriptions'))) {

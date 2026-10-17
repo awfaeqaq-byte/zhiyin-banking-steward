@@ -7,6 +7,7 @@ import type { RecurringCandidate } from "./recurring-payments";
 import type { DuplicateDecision } from "./subscription-insights";
 import { billInstructions, isBillQuestion, type BillAnalysis } from './bill-analysis';
 import {conversationContext} from './conversation-context';
+import {hasRecipientTransferAmount,transferAmountError} from './transfer-amount';
 import {parseBillUI,type BillUI,type BillFocus} from './steward-ui';
 import {billReplyFacts,billReplyIssues,groundedBillReply} from './bill-reply-grounding';
 import {parseTaskWait,type TaskProgress} from './task-progress';
@@ -177,8 +178,8 @@ function fundingContext(forecast: FundingForecast | undefined, question: string)
 
 import { choiceInstructions } from './reply-choices';
 import {depositRequestForMessages,depositProducts} from './bank-assets';
-export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)|(?:之前|上次).{0,15}安排.{0,15}(?:钱|款)/.test(messages.slice(-4).map(m=>m.content).join(' '));
-export const isBankOperation=(text:string)=>/AA|aa|平摊|均摊|拆分.*收款|(?:给|向).{1,25}(?:转|汇)|预约.*转|定时.*转/.test(text);
+export const isBankRequest=(messages:StewardChatMessage[])=>messages.slice(-4).some(m=>hasRecipientTransferAmount(m.content))||/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)|(?:之前|上次).{0,15}安排.{0,15}(?:钱|款)/.test(messages.slice(-4).map(m=>m.content).join(' '));
+export const isBankOperation=(text:string)=>hasRecipientTransferAmount(text)||/AA|aa|平摊|均摊|拆分.*收款|(?:给|向).{1,25}(?:转|汇)|预约.*转|定时.*转/.test(text);
 const isCardManagementQuestion=(text:string)=>/卡片|银行卡|信用卡|借记卡|卡种|办卡|申请.{0,8}卡|挂失|锁卡|解锁|解挂|单笔限额|境外交易|无卡支付|夜间保护/.test(text);
 const isWealthQuestion=(text:string)=>/理财|投资|基金|存款|资产|闲钱|收益|赎回|申购|风险测评|持仓/.test(text);
 
@@ -245,6 +246,7 @@ export function buildStewardInstructions({
     `已登记银行沙箱收款人：${JSON.stringify(bankRecipients)}。按姓名、手机号、备注匹配；手机号只用于查找已登记账户，不能当银行卡号；有多个人匹配时先给选项，不能擅自选人。`,
     '用户指定微信或支付宝转账时，不得替换为银行卡转账；说明这里只能准备银行转账，请用户明确选择。',
     '根据用户当前意图与上下文提取收款人和金额；指代不清先问。已明确金额和收款人的即时转账可以生成方案，让用户在核对页修改和授权。',
+    '转账金额至少0.01元，最多两位小数。非法金额应解释金额问题，不得四舍五入、自行修改金额或编造权限和网络故障。',
     `当前北京时间：${new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'})}。预约须明确日期和时刻，只有“下周五”等缺少时刻时先询问；只支持单次预约，暂不支持每周循环。预约不会冻结余额，到期检查余额、限额及夜间保护，失败记录原因。`,
     '即时转账格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|收款人id|正整数分]；预约格式：[ZHIYIN_ACTION:PREPARE_TRANSFER|收款人id|正整数分|YYYY-MM-DDTHH:mm:ss+08:00]。2000元=200000分。禁止将预约降级成即时转账。',
     '用户要求留还款或生活费时，必须先问清需要从此卡保留的总额；没有信用卡应还账单，不能套用历史演示12000元。历史消费不是未来必需支出，平台续费不能自动从银行卡扣减；不要合并各平台余额。预算由本次用户明确或再次确认，不能仅用记忆自动设定。',
@@ -510,6 +512,8 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   if (newestUser && newestUser.content.length > 2000) {
     throw new Error("这条问题内容过长，请缩短后再发送。");
   }
+  const amountError=transferAmountError(request.messages);
+  if(amountError)return {text:amountError,waitingQuestion:'请重新填写至少0.01元、最多两位小数的转账金额。'};
   const instructions = buildStewardInstructions(request);
   const input = request.messages.filter(message => message.content.length <= 2000).slice(-24);
   let billFactsMessage:StewardChatMessage|undefined;

@@ -34,6 +34,28 @@ const MAX_INSTRUCTIONS_LENGTH = 4_000;
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 2_000;
 
+function isConnectionFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const cause = (error as Error & { cause?: { code?: string } }).cause;
+  return error.message === 'fetch failed' || ['UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET', 'ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN', 'ETIMEDOUT'].includes(cause?.code || '');
+}
+
+/** Retry only the model HTTP call, never business execution. Share the deadline. */
+async function fetchModel(fetcher: FetchLike, url: string, init: RequestInit, signal: AbortSignal): Promise<Response> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await fetcher(url, init);
+    } catch (error) {
+      if (signal.aborted || error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)) {
+        throw new Error('模型服务响应超时，请稍后重试', { cause: error });
+      }
+      if (!isConnectionFailure(error)) throw error;
+      if (attempt === 1) throw new Error('暂时无法连接模型服务，请检查网络后重试', { cause: error });
+    }
+  }
+  throw new Error('暂时无法连接模型服务，请检查网络后重试');
+}
+
 function completionUrl(baseUrl: string): string {
   const normalized = baseUrl.trim().replace(/\/+$/, '');
   if (!normalized) throw new Error('模型服务地址未配置');
@@ -105,7 +127,7 @@ async function fetchCompletion(
   signal: AbortSignal,
   attempt = 0,
 ): Promise<Completion> {
-  const response = await fetcher(completionUrl(config.baseUrl), {
+  const response = await fetchModel(fetcher, completionUrl(config.baseUrl), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.apiKey.trim()}`,
@@ -121,7 +143,7 @@ async function fetchCompletion(
     }),
     signal,
     redirect: 'error',
-  });
+  }, signal);
 
   if (!response.ok) throw new Error(`模型服务请求失败（HTTP ${response.status}）`);
   return extractCompletion(await response.json());

@@ -44,6 +44,28 @@ async function callMiddleware(options: {
 }
 
 describe('WeChat contact chat server proxy', () => {
+  it('retries a transient connection failure once with the same deadline and payload', async () => {
+    const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: '核对转账方案。' } }] })));
+    await expect(requestWechatContactReply(payload, config, fetcher)).resolves.toBe('核对转账方案。');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[1]).toEqual(fetcher.mock.calls[0]);
+  });
+  it('bounds connection retries and hides raw network diagnostics', async () => {
+    const fetcher = vi.fn().mockRejectedValue(new TypeError('fetch failed', { cause: { code: 'UND_ERR_CONNECT_TIMEOUT' } }));
+    await expect(requestWechatContactReply(payload, config, fetcher)).rejects.toThrow('暂时无法连接模型服务');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('reports a deadline timeout without starting another request', async () => {
+    const fetcher = vi.fn().mockRejectedValue(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    await expect(requestWechatContactReply(payload, config, fetcher)).rejects.toThrow('模型服务响应超时');
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+  it('does not retry rejected authentication', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response('private provider diagnostics', { status: 401 }));
+    await expect(requestWechatContactReply(payload, config, fetcher)).rejects.toThrow('HTTP 401');
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
   it('给MiniMax的思考与正式答复留足空间，长度截断时只重试一次且不泄漏思考',async()=>{
     const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({choices:[{finish_reason:'length',message:{content:'',reasoning_content:'private internal reasoning'}}]})))
       .mockResolvedValueOnce(new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'我收到你的消息了。',reasoning_content:'private internal reasoning'}}]})));

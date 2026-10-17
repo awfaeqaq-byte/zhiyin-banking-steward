@@ -62,6 +62,7 @@ describe('筹备任务与真实预留预算',()=>{
   expect(()=>bank.saveOccasion({id:'one',revision:bank.get().revision,draft:{...draft,budget:120000}},now)).toThrow(/订单/);
  });
  it('HTTP必须明确确认才能预留，读取可用资金和任务，过大或跨站输入被拒绝',async()=>{
+  // Keep this authorization test independent of the real night-protection window.
   vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(now);
   const {bank}=fixture();const server=createServer(bankMiddleware(bank));await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
   const post=(data:object,origin?:string)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1',...(origin?{Origin:origin}:{})},body:JSON.stringify(data)});
