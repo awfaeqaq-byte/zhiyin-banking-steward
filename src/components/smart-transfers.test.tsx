@@ -11,6 +11,7 @@ it('管家带来的保留金额可核对修改，执行前展示资金影响',as
   return new Response(JSON.stringify({...body,id:'budget',balance:4230000,impact:{pendingTotal:200000,protectedAmount:1200000,remaining:2630000,available:2000000}}));
  });
  render(<BankTransfer initial={{recipientId:'mom',amount:200000,protectedAmount:1200000}} onDone={vi.fn()}/>);
+ await user.selectOptions(screen.getByLabelText('从哪个账户转出'),'demo-8888');
  expect(screen.getByLabelText('转账后至少保留（元）')).toHaveValue('12000');
  await user.click(screen.getByRole('button',{name:'核对即时转账'}));
  expect(await screen.findByText('其他待执行预约')).toBeVisible();
@@ -54,6 +55,7 @@ it('手机号搜索要显式选择匹配账户，预约发送时间字段且不�
   return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));
  });
  render(<SmartTransfers initial={{recipientId:'mom',amount:10000,executeAt:Date.now()+86400000}} onDone={vi.fn()}/>);
+ await user.selectOptions(screen.getByLabelText('从哪个账户转出'),'demo-8888');
  await user.type(screen.getByLabelText('查找收款人'),'13800007316');
  await user.selectOptions(screen.getByLabelText('收款人'),'dad');
  await user.click(screen.getByRole('button',{name:'核对预约转账'}));
@@ -82,6 +84,7 @@ it('暂不撤销保持预约，确认撤销后同步转账标签，新预约也�
   return new Response(JSON.stringify(snapshot));
  });
  render(<SmartTransfers initial={{recipientId:'dad',amount:2000,executeAt}} onDone={vi.fn()}/>);
+ await user.selectOptions(screen.getByLabelText('从哪个账户转出'),'demo-8888');
  await user.click(screen.getByRole('button',{name:'核对预约转账'}));
  await user.click(await screen.findByRole('button',{name:'确认预约转账（沙箱）'}));
  expect(await screen.findByText('预约已建立')).toBeVisible();

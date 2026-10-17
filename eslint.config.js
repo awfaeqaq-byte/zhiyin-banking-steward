@@ -10,6 +10,7 @@ export default tseslint.config(
       "coverage",
       "node_modules",
       "mobilegym/**",
+      "promptfoo-learning/generated/**",
       "vite.config.js",
       "vite.config.d.ts",
     ],

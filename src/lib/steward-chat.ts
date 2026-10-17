@@ -16,6 +16,7 @@ import type {SavedWealthGoal} from './wealth-goal';
 import type {MarketContext} from './market-context';
 import type {FundSamples} from './fund-samples';
 import {buildWealthAdvisorInstructions} from './wealth-advisor';
+import {authorizationBoundary,withoutAuthorizationClaims} from './authorization-boundary';
 export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean };
 
 export type StewardChatMessage = {
@@ -44,7 +45,8 @@ export type StewardAction =
   | ({type:'prepare_transfer'} & TransferIntent)
   | ({type:'prepare_aa'} & AAIntent)
   | {type:'open_transfers'}
-  | {type:'open_transfer_records'}
+  | {type:'open_transfer_records';recipientId?:typeof bankRecipients[number]['id']}
+  | {type:'prepare_add_card';label:string;last4:string}
   | { type: "set_duplicate_preference"; groupId: string; decision: DuplicateDecision }
   | { type: "open_subscriptions" }
   | { type: "open_funding" }
@@ -432,7 +434,27 @@ function birthdayCalendarDraft(request:StewardReplyRequest):StewardReply|null {
 export async function requestStewardReplyWithModel(request:StewardReplyRequest,model:StewardModelCall):Promise<StewardReply>{
   const latest=request.messages.filter(message=>message.role==='user').at(-1)?.content.trim()||'';
   const readonlyShare=readonlyWechatShare(latest);
+  const boundary=readonlyShare?null:authorizationBoundary(request.messages);
+  if(boundary)return {text:boundary};
+  if(!readonlyShare&&/(?:告诉|显示|查看|查询|给我|透露|复述|输出|记得|是什么|发我).{0,24}(?:卡密|密码|支付密码|安全码|验证码|完整卡号|卡号全号|有效期)|(?:卡密|安全码|验证码|完整卡号|卡号全号).{0,16}(?:是什么|告诉|显示|给我|输出)/.test(latest))return {text:'我不能提供或复述卡片密码、安全码、验证码或完整卡号。演示卡片档案只保存昵称和末四位，不能推导卡密；请通过发卡机构的正式渠道核验。'};
+  const safeMessages=withoutAuthorizationClaims(request.messages);
+  const newest=request.messages.at(-1);
+  if(readonlyShare&&newest&&!safeMessages.includes(newest))safeMessages.push(newest);
+  request={...request,messages:safeMessages,
+    recentConversation:withoutAuthorizationClaims(request.recentConversation||[])};
   const candidate=birthdayCalendarDraft(request);if(candidate)return candidate;
+  if(!readonlyShare&&/(?:每笔|所有|全部|历次|历史|上次).{0,18}(?:转账|转给)|(?:转账|转给).{0,18}(?:记录|历史|明细)/.test(latest)){
+    const matched=bankRecipients.filter(item=>latest.includes(item.name)||latest.includes(item.phone));
+    if(matched.length===1){const recipient=matched[0];const records=(request.bank?.transactions??[]).filter(item=>item.recipientId===recipient.id).sort((a,b)=>b.completedAt-a.completedAt);return {text:records.length?`已查到给${recipient.name}的${records.length}笔银行沙箱转账。最近一笔是${new Date(records[0].completedAt).toLocaleString('zh-CN')}，金额¥${(records[0].amount/100).toFixed(2)}。打开记录可逐笔查看时间、备注、转后余额与回执。`:`目前没有查到给${recipient.name}的银行沙箱转账。`,action:{type:'open_transfer_records',recipientId:recipient.id}};}
+    return {text:'可以按收款人查看每笔银行沙箱转账的时间、备注、转后余额和回执。请在记录中选择收款人。',action:{type:'open_transfer_records'}};
+  }
+  if(!readonlyShare&&/(?:添加|新增|录入|绑定).{0,5}(?:银行卡|卡片|借记卡|卡)|(?:银行卡|卡片).{0,5}(?:添加|新增|录入|绑定)/.test(latest)){
+    if(/(?:卡号|密码|卡密|安全码|验证码|有效期)/.test(latest)||/\d{12,}/.test(latest))return {text:'请不要在聊天里提供完整卡号、密码、安全码或验证码。我只能登记演示卡片档案，无法核验真实银行卡归属。这次没有保存任何卡片。'};
+    const last4=latest.match(/(?:尾号|末四位|后四位)\s*(\d{4})(?!\d)/)?.[1];
+    const label=latest.match(/(?:叫|昵称|名称)[“"「]?([\p{L}\p{N} ·-]{1,24})[”"」]?(?=\s*(?:，|,|；|;|尾号|末四位|后四位|$))/u)?.[1]?.trim();
+    if(!last4||!label)return {text:'可以在对话里添加演示卡片档案。请只告诉我卡片昵称和末四位，例如“添加卡，昵称工资卡，尾号1234”。不要发送完整卡号、密码、安全码或验证码。'};
+    return {text:`准备登记演示卡片“${label}” · 尾号${last4}。这只是本机沙箱中的脱敏档案，不证明卡片归属，也不能用于付款。风险：昵称和末四位会保存在沙箱中，可能被有权查看此沙箱的人看到。请在输入框回复“接受添加”或“拒绝添加”；现在尚未保存。`,action:{type:'prepare_add_card',label,last4}};
+  }
   // This only prepares a read-only consent entry. No grant or partner request occurs here.
   if(/^(?:那|好[的吧]?|帮我|请|先|给我|我想|我要|可以|就|把|现在|，|,|\s)*(?:授权|连接|绑定|接入)/.test(latest) && !/不(?:要|用|想)?|取消|撤销|断开|转账|付款|扣款/.test(latest)) {
     const wechat=/微信/.test(latest),alipay=/支付宝/.test(latest);
@@ -452,14 +474,23 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     if(readonlyShare)return {...reply,action:undefined,billUI:undefined,view:undefined};
     const checked=verifyBudget(reply);
     if(checked.action?.type!=='prepare_transfer')return checked;
-    if(!validBankSnapshot(request.bank))return {...checked,text:'我先把安排交给你核对。当前未能读取银行卡余额，核对页会重新检查，尚未付款。'};
+    const recentUsers=request.messages.filter(message=>message.role==='user').slice(-5).map(message=>message.content);
+    const sourceSelected=recentUsers.some(content=>/(?:从|用|选择).{0,8}(?:常用卡|8888)|(?:常用卡|8888).{0,8}(?:转出|付款)/.test(content));
+    if(!sourceSelected)return {text:'这笔转账从哪个账户转出？目前仅能使用银行沙箱常用卡 8888，微信和支付宝余额不能代付。请明确选择，尚未转账。\n[[choices:从常用卡8888转出|先不转了]]'};
+    const remarkValue=(content:string)=>content.match(/(?:^|[，,；;])\s*备注(?:为|是|：|:)?\s*([^，。；;？?]{1,80})/)?.[1]?.trim();
+    const remarkTurn=[...recentUsers].reverse().find(content=>/(?:不用|不需要|无需|不写|无)(?:转账)?备注/.test(content)||Boolean(remarkValue(content)));
+    if(!remarkTurn)return {text:'是否需要备注转账原因？可以告诉我备注内容，或回复“不需要备注”。确认后我会展示转后余额与上次同路径转账。\n[[choices:不需要备注|备注生活费]]'};
+    const remark=/(?:不用|不需要|无需|不写|无)(?:转账)?备注/.test(remarkTurn)?undefined:remarkValue(remarkTurn);
+    const intent={...checked.action,sourceAccountId:'demo-8888' as const,...(remark?{remark}:{})};
+    if(!validTransfer(intent))return {text:'转账备注包含不支持的字符或过长，请改用80字以内的简短文字。尚未转账。'};
+    if(!validBankSnapshot(request.bank))return {...checked,action:{...intent,type:'prepare_transfer'},text:'我先把安排交给你核对。当前未能读取银行卡余额，核对页会重新检查，尚未付款。'};
     if(request.bank.frozen)return {text:'这张卡当前已挂失，暂时无法转账。需要先在银行卡管理中处理。'};
-    const impact=transferImpact(request.bank,checked.action);
+    const impact=transferImpact(request.bank,intent);
     const yuan=(value:number)=>(value/100).toLocaleString('zh-CN',{maximumFractionDigits:2});
     if(impact.remaining<0 || checked.action.amount>request.bank.limit)return {text:`按当前余额、其他预约和需保留金额计算，这次最多可转 ¥${yuan(impact.available)}。需要调整安排。\n[[choices:我改一下转账金额|先核对保留金额|先不转了]]`};
-    return {...checked,text:impact.protectedAmount || impact.pendingTotal
-      ?`计入这笔转账、其他预约和需保留金额后，银行卡仍可安排 ¥${yuan(impact.remaining)}。核对方案后再授权；这是当前余额测算，资金未冻结。`
-      :'已整理好这笔安排，请核对后授权。尚未付款。'};
+    const previous=[...request.bank.transactions].reverse().find(item=>item.recipientId===intent.recipientId);
+    const previousText=previous?`上次同路径转账是${new Date(previous.completedAt).toLocaleString('zh-CN')}。`:'目前没有查到给这位收款人的同路径转账。';
+    return {...checked,action:{...intent,type:'prepare_transfer'},text:`从常用卡 8888 转出后，按当前余额测算还剩 ¥${yuan(request.bank.balance-intent.amount)}。${previousText}已记录${remark?'备注“'+remark+'”':'不填写备注'}；打开核对后仍需独立确认，尚未付款。${impact.protectedAmount||impact.pendingTotal?`扣除其他预约和保留金额后，可安排 ¥${yuan(impact.remaining)}。`:''}`};
   };
   if (newestUser && newestUser.content.length > 2000) {
     throw new Error("这条问题内容过长，请缩短后再发送。");

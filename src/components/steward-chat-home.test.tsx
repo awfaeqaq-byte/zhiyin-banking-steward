@@ -26,6 +26,20 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('输入框接受或拒绝对话加卡；只有接受才提交脱敏档案',async()=>{
+    const user=userEvent.setup();let saved=0;
+    vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{const body=JSON.parse(String(options?.body||'{}'));if(body.type==='add-managed-card'){saved++;return new Response(JSON.stringify({id:body.id,label:body.label,last4:body.last4,createdAt:1,status:'demo-only'}));}return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));});
+    const reply=vi.fn<StewardReplyFn>(async()=>({text:'准备登记演示卡片，风险是昵称和末四位会保存。请接受或拒绝。',action:{type:'prepare_add_card',label:'工资卡',last4:'1234'}}));
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'添加卡，昵称工资卡，尾号1234');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByRole('group',{name:'卡片档案授权'});
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'拒绝添加');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByText(/已拒绝这项申请/)).toBeInTheDocument();expect(saved).toBe(0);
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'添加卡，昵称工资卡，尾号1234');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByRole('group',{name:'卡片档案授权'});
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'接受添加');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByText(/已保存演示卡片档案/)).toBeInTheDocument();expect(saved).toBe(1);expect(reply).toHaveBeenCalledTimes(2);
+  });
   it('进入具体任务后不再挤入首页订阅信息',()=>{
     render(<StewardChatHome workspace={{id:'dinner',kind:'aa',title:'今晚聚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0}} stewardName="宁宁" stewardImage="/n.png" connections={{alipay}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}/>);
     expect(screen.getByRole('heading',{name:'今晚聚餐'})).toBeInTheDocument();
