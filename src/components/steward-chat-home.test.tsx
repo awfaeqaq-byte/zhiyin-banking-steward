@@ -27,6 +27,25 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('S09 指定取消在第6项的项目时只显示该目标核对，不用前4项概览代替',async()=>{
+    const open=vi.fn(),model=vi.fn(async()=>{throw new Error('不应依赖模型准备准确目标');});
+    const source={...alipay,autopays:[...Array.from({length:5},(_,index)=>({id:`normal-${index}`,title:`普通项目${index}`,amount:1000,cycle:'月'})),{id:'last-target',title:'末尾测试云盘',amount:1800,cycle:'月'}]};
+    render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]}
+      onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={open} reply={request=>requestStewardReplyWithModel(request,model)}/>);
+    await userEvent.type(screen.getByRole('textbox'),'取消支付宝末尾测试云盘自动续费');await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    const card=await screen.findByRole('region',{name:'订阅安排'});
+    expect(card).toHaveTextContent('末尾测试云盘');expect(card).not.toHaveTextContent('普通项目0');expect(open).not.toHaveBeenCalled();
+    await userEvent.click(within(card).getByRole('button',{name:'核对并取消末尾测试云盘'}));expect(open).toHaveBeenCalledWith('alipay','last-target');expect(model).not.toHaveBeenCalled();
+  });
+  it('S08 音乐订阅稍后再说只更新对应组合偏好，不关闭续费提醒',async()=>{
+    const change=vi.fn(),toggle=vi.fn(),cancel=vi.fn();
+    const source={...alipay,autopays:[{id:'music-a',title:'音乐甲',amount:1500,cycle:'月'},{id:'music-b',title:'音乐乙',amount:2000,cycle:'月'}]};
+    render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]}
+      onToggleReminder={toggle} onDuplicatePreference={change} onOpenSubscriptions={vi.fn()} onPrepareCancel={cancel} reply={request=>requestStewardReplyWithModel(request,async()=>{throw Error('不应调用模型');})}/>);
+    await userEvent.type(screen.getByRole('textbox'),'这组音乐订阅稍后再说');await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await waitFor(()=>expect(change).toHaveBeenCalledWith(duplicateGroupKey([{key:'alipay:music-a'},{key:'alipay:music-b'}]),'later'));
+    expect(toggle).not.toHaveBeenCalled();expect(cancel).not.toHaveBeenCalled();
+  });
   it('缺少自动续费权限时不刷新账单或调用模型，入口打开授权中心而不是账单授权',async()=>{
     const model=vi.fn(async()=>{throw new Error('HTTP429');});
     const refresh=vi.fn(async()=>{throw new Error('平台HTTP429');});

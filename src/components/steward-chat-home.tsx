@@ -61,7 +61,8 @@ import {
 import "./steward-chat-home.css";
 import type { SubscriptionSyncResult } from "../lib/use-subscription-sync";
 import {isSubscriptionListQuestion, subscriptionAccess, subscriptionFingerprint} from '../lib/subscription-access';
-import { buildRecurringCandidates } from "../lib/recurring-payments";
+import { buildRecurringCandidates, buildRecurringAnalysis } from "../lib/recurring-payments";
+import {isRecurringReviewQuestion,isSubscriptionRouteIntent} from '../lib/subscription-commands';
 import type { RecurringReviews } from "./recurring-subscription-review";
 import { buildFundingForecast, fundingReferenceTime } from "../lib/funding-forecast";
 import type {Workspace} from '../lib/workspaces';
@@ -292,6 +293,7 @@ export function StewardChatHome({
       amount: item.amount,
       cycle: item.cycle,
       daysUntilCharge: item.daysUntilCharge,
+      nextChargeAt:item.nextChargeAt,
       reminderEnabled: !disabledReminders.includes(item.key),
     })),
     [disabledReminders, insights.items],
@@ -613,6 +615,7 @@ export function StewardChatHome({
       const depositQuestion=readonlyShare?null:depositRequestForMessages(requestMessages);
       const wealthQuestion=!readonlyShare&&(Boolean(depositQuestion)||/理财|投资|基金|存款|资产|收益|赎回|申购|风险测评|持仓|产品对比|产品推荐/.test(prompt));
       const bankOnly=!readonlyShare&&(isBankOperation(prompt) || (!coaching&&!wealthQuestion&&isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null));
+      const subscriptionTurn=!readonlyShare&&isSubscriptionRouteIntent(prompt,workspace?.kind==='subscriptions');
       const activeConnections=getCurrentConnections?.()||liveConnections.current;
       const snapshot = !readonlyShare&&isSubscriptionListQuestion(prompt)&&!subscriptionAccess(activeConnections).providers.length
         ?{connections:activeConnections,error:''}
@@ -628,13 +631,14 @@ export function StewardChatHome({
       const latestTime = snapshot ? fundingReferenceTime(latestConnections, referenceTime) : referenceTime;
       const latestInsights = buildSubscriptionInsights(latestConnections, latestTime, duplicatePreferences);
       const latestGroups = subscriptionGroups(latestInsights.items).map(group => ({
-        id: duplicateGroupKey(group), titles: group.map(item => item.title),
+        id: duplicateGroupKey(group), titles: group.map(item => item.title), category:group[0].category,
         kept: duplicatePreferences[duplicateGroupKey(group)]?.decision === 'keep',
       }));
       const latestSubscriptions = snapshot || backgroundUnavailable ? latestInsights.items.map(item => ({
         key: item.key, provider: item.provider, id: item.id, title: item.title,
         providerName: item.providerName, amount: item.amount, cycle: item.cycle,
         daysUntilCharge: item.daysUntilCharge,
+        nextChargeAt:item.nextChargeAt,
         reminderEnabled: !disabledReminders.includes(item.key),
       })) : subscriptions;
       const latestRecurring = buildRecurringCandidates(latestConnections, latestTime)
@@ -643,7 +647,7 @@ export function StewardChatHome({
       setRequestPhase('replying');
       const currentScene=billScenes[billTurn?.taskId||workspace?.id||'bill'];
       const viewQuestion=currentScene?.question&&!isBillQuestion(prompt)&&!billProvider(prompt)?currentScene.question:null;
-      const billQuestion = readonlyShare||progress?.stage==='paused'?null:progress?.bill?billTaskQuestion(progress):interaction.current?.value.question||viewQuestion||billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
+      const billQuestion = readonlyShare||subscriptionTurn||progress?.stage==='paused'?null:progress?.bill?billTaskQuestion(progress):interaction.current?.value.question||viewQuestion||billQuestionForMessages(requestMessages) || (continueBill ? billQuestionForMessages(requestMessages.slice(0,-1)) : null);
       const billAnalysis = coaching ? buildBillAnalysis(currentConnections,'本月支出',billReferenceTime(currentConnections,latestTime)) : billQuestion !== null && !isBankOperation(prompt) && !/银行|常用卡/.test(prompt) ? buildBillAnalysis(currentConnections,billQuestion,billReferenceTime(currentConnections,latestTime)) : undefined;
       const selectedFocus=interaction.current?.value.focus||(/这笔|那笔|这个|那个|它/.test(prompt)?billScenes[workspace?.id||'bill']?.focus:undefined);
       const selectedCategory=interaction.current?.value.category||currentScene?.category;
@@ -660,6 +664,7 @@ export function StewardChatHome({
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
       const request = { stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         subscriptionAccess: subscriptionAccess(latestConnections),
+        ...(isRecurringReviewQuestion(prompt)?{recurringAnalysis:buildRecurringAnalysis(latestConnections,latestTime,prompt)}:{}),
         ...(seamless?{recentConversation:recentContext().filter((message,index,array)=>!(index===array.length-1&&message.role==='user'))}:{}),
         transferBackground,
         taskContext,
@@ -971,9 +976,10 @@ export function StewardChatHome({
             const latestInTask=message.workspaceId?messages.filter(m=>m.workspaceId===message.workspaceId).at(-1)?.id===message.id:message.id===activeReplyId;
             const action = (!seamless && (!fullSession || message.id===activeReplyId)) || seamless && latestInTask ? message.action : undefined;
             const related = action ? actionSubscription(action, subscriptions) : undefined;
+            const reviewItems=action?.type==='prepare_cancel'?subscriptions.filter(item=>item.provider===action.provider&&item.id===action.subscriptionId):subscriptions;
             const linkedScene=message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id?sceneFlows.find(s=>s.id===message.sceneId):undefined;
             const subscriptionOverview=latestInTask&&(action?.type==='open_subscriptions'||action?.type==='prepare_cancel'||/^(?:帮我|请|给我)?(?:查看|看看|检查|列出|整理)(?:一下|下)?(?:我的|当前|全部)?(?:订阅|会员|续费)(?:安排|情况|清单|列表)?[。！!\s]*$/.test(sourceText));
-            const taskSurface=seamless&&message.role==='assistant'&&!historyOpen?(action?.type==='prepare_transfer'&&onPrepareTransfer?<TransferPlanCard intent={action} quote={message.transferQuote} sourceText={message.transferSource||sourceText} disabled={sending||externalBusy} onReview={intent=>onPrepareTransfer(intent,message.workspaceId)}/>:subscriptionOverview?<SubscriptionReviewCard items={subscriptions} error={refreshError} disabled={sending||externalBusy||refreshing} onReviewCancel={onPrepareCancel} onToggleReminder={onToggleReminder} onOpen={onOpenSubscriptions}/>:linkedScene?<SceneProgressCard scene={linkedScene} onResume={onResumeScene} disabled={sending||externalBusy}/>:null):null;
+            const taskSurface=seamless&&message.role==='assistant'&&!historyOpen?(action?.type==='prepare_transfer'&&onPrepareTransfer?<TransferPlanCard intent={action} quote={message.transferQuote} sourceText={message.transferSource||sourceText} disabled={sending||externalBusy} onReview={intent=>onPrepareTransfer(intent,message.workspaceId)}/>:subscriptionOverview?<SubscriptionReviewCard items={reviewItems} error={refreshError} disabled={sending||externalBusy||refreshing} onReviewCancel={onPrepareCancel} onToggleReminder={onToggleReminder} onOpen={onOpenSubscriptions}/>:linkedScene?<SceneProgressCard scene={linkedScene} onResume={onResumeScene} disabled={sending||externalBusy}/>:null):null;
             const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
             const currentBill=scene&&!scene.needsConsent&&scene.question?buildBillAnalysis(billConnections,scene.question,billReferenceTime(billConnections,referenceTime)):undefined;
             const interpretationChanged=Boolean(currentBill&&(

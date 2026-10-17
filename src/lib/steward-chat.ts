@@ -18,7 +18,10 @@ import type {FundSamples} from './fund-samples';
 import {buildWealthAdvisorInstructions} from './wealth-advisor';
 import {authorizationBoundary,withoutAuthorizationClaims} from './authorization-boundary';
 import {subscriptionReadReply, type SubscriptionAccess} from './subscription-access';
-export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean };
+import {subscriptionCommandReply} from './subscription-commands';
+import {recurringReviewReply} from './recurring-reply';
+import type {RecurringAnalysis} from './recurring-payments';
+export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean; category?:string };
 
 export type StewardChatMessage = {
   role: "user" | "assistant";
@@ -35,6 +38,7 @@ export type StewardSubscription = {
   cycle: string;
   daysUntilCharge: number | null;
   reminderEnabled: boolean;
+  nextChargeAt?:number;
 };
 
 export type StewardAction =
@@ -88,6 +92,7 @@ export type StewardReplyRequest = {
   stewardName: string;
   subscriptions: StewardSubscription[];
   subscriptionAccess?: SubscriptionAccess;
+  recurringAnalysis?:RecurringAnalysis;
   duplicateGroups?: StewardDuplicateGroup[];
   recurringCandidates?: Array<RecurringCandidate & { reviewStatus?: "confirmed" | "pending" }>;
   fundingForecast?: FundingForecast;
@@ -440,6 +445,10 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   const readonlyShare=readonlyWechatShare(latest);
   const boundary=readonlyShare?null:authorizationBoundary(request.messages);
   if(boundary)return {text:boundary};
+  const recurringReply=readonlyShare?null:recurringReviewReply(request);
+  if(recurringReply)return recurringReply;
+  const command=readonlyShare?null:subscriptionCommandReply(request);
+  if(command)return command;
   const subscriptionReply=readonlyShare?null:subscriptionReadReply(request);
   if(subscriptionReply)return subscriptionReply;
   if(!readonlyShare&&/(?:告诉|显示|查看|查询|给我|透露|复述|输出|记得|是什么|发我).{0,24}(?:卡密|密码|支付密码|安全码|验证码|完整卡号|卡号全号|有效期)|(?:卡密|安全码|验证码|完整卡号|卡号全号).{0,16}(?:是什么|告诉|显示|给我|输出)/.test(latest))return {text:'我不能提供或复述卡片密码、安全码、验证码或完整卡号。演示卡片档案只保存昵称和末四位，不能推导卡密；请通过发卡机构的正式渠道核验。'};
