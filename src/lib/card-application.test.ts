@@ -7,6 +7,14 @@ let directory='';afterEach(()=>{if(directory)rmSync(directory,{recursive:true,fo
 function store(){directory=mkdtempSync(join(tmpdir(),'card-flow-'));return createBankStore(join(directory,'bank.json'));}
 
 describe('卡片申请及安全交错场景',()=>{
+ it('对话卡片档案只保存昵称与末四位，重复提交幂等且不改变可付款账户',()=>{
+  const bank=store();const card=bank.addManagedCard({id:'card-1',label:'工资卡',last4:'1234',revision:0},100);
+  expect(card).toMatchObject({label:'工资卡',last4:'1234',status:'demo-only'});
+  expect(bank.addManagedCard({id:'card-1',label:'工资卡',last4:'1234',revision:0},101)).toEqual(card);
+  expect(bank.get().managedCards).toHaveLength(1);expect(bank.get().balance).toBe(4230000);
+  expect(()=>bank.addManagedCard({id:'card-2',label:'卡号6222021234567890123',last4:'0123',revision:1},102)).toThrow(/仅填写/);
+  expect(()=>bank.addManagedCard({id:'card-3',label:'另一张卡',last4:'12345',revision:1},102)).toThrow(/仅填写/);
+ });
  it('取消不提交；同一申请幂等，旧版本或变更卡种拒绝',()=>{
   const bank=store();expect(bank.get().cardApplications).toEqual([]);
   const first=bank.applyCard({id:'application-1',productId:'standard-debit',revision:0},100);

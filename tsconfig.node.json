@@ -47,6 +47,7 @@
     "src/lib/route-decision.ts",
     "src/lib/conversation-context.ts",
     "src/lib/steward-chat.ts",
+    "src/lib/authorization-boundary.ts",
     "src/lib/financial-coach.ts",
     "src/lib/wealth-advisor.ts",
     "src/lib/wealth-goal.ts",

@@ -61,6 +61,7 @@ import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
 import { BillReports } from "./components/bill-reports";
 import { CardApplicationPanel } from "./components/card-application";
+import {AuthorizationCenter} from './components/authorization-center';
 import {OverseasPaymentDemo} from './components/overseas-payment-demo';
 import {parseCardIntent} from './lib/card-intent';
 import { AgentAutomationCenter } from "./components/agent-automation-center";
@@ -110,6 +111,7 @@ type Page =
   | "profile"
   | "settings"
   | "connections"
+  | "authorization"
   | "funding"
   | "funds"
   | "tasks"
@@ -265,9 +267,10 @@ export default function App() {
   const [speak, setSpeak] = useState<StewardId | null>(null);
   const [attachment, setAttachment] = useState("");
   const [privacy, setPrivacy] = useState({
-    notifications: true,
-    analytics: false,
+    notifications: read('zhiyin-privacy', {notifications:true,analytics:false}).notifications,
+    analytics: read('zhiyin-privacy', {notifications:true,analytics:false}).analytics,
   });
+  useEffect(()=>save('zhiyin-privacy',privacy),[privacy]);
   const {
     connections, setConnections, refresh: refreshSubscriptions,
     refreshing: subscriptionsRefreshing, error: subscriptionRefreshError,
@@ -992,7 +995,7 @@ export default function App() {
           {page === "spending" && (
             <>
               <Heading title="我的账单" subtitle="按授权账单生成月度与年度报告" />
-              <BillReports connections={connections} onConnect={() => go("connections")} />
+              <BillReports connections={connections} onConnect={() => go("authorization")} />
             </>
           )}
           {page === "deposits" && <><Heading title="存款" subtitle="同一银行账本，先核对资金影响再由你确认"/>{hidden?<button type="button" className="primary-button" onClick={()=>setHidden(false)}>显示金额，继续办理</button>:<TermDepositPanel/>}</>}
@@ -1049,7 +1052,7 @@ export default function App() {
                     {bank.error&&<p role="alert">{bank.error}</p>}
                     <h3>银行转账账单</h3>
                     {!!bank.state?.collections?.length&&<div className="bank-ledger-list">{[...bank.state.collections].reverse().map(c=><details key={c.id}><summary><span>AA收款 · {bankRecipients.find(r=>r.id===c.recipientId)?.name}<small>{new Date(c.completedAt).toLocaleString('zh-CN')}</small></span><strong>+{bankMoney(c.amount)}</strong></summary><p>已到账 · 常用卡8888 · 入账后余额 {bankMoney(c.balanceAfter)}</p><small>回执 {c.id}</small></details>)}</div>}
-                    {bank.state?.transactions.length?<div className="bank-ledger-list">{[...bank.state.transactions].reverse().map(t=><details key={t.id}><summary><span>转给{bankRecipients.find(r=>r.id===t.recipientId)?.name}<small>{new Date(t.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(t.amount)}</strong></summary><p>已完成 · 付款卡8888 · 收款尾号{bankRecipients.find(r=>r.id===t.recipientId)?.accountLast4}</p><p>交易后余额 {bankMoney(t.balanceAfter)}</p><small>回执 {t.id}</small></details>)}</div>:<p className="fine-print left">尚无银行沙箱转账记录。</p>}
+                    {bank.state?.transactions.length?<div className="bank-ledger-list">{[...bank.state.transactions].reverse().map(t=><details key={t.id}><summary><span>转给{bankRecipients.find(r=>r.id===t.recipientId)?.name}<small>{new Date(t.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(t.amount)}</strong></summary><p>已完成 · 付款卡8888 · 收款尾号{bankRecipients.find(r=>r.id===t.recipientId)?.accountLast4}</p><p>转账备注 {t.remark||'无'} · 交易后余额 {bankMoney(t.balanceAfter)}</p><small>回执 {t.id}</small></details>)}</div>:<p className="fine-print left">尚无银行沙箱转账记录。</p>}
                     {!!bank.state?.payments?.length&&<div className="bank-ledger-list">{[...bank.state.payments].reverse().map(p=><details key={p.id}><summary><span>{p.merchant}<small>{p.channel==='wechat'?'微信支付':p.channel==='alipay'?'支付宝':'境外沙箱支付'} · {new Date(p.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(p.amount)}</strong></summary><p>付款卡8888 · 交易后余额 {bankMoney(p.balanceAfter)}</p>{p.refundedAt!==undefined&&<p>已原路退款 +{bankMoney(p.amount)} · {new Date(p.refundedAt).toLocaleString('zh-CN')}</p>}<small>{p.channel==='overseas'?'沙箱交易回执':'关联订单'} {p.id}</small></details>)}</div>}
                   </section>
                   <div className="explanation">
@@ -1162,7 +1165,7 @@ export default function App() {
                       subtitle={Object.keys(connections).length
                         ? `已连接 ${Object.keys(connections).length} 个支付账户`
                         : "连接微信支付、支付宝"}
-                      onClick={() => go("connections")} />
+                      onClick={() => go("authorization")} />
                     <Row icon={CalendarDays} title="订阅与续费"
                       subtitle={subscriptionInsights.items.length
                         ? `已识别 ${subscriptionInsights.items.length} 项自动续费`
@@ -1197,8 +1200,8 @@ export default function App() {
                   <div className="surface">
                     <Row icon={Settings2} title="管理记忆" subtitle="对我的了解 · 确认、纠正或忘记"
                       onClick={() => setModal("memory")} />
-                    <Row icon={ShieldCheck} title="隐私与授权" subtitle="你始终拥有数据的控制权"
-                      onClick={() => setModal("privacy")} />
+                    <Row icon={ShieldCheck} title="授权与批准中心" subtitle="集中管理读取范围、卡片安全和提醒"
+                      onClick={() => go('authorization')} />
                     <Row icon={CircleHelp} title="帮助与使用指南" onClick={() => setModal("help")} />
                   </div>
                 </section>
@@ -1275,13 +1278,14 @@ export default function App() {
                           ? `微信支付、支付宝 · 已连接 ${Object.keys(connections).length} 个`
                           : "微信支付、支付宝 · 尚未连接"
                       }
-                      onClick={() => go("connections")}
+                      onClick={() => go("authorization")}
                     />
                   </div>
                 </section>
               </div>
             </>
           )}
+          {page === "authorization" && <><Heading title="授权与批准中心" subtitle="每一项变更都先展示风险，再由你接受或拒绝"/><AuthorizationCenter bank={bank.state} bankBusy={bank.busy} bankError={bank.error} onBankChange={bank.change} onRefresh={bank.refresh} connections={connections} initialProvider={connectionEntry} onEntryConsumed={()=>setConnectionEntry(undefined)} onConnect={async(provider,scopes)=>{await connectFinancialSource(provider,scopes);}} onDisconnect={disconnectFinancialSource} privacy={privacy} onPrivacyChange={setPrivacy}/></>}
           {page === "connections" && (
             <>
               <Heading
@@ -1319,7 +1323,7 @@ export default function App() {
                 disabledReminders={disabledSubscriptionReminders}
                 onToggleReminder={toggleSubscriptionReminder}
                 onCancel={cancelSubscription}
-                onConnect={() => go("connections")}
+                onConnect={() => go("authorization")}
                 selectedKey={subscriptionActionTarget}
                 onSelectionConsumed={() => setSubscriptionActionTarget(null)}
               />
@@ -1333,7 +1337,7 @@ export default function App() {
               <Heading title="近期资金安排" subtitle="分开核对每个账户，留足接下来的续费" />
               <FundingPlan connections={connections} refreshing={subscriptionsRefreshing}
                 refreshError={subscriptionRefreshError} onRefresh={refreshSubscriptions}
-                onConnect={() => go("connections")} onOpenSubscriptions={() => go("subscriptions")} />
+                onConnect={() => go("authorization")} onOpenSubscriptions={() => go("subscriptions")} />
             </>
           )}
           {page === "automations" && (
@@ -1369,7 +1373,7 @@ export default function App() {
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}
               onOpenSubscriptions={() => go("subscriptions")}
-              onOpenConnections={provider=>{setConnectionEntry(provider);go('connections');}}
+              onOpenConnections={provider=>{setConnectionEntry(provider);go('authorization');}}
               onConnectSource={connectFinancialSource}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
@@ -1737,7 +1741,7 @@ export default function App() {
             }
             onClick={() => {
               setModal(null);
-              go("connections");
+              go("authorization");
             }}
           />
           <Row
