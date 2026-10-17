@@ -5,6 +5,18 @@ import {createWorkspaceStore} from '../../server/workspace-store';
 const dirs:string[]=[];afterEach(()=>dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true})));
 const scope='11111111-1111-4111-8111-111111111111';
 function fixture(){const dir=mkdtempSync(join(tmpdir(),'zhiyin-message-'));dirs.push(dir);return dir;}
+it('未连接的自动续费询问从分类到持久回复都不调用模型，旧历史不能恢复授权',async()=>{
+ const dir=fixture(),model=vi.fn(async()=>{throw new Error('HTTP429');}),service=createMessageService(dir,model);
+ service.operate(scope,{type:'conversation-append',id:crypto.randomUUID(),messages:[{id:'old-subscriptions',role:'assistant',content:'当前已授权支付宝，有云盘A等2项自动续费。'}]});
+ const id=crypto.randomUUID(),owner=crypto.randomUUID();
+ service.submit(scope,{id,text:'我有哪些自动续费？',currentId:'',memoryRevision:0});await service.idle(scope);
+ const run=service.get(scope).runs!.find(item=>item.id===id)!;
+ expect(run.status).toBe('ready');const job=run.jobs[0];service.claim(scope,id,job.id,owner);
+ const result=await service.reply(scope,{id,jobId:job.id,owner,request:{stewardName:'宁宁',subscriptions:[],subscriptionAccess:{providers:[],incompleteProviders:[]},messages:[]}});
+ expect(result.action).toEqual({type:'open_connections',scope:'autopay'});expect(result.text).toContain('没有可读取自动续费的有效授权');
+ expect(result.text).not.toContain('云盘A');expect(service.get(scope).conversation?.at(-1)?.content).toBe(result.text);
+ expect(service.get(scope).runs!.find(item=>item.id===id)!.status).toBe('completed');expect(model).not.toHaveBeenCalled();
+});
 it('服务端独立完成分类和回复，离开页面后仍保存正文；同消息ID不会重复请求模型',async()=>{
  const dir=fixture(),model=vi.fn(async()=> '你好，我在。'),service=createMessageService(dir,model),id=crypto.randomUUID(),owner=crypto.randomUUID();
  service.submit(scope,{id,text:'你好',currentId:'',memoryRevision:0});await service.idle(scope);

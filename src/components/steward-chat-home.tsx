@@ -60,6 +60,7 @@ import {
 } from "../lib/steward-chat";
 import "./steward-chat-home.css";
 import type { SubscriptionSyncResult } from "../lib/use-subscription-sync";
+import {isSubscriptionListQuestion, subscriptionAccess, subscriptionFingerprint} from '../lib/subscription-access';
 import { buildRecurringCandidates } from "../lib/recurring-payments";
 import type { RecurringReviews } from "./recurring-subscription-review";
 import { buildFundingForecast, fundingReferenceTime } from "../lib/funding-forecast";
@@ -149,6 +150,7 @@ type Props = {
   onPrepareCancel: (provider: ExternalFinancialProvider, subscriptionId: string) => void;
   reply?: StewardReplyFn;
   refreshSubscriptions?: () => Promise<SubscriptionSyncResult>;
+  getCurrentConnections?: () => Props['connections'];
   refreshError?: string;
   refreshing?: boolean;
   recurringReviews?: RecurringReviews;
@@ -164,7 +166,7 @@ function readOnlyView(view:unknown):DisplayMessage['view'] {return view==='term_
 function readOnlyEntry(action?: StewardAction): StewardAction | undefined {
   if(action?.type!=='open_connections')return undefined;
   if(action.provider!==undefined&&!['wechat_pay','alipay'].includes(action.provider))return undefined;
-  return {type:'open_connections',...(action.provider?{provider:action.provider}:{})};
+  return {type:'open_connections',...(action.provider?{provider:action.provider}:{}),...(action.scope==='autopay'?{scope:'autopay' as const}:{})};
 }
 function readMessages(key=storageKey): DisplayMessage[] {
   try {
@@ -256,6 +258,7 @@ export function StewardChatHome({
   onPrepareCancel,
   reply = requestStewardReply,
   refreshSubscriptions,
+  getCurrentConnections,
   refreshError = "",
   refreshing = false,
   recurringReviews = {},
@@ -263,6 +266,7 @@ export function StewardChatHome({
   duplicatePreferences = EMPTY_DUPLICATE_PREFERENCES,
   onDuplicatePreference,
 }: Props) {
+  const liveConnections=useRef(connections);liveConnections.current=connections;
   const expenseNotebook=useRef<ExpenseNotebookHandle>(null);
   const expenseNotebooks=useRef<Record<string,ExpenseNotebookHandle|null>>({});
   const [waitingForAA,setWaitingForAA]=useState<Record<string,boolean>>({});
@@ -609,10 +613,14 @@ export function StewardChatHome({
       const depositQuestion=readonlyShare?null:depositRequestForMessages(requestMessages);
       const wealthQuestion=!readonlyShare&&(Boolean(depositQuestion)||/理财|投资|基金|存款|资产|收益|赎回|申购|风险测评|持仓|产品对比|产品推荐/.test(prompt));
       const bankOnly=!readonlyShare&&(isBankOperation(prompt) || (!coaching&&!wealthQuestion&&isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null));
-      const snapshot = !readonlyShare&&refreshSubscriptions ? await refreshSubscriptions().catch(cause=>({connections:{},error:cause instanceof Error?cause.message:'平台数据不可用'})) : null;
+      const activeConnections=getCurrentConnections?.()||liveConnections.current;
+      const snapshot = !readonlyShare&&isSubscriptionListQuestion(prompt)&&!subscriptionAccess(activeConnections).providers.length
+        ?{connections:activeConnections,error:''}
+        :!readonlyShare&&refreshSubscriptions ? await refreshSubscriptions().catch(cause=>({connections:{},error:cause instanceof Error?cause.message:'平台数据不可用'})) : null;
       if (snapshot?.error && !bankOnly && !coaching && !wealthQuestion && !isTaskRequest(requestMessages) && !isOccasionRequest(requestMessages) && workspace?.kind!=='occasion') throw new Error(snapshot.error);
       const backgroundUnavailable=Boolean(snapshot?.error || (!snapshot && refreshError));
-      const latestConnections = backgroundUnavailable?{}:snapshot?.connections || connections;
+      const latestConnections = backgroundUnavailable?{}:snapshot?.connections || getCurrentConnections?.() || liveConnections.current;
+      const subscriptionVersion=subscriptionFingerprint(latestConnections);
       const confirmed=confirmedBill.current&&confirmedBill.current.taskId===workspace?.id?confirmedBill.current.sources:undefined;
       if(confirmed)confirmedBill.current=undefined;
       const currentConnections=grantedConnections||confirmed||latestConnections;
@@ -651,6 +659,7 @@ export function StewardChatHome({
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
       const request = { stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+        subscriptionAccess: subscriptionAccess(latestConnections),
         ...(seamless?{recentConversation:recentContext().filter((message,index,array)=>!(index===array.length-1&&message.role==='user'))}:{}),
         transferBackground,
         taskContext,
@@ -675,6 +684,9 @@ export function StewardChatHome({
         :progress?.bill&&billAnalysis&&!billAnalysis.sources.length
         ?{text:progress.bill.provider?'范围记下了，确认账单读取授权后，我接着分析。':'先选这次要看的账单来源，确认读取范围后我接着分析。',action:{type:'open_connections' as const,...(progress.bill.provider&&progress.bill.provider!=='all'?{provider:progress.bill.provider}:{})}}
         :await reply(request);
+      if(!readonlyShare&&/自动续费|订阅|签约/.test(prompt)&&(getCurrentConnections||liveConnections.current!==connections)&&subscriptionVersion!==subscriptionFingerprint(getCurrentConnections?.()||liveConnections.current)) {
+        throw new Error('授权或订阅已变化，本次结果已作废，请重新查询。');
+      }
       if(progress&&progress.stage!=='paused')progress=settleTaskProgress(progress,{bill:billAnalysis,waitingQuestion:response.waitingQuestion,needsAuthorization:response.action&&['prepare_transfer','prepare_aa','prepare_cancel','prepare_task','open_connections'].includes(response.action.type)});
       if(progress?.stage==='paused')setBillScenes(current=>{const next={...current};delete next[workspace?.id||'bill'];return next;});
       if(epoch!==contextEpoch.current || (remembered && memory && remembered.revision!==memory.current.current.revision))return;
@@ -713,7 +725,7 @@ export function StewardChatHome({
       }]);
       setActiveReplyId(responseId);
       setActiveBill(billAnalysis ? {id:responseId,data:billAnalysis} : null);
-      if(seamless&&(billAnalysis&&!billAnalysis.needsClarification||response.action?.type==='open_connections')){
+      if(seamless&&(billAnalysis&&!billAnalysis.needsClarification||response.action?.type==='open_connections'&&response.action.scope!=='autopay')){
         const key=workspace?.id||'bill';
         const question=billQuestion||billScenes[key]?.question||billQuestionForMessages(requestMessages.slice(0,-1))||'';
         const needsConsent=Boolean(response.action?.type==='open_connections'&&!billAnalysis?.sources.length||billAnalysis&&!billAnalysis.sources.length);
@@ -1036,7 +1048,7 @@ export function StewardChatHome({
                   {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records',recipientId:action.recipientId})}>查看逐笔转账记录<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_add_card'&&!historyOpen&&<p className="fine-print left">请在输入框回复“接受添加”或“拒绝添加”；只有接受后才会向服务端提交脱敏档案。</p>}
                   {action?.type==='open_tasks'&&onOpenTasks&&!historyOpen&&<button onClick={()=>onOpenTasks()}>打开任务日历<ArrowRight size={16}/></button>}
-                  {action?.type==='open_connections'&&onOpenConnections&&!(seamless&&onConnectSource)&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
+                  {action?.type==='open_connections'&&onOpenConnections&&!(seamless&&onConnectSource&&action.scope!=='autopay')&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}
                   {action?.type==='open_occasions'&&onOpenOccasions&&!historyOpen&&<button onClick={()=>onOpenOccasions(lastPrompt,workspace?.kind==='occasion'?workspace.id:undefined)}>核对生活筹备<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask({...action,workspaceId:message.workspaceId})}>{action.repeat==='yearly'?'核对并记录生日':'核对并保存提醒'}<ArrowRight size={16}/></button>}

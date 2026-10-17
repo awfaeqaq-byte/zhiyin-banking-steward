@@ -6,6 +6,7 @@ import {
 } from "./workspaces";
 import { conversationContext } from './conversation-context';
 import type { StewardChatMessage } from './steward-chat';
+import {isSubscriptionListQuestion} from './subscription-access';
 import {clearBillIntent,readTaskProgress,taskContinuation} from './task-progress';
 import {foodRoute} from './food-order';
 import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
@@ -65,6 +66,10 @@ export async function routeWorkspacePrompt(
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
   const shared=prompt.startsWith(WECHAT_SHARE_PREFIX);
   if(shared&&!sharedTextPreview(prompt))throw new Error('微信分享材料无效，请重新核对');
+  if(!shared&&isSubscriptionListQuestion(prompt)) {
+    const existing=current?.kind==='subscriptions'?current:undefined;
+    return {parts:[{taskId:existing?.id||null,kind:'subscriptions' as const,title:existing?.title||'自动续费查询',text:prompt}]};
+  }
   const conversational=shared?null:conversationRoute(prompt,tasks,currentId);if(conversational)return conversational;
   const food=shared?null:foodRoute(prompt,tasks,currentId);if(food)return food;
   const continuation=shared?null:taskContinuation(prompt,tasks,currentId);

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { StewardChatHome } from "./steward-chat-home";
 import type { ConnectedFinancialSource } from "../lib/financial-connections";
 import type { StewardReplyFn } from "../lib/steward-chat";
+import {requestStewardReplyWithModel} from '../lib/steward-chat';
 import { duplicateGroupKey } from '../lib/subscription-insights';
 import {emptyMemory,updateMemory} from '../lib/steward-memory';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
@@ -26,6 +27,38 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('缺少自动续费权限时不刷新账单或调用模型，入口打开授权中心而不是账单授权',async()=>{
+    const model=vi.fn(async()=>{throw new Error('HTTP429');});
+    const refresh=vi.fn(async()=>{throw new Error('平台HTTP429');});
+    const open=vi.fn(),connect=vi.fn();
+    render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png"
+      connections={{alipay:{...alipay,scopes:['transactions']}}} disabledReminders={[]}
+      onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}
+      onOpenConnections={open} onConnectSource={connect} refreshSubscriptions={refresh}
+      reply={request=>requestStewardReplyWithModel(request,model)}/>);
+    await userEvent.type(screen.getByRole('textbox'),'我有哪些自动续费？');
+    await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    const button=await screen.findByRole('button',{name:'核对账户授权'});
+    expect(screen.getByText(/当前没有可读取自动续费的有效授权/)).toBeInTheDocument();
+    await userEvent.click(button);expect(open).toHaveBeenCalledOnce();
+    expect(refresh).not.toHaveBeenCalled();expect(connect).not.toHaveBeenCalled();expect(model).not.toHaveBeenCalled();
+  });
+  it('查询尚未返回时断开授权，迟到的旧清单不会显示为本轮答复',async()=>{
+    let finish!:(value:{text:string})=>void;
+    const reply=vi.fn<StewardReplyFn>(()=>new Promise<{text:string}>(resolve=>{finish=resolve;}));
+    let current:Partial<Record<'alipay',ConnectedFinancialSource>>={alipay};
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={current}
+      getCurrentConnections={()=>current} disabledReminders={[]} onToggleReminder={vi.fn()}
+      onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+    await userEvent.type(screen.getByRole('textbox'),'我有哪些自动续费？');
+    await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await waitFor(()=>expect(reply).toHaveBeenCalledOnce());
+    expect(reply.mock.calls[0]?.[0]).toMatchObject({subscriptionAccess:{providers:['alipay']}});
+    current={};
+    await act(async()=>finish({text:'迟到的旧支付宝清单'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('授权或订阅已变化');
+    expect(screen.queryByText('迟到的旧支付宝清单')).not.toBeInTheDocument();
+  });
   it('输入框接受或拒绝对话加卡；只有接受才提交脱敏档案',async()=>{
     const user=userEvent.setup();let saved=0;
     vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{const body=JSON.parse(String(options?.body||'{}'));if(body.type==='add-managed-card'){saved++;return new Response(JSON.stringify({id:body.id,label:body.label,last4:body.last4,createdAt:1,status:'demo-only'}));}return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));});

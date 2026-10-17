@@ -5,6 +5,7 @@ import {workspaceRequest,routeWorkspacePrompt} from '../lib/workspace-service';
 import {messageStateRequest,messageReplyRequest,type MessageClientOperation} from '../lib/message-service';
 import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-progress';
 import type {StewardChatMessage,StewardReplyRequest} from '../lib/steward-chat';
+import {subscriptionFingerprint} from '../lib/subscription-access';
 import type {ConversationEntry,MessageOperation} from '../lib/message-flow';
 import {WECHAT_SHARE_PREFIX} from '../lib/wechat-message-share';
 import {useSceneContinuation} from '../lib/use-scene-continuation';
@@ -140,7 +141,14 @@ export function StewardWorkspaces({route,...props}:Props){
    if(executing.current?.token===item.token)executing.current=undefined;
   }catch(cause){setError(cause instanceof Error?cause.message:'回复保存状态尚未核实，请勿重复资金操作');}
  }
- async function serverReply(context:StewardReplyRequest){const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});accept(result.state);return result.reply;}
+ async function serverReply(context:StewardReplyRequest){
+  const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');
+  const version=subscriptionFingerprint(props.getCurrentConnections?.()||props.connections);
+  const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});
+  const question=context.messages.filter(message=>message.role==='user').at(-1)?.content||'';
+  if(/自动续费|订阅|签约/.test(question)&&props.getCurrentConnections&&version!==subscriptionFingerprint(props.getCurrentConnections()))throw new Error('授权或订阅已变化，本次结果已作废，请重新查询。');
+  accept(result.state);return result.reply;
+ }
  const persistEntries=useCallback(async(entries:ConversationEntry[])=>{
   if(!loaded)return;
   const known=new Set(currentState.current.conversation?.map(m=>m.id));const added=entries.filter(m=>!known.has(m.id));if(!added.length)return;

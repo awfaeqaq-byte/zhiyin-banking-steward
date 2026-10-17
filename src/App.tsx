@@ -274,7 +274,7 @@ export default function App() {
   const {
     connections, setConnections, refresh: refreshSubscriptions,
     refreshing: subscriptionsRefreshing, error: subscriptionRefreshError,
-    setError: setSubscriptionRefreshError,
+    setError: setSubscriptionRefreshError, getCurrentConnections,
   } = useSubscriptionSync(() => read("zhiyin-connections", {}));
   const [disabledSubscriptionReminders, setDisabledSubscriptionReminders] = useState<string[]>(
     () => read("zhiyin-disabled-subscription-reminders", []),
@@ -1369,6 +1369,7 @@ export default function App() {
               disabledReminders={disabledSubscriptionReminders}
               recurringReviews={recurringReviews}
               refreshSubscriptions={refreshSubscriptions}
+              getCurrentConnections={getCurrentConnections}
               refreshError={subscriptionRefreshError}
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}
