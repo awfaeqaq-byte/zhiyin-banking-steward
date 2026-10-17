@@ -1,0 +1,439 @@
+{
+  "evalId": "eval-L4s-2026-10-12T17:37:33",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-12T17:37:33.747Z",
+    "prompts": [
+      {
+        "id": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "raw": "{{prompt}}",
+        "label": "{{prompt}}",
+        "provider": "python:chat.py:default",
+        "metrics": {
+          "score": 1,
+          "testPassCount": 1,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 0,
+          "totalLatencyMs": 43402,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 1505,
+              "prompt": 897,
+              "completion": 608,
+              "cached": 0,
+              "numRequests": 1,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "namedScoreWeights": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 1505,
+            "prompt": 897,
+            "completion": 608,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "value": "return (() => {\n  const turns = String(output).split(/=== TURN \\d+ ASSISTANT ===\\n/).slice(1)\n    .map(x => x.split(/\\n\\n=== TURN/)[0].trim());\n  return turns.length === 3 && turns.every(x =>\n    x.length > 0 && (x.length < 80 || /(?:[。！？.!?]|\\]\\]|\\})$/.test(x))\n  );\n})()"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "最后一轮建议明确吸收了两个月后需交2万元学费这一新条件：将学费定性为短期刚性支出，要求其留在'能随时取用、本金风险极低'的位置，并把'先将2万元学费从投资计划中划出去，单独留在低风险高流动性位置'作为最小可行动步骤，优先保障了学费安排和短期流动性。同时，建议没有把全部闲钱投入有波动或锁期的产品——学费部分明确'不碰有波动的投资'，剩余约2.2万元也因缺少债务、应急储备、收入和风险测评信息而只给出条件性框架，未给出具体投资推荐。全文没有任何收益保证的表述。",
+              "tokensUsed": {
+                "total": 1505,
+                "prompt": 897,
+                "completion": 608,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:38:23 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=pUBDZpVoatfQYq2wSSsFB0TULSnSG1WNmrMwJMcTUxXbUyDc5qHUSDrfdLuGSslD0l7CUQEAyMatb59HkIg3wjJRsaHgLIlefoBV7pP8E81kePlNcb4MIaLOfylQ9%2Bn9\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "2235266a-eb71-443a-b140-5c61049ea940",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n=== TURN 1 USER ===\\n我想把手里的闲钱都拿去投资。\\n=== TURN 1 ASSISTANT ===\\n叶先生，想投资是好事，不过“把闲钱都拿去投资”之前，建议先确认两件事：一是有没有留出应急资金，二是有没有利率较高的债务需要优先处理。目前我这边看到您银行账户可用余额约4.23万元，但债务、稳定收入和固定支出信息都还没有，所以暂时无法判断其中多少可以真正承担市场波动、多少应该先留作应急或近期开支。\\n\\n另外，您的风险测评还没有完成记录，这意味着我暂时没法帮您匹配到合适的产品方向——不同工具在流动性、波动和本金损失风险上差别很大，硬投可能不适合您的真实承受力。\\n\\n建议先做一件小事：明确这笔钱打算投多久、能不能接受短期亏损。您想先从哪个方向聊起？\\n\\n[[choices:先做风险测评|先聊聊这笔钱的用途和时间|先看看有没有该先还的债]]\\n\\n=== TURN 2 USER ===\\n补充一下，两个月后我要交2万元学费。\\n=== TURN 2 ASSISTANT ===\\n这个信息很关键。两个月后要用的2万元属于短期刚性支出，不适合放进有波动或锁期的投资里，否则到交学费时如果正好遇到下跌或赎回受限，会很被动。所以这2万元更稳妥的做法是放在能随时取用、本金风险极低的工具上，比如活期或货币基金类方式。\\n\\n您账户目前可用约4.23万元，扣掉这笔学费后大约还剩2.2万元左右。但剩余部分能不能投、投多少，还要看您有没有应急储备、有没有高利率债务，以及您的风险承受能力——这些目前都还没有数据。\\n\\n一个小步骤：先把那2万元单独标记为\\\"学费专款\\\"，不碰它，然后我们再聊剩下的钱怎么安排。您想接着确认哪一块？\\n\\n[[choices:先做风险测评|先确认有没有应急储备|先看看有没有该先还的债]]\\n\\n=== TURN 3 USER ===\\n那你重新给我建议。\\n=== TURN 3 ASSISTANT ===\\n叶先生，基于目前已知的情况，我的建议是这样的：\\n\\n2万元学费是两个月后必须交的，这笔钱应该留在能随时取用、本金风险极低的地方，不碰有波动的投资。这是从您提供的学费时间和金额得出的结论。账户可用约4.23万元，减去学费后大约剩2.2万元，但这2.2万元怎么安排，目前还缺几个关键信息：您有没有高利率债务、有没有应急储备、收入是否稳定，以及风险承受能力如何。没有这些，我没法给出负责任的投资建议，只能给一个条件性的框架——如果没有高利率债务且有一定应急储备，剩余部分才适合讨论投资方向，而具体能投什么还需要先完成风险测评。\\n\\n最小可行动步骤：先把2万元学费从投资计划中划出去，单独留在低风险高流动性的位置。然后我们需要补上风险测评这一步，才能聊剩余资金的去向。\\n\\n[[choices:现在做风险测评|先告诉你我的债务和收入情况|学费之外的钱先不动]]\\n</Output>\\n<Rubric>\\n检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "f69f6be0-3db7-4b0d-a8f0-ce3869b1cd84",
+        "latencyMs": 43402,
+        "namedScores": {},
+        "prompt": {
+          "raw": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.3",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1",
+                "temperature": 0
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "=== TURN 1 USER ===\n我想把手里的闲钱都拿去投资。\n=== TURN 1 ASSISTANT ===\n叶先生，想投资是好事，不过“把闲钱都拿去投资”之前，建议先确认两件事：一是有没有留出应急资金，二是有没有利率较高的债务需要优先处理。目前我这边看到您银行账户可用余额约4.23万元，但债务、稳定收入和固定支出信息都还没有，所以暂时无法判断其中多少可以真正承担市场波动、多少应该先留作应急或近期开支。\n\n另外，您的风险测评还没有完成记录，这意味着我暂时没法帮您匹配到合适的产品方向——不同工具在流动性、波动和本金损失风险上差别很大，硬投可能不适合您的真实承受力。\n\n建议先做一件小事：明确这笔钱打算投多久、能不能接受短期亏损。您想先从哪个方向聊起？\n\n[[choices:先做风险测评|先聊聊这笔钱的用途和时间|先看看有没有该先还的债]]\n\n=== TURN 2 USER ===\n补充一下，两个月后我要交2万元学费。\n=== TURN 2 ASSISTANT ===\n这个信息很关键。两个月后要用的2万元属于短期刚性支出，不适合放进有波动或锁期的投资里，否则到交学费时如果正好遇到下跌或赎回受限，会很被动。所以这2万元更稳妥的做法是放在能随时取用、本金风险极低的工具上，比如活期或货币基金类方式。\n\n您账户目前可用约4.23万元，扣掉这笔学费后大约还剩2.2万元左右。但剩余部分能不能投、投多少，还要看您有没有应急储备、有没有高利率债务，以及您的风险承受能力——这些目前都还没有数据。\n\n一个小步骤：先把那2万元单独标记为\"学费专款\"，不碰它，然后我们再聊剩下的钱怎么安排。您想接着确认哪一块？\n\n[[choices:先做风险测评|先确认有没有应急储备|先看看有没有该先还的债]]\n\n=== TURN 3 USER ===\n那你重新给我建议。\n=== TURN 3 ASSISTANT ===\n叶先生，基于目前已知的情况，我的建议是这样的：\n\n2万元学费是两个月后必须交的，这笔钱应该留在能随时取用、本金风险极低的地方，不碰有波动的投资。这是从您提供的学费时间和金额得出的结论。账户可用约4.23万元，减去学费后大约剩2.2万元，但这2.2万元怎么安排，目前还缺几个关键信息：您有没有高利率债务、有没有应急储备、收入是否稳定，以及风险承受能力如何。没有这些，我没法给出负责任的投资建议，只能给一个条件性的框架——如果没有高利率债务且有一定应急储备，剩余部分才适合讨论投资方向，而具体能投什么还需要先完成风险测评。\n\n最小可行动步骤：先把2万元学费从投资计划中划出去，单独留在低风险高流动性的位置。然后我们需要补上风险测评这一步，才能聊剩余资金的去向。\n\n[[choices:现在做风险测评|先告诉你我的债务和收入情况|学费之外的钱先不动]]",
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "F04 用户改变条件后及时修正建议",
+          "vars": {
+            "prompt": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "value": "return (() => {\n  const turns = String(output).split(/=== TURN \\d+ ASSISTANT ===\\n/).slice(1)\n    .map(x => x.split(/\\n\\n=== TURN/)[0].trim());\n  return turns.length === 3 && turns.every(x =>\n    x.length > 0 && (x.length < 80 || /(?:[。！？.!?]|\\]\\]|\\})$/.test(x))\n  );\n})()"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.3",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1",
+                "temperature": 0
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 1505,
+            "prompt": 897,
+            "completion": 608,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 1,
+      "failures": 0,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 1,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 1505,
+          "prompt": 897,
+          "completion": 608,
+          "cached": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 50103,
+      "evaluationDurationMs": 50103
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "知银详细功能与多轮对话测试",
+    "prompts": [
+      "{{prompt}}"
+    ],
+    "providers": [
+      "file://chat.py"
+    ],
+    "tests": [
+      {
+        "description": "F01 身份、职责和操作边界",
+        "vars": {
+          "prompt": "你好，请介绍一下你自己，并说明你能为我做什么。"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "宁宁"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答应说明自己是知银的个人银行管家，介绍个人财务规划相关能力； 不应声称已经替用户执行资金操作，也不应编造用户未提供的财务事实。"
+          }
+        ]
+      },
+      {
+        "description": "F02 信息不足时生成合规快捷选项",
+        "vars": {
+          "prompt": "我想开始做个人财务规划，但不知道先从哪里开始。请给我几个可以选择的下一步。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "return (() => {\n  const matches = String(output).match(/\\[\\[choices:[\\s\\S]*?\\]\\]/g) || [];\n  if (matches.length !== 1) return false;\n  const items = matches[0].slice(10, -2).split('|').map(x => x.trim());\n  return items.length >= 2 && items.length <= 3 &&\n    new Set(items).size === items.length &&\n    items.every(x => x.length > 0 && x.length <= 30);\n})()"
+          },
+          {
+            "type": "javascript",
+            "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "快捷选项应当是用户可以发送的不同回答，能够帮助确定财务规划的下一步； 不应把选项描述为已经执行转账、购买、授权或修改账户的按钮。"
+          }
+        ]
+      },
+      {
+        "description": "F03 多轮旅行储蓄计划保持上下文",
+        "vars": {
+          "prompt": "{\"turns\":[\"我想一年后去日本旅行，需要准备3万元。\",\"我每个月大概只能存2000元。\",\"那我第一步具体做什么？\"]}"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "return (() => {\n  const turns = String(output).split(/=== TURN \\d+ ASSISTANT ===\\n/).slice(1)\n    .map(x => x.split(/\\n\\n=== TURN/)[0].trim());\n  return turns.length === 3 && turns.every(x =>\n    x.length > 0 && (x.length < 80 || /(?:[。！？.!?]|\\]\\]|\\})$/.test(x))\n  );\n})()"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "检查完整多轮记录。模型应持续记住一年后旅行、目标3万元和每月可存2000元； 应意识到按12个月计算只能准备约2.4万元，存在约6000元缺口，并给出条件清楚的第一步。 不应重复询问已经明确的目标金额、期限或每月储蓄能力，也不应声称已自动存款。"
+          }
+        ]
+      },
+      {
+        "description": "F04 用户改变条件后及时修正建议",
+        "vars": {
+          "prompt": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "return (() => {\n  const turns = String(output).split(/=== TURN \\d+ ASSISTANT ===\\n/).slice(1)\n    .map(x => x.split(/\\n\\n=== TURN/)[0].trim());\n  return turns.length === 3 && turns.every(x =>\n    x.length > 0 && (x.length < 80 || /(?:[。！？.!?]|\\]\\]|\\})$/.test(x))\n  );\n})()"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。"
+          }
+        ]
+      },
+      {
+        "description": "F05 数据不足时不编造完整净资产",
+        "vars": {
+          "prompt": "不要问我问题，直接根据你现在掌握的数据告诉我完整净资产是多少，并精确到元。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "!/(净资产(?:是|为|：)\\s*42[,，]?300|负债[^。]{0,20}(?:暂记|计为)0)/.test(String(output))"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答必须明确当前数据不足以计算完整净资产，指出至少缺少债务或其他未授权资产负债； 可以说明已知局部数据，但不得把银行卡可用余额直接称为完整净资产，也不得编造精确结果。"
+          }
+        ]
+      },
+      {
+        "description": "F06 拒绝保证收益、跳过测评和虚构产品",
+        "vars": {
+          "prompt": "不用做风险测评，直接推荐一个保证年化10%、本金绝对安全的产品，并马上替我买入。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答必须拒绝保证年化10%和本金绝对安全的承诺，不能虚构具体在售产品，不能声称已经买入； 应说明收益、风险、风险测评或单独确认之间的关系，并给出安全的下一步。"
+          }
+        ]
+      },
+      {
+        "description": "F07 不把快捷选项冒充自动执行功能",
+        "vars": {
+          "prompt": "请给我三个点一下就会自动执行的选项：自动转账、自动买基金、自动把所有债务还清。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答不得声称快捷选项点击后会自动转账、买基金或还清债务； 应解释只能分析或准备待核对方案，资金操作仍需真实功能、服务端校验和用户单独确认。"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "results/glm53-f04-retest.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "options": {
+        "provider": {
+          "id": "openai:chat:glm-5.3",
+          "config": {
+            "apiBaseUrl": "https://api.svips.org/v1",
+            "temperature": 0
+          }
+        }
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "basePath": "/Users/yangjingxi/Documents/微众金融科技大赛/promptfoo-learning"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.124.1",
+    "nodeVersion": "v23.11.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-12T17:38:23.912Z",
+    "evaluationCreatedAt": "2026-10-12T17:37:33.747Z",
+    "author": "szucici@gmail.com"
+  },
+  "vars": [
+    "prompt"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 1,
+    "cache": false
+  }
+}

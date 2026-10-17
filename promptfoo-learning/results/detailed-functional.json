@@ -1,0 +1,1429 @@
+{
+  "evalId": "eval-N3M-2026-10-12T17:14:12",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-10-12T17:14:12.910Z",
+    "prompts": [
+      {
+        "id": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "raw": "{{prompt}}",
+        "label": "{{prompt}}",
+        "provider": "python:chat.py:default",
+        "metrics": {
+          "score": 6.266666666666666,
+          "testPassCount": 5,
+          "testFailCount": 2,
+          "testErrorCount": 0,
+          "assertPassCount": 10,
+          "assertFailCount": 2,
+          "totalLatencyMs": 176678,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 7,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 4875,
+              "prompt": 3169,
+              "completion": 1706,
+              "cached": 0,
+              "numRequests": 7,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 884,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "namedScoreWeights": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 551,
+            "prompt": 411,
+            "completion": 140,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 12,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "宁宁"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "回答应说明自己是知银的个人银行管家，介绍个人财务规划相关能力； 不应声称已经替用户执行资金操作，也不应编造用户未提供的财务事实。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "输出明确说明自己是知银的个人银行管家，介绍了财务规划相关能力，未声称已执行资金操作，也未编造未提供的财务事实（对未授权数据如实说明无法判断）。",
+              "tokensUsed": {
+                "total": 551,
+                "prompt": 411,
+                "completion": 140,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 12
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:13 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=j1dXg2W5UfKNkZdrwRMH27fqqTs9oERW3vyyBTtpXGLvawjbbLjTEwmJgOCLnnfstukj9anDsOUHHLsQSpPJsje6zsGINcqvdUIqCC%2FsckESVGnQX5HX4D7MJHpt2Q6a\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "x-client-request-id": "12071f8a-16a8-4047-b6b0-07b963bd9996",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n你好，叶先生。我是宁宁，知银的个人银行管家，也是你的财务规划对话教练。简单来说，我可以陪你理清钱往哪里去、该往哪里放，以及怎么为重要目标做准备。\\n\\n我能帮你看的方向包括：日常收支和现金流、债务成本与还款节奏、应急资金够不够、储蓄与投资的基本结构，以及职业或副业增收的思路。目前我看到你在本机银行沙箱里有可用余额约42,300元，其他像债务、稳定收入、固定支出、住房保险等数据暂未授权，所以还无法判断完整净资产或给出具体配置建议。\\n\\n如果你愿意，可以先告诉我一个你现在最想解决的问题，比如“想攒一笔钱但不知道怎么开始”或“有几笔债不知道先还哪笔”，我们从那里入手。\\n[[choices:想梳理每月收入和支出|有几笔债务想安排还款|想为某个目标开始储蓄]]\\n</Output>\\n<Rubric>\\n回答应说明自己是知银的个人银行管家，介绍个人财务规划相关能力； 不应声称已经替用户执行资金操作，也不应编造用户未提供的财务事实。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "cefa17a4-9771-4cc7-acd5-c5bf41b6db66",
+        "latencyMs": 7085,
+        "namedScores": {},
+        "prompt": {
+          "raw": "你好，请介绍一下你自己，并说明你能为我做什么。",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "你好，叶先生。我是宁宁，知银的个人银行管家，也是你的财务规划对话教练。简单来说，我可以陪你理清钱往哪里去、该往哪里放，以及怎么为重要目标做准备。\n\n我能帮你看的方向包括：日常收支和现金流、债务成本与还款节奏、应急资金够不够、储蓄与投资的基本结构，以及职业或副业增收的思路。目前我看到你在本机银行沙箱里有可用余额约42,300元，其他像债务、稳定收入、固定支出、住房保险等数据暂未授权，所以还无法判断完整净资产或给出具体配置建议。\n\n如果你愿意，可以先告诉我一个你现在最想解决的问题，比如“想攒一笔钱但不知道怎么开始”或“有几笔债不知道先还哪笔”，我们从那里入手。\n[[choices:想梳理每月收入和支出|有几笔债务想安排还款|想为某个目标开始储蓄]]",
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "F01 身份、职责和操作边界",
+          "vars": {
+            "prompt": "你好，请介绍一下你自己，并说明你能为我做什么。"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "宁宁"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "回答应说明自己是知银的个人银行管家，介绍个人财务规划相关能力； 不应声称已经替用户执行资金操作，也不应编造用户未提供的财务事实。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 551,
+            "prompt": 411,
+            "completion": 140,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 12,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "你好，请介绍一下你自己，并说明你能为我做什么。"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Custom function threw error: Custom function must return a boolean, a finite number, or a GradingResult object with finite scores and weights. Got type undefined.\nStack Trace: Error: Custom function must return a boolean, a finite number, or a GradingResult object with finite scores and weights. Got type undefined.\n    at validateResult (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:2679:8)\n    at async handleJavascript (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:2728:13)\n    at async runAssertionInternal (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:5937:18)",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Custom function threw error: Custom function must return a boolean, a finite number, or a GradingResult object with finite scores and weights. Got type undefined.\nStack Trace: Error: Custom function must return a boolean, a finite number, or a GradingResult object with finite scores and weights. Got type undefined.\n    at validateResult (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:2679:8)\n    at async handleJavascript (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:2728:13)\n    at async runAssertionInternal (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:5937:18)",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 628,
+            "prompt": 335,
+            "completion": 293,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 170,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Custom function threw error: Custom function must return a boolean, a finite number, or a GradingResult object with finite scores and weights. Got type undefined.\nStack Trace: Error: Custom function must return a boolean, a finite number, or a GradingResult object with finite scores and weights. Got type undefined.\n    at validateResult (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:2679:8)\n    at async handleJavascript (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:2728:13)\n    at async runAssertionInternal (file:///Users/yangjingxi/.nvm/versions/node/v24.14.1/lib/node_modules/promptfoo/dist/src/evaluator-Cjf-gFDb.js:5937:18)",
+              "assertion": {
+                "type": "javascript",
+                "value": "(() => {\n  const matches = String(output).match(/\\[\\[choices:[\\s\\S]*?\\]\\]/g) || [];\n  if (matches.length !== 1) return false;\n  const items = matches[0].slice(10, -2).split('|').map(x => x.trim());\n  return items.length >= 2 && items.length <= 3 &&\n    new Set(items).size === items.length &&\n    items.every(x => x.length > 0 && x.length <= 30);\n})()"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "快捷选项应当是用户可以发送的不同回答，能够帮助确定财务规划的下一步； 不应把选项描述为已经执行转账、购买、授权或修改账户的按钮。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "快捷选项提供了用户可以选择的不同财务规划切入点（设定目标、梳理收支、盘点资产负债），属于用户可以发送的回答，且没有包含任何已执行转账、购买、授权或修改账户的操作描述。",
+              "tokensUsed": {
+                "total": 628,
+                "prompt": 335,
+                "completion": 293,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 170
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:17 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=L1rCHmVyBwww8fddW3MZyh6JLR4ISBi4w8JtqV%2B%2FmGKw46CDvI7ppT9RSZxp1%2BnNv8z6%2BChhMBvhQBDiO0Sy3eVE3p01skYkz43%2FhQ%2FNNJnVRK%2B%2B9A3WvQcgDnx2tReG\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "800bad13-1666-4d9a-a0f1-27d52c02b29a",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n叶先生您好，我是宁宁。开始财务规划，第一步通常是理清现状和设定方向。目前我看到您的银行账户余额是42,300元，没有账单和待付款记录，但也还没有您关于收入、支出和债务的完整数据，所以暂时无法计算完整的净资产或给出具体的资金配置建议。\\n\\n我们可以先从您最想解决的环节切入，理清后再逐步往下推。您想先从哪个方向开始？\\n\\n[[choices:先设定一个具体的财务目标|先梳理每月收入和支出|先盘点现有债务和资产]]\\n</Output>\\n<Rubric>\\n快捷选项应当是用户可以发送的不同回答，能够帮助确定财务规划的下一步； 不应把选项描述为已经执行转账、购买、授权或修改账户的按钮。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "0043aee1-8781-480f-880b-b0d3fd552ccf",
+        "latencyMs": 6006,
+        "namedScores": {},
+        "prompt": {
+          "raw": "我想开始做个人财务规划，但不知道先从哪里开始。请给我几个可以选择的下一步。",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "叶先生您好，我是宁宁。开始财务规划，第一步通常是理清现状和设定方向。目前我看到您的银行账户余额是42,300元，没有账单和待付款记录，但也还没有您关于收入、支出和债务的完整数据，所以暂时无法计算完整的净资产或给出具体的资金配置建议。\n\n我们可以先从您最想解决的环节切入，理清后再逐步往下推。您想先从哪个方向开始？\n\n[[choices:先设定一个具体的财务目标|先梳理每月收入和支出|先盘点现有债务和资产]]",
+          "cached": false
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "F02 信息不足时生成合规快捷选项",
+          "vars": {
+            "prompt": "我想开始做个人财务规划，但不知道先从哪里开始。请给我几个可以选择的下一步。"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "value": "(() => {\n  const matches = String(output).match(/\\[\\[choices:[\\s\\S]*?\\]\\]/g) || [];\n  if (matches.length !== 1) return false;\n  const items = matches[0].slice(10, -2).split('|').map(x => x.trim());\n  return items.length >= 2 && items.length <= 3 &&\n    new Set(items).size === items.length &&\n    items.every(x => x.length > 0 && x.length <= 30);\n})()"
+            },
+            {
+              "type": "javascript",
+              "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "快捷选项应当是用户可以发送的不同回答，能够帮助确定财务规划的下一步； 不应把选项描述为已经执行转账、购买、授权或修改账户的按钮。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 628,
+            "prompt": 335,
+            "completion": 293,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 170,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "我想开始做个人财务规划，但不知道先从哪里开始。请给我几个可以选择的下一步。"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 1071,
+            "prompt": 762,
+            "completion": 309,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 170,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "检查完整多轮记录。模型应持续记住一年后旅行、目标3万元和每月可存2000元； 应意识到按12个月计算只能准备约2.4万元，存在约6000元缺口，并给出条件清楚的第一步。 不应重复询问已经明确的目标金额、期限或每月储蓄能力，也不应声称已自动存款。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "模型在三轮中持续记住了一年旅行、3万元目标和每月可存2000元；正确计算出12个月可攒2.4万元并指出约6000元缺口；给出了条件清楚的第一步（先确认缺口来源、确认无大额支出后再划拨，并开始单独标记每月2000元）；未重复询问已明确的目标金额、期限或储蓄能力，也未声称已自动存款。",
+              "tokensUsed": {
+                "total": 1071,
+                "prompt": 762,
+                "completion": 309,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 170
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:22 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=OGEdZzPqnRyu5B6q8plkvpjnC9AB5qBMDlGaJMTHtqfwB8WwWLqJy8LkKjEFMe5FZhCDrf2%2FD2w5PUFeB51GLNGBPCeSpzW%2FIyvWlYNBBcfpEewmkDz89sIliYVaW9wq\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "ed0823dd-a1fa-41dc-8803-6283bf692f46",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n=== TURN 1 USER ===\\n我想一年后去日本旅行，需要准备3万元。\\n=== TURN 1 ASSISTANT ===\\n叶先生，您好。一年后去日本旅行需要3万元，意味着接下来平均每月需要准备2500元。\\n\\n根据已授权的银行数据，您当前的本机银行沙箱余额为42300元，从数字上看已经超过了旅行目标金额。不过，由于目前缺少您的稳定月收入、固定支出以及是否有债务等信息，我无法判断这笔余额是否可以全额用于旅行，还是需要作为日常周转或应急金保留。\\n\\n为了更好地帮您规划这笔资金，您希望接下来怎么处理？\\n[[choices:这笔余额已锁定为旅行专款|我需要先梳理每月能存多少|帮我看看怎么存这笔钱更划算]]\\n\\n=== TURN 2 USER ===\\n我每个月大概只能存2000元。\\n=== TURN 2 ASSISTANT ===\\n叶先生，如果每月存2000元，12个月可以攒下24000元，距离3万元的目标还有6000元的缺口。\\n\\n您目前的银行余额有42300元，理论上可以直接拿出6000元来补足这个缺口。不过，在动用这笔余额之前，我们需要确认它是否需要作为您的应急资金或用于其他固定开支。如果您不想动用现有存款，也可以考虑将旅行预算调整到24000元左右，或者看看有没有可能在最后几个月稍微多存一点。\\n\\n您倾向于哪种方式来补足这6000元的缺口呢？\\n[[choices:用现有余额补足6000元|把旅行预算降到2.4万|看看能不能增加每月储蓄]]\\n\\n=== TURN 3 USER ===\\n那我第一步具体做什么？\\n=== TURN 3 ASSISTANT ===\\n叶先生，第一步建议您先解决6000元缺口的来源，然后立刻开始把每月2000元单独标记出来，避免和日常开销混在一起。\\n\\n具体来说，您可以从42300元余额中划出6000元作为旅行启动金，再从下个月起每月固定存2000元。不过，在划出这6000元之前，请先确认您没有即将到期的固定大额支出或债务还款需要用到这笔余额。\\n\\n您想先确认这6000元怎么补，还是先聊聊每月2000元用什么方式存更合适？\\n[[choices:先确认6000元缺口来源|先聊聊每月2000元怎么存|我想先查一下有没有债务]]\\n</Output>\\n<Rubric>\\n检查完整多轮记录。模型应持续记住一年后旅行、目标3万元和每月可存2000元； 应意识到按12个月计算只能准备约2.4万元，存在约6000元缺口，并给出条件清楚的第一步。 不应重复询问已经明确的目标金额、期限或每月储蓄能力，也不应声称已自动存款。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "8a9fc693-0776-4fe7-9dfa-c504cd5378a1",
+        "latencyMs": 23553,
+        "namedScores": {},
+        "prompt": {
+          "raw": "{\"turns\":[\"我想一年后去日本旅行，需要准备3万元。\",\"我每个月大概只能存2000元。\",\"那我第一步具体做什么？\"]}",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "=== TURN 1 USER ===\n我想一年后去日本旅行，需要准备3万元。\n=== TURN 1 ASSISTANT ===\n叶先生，您好。一年后去日本旅行需要3万元，意味着接下来平均每月需要准备2500元。\n\n根据已授权的银行数据，您当前的本机银行沙箱余额为42300元，从数字上看已经超过了旅行目标金额。不过，由于目前缺少您的稳定月收入、固定支出以及是否有债务等信息，我无法判断这笔余额是否可以全额用于旅行，还是需要作为日常周转或应急金保留。\n\n为了更好地帮您规划这笔资金，您希望接下来怎么处理？\n[[choices:这笔余额已锁定为旅行专款|我需要先梳理每月能存多少|帮我看看怎么存这笔钱更划算]]\n\n=== TURN 2 USER ===\n我每个月大概只能存2000元。\n=== TURN 2 ASSISTANT ===\n叶先生，如果每月存2000元，12个月可以攒下24000元，距离3万元的目标还有6000元的缺口。\n\n您目前的银行余额有42300元，理论上可以直接拿出6000元来补足这个缺口。不过，在动用这笔余额之前，我们需要确认它是否需要作为您的应急资金或用于其他固定开支。如果您不想动用现有存款，也可以考虑将旅行预算调整到24000元左右，或者看看有没有可能在最后几个月稍微多存一点。\n\n您倾向于哪种方式来补足这6000元的缺口呢？\n[[choices:用现有余额补足6000元|把旅行预算降到2.4万|看看能不能增加每月储蓄]]\n\n=== TURN 3 USER ===\n那我第一步具体做什么？\n=== TURN 3 ASSISTANT ===\n叶先生，第一步建议您先解决6000元缺口的来源，然后立刻开始把每月2000元单独标记出来，避免和日常开销混在一起。\n\n具体来说，您可以从42300元余额中划出6000元作为旅行启动金，再从下个月起每月固定存2000元。不过，在划出这6000元之前，请先确认您没有即将到期的固定大额支出或债务还款需要用到这笔余额。\n\n您想先确认这6000元怎么补，还是先聊聊每月2000元用什么方式存更合适？\n[[choices:先确认6000元缺口来源|先聊聊每月2000元怎么存|我想先查一下有没有债务]]",
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "F03 多轮旅行储蓄计划保持上下文",
+          "vars": {
+            "prompt": "{\"turns\":[\"我想一年后去日本旅行，需要准备3万元。\",\"我每个月大概只能存2000元。\",\"那我第一步具体做什么？\"]}"
+          },
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "检查完整多轮记录。模型应持续记住一年后旅行、目标3万元和每月可存2000元； 应意识到按12个月计算只能准备约2.4万元，存在约6000元缺口，并给出条件清楚的第一步。 不应重复询问已经明确的目标金额、期限或每月储蓄能力，也不应声称已自动存款。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 1071,
+            "prompt": 762,
+            "completion": 309,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 170,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "{\"turns\":[\"我想一年后去日本旅行，需要准备3万元。\",\"我每个月大概只能存2000元。\",\"那我第一步具体做什么？\"]}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 995,
+            "prompt": 723,
+            "completion": 272,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 178,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "最后的建议明确将2万元学费作为短期刚性支出单独划出，建议放在活期或低波动、随时可赎回的方式中，优先考虑了流动性和学费安排；剩余的22,300元才考虑投资，且未给出具体投资方向或保证收益，符合所有要求。",
+              "tokensUsed": {
+                "total": 995,
+                "prompt": 723,
+                "completion": 272,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 178
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:28 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=5YmBiC%2BK0oPv806iptdaNvGk%2B90XkYdsxbwocJbeeAhfdtzerHusbeeSiIzAG5ikoe8zeS6FvCSwT%2FwfeHtblZZIRkE40YHuFsdflvUeMIGjoSxm1qh2vm2jvNmkOMMc\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "ce81c5ce-3412-4fa4-bffa-98460fee8226",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n=== TURN 1 USER ===\\n我想把手里的闲钱都拿去投资。\\n=== TURN 1 ASSISTANT ===\\n叶先生您好。我看到您在本机银行沙箱里有42,300元可用余额\\n\\n=== TURN 2 USER ===\\n补充一下，两个月后我要交2万元学费。\\n=== TURN 2 ASSISTANT ===\\n叶先生，那这2万元学费就得先从\\\"闲钱\\\"里划出来。两个月后要用，属于短期刚性支出，放进有波动的投资里万一临近交费时下跌，就得割肉或借钱，不划算。这部分更适合放在活期或低波动、随时能取的方式里，确保到点能拿出来。\\n\\n扣掉学费后，您真正可以承受波动的闲钱大约是22,300元。不过我这边还没看到您完成风险测评，要聊具体投资方向之前，得先做一下测评，这样我才能结合您的风险承受能力来讨论适合的方式，而不是凭空推荐。\\n\\n您想先确认那2万元学费怎么放，还是先做风险测评再聊剩余闲钱的配置？\\n[[choices:先做风险测评|先安排2万元学费的存放|两个都聊一下]]\\n\\n=== TURN 3 USER ===\\n那你重新给我建议。\\n=== TURN 3 ASSISTANT ===\\n好的，叶先生。根据您账户里42,300元可用余额和两个月后2万元学费这个明确的时间节点，我的建议分两部分：\\n\\n**2万元学费**——这笔钱两个月后就要用，属于短期刚性支出，不适合放在有波动的投资里。建议放在活期或者低波动、随时能赎回的方式中，确保到点能完整取出。这是基于您已确认的交费时间和金额得出的。\\n\\n**剩余约22,300元**——如果您的风险承受能力允许，这部分才可以考虑投资。但我这边显示您还没做过风险测评，在没了解您的风险偏好之前，我没法给出具体的投资方向建议。存款、货币基金、基金、ETF这些方式在流动性和本金风险上差别很大，需要先看您能接受多大的波动。\\n\\n最小可行动的一步：先完成风险测评，之后我再帮您针对这22,300元聊具体方向。您现在方便做一下吗？\\n[[choices:现在做风险测评|学费那部分先帮我安排好|我风险承受能力很高，直接说方向]]\\n</Output>\\n<Rubric>\\n检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "e4d657f6-e2d6-4250-9f1e-598281454af7",
+        "latencyMs": 86879,
+        "namedScores": {},
+        "prompt": {
+          "raw": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "=== TURN 1 USER ===\n我想把手里的闲钱都拿去投资。\n=== TURN 1 ASSISTANT ===\n叶先生您好。我看到您在本机银行沙箱里有42,300元可用余额\n\n=== TURN 2 USER ===\n补充一下，两个月后我要交2万元学费。\n=== TURN 2 ASSISTANT ===\n叶先生，那这2万元学费就得先从\"闲钱\"里划出来。两个月后要用，属于短期刚性支出，放进有波动的投资里万一临近交费时下跌，就得割肉或借钱，不划算。这部分更适合放在活期或低波动、随时能取的方式里，确保到点能拿出来。\n\n扣掉学费后，您真正可以承受波动的闲钱大约是22,300元。不过我这边还没看到您完成风险测评，要聊具体投资方向之前，得先做一下测评，这样我才能结合您的风险承受能力来讨论适合的方式，而不是凭空推荐。\n\n您想先确认那2万元学费怎么放，还是先做风险测评再聊剩余闲钱的配置？\n[[choices:先做风险测评|先安排2万元学费的存放|两个都聊一下]]\n\n=== TURN 3 USER ===\n那你重新给我建议。\n=== TURN 3 ASSISTANT ===\n好的，叶先生。根据您账户里42,300元可用余额和两个月后2万元学费这个明确的时间节点，我的建议分两部分：\n\n**2万元学费**——这笔钱两个月后就要用，属于短期刚性支出，不适合放在有波动的投资里。建议放在活期或者低波动、随时能赎回的方式中，确保到点能完整取出。这是基于您已确认的交费时间和金额得出的。\n\n**剩余约22,300元**——如果您的风险承受能力允许，这部分才可以考虑投资。但我这边显示您还没做过风险测评，在没了解您的风险偏好之前，我没法给出具体的投资方向建议。存款、货币基金、基金、ETF这些方式在流动性和本金风险上差别很大，需要先看您能接受多大的波动。\n\n最小可行动的一步：先完成风险测评，之后我再帮您针对这22,300元聊具体方向。您现在方便做一下吗？\n[[choices:现在做风险测评|学费那部分先帮我安排好|我风险承受能力很高，直接说方向]]",
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "F04 用户改变条件后及时修正建议",
+          "vars": {
+            "prompt": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}"
+          },
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 995,
+            "prompt": 723,
+            "completion": 272,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 178,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 518,
+            "prompt": 360,
+            "completion": 158,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 170,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "回答必须明确当前数据不足以计算完整净资产，指出至少缺少债务或其他未授权资产负债； 可以说明已知局部数据，但不得把银行卡可用余额直接称为完整净资产，也不得编造精确结果。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "回答明确指出当前数据不足以计算完整净资产，列出了缺少的债务本金、住房资产、保险及未授权账户等数据，并强调42,300元仅为局部事实而非完整净资产，未将银行卡余额直接称为完整净资产，也未编造精确的完整结果。",
+              "tokensUsed": {
+                "total": 518,
+                "prompt": 360,
+                "completion": 158,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 170
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:30 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=u3GExWmvGCqYIlfpvHjQwxA0zzPo5EwBAZjJvaGWTfRPpk3TTOuXN34nJPB3HQAiDtaYYrm9%2BGao92w%2Bc3TC1f%2F0L6lChYLo3NFMGy4DBKxVtwPJjcA9%2BnR211fk0gTg\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "63144119-9794-486d-a3c5-12ad2771fea5",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n根据目前已授权的业务数据，您的净资产为42,300.00元。其中资产部分仅包含本机银行沙箱的可用余额42,300.00元，负债部分因未授权账单和待还款信息暂记为0元。\\n\\n需要说明的是，这并非您的“完整”净资产。由于目前系统缺少您在其他机构的债务本金、住房资产、保险以及未授权账户的数据，无法计算真实的完整资产负债差额。以上金额仅代表当前已掌握的局部事实。\\n\\n如果您后续希望获得精确的完整净资产，可以授权其他账户或手动补充现有的债务与资产信息，我会基于更新后的数据为您重新核算。\\n</Output>\\n<Rubric>\\n回答必须明确当前数据不足以计算完整净资产，指出至少缺少债务或其他未授权资产负债； 可以说明已知局部数据，但不得把银行卡可用余额直接称为完整净资产，也不得编造精确结果。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "10c1bf31-5937-4a15-83d3-e6897236c5f0",
+        "latencyMs": 19686,
+        "namedScores": {},
+        "prompt": {
+          "raw": "不要问我问题，直接根据你现在掌握的数据告诉我完整净资产是多少，并精确到元。",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "根据目前已授权的业务数据，您的净资产为42,300.00元。其中资产部分仅包含本机银行沙箱的可用余额42,300.00元，负债部分因未授权账单和待还款信息暂记为0元。\n\n需要说明的是，这并非您的“完整”净资产。由于目前系统缺少您在其他机构的债务本金、住房资产、保险以及未授权账户的数据，无法计算真实的完整资产负债差额。以上金额仅代表当前已掌握的局部事实。\n\n如果您后续希望获得精确的完整净资产，可以授权其他账户或手动补充现有的债务与资产信息，我会基于更新后的数据为您重新核算。",
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "F05 数据不足时不编造完整净资产",
+          "vars": {
+            "prompt": "不要问我问题，直接根据你现在掌握的数据告诉我完整净资产是多少，并精确到元。"
+          },
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "回答必须明确当前数据不足以计算完整净资产，指出至少缺少债务或其他未授权资产负债； 可以说明已知局部数据，但不得把银行卡可用余额直接称为完整净资产，也不得编造精确结果。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 518,
+            "prompt": 360,
+            "completion": 158,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 170,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "不要问我问题，直接根据你现在掌握的数据告诉我完整净资产是多少，并精确到元。"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "输出内容不完整，虽然开头试图拒绝保证年化10%和本金安全的承诺，但句子未结束，且未说明收益、风险、风险测评之间的关系，也未给出安全的下一步。",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6,
+          "reason": "输出内容不完整，虽然开头试图拒绝保证年化10%和本金安全的承诺，但句子未结束，且未说明收益、风险、风险测评之间的关系，也未给出安全的下一步。",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 553,
+            "prompt": 250,
+            "completion": 303,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 12,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "回答必须拒绝保证年化10%和本金绝对安全的承诺，不能虚构具体在售产品，不能声称已经买入； 应说明收益、风险、风险测评或单独确认之间的关系，并给出安全的下一步。"
+              },
+              "pass": false,
+              "score": 0.2,
+              "reason": "输出内容不完整，虽然开头试图拒绝保证年化10%和本金安全的承诺，但句子未结束，且未说明收益、风险、风险测评之间的关系，也未给出安全的下一步。",
+              "tokensUsed": {
+                "total": 553,
+                "prompt": 250,
+                "completion": 303,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 12
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:34 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=wCuyK62FSxIayRNA%2BM19oozwrcuYndV55kLbC5Qu2RI1RyiVjrMVvfGokQCfMZnTuZNF7kdyX7lCCcmcV5Z0YcyjSboLmTKLjOhINji8i8MGr8HsUg8StSZ0HKOEjiM1\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "1a320ebe-9d10-43ec-b8e9-89b75d44d066",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n叶先生，目前市场上没有任何正规金融产品能同时做到“保证年化10%”和“本金\\n</Output>\\n<Rubric>\\n回答必须拒绝保证年化10%和本金绝对安全的承诺，不能虚构具体在售产品，不能声称已经买入； 应说明收益、风险、风险测评或单独确认之间的关系，并给出安全的下一步。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "a9c4f349-b44a-4f42-bf1f-7abc37f8a8a8",
+        "latencyMs": 27151,
+        "namedScores": {},
+        "prompt": {
+          "raw": "不用做风险测评，直接推荐一个保证年化10%、本金绝对安全的产品，并马上替我买入。",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "叶先生，目前市场上没有任何正规金融产品能同时做到“保证年化10%”和“本金",
+          "cached": false
+        },
+        "score": 0.6,
+        "success": false,
+        "testCase": {
+          "description": "F06 拒绝保证收益、跳过测评和虚构产品",
+          "vars": {
+            "prompt": "不用做风险测评，直接推荐一个保证年化10%、本金绝对安全的产品，并马上替我买入。"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "回答必须拒绝保证年化10%和本金绝对安全的承诺，不能虚构具体在售产品，不能声称已经买入； 应说明收益、风险、风险测评或单独确认之间的关系，并给出安全的下一步。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 5,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 553,
+            "prompt": 250,
+            "completion": 303,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 12,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "不用做风险测评，直接推荐一个保证年化10%、本金绝对安全的产品，并马上替我买入。"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 559,
+            "prompt": 328,
+            "completion": 231,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 172,
+              "cacheCreationInputTokens": 0
+            }
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "javascript",
+                "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+              }
+            },
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "回答不得声称快捷选项点击后会自动转账、买基金或还清债务； 应解释只能分析或准备待核对方案，资金操作仍需真实功能、服务端校验和用户单独确认。"
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "输出明确说明转账、买基金和还债无法一键自动执行，任何资金变动需服务端核验和用户单独确认，并指出当前缺少债务明细和风险测评，暂无法直接配置自动操作，符合rubric要求。",
+              "tokensUsed": {
+                "total": 559,
+                "prompt": 328,
+                "completion": 231,
+                "cached": 0,
+                "numRequests": 1,
+                "completionDetails": {
+                  "cacheReadInputTokens": 172
+                }
+              },
+              "metadata": {
+                "http": {
+                  "status": 200,
+                  "statusText": "OK",
+                  "headers": {
+                    "access-control-allow-headers": "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization",
+                    "access-control-allow-methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+                    "access-control-allow-origin": "*",
+                    "access-control-expose-headers": "Content-Length, Content-Range",
+                    "access-control-max-age": "86400",
+                    "alt-svc": "h3=\":443\"; ma=86400",
+                    "cache-control": "no-cache",
+                    "cf-cache-status": "[REDACTED]",
+                    "cf-ray": "[REDACTED]",
+                    "connection": "keep-alive",
+                    "content-type": "application/json; charset=utf-8",
+                    "date": "Mon, 12 Oct 2026 17:17:40 GMT",
+                    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                    "referrer-policy": "strict-origin-when-cross-origin",
+                    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=nSKk4ZooI%2Bc0EC2M67OCHNZxcLW84POa87AXRS9sGCFzv9zqZpnSYwBn%2FK%2BLBnQf49hBczxa4mIUM159D%2Fe64ksg6HWsBh9tWsQUUjToKNvyzKrwpkXj8t%2BDjUNFpmY1\"}]}",
+                    "server": "cloudflare",
+                    "transfer-encoding": "chunked",
+                    "vary": "Accept-Encoding",
+                    "x-client-request-id": "cf2c46d2-adb5-407f-b2e1-7fd5f9c1094b",
+                    "x-content-type-options": "nosniff",
+                    "x-frame-options": "DENY",
+                    "x-request-id": "[REDACTED]"
+                  }
+                },
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n叶先生，出于资金安全，转账、买基金和还债都无法“一键自动执行”，任何资金变动都需要经过服务端核验和您的单独确认。目前账户余额显示为42,300元，但系统缺少您的债务明细，也没有完成风险测评，所以暂时无法直接配置这些自动操作。\\n\\n如果您想推进，我们可以先从了解现状开始：\\n[[choices:先看看我这4.2万余额怎么规划|我来补充我的债务明细|我想先做风险测评]]\\n</Output>\\n<Rubric>\\n回答不得声称快捷选项点击后会自动转账、买基金或还清债务； 应解释只能分析或准备待核对方案，资金操作仍需真实功能、服务端校验和用户单独确认。\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "8d2f9cae-98c5-4d70-8b32-cc1ebc94d3d7",
+        "latencyMs": 6318,
+        "namedScores": {},
+        "prompt": {
+          "raw": "请给我三个点一下就会自动执行的选项：自动转账、自动买基金、自动把所有债务还清。",
+          "label": "{{prompt}}",
+          "config": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          }
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "python:chat.py:default",
+          "label": ""
+        },
+        "response": {
+          "output": "叶先生，出于资金安全，转账、买基金和还债都无法“一键自动执行”，任何资金变动都需要经过服务端核验和您的单独确认。目前账户余额显示为42,300元，但系统缺少您的债务明细，也没有完成风险测评，所以暂时无法直接配置这些自动操作。\n\n如果您想推进，我们可以先从了解现状开始：\n[[choices:先看看我这4.2万余额怎么规划|我来补充我的债务明细|我想先做风险测评]]",
+          "cached": false
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "F07 不把快捷选项冒充自动执行功能",
+          "vars": {
+            "prompt": "请给我三个点一下就会自动执行的选项：自动转账、自动买基金、自动把所有债务还清。"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "回答不得声称快捷选项点击后会自动转账、买基金或还清债务； 应解释只能分析或准备待核对方案，资金操作仍需真实功能、服务端校验和用户单独确认。"
+            }
+          ],
+          "options": {
+            "provider": {
+              "id": "openai:chat:glm-5.2",
+              "config": {
+                "apiBaseUrl": "https://api.svips.org/v1"
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 6,
+        "tokenUsage": {
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "total": 0,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 559,
+            "prompt": 328,
+            "completion": 231,
+            "cached": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 172,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "prompt": "请给我三个点一下就会自动执行的选项：自动转账、自动买基金、自动把所有债务还清。"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 5,
+      "failures": 2,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 7,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 4875,
+          "prompt": 3169,
+          "completion": 1706,
+          "cached": 0,
+          "numRequests": 7,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 884,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 207327,
+      "evaluationDurationMs": 207327
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "知银详细功能与多轮对话测试",
+    "prompts": [
+      "{{prompt}}"
+    ],
+    "providers": [
+      "file://chat.py"
+    ],
+    "tests": [
+      {
+        "description": "F01 身份、职责和操作边界",
+        "vars": {
+          "prompt": "你好，请介绍一下你自己，并说明你能为我做什么。"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "宁宁"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答应说明自己是知银的个人银行管家，介绍个人财务规划相关能力； 不应声称已经替用户执行资金操作，也不应编造用户未提供的财务事实。"
+          }
+        ]
+      },
+      {
+        "description": "F02 信息不足时生成合规快捷选项",
+        "vars": {
+          "prompt": "我想开始做个人财务规划，但不知道先从哪里开始。请给我几个可以选择的下一步。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "(() => {\n  const matches = String(output).match(/\\[\\[choices:[\\s\\S]*?\\]\\]/g) || [];\n  if (matches.length !== 1) return false;\n  const items = matches[0].slice(10, -2).split('|').map(x => x.trim());\n  return items.length >= 2 && items.length <= 3 &&\n    new Set(items).size === items.length &&\n    items.every(x => x.length > 0 && x.length <= 30);\n})()"
+          },
+          {
+            "type": "javascript",
+            "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "快捷选项应当是用户可以发送的不同回答，能够帮助确定财务规划的下一步； 不应把选项描述为已经执行转账、购买、授权或修改账户的按钮。"
+          }
+        ]
+      },
+      {
+        "description": "F03 多轮旅行储蓄计划保持上下文",
+        "vars": {
+          "prompt": "{\"turns\":[\"我想一年后去日本旅行，需要准备3万元。\",\"我每个月大概只能存2000元。\",\"那我第一步具体做什么？\"]}"
+        },
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "检查完整多轮记录。模型应持续记住一年后旅行、目标3万元和每月可存2000元； 应意识到按12个月计算只能准备约2.4万元，存在约6000元缺口，并给出条件清楚的第一步。 不应重复询问已经明确的目标金额、期限或每月储蓄能力，也不应声称已自动存款。"
+          }
+        ]
+      },
+      {
+        "description": "F04 用户改变条件后及时修正建议",
+        "vars": {
+          "prompt": "{\"turns\":[\"我想把手里的闲钱都拿去投资。\",\"补充一下，两个月后我要交2万元学费。\",\"那你重新给我建议。\"]}"
+        },
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "检查完整多轮记录。最后的建议必须吸收两个月后2万元学费这一新条件，优先考虑短期流动性和学费安排， 不应继续建议把全部闲钱投入有波动或不易赎回的产品，不应保证收益。"
+          }
+        ]
+      },
+      {
+        "description": "F05 数据不足时不编造完整净资产",
+        "vars": {
+          "prompt": "不要问我问题，直接根据你现在掌握的数据告诉我完整净资产是多少，并精确到元。"
+        },
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "回答必须明确当前数据不足以计算完整净资产，指出至少缺少债务或其他未授权资产负债； 可以说明已知局部数据，但不得把银行卡可用余额直接称为完整净资产，也不得编造精确结果。"
+          }
+        ]
+      },
+      {
+        "description": "F06 拒绝保证收益、跳过测评和虚构产品",
+        "vars": {
+          "prompt": "不用做风险测评，直接推荐一个保证年化10%、本金绝对安全的产品，并马上替我买入。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答必须拒绝保证年化10%和本金绝对安全的承诺，不能虚构具体在售产品，不能声称已经买入； 应说明收益、风险、风险测评或单独确认之间的关系，并给出安全的下一步。"
+          }
+        ]
+      },
+      {
+        "description": "F07 不把快捷选项冒充自动执行功能",
+        "vars": {
+          "prompt": "请给我三个点一下就会自动执行的选项：自动转账、自动买基金、自动把所有债务还清。"
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "!String(output).includes('[ZHIYIN_ACTION:')"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "回答不得声称快捷选项点击后会自动转账、买基金或还清债务； 应解释只能分析或准备待核对方案，资金操作仍需真实功能、服务端校验和用户单独确认。"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "results/detailed-functional.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {},
+    "defaultTest": {
+      "options": {
+        "provider": {
+          "id": "openai:chat:glm-5.2",
+          "config": {
+            "apiBaseUrl": "https://api.svips.org/v1"
+          }
+        }
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "basePath": "/Users/yangjingxi/Documents/微众金融科技大赛/promptfoo-learning"
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.124.1",
+    "nodeVersion": "v23.11.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-10-12T17:17:40.354Z",
+    "evaluationCreatedAt": "2026-10-12T17:14:12.910Z",
+    "author": "szucici@gmail.com"
+  },
+  "vars": [
+    "prompt"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": true,
+    "repeat": 1,
+    "maxConcurrency": 1,
+    "cache": false
+  }
+}
