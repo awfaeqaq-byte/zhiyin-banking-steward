@@ -42,6 +42,18 @@ it('微信授权请求准备只读连接入口，不要求用户重说用途或�
   expect(parseStewardReply('[ZHIYIN_ACTION:OPEN_CONNECTIONS|alipay]',[]).action).toEqual({type:'open_connections',provider:'alipay'});
   expect(parseStewardReply('[ZHIYIN_ACTION:OPEN_CONNECTIONS|unknown]',[]).action).toBeUndefined();
 });
+it('卡申请只介绍真实演示卡种，循环提醒明确现有边界',async()=>{
+ const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+ const base={stewardName:'宁宁',subscriptions:[]};
+ const cards=await requestStewardReply({...base,messages:[{role:'user',content:'知银现在可以申请什么卡？'}]});
+ expect(cards.text).toContain('标准借记卡');
+ expect(cards.text).toContain('安心借记卡');
+ expect(cards.text).not.toContain('虚拟卡');
+ const reminder=await requestStewardReply({...base,messages:[{role:'user',content:'每周一晚上8点提醒我检查卡片设置，可以直接创建循环提醒吗？'}]});
+ expect(reminder.text).toContain('只支持单次');
+ expect(reminder.action).toEqual({type:'open_tasks'});
+ expect(fetcher).not.toHaveBeenCalled();
+});
 
 it('跨任务近期对话单独作为只读理解线索传入模型，不当成业务历史重放',async()=>{
   const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({output_text:'你刚才是要查账单，我接着帮你核对授权。'})));vi.stubGlobal('fetch',fetcher);

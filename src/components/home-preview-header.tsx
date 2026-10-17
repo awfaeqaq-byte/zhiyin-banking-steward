@@ -38,9 +38,9 @@ export function HomePreviewHeader(props:Props){
      {assets&&<><div className="home-preview-allocation" aria-hidden="true">{allocation.filter(a=>a.value>0).map(a=><span key={a.label} className={a.color} style={{flexGrow:a.value}}/>)}</div><ul className="home-preview-asset-list">{allocation.map(a=><li key={a.label}><span><i className={a.color} aria-hidden="true"/>{a.label}</span><strong>{show(a.value)}</strong></li>)}</ul></>}
     </>}
     {!bank&&<p>暂时没有可核对的资产金额。可重新读取或进入资产页。</p>}
-    <div className="home-preview-asset-actions"><Button variant="ghost" size="sm" aria-label="资产" onClick={props.onAssets}>查看资产<ArrowUpRight size={14}/></Button><Button variant="ghost" size="sm" disabled={refreshing} onClick={()=>{setRefreshing(true);void Promise.resolve().then(props.onRefresh).catch(()=>undefined).finally(()=>setRefreshing(false));}}>{refreshing?<LoaderCircle size={14} className="spin"/>:null}{refreshing?'正在读取':'更新快照'}</Button></div>
+    <div className="home-preview-asset-actions"><Button variant="ghost" size="sm" aria-label="查看资产" onClick={props.onAssets}>查看资产<ArrowUpRight size={14}/></Button><Button variant="ghost" size="sm" disabled={refreshing} onClick={()=>{setRefreshing(true);void Promise.resolve().then(props.onRefresh).catch(()=>undefined).finally(()=>setRefreshing(false));}}>{refreshing?<LoaderCircle size={14} className="spin"/>:null}{refreshing?'正在读取':'更新快照'}</Button></div>
    </div>}
-   {!expanded&&<button className="home-preview-asset-link" aria-label="资产" onClick={props.onAssets}>查看资产<ChevronRight size={14}/></button>}
+   {!expanded&&<button className="home-preview-asset-link" aria-label="查看资产" onClick={props.onAssets}>查看资产<ChevronRight size={14}/></button>}
   </section>
  </header>;
 }

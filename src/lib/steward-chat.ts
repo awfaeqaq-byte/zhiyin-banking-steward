@@ -1,7 +1,7 @@
 import type { ExternalFinancialProvider } from "./financial-connections";
 import {readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
 import {validReminderDraft,nextAnnualDate,type ReminderDraft} from './task-calendar';
-import {validTransfer,bankRecipients,splitAA,transferImpact,validBankSnapshot,type AAIntent,type TransferIntent,type BankSnapshot} from './bank-transfer';
+import {validTransfer,bankRecipients,cardProducts,splitAA,transferImpact,validBankSnapshot,type AAIntent,type TransferIntent,type BankSnapshot} from './bank-transfer';
 import type { FundingForecast } from "./funding-forecast";
 import type { RecurringCandidate } from "./recurring-payments";
 import type { DuplicateDecision } from "./subscription-insights";
@@ -170,7 +170,7 @@ import { choiceInstructions } from './reply-choices';
 import {depositRequestForMessages,depositProducts} from './bank-assets';
 export const isBankRequest=(messages:StewardChatMessage[])=>/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)|(?:之前|上次).{0,15}安排.{0,15}(?:钱|款)/.test(messages.slice(-4).map(m=>m.content).join(' '));
 export const isBankOperation=(text:string)=>/AA|aa|平摊|均摊|拆分.*收款|(?:给|向).{1,25}(?:转|汇)|预约.*转|定时.*转/.test(text);
-const isCardManagementQuestion=(text:string)=>/卡片|银行卡|信用卡|挂失|锁卡|解锁|解挂|单笔限额|境外交易|无卡支付|夜间保护/.test(text);
+const isCardManagementQuestion=(text:string)=>/卡片|银行卡|信用卡|借记卡|卡种|办卡|申请.{0,8}卡|挂失|锁卡|解锁|解挂|单笔限额|境外交易|无卡支付|夜间保护/.test(text);
 const isWealthQuestion=(text:string)=>/理财|投资|基金|存款|资产|闲钱|收益|赎回|申购|风险测评|持仓/.test(text);
 
 export const isTaskRequest=(messages:StewardChatMessage[])=>{
@@ -217,6 +217,7 @@ export function buildStewardInstructions({
     `你是${stewardName}，知银的个人银行管家。用户是叶先生。`,
     memoryContext,
     bank?`当前银行沙箱（金额单位为分）：${JSON.stringify({balance:bank.balance,limit:bank.limit,frozen:bank.frozen,controls:bank.controls})}。`:'当前卡片沙箱数据不可用，不能猜测卡片状态。',
+    `当前演示可申请卡种：${cardProducts.map(product=>product.name).join('、')}。卡申请必须进入卡片页独立提交；没有演示信用卡或虚拟卡。不得虚构其他卡种，也不得说没有卡申请功能。`,
     '本轮处理卡片管理。先说明你理解的目标，再用一两句解释当前状态、变更影响和下一步。金额从分换算为元。不得暴露完整卡号或编造账户数据。',
     '挂失、解挂、调额以及开启可能增加风险的支付开关，都只能准备方案并进入独立卡片核对页；没有服务端回执时不得声称已修改成功。当前聊天不直接执行卡片变更。',
     '如果用户只是检查安全设置，按挂失状态、单笔限额、夜间保护、境外交易、无卡支付的顺序指出值得核对的项目；这些设置会在对应沙箱付款渠道中由服务端拦截，但不影响真实银行卡。',
@@ -438,6 +439,8 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     const provider=wechat&&!alipay?'wechat_pay':alipay&&!wechat?'alipay':undefined;
     return {text:provider?'可以，先核对只读数据范围，再由你在两边确认。连接后就能继续看账单；现在还没有授权。':'可以，先选择要连接的平台并核对只读范围，仍需要你在两边确认。',action:{type:'open_connections',...(provider?{provider}:{})}};
   }
+  if(/(?:每周|每月|循环|重复).{0,24}提醒|提醒.{0,24}(?:每周|每月|循环|重复)/.test(latest))return {text:'目前知银的通用任务提醒只支持单次，不支持每周或每月循环；这次尚未创建提醒。你可以打开任务日历，改为指定日期和时刻的单次提醒。',action:{type:'open_tasks'}};
+  if(isCardManagementQuestion(latest)&&/(?:申请|办卡|卡种|什么卡)/.test(latest)&&!/(?:挂失|解挂|限额|交易限制)/.test(latest))return {text:`知银沙箱卡片页目前可申请${cardProducts.map(product=>product.name).join('和')}。申请须由你进入卡片页独立提交；这次聊天没有申请或发卡，也不提供演示信用卡。`};
   if(!readonlyShare&&isOccasionRequest(request.messages))return {text:'可以，把日期、预算和偏好交给我整理。我们先核对筹备方案，再单独确认预留资金和外卖订单。',action:{type:'open_occasions'}};
   const newestUser = [...request.messages].reverse().find(message => message.role === "user");
   if(!readonlyShare&&/群收款|微信群.*(?:AA|aa|分摊|收款)|(?:AA|aa|分摊).*微信群/.test(newestUser?.content??''))return {text:'可以，从已有微信群选择参与人，再把费用和分摊规则告诉我。点选和文字都能调整同一份方案，核对后再去微信发起。',action:{type:'open_group_aa'}};

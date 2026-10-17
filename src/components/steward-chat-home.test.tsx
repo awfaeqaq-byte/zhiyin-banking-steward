@@ -564,9 +564,13 @@ describe("宁宁真实对话首页", () => {
       onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onOpenWealth={open} reply={reply}/>);
     await userEvent.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'帮我比较理财产品');
     await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
-    await screen.findByText('先看风险和流动性。');
+    await screen.findByRole('button',{name:'开始风险测评'});
     expect(reply.mock.calls[0][0]).toMatchObject({bank:{balance:4230000},wealthSnapshot:{cashBalance:4230000}});
-    expect(screen.getByRole('button',{name:'进入理财方案与风险测评'})).toBeInTheDocument();
+    expect(screen.queryByText('先看风险和流动性。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:/灵活现金管理/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'进入理财方案与风险测评'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:'开始风险测评'}));
+    expect(open).toHaveBeenCalledOnce();
   });
 
   it("首页可展开自动检查交易并记录人工判断", async () => {

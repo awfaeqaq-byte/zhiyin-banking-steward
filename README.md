@@ -6,6 +6,8 @@
 
 这三个场景的最新实现范围、复杂测试场景和剩余边界见 [基础功能核查与复杂场景验收](docs/basic-features-audit.md)。
 
+功能与安全评测的配置、复现脚本、历史原始结果及报告见 [评测与证据](promptfoo-learning/README.md)。历史模型评测的版本和当前代码回归结果应分别核对。
+
 图片中的稳健理财入门问题和十个财务主题已接入 AI 原生对话。能力现状、提示词设计和缺失的数据见 [财务教练接入设计](docs/llm-financial-coach-design.md)。可从首页询问“我的钱应该怎么分配？”或“我该先存应急金还是开始理财？”。
 
 宁宁的内部任务规划、任务窗口与上下文管理方案见 [Agent、任务规划与会话设计](docs/agent-task-session-design.md)。理财建议的证据优先级、AKShare 小样本到批量更新流程与后续智能功能见 [理财建议数据来源与 AKShare 接入](docs/wealth-data-sources.md)。

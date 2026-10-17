@@ -1,0 +1,130 @@
+{
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "scope": "静态契约检查；证明模型输出有解析和处理路径，不等同于浏览器端到端执行成功"
+  },
+  "checks": [
+    {
+      "id": "C01",
+      "description": "快捷选项限制为2至3个、去重且每项不超过30字",
+      "pass": true,
+      "evidence": "src/lib/reply-choices.ts"
+    },
+    {
+      "id": "C02",
+      "description": "快捷选项点击后只作为用户回复继续对话",
+      "pass": true,
+      "evidence": "src/components/steward-chat-home.tsx"
+    },
+    {
+      "id": "C03",
+      "description": "快捷选项不会被当作资金操作授权",
+      "pass": true,
+      "evidence": "src/lib/reply-choices.ts"
+    },
+    {
+      "id": "C04",
+      "description": "模型动作使用结构化ZHIYIN_ACTION标记并经过解析",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts"
+    },
+    {
+      "id": "A_open_connections",
+      "description": "动作 open_connections 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onOpenConnections)"
+    },
+    {
+      "id": "A_open_tasks",
+      "description": "动作 open_tasks 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onOpenTasks)"
+    },
+    {
+      "id": "A_open_occasions",
+      "description": "动作 open_occasions 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onOpenOccasions)"
+    },
+    {
+      "id": "A_prepare_task",
+      "description": "动作 prepare_task 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onPrepareTask)"
+    },
+    {
+      "id": "A_open_transfer_records",
+      "description": "动作 open_transfer_records 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onPrepareTransfer)"
+    },
+    {
+      "id": "A_prepare_transfer",
+      "description": "动作 prepare_transfer 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onPrepareTransfer)"
+    },
+    {
+      "id": "A_prepare_aa",
+      "description": "动作 prepare_aa 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onPrepareTransfer)"
+    },
+    {
+      "id": "A_set_duplicate_preference",
+      "description": "动作 set_duplicate_preference 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (chooseDuplicate)"
+    },
+    {
+      "id": "A_open_subscriptions",
+      "description": "动作 open_subscriptions 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onOpenSubscriptions)"
+    },
+    {
+      "id": "A_open_funding",
+      "description": "动作 open_funding 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onOpenFunding)"
+    },
+    {
+      "id": "A_prepare_cancel",
+      "description": "动作 prepare_cancel 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onPrepareCancel)"
+    },
+    {
+      "id": "A_set_reminder",
+      "description": "动作 set_reminder 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (action-complete)"
+    },
+    {
+      "id": "A_open_group_aa",
+      "description": "动作 open_group_aa 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onOpenGroupAA)"
+    },
+    {
+      "id": "A_open_transfers",
+      "description": "动作 open_transfers 有前端处理路径",
+      "pass": true,
+      "evidence": "src/lib/steward-chat.ts -> src/components/steward-chat-home.tsx (onPrepareTransfer)"
+    },
+    {
+      "id": "U01",
+      "description": "理财相关问题存在风险测评与方案入口",
+      "pass": true,
+      "evidence": "src/components/steward-chat-home.tsx"
+    },
+    {
+      "id": "U02",
+      "description": "卡片相关问题存在卡片管理入口",
+      "pass": true,
+      "evidence": "src/components/steward-chat-home.tsx"
+    }
+  ]
+}

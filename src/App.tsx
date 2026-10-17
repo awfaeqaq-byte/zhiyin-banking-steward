@@ -39,7 +39,6 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
-  Target,
   TrendingUp,
   UserRound,
   Users,
@@ -71,6 +70,7 @@ import {automationServerRequest,automationTemplates,type AutomationRun,type Auto
 import { type DuplicatePreferences, type DuplicateDecision } from "./lib/subscription-insights";
 import { fundingReferenceTime } from "./lib/funding-forecast";
 import { FundingPlan } from "./components/funding-plan";
+import { FundDiscovery } from "./components/fund-discovery";
 import {TaskCalendar} from './components/task-calendar';
 import {GroupAA} from './components/group-aa';
 import {OccasionPlanner} from './components/occasion-planner';
@@ -111,6 +111,7 @@ type Page =
   | "settings"
   | "connections"
   | "funding"
+  | "funds"
   | "tasks"
   | "group-aa"
   | "occasions"
@@ -151,6 +152,8 @@ type StewardId = keyof typeof stewards;
 const nav: { page: Page; label: string; icon: LucideIcon }[] = [
   { page: "home", label: "管家", icon: MessageCircle },
   { page: "assets", label: "资产", icon: PieChart },
+  { page: "risk", label: "财富", icon: TrendingUp },
+  { page: "cards", label: "卡片", icon: CreditCard },
   { page: "profile", label: "我的", icon: UserRound },
 ];
 function read<T>(key: string, fallback: T): T {
@@ -243,7 +246,6 @@ export default function App() {
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [transferDate, setTransferDate] = useState("2026-09-18");
   const [transferError, setTransferError] = useState("");
-  const [savedPlan, setSavedPlan] = useState(false);
   const [readNotifications, setReadNotifications] = useState(false);
   const bank=useBankAccount();
   const frozen=bank.state?.frozen ?? false;
@@ -260,9 +262,6 @@ export default function App() {
   const [pendingControl,setPendingControl]=useState<{key:'overseas'|'contactless'|'night';title:string;enabled:boolean}|null>(null);
   const [lastCardAction,setLastCardAction]=useState<string>(()=>read('zhiyin-last-card-action',''));
   function recordCardAction(text:string){const value=`${text} · ${new Date().toLocaleString('zh-CN')}`;setLastCardAction(value);save('zhiyin-last-card-action',value);}
-  const [investment, setInvestment] = useState("30000");
-  const [term, setTerm] = useState("12");
-  const [detailPlan, setDetailPlan] = useState(false);
   const [speak, setSpeak] = useState<StewardId | null>(null);
   const [attachment, setAttachment] = useState("");
   const [privacy, setPrivacy] = useState({
@@ -496,7 +495,9 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   }
   const activeNav =
-    page === "profile" || page === "settings" || page === "connections" || page === "subscriptions" || page === "cards"
+    page === "cards" ? "cards"
+      : page === "risk" || page === "plan" || page === "funds" ? "risk"
+      : page === "profile" || page === "settings" || page === "connections" || page === "subscriptions"
       ? "profile"
       : ["assets", "funding", "deposits"].includes(page)
         ? "assets"
@@ -539,20 +540,6 @@ export default function App() {
         />
         <i />
       </span>
-    );
-  }
-  function Note({ children }: { children: ReactNode }) {
-    return (
-      <div className="steward-note">
-        <Avatar size="small" />
-        <div>
-          <strong>
-            {steward.name}
-            <span>的贴心提示</span>
-          </strong>
-          <p>{children}</p>
-        </div>
-      </div>
     );
   }
   function Heading({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -648,6 +635,10 @@ export default function App() {
           <CalendarDays size={19} />
           自动任务
         </button>
+        <button className="sidebar-link" onClick={() => go("funds")}>
+          <TrendingUp size={19} />
+          大数据选基
+        </button>
         <div className="sidebar-bottom">
           <div className="sidebar-assistant">
             <Avatar />
@@ -706,12 +697,6 @@ export default function App() {
                   >
                     <BellRing size={18} />
                     <span>订阅</span>
-                  </button>
-                  <button
-                    className="native-header-link"
-                    onClick={() => go("assets")}
-                  >
-                    资产
                   </button>
                   <button
                     className="native-header-link native-header-secondary"
@@ -783,31 +768,31 @@ export default function App() {
                   </section>
                   <section className="quick-section">
                     <h2>
-                      从一件小事开始<span>你可以这样问</span>
+                      常用服务<span>选择一项业务继续</span>
                     </h2>
                     <div className="quick-actions">
                       <Row
                         icon={ArrowRightLeft}
-                        title="给妈妈转 2000 元，下周五到账"
-                        subtitle="转账与付款"
+                        title="转账汇款"
+                        subtitle="给妈妈转 2000 元，下周五到账"
                         onClick={() => openTransfer()}
                       />
                       <Row
                         icon={PieChart}
-                        title="分析这个月的钱花在哪"
-                        subtitle="消费分析"
+                        title="收支分析"
+                        subtitle="分析这个月的钱花在哪"
                         onClick={() => go("spending")}
                       />
                       <Row
                         icon={TrendingUp}
-                        title="帮我选一个稳妥的理财方案"
-                        subtitle="个性化规划"
-                        onClick={() => go("plan")}
+                        title="财富管理"
+                        subtitle="帮我选一个稳妥的理财方案"
+                        onClick={() => go("risk")}
                       />
                       <Row
                         icon={CalendarDays}
-                        title="定时分析账单与理财情况"
-                        subtitle="定时任务"
+                        title="定时任务"
+                        subtitle="定时分析账单与理财情况"
                         onClick={() => go("automations")}
                       />
                     </div>
@@ -988,6 +973,12 @@ export default function App() {
                       onClick={() => go("risk")}
                     />
                     <Row
+                      icon={TrendingUp}
+                      title="大数据选基"
+                      subtitle="人气口碑 · 业绩表现 · 热门板块"
+                      onClick={() => go("funds")}
+                    />
+                    <Row
                       icon={CalendarDays}
                       title="自动任务"
                       subtitle="账单月报 · 理财周检 · 异常复核"
@@ -1005,6 +996,7 @@ export default function App() {
             </>
           )}
           {page === "deposits" && <><Heading title="存款" subtitle="同一银行账本，先核对资金影响再由你确认"/>{hidden?<button type="button" className="primary-button" onClick={()=>setHidden(false)}>显示金额，继续办理</button>:<TermDepositPanel/>}</>}
+          {page === "funds" && <FundDiscovery onOpenRisk={() => go("risk")} onBack={goBack} />}
           {page === "plan" && (
             <>
               <Heading
@@ -1018,125 +1010,18 @@ export default function App() {
                 onOpenAutomations={() => go("automations")}
                 onAsk={(prompt) => { setChatDraft(prompt); go("home"); }}
               />
-              <div className="detail-grid">
-                <div>
-                  <div className="plan-inputs">
-                    <label>
-                      计划投入（元）
-                      <input
-                        type="number"
-                        min="1000"
-                        max="1000000"
-                        value={investment}
-                        onChange={(e) => setInvestment(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      计划持有
-                      <select
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                        aria-label="计划持有时间"
-                      >
-                        <option value="6">6 个月</option>
-                        <option value="12">12 个月</option>
-                        <option value="24">24 个月</option>
-                      </select>
-                    </label>
-                  </div>
-                  <h2 className="section-title">资产配置建议</h2>
-                  <div className="surface allocation-panel">
-                    <div className="allocation-bar">
-                      <span style={{ flex: 30 }} />
-                      <span style={{ flex: 50 }} />
-                      <span className="neutral-segment" style={{ flex: 20 }} />
-                    </div>
-                    <div className="legend three">
-                      {["现金管理", "固收理财", "低波动基金"].map((c, i) => (
-                        <div key={c}>
-                          <span>
-                            <i className={`dot-${i === 2 ? 3 : i}`} />
-                            {c}
-                          </span>
-                          <strong>{[30, 50, 20][i]}%</strong>
-                          <small>
-                            {num(
-                              Math.max(0, Number(investment)) *
-                                [0.3, 0.5, 0.2][i],
-                            )}
-                          </small>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="fine-print">
-                      资产配置为演示方案，不代表收益承诺。
-                    </p>
-                  </div>
-                  <Note>
-                    {stewardId === "ningning"
-                      ? "这份演示方案先保留一部分灵活资金；若有大额支出计划，还需增加留存。"
-                      : "这套演示配置保留了 30% 的流动性，尚未使用未经确认的个人偏好。"}
-                    {term === "6"
-                      ? "持有时间较短，优先确认产品赎回规则。"
-                      : "稳健的规划，也要给生活留一点余地。"}
-                  </Note>
-                </div>
-                <div className="surface plan-reasons">
-                  <Row
-                    icon={ShieldCheck}
-                    title="风险等级"
-                    end={<span className="pill">待本次确认</span>}
-                  />
-                  <Row
-                    icon={Target}
-                    title="你的目标"
-                    end={<strong>稳健增值</strong>}
-                  />
-                  <div className="reason-content">
-                    <h3>为什么这样安排</h3>
-                    <ol>
-                      <li>投入金额和持有期限以你上方填写的条件为准。</li>
-                      <li>大额支出计划尚未确认，暂优先保留流动性。</li>
-                      <li>风险承受范围由你在下方本次主动选择。</li>
-                    </ol>
-                    {detailPlan && (
-                      <div className="expanded-plan">
-                        <h3>执行前还需要确认</h3>
-                        <p>
-                          核对产品风险揭示、持有期限和赎回规则。实际申购前，仍需完成风险测评和本人授权。
-                        </p>
-                        <p>
-                          建议每月复盘一次；大额支出计划变化时，重新评估配置。
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    className="full-width"
-                    onClick={() => setDetailPlan(!detailPlan)}
-                  >
-                    {detailPlan ? "收起方案详情" : "查看完整方案"}
-                    <ChevronDown size={17} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="full-width"
-                    onClick={() => {
-                      setSavedPlan(true);
-                      setToast("方案已收藏，可在“我的”中查看");
-                    }}
-                  >
-                    {savedPlan ? "已收藏这份方案" : "收藏这份方案"}
-                  </Button>
-                  <WealthOperationMvp amount={investment} term={term} availableBalance={bank.state?.balance} />
-                </div>
-              </div>
+              <WealthOperationMvp amount="30000" term="12" availableBalance={bank.state?.balance} />
             </>
           )}
           {page === "risk" && (
             <>
-              <Heading title="理财风险测评与持仓" subtitle="根据本人答题与沙箱状态核对产品和操作" />
-              <WealthOperationMvp amount={investment} term={term} availableBalance={bank.state?.balance} />
+              <Heading title="财富管理" />
+              <button className="asset-funding-entry" onClick={() => go("funds")}>
+                <TrendingUp size={20} aria-hidden="true" />
+                <span><strong>大数据选基</strong><small>人气、业绩与热门板块榜单</small></span>
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+              <WealthOperationMvp amount="30000" term="12" availableBalance={bank.state?.balance} />
             </>
           )}
           {page === "cards" && (
@@ -1314,8 +1199,6 @@ export default function App() {
                       onClick={() => setModal("memory")} />
                     <Row icon={ShieldCheck} title="隐私与授权" subtitle="你始终拥有数据的控制权"
                       onClick={() => setModal("privacy")} />
-                    <Row icon={FileText} title="我的收藏方案" subtitle={savedPlan ? "1 份方案" : "暂未收藏"}
-                      onClick={() => savedPlan ? go("plan") : setToast("还没有收藏，先去看看为你准备的理财方案吧")} />
                     <Row icon={CircleHelp} title="帮助与使用指南" onClick={() => setModal("help")} />
                   </div>
                 </section>
@@ -1458,7 +1341,7 @@ export default function App() {
               <Heading title="定时任务" subtitle={`由${steward.name}按时检查，发现变化后再请你决定`} />
               <FinancialFocusRules stewardName={steward.name} />
               <AgentAutomationCenter stewardName={steward.name} connections={connections} availableBalance={bank.state?.balance}
-                onOpenBills={() => go("spending")} onOpenWealth={() => go("plan")} onOpenCards={() => go("cards")}
+                onOpenBills={() => go("spending")} onOpenWealth={() => go("risk")} onOpenCards={() => go("cards")}
                 onSnapshotChange={setAutomationSnapshot}
                 onDiscussRun={(run:AutomationRun)=>{
                   setChatDraft(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
@@ -1494,7 +1377,7 @@ export default function App() {
               onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
               occasionPlans={bank.state?.occasions}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
-              onOpenWealth={() => go("plan")}
+              onOpenWealth={() => go("risk")}
               onOpenCards={openCardIntent}
               onOpenAutomations={() => go("automations")}
               automationAttention={homeAutomationAttention}
@@ -1559,7 +1442,6 @@ export default function App() {
         <nav
           className="bottom-nav"
           aria-label="主导航"
-          hidden={mode === "native"}
         >
           {nav.map(({ page: p, label, icon: Icon }) => (
             <button
