@@ -68,7 +68,8 @@ import {recentConversation} from '../lib/conversation-context';
 import {InlineBillConsent,StewardBillWorkspace,type ConnectBillSource} from './steward-bill-workspace';
 import {sharePrompt,WECHAT_SHARE_PREFIX,readonlyWechatShare,type WechatShare} from '../lib/wechat-message-share';
 import {WechatShareAttachment,WechatSharedText} from './wechat-share-attachment';
-import type {ConversationEntry} from '../lib/message-flow';
+import type {ConversationEntry,MessageRun} from '../lib/message-flow';
+import {conversationTranscript} from '../lib/conversation-transcript';
 import {billLedgerFingerprint,billProvider,billScopeQuestion,evidenceRefs,restoreBillScenes,type BillScene,type BillInteraction} from '../lib/steward-ui';
 import {depositRequestForMessages} from '../lib/bank-assets';
 import {TermDepositPanel} from './term-deposit-panel';
@@ -117,6 +118,7 @@ type Props = {
   sceneFlows?:SceneFlow[];
   onResumeScene?:(next:SceneNext)=>Promise<void>;
   conversationMessages?:ConversationEntry[];
+  conversationRuns?:MessageRun[];
   onConversationEntries?:(entries:ConversationEntry[])=>Promise<void>;
   processingPhase?:string;
   contextWorkspaces?: Workspace[];
@@ -239,7 +241,7 @@ export function StewardChatHome({
   voiceEnabled=true,
   onVoiceRequest,
   wechatShare,onWechatShareDone,
-  seamless=false, homePreview=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
+  seamless=false, homePreview=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,conversationRuns,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, onRetryMessage, submissionDisabled=false, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
   stewardName,
@@ -312,6 +314,9 @@ export function StewardChatHome({
   );
   const [messages, setMessages] = useState<DisplayMessage[]>(()=>seamless?readMessages(conversationKey):workspace===undefined?readMessages():workspace?.messages || []);
   const conversationCutoff=useRef(localStorage.getItem('zhiyin-steward-conversation-cutoff')||'');
+  const initialCachedIds=useRef(new Set(messages.map(m=>m.id)));
+  const seenServerIds=useRef(new Set<string>());
+  const [hydratedConversation,setHydratedConversation]=useState<ConversationEntry[]>();
   const latestMessages=useRef(messages);
   latestMessages.current=messages;
   const [homeConversationHydrated,setHomeConversationHydrated]=useState(false);
@@ -324,14 +329,16 @@ export function StewardChatHome({
     const latest=conversationMessages.at(-1);
     if(firstHomeHydration){setActiveReplyId(latest?.role==='assistant'?latest.id:null);setHomeConversationHydrated(true);}
     else if(latest?.role==='assistant'&&!latestMessages.current.some(m=>m.id===latest.id))setActiveReplyId(latest.id);
+    for(const message of conversationMessages)seenServerIds.current.add(message.id);
     setMessages(current=>{
       const existing=new Map(current.map(m=>[m.id,m]));const known=new Set(conversationMessages.map(m=>m.id));
-      return [...conversationMessages.map(m=>({...existing.get(m.id),...m,retryPrompt:m.retryPrompt,retryRunId:m.retryRunId})),...current.filter(m=>!known.has(m.id))];
+      return [...conversationMessages.map(m=>({...existing.get(m.id),...m,retryPrompt:m.retryPrompt,retryRunId:m.retryRunId})),...current.filter(m=>!known.has(m.id)&&!seenServerIds.current.has(m.id)&&!initialCachedIds.current.has(m.id))];
     });
+    setHydratedConversation(conversationMessages);
   },[seamless,conversationMessages,homePreview,homeConversationHydrated]);
   useEffect(()=>{
-    if(conversationMessages!==undefined&&onConversationEntries)void onConversationEntries(messages.map(({id,role,content,messageId,memoryRevision,sceneId,workspaceId,retryPrompt,retryRunId})=>({id,role,content,...(messageId?{messageId}:{}),...(memoryRevision!==undefined?{memoryRevision}:{}),...(sceneId?{sceneId}:{}),...(workspaceId?{workspaceId}:{}),...(retryPrompt?{retryPrompt}:{}),...(retryRunId?{retryRunId}:{})})));
-  },[messages,conversationMessages,onConversationEntries]);
+    if(hydratedConversation===conversationMessages&&conversationMessages!==undefined&&onConversationEntries)void onConversationEntries(messages.map(({id,role,content,messageId,memoryRevision,sceneId,workspaceId,retryPrompt,retryRunId})=>({id,role,content,...(messageId?{messageId}:{}),...(memoryRevision!==undefined?{memoryRevision}:{}),...(sceneId?{sceneId}:{}),...(workspaceId?{workspaceId}:{}),...(retryPrompt?{retryPrompt}:{}),...(retryRunId?{retryRunId}:{})})));
+  },[messages,conversationMessages,onConversationEntries,hydratedConversation]);
   function recentContext() {
     const index=messages.findIndex(message=>message.id===conversationCutoff.current);
     return recentConversation(index>=0?messages.slice(index+1):messages);
@@ -466,7 +473,7 @@ export function StewardChatHome({
   const decisionItems = attentionEvent?.type === 'duplicate' ? [attentionEvent.primary,...attentionEvent.related] : [];
   const decisionKey = duplicateGroupKey(decisionItems);
   const showDecision = decisionItems.length > 1 && resolution?.key !== decisionKey;
-  const displayedMessages = seamless || historyOpen || fullSession ? messages : messages.filter(message => message.id === activeReplyId);
+  const displayedMessages = seamless ? conversationTranscript(messages,conversationRuns) : historyOpen || fullSession ? messages : messages.filter(message => message.id === activeReplyId);
   const duplicateExplanation = attentionEvent?.type === "duplicate"
     ? `与${attentionEvent.related.map(item => item.title).join("、")}同属${attentionItem?.category} · 来自${Array.from(new Set([
       attentionEvent.primary.providerName,

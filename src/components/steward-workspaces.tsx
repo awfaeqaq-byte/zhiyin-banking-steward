@@ -163,6 +163,7 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
  async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string},currentTaskId?:string){
   if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
   const contextId=currentTaskId||work?.id||'';
+  if(selectedConversationId)selectConversation('');
   const id=meta?.messageId||crypto.randomUUID();
   try{
    // Preserve click order even if memory refreshes or saves finish out of order.
@@ -257,6 +258,7 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
       sceneFlows={state.scenes}
       onResumeScene={resumeScene}
       conversationMessages={conversationMessages}
+      conversationRuns={state.runs}
       onConversationEntries={persistEntries}
       processingPhase={phase}
       reply={props.reply||serverReply}
