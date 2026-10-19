@@ -1,4 +1,4 @@
-import {Fragment,useEffect,useState,type ReactNode} from 'react';
+import {useEffect,useState,type ReactNode} from 'react';
 
 type Message={id:string;role:'user'|'assistant';workspaceId?:string};
 export type ConversationTaskPanel={id:string;title:string;active:boolean;disabled?:boolean;pendingMessageId?:string;node:ReactNode};
@@ -22,7 +22,8 @@ export function TaskConversationTimeline<M extends Message>({messages,panels,ren
  }
  const rows:ReactNode[]=[];
  for(const message of messages){
-  rows.push(<Fragment key={`message:${message.id}`}>{renderMessage(message)}</Fragment>);
+  const rendered=renderMessage(message);
+  rows.push(...(Array.isArray(rendered)?rendered:[rendered]));
   for(const panel of panels)if(anchors.get(panel.id)===message.id)rows.push(<TaskPanel key={`task:${panel.id}`} panel={panel} anchored/>);
  }
  // First-time tasks may need to initialize before their first reply. Keep them mounted but never append visible orphan cards.

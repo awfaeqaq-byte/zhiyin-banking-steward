@@ -32,3 +32,28 @@ it.each([['aa','AA方案编辑'],['occasion','筹备方案编辑'],['food','点�
  expect(screen.getAllByRole('textbox',{name:label})).toHaveLength(1);expect(screen.getByRole('textbox',{name:label})).toBe(input);
  expect(precedes(screen.getByText('这次方案更新了'),input)).toBe(true);expect(precedes(input,screen.getByText('好的再聊其他'))).toBe(true);
 });
+
+it('首次任务在本条用户消息后等待回复，回复到达只移动原组件，不重新挂载',async()=>{
+ const {TaskConversationTimeline}=await import('./task-conversation-timeline');
+ const panel={id:'new-task',title:'新事项',active:true,pendingMessageId:'run',node:<input aria-label="新方案" defaultValue="初稿"/>};
+ const renderMessage=(m:ConversationEntry)=><p key={m.id}>{m.content}</p>;
+ const view=render(<TaskConversationTimeline messages={[] as ConversationEntry[]} panels={[panel]} renderMessage={renderMessage}/>);
+ expect(screen.queryByRole('textbox',{name:'新方案'})).not.toBeInTheDocument();
+ const messages:ConversationEntry[]=[{id:'user-run',role:'user',content:'准备新事项'},{id:'next-user',role:'user',content:'后续消息'}];
+ view.rerender(<TaskConversationTimeline messages={messages} panels={[panel]} renderMessage={renderMessage}/>);
+ const input=screen.getByRole('textbox',{name:'新方案'});fireEvent.change(input,{target:{value:'保留的勾选现场'}});
+ expect(precedes(input,screen.getByText('后续消息'))).toBe(true);
+ view.rerender(<TaskConversationTimeline messages={[...messages,{id:'reply',role:'assistant',content:'新方案好了',workspaceId:'new-task'}]} panels={[panel]} renderMessage={renderMessage}/>);
+ expect(screen.getByRole('textbox',{name:'新方案'})).toBe(input);expect(input).toHaveValue('保留的勾选现场');
+ expect(precedes(screen.getByText('新方案好了'),input)).toBe(true);
+});
+it('旧任务可展开收起，已归档方案不可再次执行；没有回复时跟随自己的用户消息',async()=>{
+ const {TaskConversationTimeline}=await import('./task-conversation-timeline');
+ const panel={id:'archived',title:'旧事项',active:false,disabled:true,node:<button>确认执行</button>};
+ render(<TaskConversationTimeline messages={[{id:'own',role:'user' as const,content:'旧交代',workspaceId:'archived'}]} panels={[panel]} renderMessage={m=><p key={m.id}>{m.content}</p>}/>);
+ expect(screen.queryByRole('button',{name:'确认执行'})).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'查看旧事项方案与进度'}));
+ expect(screen.getByRole('button',{name:'确认执行'})).toBeDisabled();
+ fireEvent.click(screen.getByRole('button',{name:'收起旧事项方案与进度'}));
+ expect(screen.queryByRole('button',{name:'确认执行'})).not.toBeInTheDocument();
+});

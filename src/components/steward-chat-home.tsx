@@ -278,6 +278,7 @@ export function StewardChatHome({
   const [voiceActive,setVoiceActive]=useState(false);
   const expenseNotebook=useRef<ExpenseNotebookHandle>(null);
   const expenseNotebooks=useRef<Record<string,ExpenseNotebookHandle|null>>({});
+  const [waitingForAA,setWaitingForAA]=useState<Record<string,boolean>>({});
   const referenceTime = now ?? fundingReferenceTime(connections);
   const [taskAttention,setTaskAttention]=useState(false);
   async function reconcileExpenseSources(taskId:string){
@@ -828,13 +829,14 @@ export function StewardChatHome({
     };
     const node=w.kind==='aa'&&seamless&&onOpenGroupAA?<ExpenseNotebook conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} sceneContext={context} onReconcileSources={()=>reconcileExpenseSources(w.id)} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={history}
       onBookSelected={async id=>{await onBackgroundBook?.(w.id,id);}}
+      onNeedsInput={needs=>setWaitingForAA(current=>current[w.id]===needs?current:{...current,[w.id]:needs})}
       onRecorded={async(user,text)=>{const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current,{id,role:'assistant',content:text,workspaceId:w.id}]);setActiveReplyId(id);await onBackgroundTurn?.(w.id,user,text,revision);}}
       getMemoryContext={getMemory} stewardName={stewardName} onPrompt={text=>{setInput(active?text:`关于「${w.title}」：${text}`);composerInput.current?.focus();}}/>
       :w.kind==='occasion'?<OccasionPlanner embedded conversation={seamless} stewardName={stewardName} initialPlanId={w.id} sceneContext={context} initialHistory={history} injectedPrompt={prompt} externalBusy={externalBusy} onOpenCalendar={onOpenTasks} getMemoryContext={getMemory} onConversationTurn={record}/>
       :w.kind==='food'?<FoodOrderPlanner key={`${w.id}:${revision}`} taskId={w.id} sceneContext={context} stewardName={stewardName} initialDraft={w.memoryRevision===revision?w.progress?.food||{items:[],note:''}:{items:[],note:''}} history={history} injectedPrompt={prompt}
         getMemoryContext={getMemory} onPrompt={text=>{void sendPrompt(active?text:`关于「${w.title}」：${text}`);}}
         onDraftChange={async food=>{await onBackgroundProgress?.(w.id,{goal:w.title,stage:'waiting_authorization',food},revision);}} onTurn={record}/>:null;
-    return node?[{id:w.id,title:w.title,active,disabled:w.status!=='active',pendingMessageId:prompt?.messageId,node}]:[];
+    return node?[{id:w.id,title:w.title,active:active||Boolean(waitingForAA[w.id]),disabled:w.status!=='active',pendingMessageId:prompt?.messageId,node}]:[];
   });
   return (
     <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
