@@ -169,6 +169,7 @@ export const NAVIGATION_DECLARATION = {
           search: {},
           description: '聊天详情',
           actions: [
+            {id:'chat.ningning.retry',label:'Retry Ningning reply',behavior:'submit',paramsSchema:{id:'string'}},
             {
               id: 'chat.pat.send',
               label: '拍一拍：发送',

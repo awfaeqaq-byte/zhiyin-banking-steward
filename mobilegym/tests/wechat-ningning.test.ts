@@ -1,8 +1,9 @@
+import type {ContactItem, ChatSession} from '../apps/Wechat/types';
 import {expect,it,vi} from 'vitest';
-import {ensureNingningContact,requestNingningReply,NINGNING_WXID} from '../../mobilegym/apps/Wechat/chat-ai/zhiyin';
+import {ensureNingningContact,requestNingningReply,NINGNING_WXID} from '../apps/Wechat/chat-ai/zhiyin';
 
 it('给已有微信增量加入宁宁联系人和会话，不覆盖原聊天；重复初始化幂等',()=>{
- const original={contacts:[{wxid:'friend',name:'朋友',avatar:''}],chats:[{id:'friend',user:{wxid:'friend',name:'朋友',avatar:''},messages:[]}]};
+ const original:{contacts:ContactItem[];chats:ChatSession[]}={contacts:[{wxid:'friend',name:'朋友',avatar:''}],chats:[{id:'friend',user:{wxid:'friend',name:'朋友',avatar:''},messages:[]}]};
  const added=ensureNingningContact(original,1700000000000);
  expect(added.contacts).toHaveLength(2);expect(added.chats).toHaveLength(2);
  expect(added.contacts.find(c=>c.wxid===NINGNING_WXID)?.aiConfig?.enabled).toBe(true);

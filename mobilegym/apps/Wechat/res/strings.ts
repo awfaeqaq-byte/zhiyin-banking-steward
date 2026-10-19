@@ -3,6 +3,7 @@
  * 服务宫格标签 + 页面级 UI 字符串
  */
 export const strings = {
+  ningning_identity:'知银 AI 管家',ningning_channel_hint:'这里聊需求，在知银核对方案与授权。',ningning_continue:'交给知银继续',ningning_retry:'重试回复',ningning_failed:'宁宁暂时未能回复，你的消息已保留。',ningning_unfinished:'这条消息还没有回复，可重试。',ningning_select_hint:'先选择要交接的消息，再补充这次希望办理的事项。',ningning_input:'和宁宁聊天，最多2000字',
   zhiyin_share_title:'分享给知银',zhiyin_share_select:'选择消息',zhiyin_share_selection:'所选消息',zhiyin_share_selected:'已选 {count} 条',
   zhiyin_share_unknown_sender:'未识别发送人',
   zhiyin_share_note:'希望管家帮你做什么？（可选）',zhiyin_share_note_hint:'例如：帮我准备一下，预算500元',zhiyin_share_back:'返回选择',zhiyin_share_open:'分享并打开知银',

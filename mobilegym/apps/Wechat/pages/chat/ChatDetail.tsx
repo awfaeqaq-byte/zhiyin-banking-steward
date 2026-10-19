@@ -16,6 +16,8 @@ import { WechatSmartImage } from '../../components/WechatSmartImage';
 import type { Message } from '../../types';
 import { resolveChatPeerByWxid } from '../../utils/resolveChatPeer';
 import { getWechatWalletBackend } from '../../wallet/backend';
+import {NINGNING_WXID} from '../../chat-ai/zhiyin';
+import {NingningChatTools} from '../../components/NingningChatTools';
 import {useMessageShare} from '../../components/useMessageShare';
 
 const { keyboardHeight } = SIMULATOR_CONFIG.framework;
@@ -186,6 +188,7 @@ const ChatBubble = React.memo<ChatBubbleProps>(function ChatBubble({
 export const ChatDetail: React.FC = () => {
   const t = useWechatStrings();
   const { id: targetWxid } = useParams<{ id: string }>();
+  const isNingning=targetWxid===NINGNING_WXID;
   const location = useLocation();
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const previewMessageId = searchParams.get('view') === 'preview' ? searchParams.get('preview') : null;
@@ -299,7 +302,7 @@ export const ChatDetail: React.FC = () => {
   }, [chatPlusMenuPage, showChatPlusMenu]);
 
   const handleSend = () => {
-    if (!inputValue.trim() || !targetWxid) return;
+    if (!inputValue.trim() || !targetWxid || isNingning&&(isAiReplyPending||inputValue.length>2000)) return;
     sendMessage(targetWxid, inputValue);
     setInputValue('');
     requestAnimationFrame(() => {
@@ -420,6 +423,7 @@ export const ChatDetail: React.FC = () => {
             </div>
           </div>
         )}
+        {isNingning&&<NingningChatTools chat={chat} myWxid={user.wxid} pending={isAiReplyPending} selectMessage={messageShare.selectMessage}/>}
         <div ref={messagesEndRef} />
       </div>
 
@@ -429,11 +433,13 @@ export const ChatDetail: React.FC = () => {
         style={{ backgroundColor: 'var(--app-c-chat-input-bar-bg)' }}
         data-keep-keyboard="true"
       >
-        <IcAudioLines className="w-7 h-7 stroke-[1.5] active:opacity-50" style={{ color: 'var(--app-c-settings-item-text)' }} />
+        {!isNingning&&<IcAudioLines className="w-7 h-7 stroke-[1.5] active:opacity-50" style={{ color: 'var(--app-c-settings-item-text)' }} />}
         <div className="flex-1">
           <textarea
             ref={inputRef}
             rows={1}
+            maxLength={isNingning?2000:undefined}
+            aria-label={isNingning?t.ningning_input:undefined}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -442,11 +448,12 @@ export const ChatDetail: React.FC = () => {
             style={{ lineHeight: '24px' }}
           />
         </div>
-        <IcSmile className="w-7 h-7 stroke-[1.5] active:opacity-50" style={{ color: 'var(--app-c-settings-item-text)' }} />
+        {!isNingning&&<IcSmile className="w-7 h-7 stroke-[1.5] active:opacity-50" style={{ color: 'var(--app-c-settings-item-text)' }} />}
         {inputValue.length > 0 ? (
           <button
             type="button"
             data-keep-keyboard="true"
+            disabled={isNingning&&isAiReplyPending}
             onMouseDown={(e) => {
               e.preventDefault();
             }}
@@ -462,7 +469,7 @@ export const ChatDetail: React.FC = () => {
           >
             {t.chat_send}
           </button>
-        ) : (
+        ) : isNingning?null:(
           <button
             type="button"
             className="p-0 border-0 bg-transparent cursor-pointer flex items-center justify-center"

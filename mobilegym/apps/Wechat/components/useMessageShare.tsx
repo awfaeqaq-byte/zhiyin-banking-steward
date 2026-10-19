@@ -81,5 +81,5 @@ export function useMessageShare(chat:WechatShare['chat'],messages:SharedWechatMe
    </div>
   </div>}
  </>;
- return {bindMessage,overlay};
+ return {bindMessage,overlay,selectMessage:enter};
 }
