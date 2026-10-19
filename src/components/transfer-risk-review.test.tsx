@@ -22,3 +22,24 @@ it('大额和重复证据就地展示，核对勾选不等于付款，修改后�
  expect(calls.at(-1)).toMatchObject({type:'confirm',riskReviewToken:'review-token',authorized:true});
  expect(await screen.findByText('转账已完成')).toBeVisible();
 });
+
+it('只有大额时不误称重复，未勾选保持原状态',async()=>{
+ const {TransferRiskReview}=await import('./transfer-risk-review');
+ const change=vi.fn();
+ render(<TransferRiskReview review={{large:true,matches:[],token:'large'}} checked={false} disabled={false} onChange={change}/>);
+ expect(screen.queryByText('可能重复转账')).not.toBeInTheDocument();
+ expect(screen.getByRole('checkbox',{name:'我已核对收款账户和大额转账金额'})).not.toBeChecked();
+ await userEvent.click(screen.getByRole('checkbox'));
+ expect(change).toHaveBeenCalledWith(true);
+});
+it('显示预约和执行时间，多条证据可展开，不把预约当成已付款',async()=>{
+ const {TransferRiskReview}=await import('./transfer-risk-review');const now=Date.now();
+ render(<TransferRiskReview review={{large:false,token:'pending',matches:Array.from({length:4},(_,i)=>({id:`scheduled-${i}`,kind:'pending',recipientId:'mom',amount:100000,at:now,executeAt:now+60000}))}} checked={false} disabled={true} onChange={vi.fn()}/>);
+ expect(screen.queryByText(/大额转账提醒/)).not.toBeInTheDocument();
+ expect(screen.getAllByText(/已预约，尚未扣款/)[0]).toBeVisible();
+ expect(screen.getAllByText(/预计执行/)[0]).toBeVisible();
+ expect(screen.getByRole('checkbox')).toBeDisabled();
+ const summary=screen.getByText('其余 1 条记录');await userEvent.click(summary);
+ expect(summary.closest('details')).toHaveAttribute('open');
+ expect(screen.getByText('记录号 scheduled-3')).toBeVisible();
+});

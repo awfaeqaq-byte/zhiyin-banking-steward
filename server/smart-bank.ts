@@ -50,7 +50,7 @@ export function createAA(s:SmartState,input:AAIntent & {requestId:string;title:s
   return existing;
  }
  if((s.aaRequests?.length??0)>=1000)throw new Error('AA收款数量已达上限');
- const request:AARequest={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),id:input.requestId,title:input.title.trim(),amount:input.amount,recipientIds:[...input.recipientIds],includeSelf:input.includeSelf,createdAt:now,status:'pending',...(draft.review?{reviewedTransferIds:draft.review.matches.map(m=>m.id)}:{}),shares};
+ const request:AARequest={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),id:input.requestId,title:input.title.trim(),amount:input.amount,recipientIds:[...input.recipientIds],includeSelf:input.includeSelf,createdAt:now,status:'pending',shares};
  (s.aaRequests??=[]).push(request);s.revision++;return request;
 }
 export function settleAA(s:SmartState,id:string,recipientId:BankRecipientId,now:number){

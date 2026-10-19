@@ -18,7 +18,7 @@ it('统一理财扣款不能挪用生日预算，失败保持余额与安排不�
  expect(bank.get()).toEqual(before);expect(heldOccasionBudget(bank.get())).toBe(4000000);
 });
 it('统一理财扣款保护已预约转账及其还款预算',()=>{
- const bank=fixture();const transfer=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2000000,executeAt:now+86400000},now);bank.schedule(transfer.id,now);
+ const bank=fixture();const transfer=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2000000,executeAt:now+86400000},now);bank.schedule(transfer.id,now,transfer.review?.token);
  const before=bank.get();expect(()=>bank.wealthMutate(book=>{book.cashBalance-=300000;})).toThrow(/预约|资金不足/);
  expect(bank.get()).toEqual(before);
 });

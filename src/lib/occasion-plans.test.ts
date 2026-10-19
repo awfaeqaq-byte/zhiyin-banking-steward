@@ -55,7 +55,7 @@ describe('筹备任务与真实预留预算',()=>{
   expect(()=>bank.saveOccasion({id:'bad',revision:0,draft:{...draft,productIds:['made-up']}},now)).toThrow(/商品/);
   bank.saveOccasion({id:'one',revision:0,draft},now);
   expect(()=>bank.reserveOccasion('one',0,now)).toThrow(/变化/);
-  const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2200000,executeAt:now+10000},now);bank.schedule(scheduled.id,now);
+  const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2200000,executeAt:now+10000},now);bank.schedule(scheduled.id,now,scheduled.review?.token);
   expect(()=>bank.reserveOccasion('one',bank.get().revision,now)).toThrow(/预约|不足/);
   bank.cancelSchedule(scheduled.id);bank.reserveOccasion('one',bank.get().revision,now);
   bank.prepareOccasionOrder('one','cake-light',bank.get().revision,now);

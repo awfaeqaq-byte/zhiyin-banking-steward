@@ -54,3 +54,26 @@ it('伪造输入风险资料不能取消服务器判定',()=>{
  expect(draft.review?.large).toBe(true);
  expect(draft.review?.token).not.toBe('client');
 });
+it('风险确认通过HTTP仍受明确授权和本方案令牌约束',async()=>{
+ const {createServer}=await import('node:http');const {bankMiddleware}=await import('../../server/bank-store');
+ const bank=setup();bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});
+ const server=createServer(bankMiddleware(bank));await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const address=server.address();if(!address||typeof address==='string')throw new Error('Test server not listening');
+ const post=(body:object)=>fetch(`http://127.0.0.1:${address.port}`,{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1'},body:JSON.stringify(body)});
+ try{
+  const draft=await (await post({type:'prepare',...input,amount:500000,riskReviewToken:'forged'})).json();
+  expect((await post({type:'confirm',draftId:draft.id,authorized:true})).status).toBe(400);
+  expect((await post({type:'confirm',draftId:draft.id,riskReviewToken:draft.review.token})).status).toBe(400);
+  expect(bank.get().transactions).toHaveLength(0);
+  const body={type:'confirm',draftId:draft.id,authorized:true,riskReviewToken:draft.review.token};
+  expect((await post(body)).status).toBe(200);expect((await post(body)).status).toBe(200);
+  expect(bank.get().transactions).toHaveLength(1);
+ }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+it('重启后保留风险证据与确认令牌，旧草案仍需核对',()=>{
+ const bank=setup(),draft=bank.prepare({...input,amount:500000},now);
+ const restarted=createBankStore(join(dirs.at(-1)!,'bank.json'));
+ expect(restarted.status(draft.id).draft?.review).toEqual(draft.review);
+ expect(()=>restarted.confirm(draft.id,now)).toThrow(/核对/);
+ expect(restarted.confirm(draft.id,now,draft.review?.token).amount).toBe(500000);
+});

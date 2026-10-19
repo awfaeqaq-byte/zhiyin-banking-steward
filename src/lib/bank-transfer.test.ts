@@ -31,11 +31,11 @@ it('余额变化或超时需要重新核对；非法金额与收款人被后端�
  for(const amount of [0,-1,1.1,Infinity,2000001])expect(()=>bank.prepare({recipientId:'mom',amount},100)).toThrow();
  expect(()=>bank.prepare({recipientId:'unknown',amount:1},100)).toThrow();
  const first=bank.prepare({recipientId:'mom',amount:2000000},100),second=bank.prepare({recipientId:'dad',amount:2000000},100);
- bank.confirm(first.id,101);
+ bank.confirm(first.id,101,first.review?.token);
  expect(()=>bank.confirm(second.id,102)).toThrow(/变化/);
  const late=bank.prepare({recipientId:'dad',amount:100},100);
  expect(()=>bank.confirm(late.id,400001)).toThrow(/过期/);
- const third=bank.prepare({recipientId:'mom',amount:2000000},102);bank.confirm(third.id,103);
+ const third=bank.prepare({recipientId:'mom',amount:2000000},102);bank.confirm(third.id,103,third.review?.token);
  expect(()=>bank.prepare({recipientId:'mom',amount:300000},104)).toThrow(/余额/);
  expect(()=>bank.confirm('made-up',105)).toThrow();
 });

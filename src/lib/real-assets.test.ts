@@ -28,7 +28,7 @@ it('定存先核对再扣款，可重启恢复；重复确认不重复扣款，�
  expect(restarted.get().assetSummary).toMatchObject({deposits:0,depositCount:0,total:4230000+result.interest});
 });
 it('定存保护已有预约、还款预留和生日预算；账户变动后旧确认失效',()=>{
- const {bank}=fixture();const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2000000,executeAt:now+86400000},now);bank.schedule(scheduled.id,now);
+ const {bank}=fixture();const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2000000,executeAt:now+86400000},now);bank.schedule(scheduled.id,now,scheduled.review?.token);
  expect(bank.get().assetSummary).toMatchObject({cash:4230000,availableCash:230000,reservedCash:4000000,total:4230000});
  expect(()=>bank.prepareDeposit({amount:300000,months:3},now)).toThrow(/预留|不足/);
  const draft=bank.prepareDeposit({amount:100000,months:3},now);bank.configure({revision:bank.get().revision,limit:1500000});

@@ -34,7 +34,7 @@ describe('同一筹备事项的局部变更',()=>{
   }
  });
  it('重算剩余预留时扣除已支付金额，同时继续保护其他预约和预留',()=>{
-  const {bank}=setup();const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:0,executeAt:now+100000},now);bank.schedule(scheduled.id,now);
+  const {bank}=setup();const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:0,executeAt:now+100000},now);bank.schedule(scheduled.id,now,scheduled.review?.token);
   bank.pay({id:'other',amount:2000000,channel:'wechat',merchant:'其他消费'},now);
   expect(()=>bank.saveOccasion({id:'birthday',revision:bank.get().revision,draft:{...draft,budget:300000},authorized:true},now)).toThrow(/预约|不足/);
   expect(bank.get().occasions![0].budget).toBe(80000);
