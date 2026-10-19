@@ -43,3 +43,45 @@ it('分类重试明确反馈重复片段原因，而不是仅重复格式提示'
  });
  expect((await routeWorkspacePrompt('饮料18，给妈妈转500',[],'','',[],{model})).parts).toHaveLength(2);
 });
+
+import {clarifiedReplyRoute,shortReplyRoute} from './reply-routing';
+import type {MessageRun} from './message-flow';
+const pending=(overrides:Partial<MessageRun>={}):MessageRun=>({id:'pending',prompt:'现在给妈妈转2000',displayText:'现在给妈妈转2000',currentId:'',memoryRevision:0,status:'waiting_user',jobs:[],trace:[],createdAt:0,updatedAt:0,clarification:'替代旧的1000元，还是两笔都执行？',decision:JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'现在给妈妈转2000元',segmentIds:[0]}]}),...overrides});
+it('澄清草案恢复完整多轮原话，忽略模型复制的错误金额和片段列表',()=>{
+ const previous=pending({sourcePrompt:'帮我给妈妈转2000\n补充：现在给妈妈转2000',clarificationOf:'first',decision:JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'妈妈转账',segmentIds:[0],text:'给妈妈转1000'}]})});
+ expect(clarifiedReplyRoute(previous,'都执行',[])?.parts[0].text).toBe('帮我给妈妈转2000\n补充：现在给妈妈转2000\n补充：都执行');
+});
+it.each([
+ {decision:'{'},
+ {decision:JSON.stringify({parts:[]})},
+ {decision:JSON.stringify({parts:[{taskId:null,kind:'unknown',title:'错误'}]})},
+ {decision:JSON.stringify({parts:[{taskId:'archived',kind:'transfer',title:'旧安排'}]})},
+ {decision:JSON.stringify({parts:[null]})},
+ {decision:JSON.stringify({parts:[{},{}]})},
+ {clarification:'给哪位家人？'},
+ {clarification:undefined},
+])('草案无效、已归档或未明确提供两笔选项时不直接绑定：%j',overrides=>{
+ const archived={...task('archived','是今天吗？'),kind:'transfer' as const,status:'archived' as const};
+ expect(clarifiedReplyRoute(pending(overrides),'都执行',[archived])).toBeNull();
+});
+it('对不能替用户选择二选一，换话题也不吞进原转账',()=>{
+ expect(clarifiedReplyRoute(pending(),'对',[])).toBeNull();
+ expect(clarifiedReplyRoute(pending(),'帮我记录王芳生日',[])).toBeNull();
+ expect(clarifiedReplyRoute(pending({clarification:'是今天办理，对吗？'}),'对',[])?.parts[0].text).toBe('现在给妈妈转2000\n补充：对');
+});
+it('不截断过长的原始金额信息，明确提示重新简述',()=>{
+ expect(()=>clarifiedReplyRoute(pending({prompt:'甲'.repeat(1999)}),'都执行',[])).toThrow('超过2000字');
+});
+it('待回复的新用户消息、旧记忆版本、已归档任务均不能吸收短答',()=>{
+ const birthday=task('birthday','是7月15号，对吗？');
+ expect(shortReplyRoute('对',[birthday],birthday.id,[{role:'user',content:'新话题'}])?.parts).toEqual([]);
+ expect(shortReplyRoute('对',[{...birthday,status:'archived'}],birthday.id,[])?.parts).toEqual([]);
+ expect(shortReplyRoute('对',[{...birthday,memoryRevision:1}],birthday.id,[])?.parts).toEqual([]);
+ expect(shortReplyRoute('对',[],'',[])?.parts).toEqual([]);
+});
+it('同一任务内已有更新的用户消息时不从旧等待状态推断确认',()=>{
+ const birthday=task('birthday','是7月15号，对吗？');
+ birthday.progress={goal:'生日',stage:'waiting_user',waitingFor:{field:'reply',question:'是7月15号，对吗？'}};
+ birthday.messages.push({id:'new-user',role:'user',content:'换个话题',memoryRevision:0});
+ expect(shortReplyRoute('对',[birthday],birthday.id,[])?.parts).toEqual([]);
+});

@@ -127,3 +127,19 @@ it('两笔都执行续接待澄清的新转账，旧安排不重排队，也不�
  expect(run.jobs[0].taskId).not.toBe(old);expect(state.items.find(t=>t.id===old)).toEqual(before);
  expect(run.sourcePrompt).toBe('现在给妈妈转2000\n补充：都执行');expect(model).toHaveBeenCalledOnce();
 });
+it('重试旧短答不读取该消息之后的新追问，避免把旧确认送给新任务',async()=>{
+ const dir=fixture(),storage=createWorkspaceStore(join(dir,`.zhiyin-workspaces-${scope}.local.json`));
+ const change=(op:Parameters<typeof storage.change>[0])=>storage.change({...op,revision:storage.get().revision,requestId:crypto.randomUUID()});
+ change({type:'create',id:'birthday',kind:'reminder',title:'生日',revision:0,requestId:'init'});
+ change({type:'turn',id:'birthday',user:'记录生日',assistant:'王芳生日是7月15号，对吗？',memoryRevision:0,revision:0,requestId:'init'});
+ const id=crypto.randomUUID();
+ change({type:'message-submit',id,text:'对',currentId:'birthday',memoryRevision:0,revision:0,requestId:'init'});
+ change({type:'message-fail',id,error:'旧版分流失败',stage:'routing',revision:0,requestId:'init'});
+ change({type:'create',id:'later-transfer',kind:'transfer',title:'后来转账',revision:0,requestId:'init'});
+ change({type:'turn',id:'later-transfer',user:'给妈妈转2000',assistant:'是现在转2000元，对吗？',memoryRevision:0,revision:0,requestId:'init'});
+ change({type:'conversation-append',id:'append',messages:[{id:'later-question',role:'assistant',content:'是现在转2000元，对吗？',workspaceId:'later-transfer',memoryRevision:0}],revision:0,requestId:'init'});
+ const model=vi.fn(),service=createMessageService(dir,model);
+ service.retry(scope,{id,retryId:crypto.randomUUID(),memoryRevision:0});await service.idle(scope);
+ const run=service.get(scope).runs!.find(r=>r.id===id)!;
+ expect(run.jobs[0]?.taskId).toBe('birthday');expect(model).not.toHaveBeenCalled();
+});
