@@ -11,6 +11,7 @@ it('服务器已有100条时，不把本地旧缓存重新追加到尾部',async
  const view=render(<StewardChatHome {...props} onConversationEntries={sync}/>);
  view.rerender(<StewardChatHome {...props} conversationMessages={messages} onConversationEntries={sync}/>);
  await screen.findByText('server-99');
+ expect(localStorage.getItem('zhiyin-steward-conversation-backup-v1')).toContain('旧生日对话');
  expect(screen.queryByText('旧生日对话')).not.toBeInTheDocument();
  expect(sync.mock.calls.flatMap(call=>call[0] as ConversationEntry[]).some(m=>m.id==='old-cache')).toBe(false);
 });
