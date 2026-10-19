@@ -102,6 +102,7 @@ it('历史会话可查看和续聊，首页对话与输入草稿始终连续',as
  expect(screen.getByText('尚未付款')).toBeInTheDocument();
  expect(screen.queryByText('尚未调额')).not.toBeInTheDocument();
  await say('继续核对第一段');
+ expect(screen.queryByRole('region',{name:'当前会话记录'})).not.toBeInTheDocument();
  await screen.findByText('甲的新回复，未执行转账。',{selector:'.steward-message.assistant p'});
  await waitFor(()=>expect(api.state().items.find(item=>item.id==='first')?.messages).toHaveLength(4));
  expect(api.state().items.find(item=>item.id==='second')?.messages).toHaveLength(2);

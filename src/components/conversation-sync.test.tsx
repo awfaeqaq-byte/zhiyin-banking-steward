@@ -23,7 +23,9 @@ it('服务端窗口向前滚动后，已淘汰消息不复活；晚到回复按�
  view.rerender(<StewardChatHome {...props} conversationMessages={[...first,reply]} onConversationEntries={sync}/>);
  const answer=await screen.findByText('先核对转账方案');
  expect(answer.compareDocumentPosition(screen.getByText('你好'))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ sync.mockClear();
  view.rerender(<StewardChatHome {...props} conversationMessages={[first[1]]} onConversationEntries={sync}/>);
  await waitFor(()=>expect(screen.queryByText('现在转账')).not.toBeInTheDocument());
  expect(screen.queryByText('先核对转账方案')).not.toBeInTheDocument();
+ expect(sync.mock.calls.flatMap(call=>call[0]).some(m=>m.id==='user-one'||m.id==='answer-one')).toBe(false);
 });
