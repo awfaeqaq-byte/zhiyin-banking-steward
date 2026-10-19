@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type ComponentProps} from 'react';
 import {StewardChatHome,readConversationSnapshot} from './steward-chat-home';
 import {emptyWorkspaces,validWorkspaces,type WorkspaceOperation} from '../lib/workspaces';
+import {clarifiedReplyRoute} from '../lib/reply-routing';
 import {workspaceRequest,routeWorkspacePrompt} from '../lib/workspace-service';
 import {messageStateRequest,messageReplyRequest,type MessageClientOperation} from '../lib/message-service';
 import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-progress';
@@ -142,8 +143,10 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId):undefined;
   const source=run.sourcePrompt||run.prompt;
   const clarification=previous?JSON.stringify({original:previous.sourcePrompt||previous.prompt,question:previous.clarification}):'';
-  let result:Awaited<ReturnType<typeof routeWorkspacePrompt>>&{continuesClarification?:boolean}=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!previous&&!source.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(source,tasks,run.currentId):null)||await route(source,tasks,run.currentId,clarification,recent);
+  const bound=previous?clarifiedReplyRoute(previous,run.prompt,tasks):null;
+  let result:Awaited<ReturnType<typeof routeWorkspacePrompt>>&{continuesClarification?:boolean}=bound||(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:source}]}:(!previous&&!source.startsWith(WECHAT_SHARE_PREFIX)?taskContinuation(source,tasks,run.currentId):null)||await route(source,tasks,run.currentId,clarification,recent));
   let sourcePrompt=run.sourcePrompt,clarificationOf=run.clarificationOf;
+  if(bound&&previous){sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;}
   if(result.continuesClarification&&previous){
    sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;
    if(!result.clarification)result=await route(sourcePrompt,tasks,run.currentId,'',recent);

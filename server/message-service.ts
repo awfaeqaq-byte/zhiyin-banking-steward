@@ -4,6 +4,7 @@ import type {IncomingMessage,ServerResponse} from 'node:http';
 import {createSceneService} from './scene-service';
 import {createWorkspaceStore} from './workspace-store';
 import {createMemoryStore} from './memory-store';
+import {clarifiedReplyRoute} from '../src/lib/reply-routing';
 import {routeWorkspacePrompt} from '../src/lib/workspace-service';
 import {memoryContext} from '../src/lib/steward-memory';
 import {parseImpression} from '../src/lib/steward-profile';
@@ -44,7 +45,9 @@ export function createMessageService(directory:string,model:StewardModelCall){
      const clarification=previous?JSON.stringify({original:previous.sourcePrompt||previous.prompt,question:previous.clarification}):'';
      const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId&&t.status==='active'&&(t.kind==='bills'||t.kind==='general'&&readTaskProgress(t).bill)):undefined;
      if(run.knownTaskId&&!known)throw new Error('这份账单事项已变化，请重新选择范围');
-     let result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}});
+     const bound=previous?clarifiedReplyRoute(previous,run.prompt,tasks):null;
+     if(bound&&previous){sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;}
+     let result=bound||(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}}));
      if(previous&&'continuesClarification' in result&&result.continuesClarification){
       sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;
       if(!result.clarification)result=await routeWorkspacePrompt(sourcePrompt,tasks,run.currentId,'',[],{model,onDecision:value=>{decision=value;}});

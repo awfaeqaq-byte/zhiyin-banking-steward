@@ -51,6 +51,7 @@
     "src/lib/wechat-message-share.ts",
     "src/lib/workspace-service.ts",
     "src/lib/route-decision.ts",
+    "src/lib/reply-routing.ts",
     "src/lib/conversation-context.ts",
     "src/lib/steward-chat.ts",
     "src/lib/financial-coach.ts",
