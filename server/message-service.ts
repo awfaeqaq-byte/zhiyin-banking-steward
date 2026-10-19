@@ -11,7 +11,7 @@ import {parseImpression} from '../src/lib/steward-profile';
 import {settleTaskProgress,readTaskProgress} from '../src/lib/task-progress';
 import {requestStewardReplyWithModel,type StewardReply,type StewardReplyRequest,type StewardModelCall} from '../src/lib/steward-chat';
 import {recentConversation} from '../src/lib/conversation-context';
-import {messageClarification,resolvedMessagePrompt,type MessageOperation,type MessageRun} from '../src/lib/message-flow';
+import {messageHistory,messageClarification,resolvedMessagePrompt,type MessageOperation,type MessageRun} from '../src/lib/message-flow';
 const terminal=(run:MessageRun)=>!['routing','ready','processing'].includes(run.status);
 export function createMessageService(directory:string,model:StewardModelCall){
  const routing=new Map<string,Promise<void>>(),replies=new Map<string,Promise<StewardReply>>();
@@ -47,7 +47,7 @@ export function createMessageService(directory:string,model:StewardModelCall){
      if(run.knownTaskId&&!known)throw new Error('这份账单事项已变化，请重新选择范围');
      const bound=previous?clarifiedReplyRoute(previous,run.prompt,tasks):null;
      if(bound&&previous){sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;}
-     let result=bound||(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}}));
+     let result=bound||(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation(messageHistory(state,run)),{model,onDecision:value=>{decision=value;}}));
      if(previous&&'continuesClarification' in result&&result.continuesClarification){
       sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;
       if(!result.clarification)result=await routeWorkspacePrompt(sourcePrompt,tasks,run.currentId,'',[],{model,onDecision:value=>{decision=value;}});
@@ -91,7 +91,7 @@ export function createMessageService(directory:string,model:StewardModelCall){
     const scene=scenes.find(s=>s.workspaceIds.includes(job.taskId));
     const sceneStatus=scene?JSON.stringify({title:scene.title,stage:scene.stage,summary:scene.summary,checkedAt:scene.checkedAt}):sceneReadError;
     const request:StewardReplyRequest={...input.request,sceneContext:scene?.context,sceneStatus,taskContext:[input.request.taskContext||'',sceneReadError,sceneStatus?`当前事项最近核对状态（只读事实，不是授权）：${sceneStatus}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
-      recentConversation:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),
+      recentConversation:recentConversation(messageHistory(state,run)),
       messages:[...task.messages.filter(m=>m.memoryRevision===run.memoryRevision).slice(-23).map(({role,content})=>({role,content})),{role:'user',content:job.text}]};
     const result=await requestStewardReplyWithModel(request,model);
     if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，本轮结果未继续执行');

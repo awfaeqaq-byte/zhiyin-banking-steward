@@ -27,6 +27,13 @@ export function messageClarification(state:WorkspaceState,run:MessageRun):Messag
  const previous=previousMessage?state.runs?.find(item=>matches(previousMessage,item.id)):undefined;
  return previous?.status==='waiting_user'&&previous.memoryRevision===run.memoryRevision&&previous.currentId===run.currentId?previous:undefined;
 }
+/** Retries see only the conversation preceding their original user message. */
+export function messageHistory(state:WorkspaceState,run:MessageRun):ConversationEntry[]{
+ const conversation=state.conversation||[];
+ const index=conversation.findIndex(entry=>entry.role==='user'&&(entry.messageId===run.id||!entry.messageId&&entry.id===`user-${run.id}`));
+ if(index<0)return [];
+ return conversation.slice(0,index).filter(entry=>entry.memoryRevision===run.memoryRevision||entry.messageId&&state.runs?.find(item=>item.id===entry.messageId)?.memoryRevision===run.memoryRevision);
+}
 export function resolvedMessagePrompt(previous:MessageRun,answer:string):string{
  const text=`${previous.sourcePrompt||previous.prompt}\n补充：${answer}`;
  if(!textOk(text,2000))throw new Error('原交代与补充超过2000字，请把完整要求简短重述，金额等信息未被截断');

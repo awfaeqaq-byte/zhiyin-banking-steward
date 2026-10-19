@@ -1,12 +1,13 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type ComponentProps} from 'react';
 import {StewardChatHome,readConversationSnapshot} from './steward-chat-home';
 import {emptyWorkspaces,validWorkspaces,type WorkspaceOperation} from '../lib/workspaces';
+import {recentConversation} from '../lib/conversation-context';
 import {clarifiedReplyRoute} from '../lib/reply-routing';
 import {workspaceRequest,routeWorkspacePrompt} from '../lib/workspace-service';
 import {messageStateRequest,messageReplyRequest,type MessageClientOperation} from '../lib/message-service';
 import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-progress';
 import type {StewardChatMessage,StewardReplyRequest} from '../lib/steward-chat';
-import {messageClarification,resolvedMessagePrompt,type ConversationEntry,type MessageOperation,type MessageRun} from '../lib/message-flow';
+import {messageHistory,messageClarification,resolvedMessagePrompt,type ConversationEntry,type MessageOperation,type MessageRun} from '../lib/message-flow';
 import {WECHAT_SHARE_PREFIX} from '../lib/wechat-message-share';
 import {useSceneContinuation} from '../lib/use-scene-continuation';
 import type {SceneNext} from '../lib/scene-flow';
@@ -138,6 +139,7 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
  },[loaded,activeRun,route,accept,claimAttempt]);
  async function routeInjectedRun(next:ReturnType<typeof emptyWorkspaces>,run:MessageRun,recent:StewardChatMessage[]=[]){
   if(!route)return next;
+  recent=recentConversation(messageHistory(next,run));
   const previous=messageClarification(next,run),revision=run.memoryRevision;
   const tasks=next.items.map(t=>({...t,progress:t.memoryRevision===revision?t.progress:undefined,memoryRevision:revision,messages:t.messages.filter(m=>m.memoryRevision===revision)}));
   const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId):undefined;

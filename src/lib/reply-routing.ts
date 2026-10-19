@@ -29,6 +29,7 @@ export function shortReplyRoute(prompt:string,tasks:Workspace[],currentId:string
  }else owner=active.find(task=>task.id===currentId);
  if(!owner)return ask();
  const last=lastReply(owner);
+ if(last&&last.role!=='assistant')return ask();
  const question=owner.progress?.waitingFor?.question||(last?.role==='assistant'&&questionText(last.content)?last.content:'');
  if(!question||pluralAnswer.test(prompt.trim())&&!pluralQuestion.test(question))return ask();
  return {parts:[{taskId:owner.id,kind:owner.kind,title:owner.title,text:prompt}]};
