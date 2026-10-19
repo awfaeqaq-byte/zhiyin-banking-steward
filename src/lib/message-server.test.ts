@@ -113,3 +113,17 @@ it('澄清超出容量明确提示重述，不截断原交代中的金额',async
  const state=service.get(scope);expect(state.runs!.find(r=>r.id===answer)).toMatchObject({status:'failed',jobs:[],error:expect.stringContaining('超过2000字')});
  expect(state.runs!.find(r=>r.id===first)?.prompt).toBe(original);expect(state.items).toHaveLength(0);
 });
+it('两笔都执行续接待澄清的新转账，旧安排不重排队，也不产生付款授权',async()=>{
+ const dir=fixture(),old='old-transfer',storage=createWorkspaceStore(join(dir,`.zhiyin-workspaces-${scope}.local.json`));
+ storage.change({type:'create',id:old,kind:'transfer',title:'28日给妈妈转1000元',revision:0,requestId:crypto.randomUUID()});
+ const before=storage.get().items[0];
+ const model=vi.fn(async()=>JSON.stringify({parts:[{taskId:null,kind:'transfer',title:'现在给妈妈转2000元',segmentIds:[0]}],clarification:'这笔2000元替代原来的1000元，还是两笔都执行？'}));
+ const service=createMessageService(dir,model),first=crypto.randomUUID(),answer=crypto.randomUUID();
+ service.submit(scope,{id:first,text:'现在给妈妈转2000',currentId:old,memoryRevision:0});await service.idle(scope);
+ service.submit(scope,{id:answer,text:'都执行',currentId:old,memoryRevision:0});await service.idle(scope);
+ const state=service.get(scope),run=state.runs!.find(r=>r.id===answer)!;
+ expect(run.status).toBe('ready');expect(run.jobs).toHaveLength(1);
+ expect(run.jobs[0]).toMatchObject({text:'现在给妈妈转2000\n补充：都执行',status:'queued'});
+ expect(run.jobs[0].taskId).not.toBe(old);expect(state.items.find(t=>t.id===old)).toEqual(before);
+ expect(run.sourcePrompt).toBe('现在给妈妈转2000\n补充：都执行');expect(model).toHaveBeenCalledOnce();
+});
