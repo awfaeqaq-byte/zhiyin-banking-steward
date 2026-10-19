@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
+import {TaskConversationTimeline,type ConversationTaskPanel} from './task-conversation-timeline';
 import {HomeReplyVisual} from './home-reply-visual';
 import {BillAnalysisCard} from './bill-analysis-card';
 import {TransferPlanCard,SubscriptionReviewCard,SceneProgressCard,type TransferQuote} from './chat-task-cards';
@@ -127,7 +128,7 @@ type Props = {
   onRetryMessage?: (runId:string)=>Promise<void>;
   submissionDisabled?:boolean;
   externalBusy?: boolean;
-  injectedPrompt?: {token:string;text:string;replyId?:string;sourceText?:string};
+  injectedPrompt?: {token:string;text:string;replyId?:string;sourceText?:string;messageId?:string};
   onTurnComplete?: (user:string,assistant:string,memoryRevision:number,failed:boolean,progress?:TaskProgress)=>Promise<void>;
   onWorkspaceBook?: (id:string)=>Promise<void>;
   onBillViewChange?:(id:string,view:BillInteraction)=>Promise<void>;
@@ -277,7 +278,6 @@ export function StewardChatHome({
   const [voiceActive,setVoiceActive]=useState(false);
   const expenseNotebook=useRef<ExpenseNotebookHandle>(null);
   const expenseNotebooks=useRef<Record<string,ExpenseNotebookHandle|null>>({});
-  const [waitingForAA,setWaitingForAA]=useState<Record<string,boolean>>({});
   const referenceTime = now ?? fundingReferenceTime(connections);
   const [taskAttention,setTaskAttention]=useState(false);
   async function reconcileExpenseSources(taskId:string){
@@ -812,6 +812,30 @@ export function StewardChatHome({
     }
   }
 
+  const timelineWorkspaces=seamless?[...new Map([...contextWorkspaces,...(workspace?[workspace]:[])].map(w=>[w.id,w])).values()].filter(w=>
+    ['aa','occasion','food'].includes(w.kind)&&(messages.some(m=>m.workspaceId===w.id)||w.id===workspace?.id&&!!injectedPrompt)):workspace?[workspace]:[];
+  const taskPanels:ConversationTaskPanel[]=timelineWorkspaces.flatMap(w=>{
+    const active=w.id===workspace?.id;
+    const prompt=active?injectedPrompt:undefined;
+    const revision=memory?.current.current.revision??0;
+    const history=w.messages.filter(m=>m.memoryRevision===revision);
+    const context=sceneFlows.find(s=>s.workspaceIds.includes(w.id))?.context;
+    const getMemory=async(text:string)=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';};
+    const record=async(user:string,answer:string,failed:boolean,progress?:TaskProgress)=>{
+      if(seamless){const id=prompt?.replyId||`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:answer,workspaceId:w.id}]);setActiveReplyId(id);setActiveBill(null);}
+      if(active)await onTurnComplete?.(user,answer,revision,failed,progress);
+      else await onBackgroundTurn?.(w.id,user,answer,revision);
+    };
+    const node=w.kind==='aa'&&seamless&&onOpenGroupAA?<ExpenseNotebook conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} sceneContext={context} onReconcileSources={()=>reconcileExpenseSources(w.id)} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={history}
+      onBookSelected={async id=>{await onBackgroundBook?.(w.id,id);}}
+      onRecorded={async(user,text)=>{const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current,{id,role:'assistant',content:text,workspaceId:w.id}]);setActiveReplyId(id);await onBackgroundTurn?.(w.id,user,text,revision);}}
+      getMemoryContext={getMemory} stewardName={stewardName} onPrompt={text=>{setInput(active?text:`关于「${w.title}」：${text}`);composerInput.current?.focus();}}/>
+      :w.kind==='occasion'?<OccasionPlanner embedded conversation={seamless} stewardName={stewardName} initialPlanId={w.id} sceneContext={context} initialHistory={history} injectedPrompt={prompt} externalBusy={externalBusy} onOpenCalendar={onOpenTasks} getMemoryContext={getMemory} onConversationTurn={record}/>
+      :w.kind==='food'?<FoodOrderPlanner key={`${w.id}:${revision}`} taskId={w.id} sceneContext={context} stewardName={stewardName} initialDraft={w.memoryRevision===revision?w.progress?.food||{items:[],note:''}:{items:[],note:''}} history={history} injectedPrompt={prompt}
+        getMemoryContext={getMemory} onPrompt={text=>{void sendPrompt(active?text:`关于「${w.title}」：${text}`);}}
+        onDraftChange={async food=>{await onBackgroundProgress?.(w.id,{goal:w.title,stage:'waiting_authorization',food},revision);}} onTurn={record}/>:null;
+    return node?[{id:w.id,title:w.title,active,disabled:w.status!=='active',pendingMessageId:prompt?.messageId,node}]:[];
+  });
   return (
     <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
@@ -968,7 +992,7 @@ export function StewardChatHome({
         {!seamless && !fullSession && (activeReplyId || sending) && !historyOpen && <p className="reply-request">{[...messages].reverse().find(message=>message.role==='user')?.content}</p>}
         <div ref={!seamless?responseStart:undefined} className="reply-start" aria-hidden="true" />
         <div id="steward-records" className={`steward-transcript ${historyOpen || fullSession ? 'history-open' : 'current-response'} ${displayedMessages.length ? "" : "empty"}`} aria-live="polite">
-          {displayedMessages.flatMap(message => {
+          <TaskConversationTimeline messages={displayedMessages} panels={seamless?taskPanels:[]} renderMessage={message => {
             const sourceText=messages.slice(0,messages.findIndex(item=>item.id===message.id)).reverse().find(item=>item.role==='user')?.content || '';
             const proposed=message.role==='assistant'?parseMemoryProposal(message.content,sourceText):{text:message.content,proposal:null};
             const parsed=message.role==='assistant' ? parseReplyChoices(proposed.text) : {text:message.content,choices:[]};
@@ -1062,7 +1086,7 @@ export function StewardChatHome({
                 </div>
               </div>
             ),scene?.needsConsent?billSurface:null];
-          })}
+          }}/>
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
               <div className="desk-working" role="status"><LoaderCircle className="spin" size={17} />{!sending?(processingPhase==='routing'?'正在理解你的意思…':processingPhase==='replying'?`${stewardName}正在整理回复…`:'正在核对所需信息…'):requestPhase === 'checking' ? '正在核对授权数据…' : `${stewardName}正在整理回复…`}</div>
@@ -1071,23 +1095,7 @@ export function StewardChatHome({
         </div>
         {!seamless && !fullSession && messages.length > 0 && <button className="desk-history-toggle" aria-expanded={historyOpen} aria-controls="steward-records" onClick={()=>setHistoryOpen(!historyOpen)}><History size={16} />对话记录 · {messages.length}<ChevronDown size={15} /></button>}
         {!seamless&&onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook ref={expenseNotebook} activityKey={workspace?.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace?.id||''))?.context} onReconcileSources={workspace?()=>reconcileExpenseSources(workspace.id):undefined} initialBookId={workspace?.expenseBookId} onBookSelected={onWorkspaceBook} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
-        {seamless&&onOpenGroupAA&&contextWorkspaces.filter(w=>w.kind==='aa'&&(w.id===workspace?.id&&injectedPrompt||messages.some(m=>m.workspaceId===w.id))).map(w=><div key={w.id} hidden={w.id!==workspace?.id&&!waitingForAA[w.id]}>
-          <ExpenseNotebook conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(w.id))?.context} onReconcileSources={()=>reconcileExpenseSources(w.id)} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={w.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision||0))}
-            onBookSelected={async id=>{await onBackgroundBook?.(w.id,id);}}
-            onNeedsInput={needs=>setWaitingForAA(current=>current[w.id]===needs?current:{...current,[w.id]:needs})}
-            onRecorded={async(user,text)=>{const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:text,workspaceId:w.id}]);setActiveReplyId(id);await onBackgroundTurn?.(w.id,user,text,memory?.current.current.revision||0);}}
-            getMemoryContext={async prompt=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,prompt):'';}} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>
-        </div>)}
-        {workspace?.kind==='occasion'&&(!seamless||injectedPrompt||messages.some(m=>m.workspaceId===workspace.id))&&<OccasionPlanner key={workspace.id} embedded conversation={seamless} stewardName={stewardName} initialPlanId={workspace.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace.id))?.context} initialHistory={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt} externalBusy={externalBusy} onOpenCalendar={onOpenTasks} getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}} onConversationTurn={async(user,answer,failed)=>{
-          if(seamless){const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:answer,workspaceId:workspace.id}]);setActiveReplyId(id);setActiveBill(null);}
-          await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed);
-        }}/>}
-
-        {workspace?.kind==='food'&&<FoodOrderPlanner key={`${workspace.id}:${memory?.current.current.revision??0}`} taskId={workspace.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace.id))?.context} stewardName={stewardName} initialDraft={workspace.memoryRevision===(memory?.current.current.revision??0)?workspace.progress?.food||{items:[],note:''}:{items:[],note:''}} history={workspace.messages.filter(m=>m.memoryRevision===(memory?.current.current.revision??0))} injectedPrompt={injectedPrompt}
-          getMemoryContext={async text=>{const m=memory?await memory.refresh():null;return m?memoryContext(m,text):'';}}
-          onPrompt={text=>{void sendPrompt(text);}}
-          onDraftChange={async food=>{await onBackgroundProgress?.(workspace.id,{goal:workspace.title,stage:'waiting_authorization',food},memory?.current.current.revision??0);}}
-          onTurn={async(user,answer,failed,progress)=>{const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:answer,workspaceId:workspace.id}]);setActiveReplyId(id);setActiveBill(null);await onTurnComplete?.(user,answer,memory?.current.current.revision??0,failed,progress);}}/>}
+        {!seamless&&taskPanels.map(panel=><div key={panel.id}>{panel.node}</div>)}
         {viewError&&<p className="bill-ui-error" role="alert">{viewError}</p>}
         {error && (
           <div className="steward-chat-error" role="alert">

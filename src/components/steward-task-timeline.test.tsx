@@ -8,7 +8,7 @@ vi.mock('./expense-notebook',()=>({ExpenseNotebook:forwardRef(function Notebook(
 vi.mock('./occasion-planner',()=>({OccasionPlanner:()=>{const [value,setValue]=useState('未保存筹备');return <input aria-label="筹备方案编辑" value={value} onChange={e=>setValue(e.target.value)}/>;}}));
 vi.mock('./food-order-planner',()=>({FoodOrderPlanner:()=> <input aria-label="点餐方案编辑" defaultValue="待核对点餐"/>}));
 afterEach(()=>{cleanup();localStorage.clear();vi.restoreAllMocks();});
-const task=(kind:Workspace['kind'],id=kind):Workspace=>({id,kind,title:`${id}事项`,status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0});
+const task=(kind:Workspace['kind'],id:string=kind):Workspace=>({id,kind,title:`${id}事项`,status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0});
 const props={seamless:true,fullSession:true,stewardName:'宁宁',stewardImage:'/n.png',connections:{},disabledReminders:[],onToggleReminder:vi.fn(),onOpenSubscriptions:vi.fn(),onPrepareCancel:vi.fn(),onOpenGroupAA:vi.fn()};
 const entries=(id:string):ConversationEntry[]=>[{id:'question',role:'user',content:'帮我整理方案'},{id:'answer',role:'assistant',content:'这份方案请核对',workspaceId:id},{id:'later',role:'user',content:'换个话题聊聊吧'},{id:'other-answer',role:'assistant',content:'我们聊旅行',workspaceId:'other'}];
 function precedes(a:Element,b:Element){return Boolean(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);}
