@@ -1,0 +1,30 @@
+import {render,screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {afterEach,expect,it,vi} from 'vitest';
+import {TransferPlanCard} from './chat-task-cards';
+import {BankTransfer} from './bank-transfer';
+afterEach(()=>{vi.restoreAllMocks();localStorage.clear();});
+it.each([undefined,Date.parse('2026-11-20T12:00:00+08:00')])('首页即时或预约方案达到5000元即提示，打开核对不等于付款：%s',async executeAt=>{
+ const review=vi.fn();
+ const {rerender}=render(<TransferPlanCard intent={{recipientId:'mom',amount:499999,executeAt}} onReview={review}/>);
+ expect(screen.queryByRole('status',{name:'大额转账提醒'})).not.toBeInTheDocument();
+ rerender(<TransferPlanCard intent={{recipientId:'mom',amount:500000,executeAt}} onReview={review}/>);
+ expect(screen.getByRole('status',{name:'大额转账提醒'})).toHaveTextContent('需单独核对');
+ expect(review).not.toHaveBeenCalled();
+ await userEvent.click(screen.getByRole('button',{name:executeAt?'核对预约转账':'核对银行转账'}));
+ expect(review).toHaveBeenCalledOnce();
+ rerender(<TransferPlanCard intent={{recipientId:'mom',amount:100000,executeAt}} onReview={review}/>);
+ expect(screen.queryByRole('status',{name:'大额转账提醒'})).not.toBeInTheDocument();
+});
+it('手动修改金额实时识别，空值和无效金额不误报，也不请求付款接口',async()=>{
+ const fetcher=vi.spyOn(globalThis,'fetch'),user=userEvent.setup();
+ render(<BankTransfer initial={{recipientId:'mom',amount:100000}} onDone={vi.fn()}/>);
+ const input=screen.getByLabelText('转账金额（元）');
+ await user.clear(input);await user.type(input,'5000');
+ expect(screen.getByRole('status',{name:'大额转账提醒'})).toBeVisible();
+ await user.clear(input);await user.type(input,'4999.99');
+ expect(screen.queryByRole('status',{name:'大额转账提醒'})).not.toBeInTheDocument();
+ await user.clear(input);await user.type(input,'5000x');
+ expect(screen.queryByRole('status',{name:'大额转账提醒'})).not.toBeInTheDocument();
+ expect(fetcher).not.toHaveBeenCalled();
+});
