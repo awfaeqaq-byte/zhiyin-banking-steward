@@ -1,3 +1,4 @@
+import {LargeTransferNotice} from './large-transfer-notice';
 import {TransferRiskReview} from './transfer-risk-review';
 import {useEffect,useRef,useState} from 'react';
 import {bankRequest,bankRecipients,findBankRecipients,type BankSchedule,type BankDraft,type BankReceipt,type BankRecipientId,type TransferIntent} from '../lib/bank-transfer';
@@ -43,6 +44,7 @@ export function BankTransfer({initial,onDone,schedules}:{initial:TransferIntent;
    <label className="field">收款人<select value={findBankRecipients(query).some(r=>r.id===recipient)?recipient:''} disabled={busy || uncertain} onChange={e=>setRecipient(e.target.value as BankRecipientId)}><option value="" disabled>请选择匹配的账户</option>{findBankRecipients(query).map(r=><option key={r.id} value={r.id}>{r.name} · 尾号 {r.accountLast4} · {r.remark}</option>)}</select></label>
    {query&&!findBankRecipients(query).length&&<p role="status">没有匹配的已登记银行账户，请核对姓名或手机号。</p>}
    <label className="field">转账金额（元）<input inputMode="decimal" value={amount} disabled={busy || uncertain} onChange={e=>setAmount(e.target.value)}/></label>
+   <LargeTransferNotice amount={cents(amount)}/>
    <label className="field">转账后至少保留（元）<input inputMode="decimal" value={protectedAmount} placeholder="选填，如还款和生活费合计" disabled={busy || uncertain} onChange={e=>setProtectedAmount(e.target.value)}/></label>
    <label className="field">执行方式<select value={scheduled?'scheduled':'now'} disabled={busy || uncertain} onChange={e=>setScheduled(e.target.value==='scheduled')}><option value="now">立即转账</option><option value="scheduled">定时转账</option></select></label>
    {scheduled&&<label className="field">预约时间（设备当地时间）<input type="datetime-local" value={date} disabled={busy || uncertain} onChange={e=>setDate(e.target.value)}/></label>}

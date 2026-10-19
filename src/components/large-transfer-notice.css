@@ -1,0 +1,5 @@
+.large-transfer-notice { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-left: 3px solid #b68732; border-radius: 6px; background: #fff8e9; color: #6b4b17; }
+.large-transfer-notice > svg { flex: none; margin-top: 2px; }
+.large-transfer-notice > div { min-width: 0; }
+.large-transfer-notice strong { font-size: 14px; line-height: 1.5; }
+.large-transfer-notice p { margin: 4px 0 0; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
