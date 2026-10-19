@@ -1,3 +1,5 @@
+import {assessTransferRisk} from '../src/lib/transfer-risk';
+import {requireTransferReview} from './transfer-risk';
 import {bankRecipients,splitAA,transferImpact,type TransferIntent,type AAIntent,type AARequest,type BankDraft,type BankSnapshot,type BankSchedule,type BankRecipientId} from '../src/lib/bank-transfer';
 
 export type SmartState=BankSnapshot & {drafts:BankDraft[];received:Record<string,number>;participantBalances?:Record<string,number>};
@@ -10,15 +12,16 @@ export function checkTransferBudget(s:SmartState,intent:TransferIntent,excludeId
  if(impact.remaining<0)throw new Error(`扣除其他预约及需保留金额后，最多可转${(impact.available/100).toFixed(2)}元。请调整转账金额或核对保留金额。`);
  return impact;
 }
-export function authorizeSchedule(s:SmartState,id:string,now:number):BankSchedule{
+export function authorizeSchedule(s:SmartState,id:string,now:number,riskReviewToken?:string):BankSchedule{
  const existing=s.schedules?.find(item=>item.id===id);if(existing)return existing;
  const draft=s.drafts.find(item=>item.id===id);
  if(!draft || !draft.executeAt || draft.executeAt<=now || draft.expiresAt<=now)throw new Error('预约时间或方案已过期，请重新核对');
  if(draft.revision!==s.revision)throw new Error('账户已变化，请重新核对');
  checkExecution(s,draft.amount);
  checkTransferBudget(s,draft);
+ requireTransferReview(s,draft,now,riskReviewToken);
  if((s.schedules?.length??0)>=1000)throw new Error('预约数量已达上限');
- const schedule:BankSchedule={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending'};
+ const schedule:BankSchedule={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending',...(draft.review?{reviewedTransferIds:draft.review.matches.map(m=>m.id)}:{})};
  (s.schedules??=[]).push(schedule);s.drafts=s.drafts.filter(d=>d.id!==id);s.revision++;
  return schedule;
 }
@@ -27,6 +30,8 @@ export function executeDue(s:SmartState,now:number,guard:(s:SmartState,now:numbe
  for(const item of due){
   try{
    guard(s,now);checkExecution(s,item.amount);checkTransferBudget(s,item,item.id);
+   const newDuplicates=assessTransferRisk(s,item,now,{excludeId:item.id,completedOnly:true}).matches.filter(m=>!item.reviewedTransferIds?.includes(m.id));
+   if(newDuplicates.length)throw new Error('同一事项出现新的重复或相近转账，本预约未扣款，请核对记录后重新安排');
    s.balance-=item.amount;s.received[item.recipientId]=(s.received[item.recipientId]??0)+item.amount;
    s.transactions.push({...(item.workspaceId?{workspaceId:item.workspaceId}:{}),id:item.id,recipientId:item.recipientId,amount:item.amount,executeAt:item.executeAt,...(item.protectedAmount===undefined?{}:{protectedAmount:item.protectedAmount}),completedAt:now,balanceAfter:s.balance});
    item.status='completed';
@@ -45,7 +50,7 @@ export function createAA(s:SmartState,input:AAIntent & {requestId:string;title:s
   return existing;
  }
  if((s.aaRequests?.length??0)>=1000)throw new Error('AA收款数量已达上限');
- const request:AARequest={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),id:input.requestId,title:input.title.trim(),amount:input.amount,recipientIds:[...input.recipientIds],includeSelf:input.includeSelf,createdAt:now,status:'pending',shares};
+ const request:AARequest={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),id:input.requestId,title:input.title.trim(),amount:input.amount,recipientIds:[...input.recipientIds],includeSelf:input.includeSelf,createdAt:now,status:'pending',...(draft.review?{reviewedTransferIds:draft.review.matches.map(m=>m.id)}:{}),shares};
  (s.aaRequests??=[]).push(request);s.revision++;return request;
 }
 export function settleAA(s:SmartState,id:string,recipientId:BankRecipientId,now:number){

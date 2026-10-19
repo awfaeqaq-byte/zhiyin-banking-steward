@@ -1,3 +1,4 @@
+import type {TransferReview} from './transfer-risk';
 import {heldOccasionBudget, validOccasionPlan, validOccasionId} from './occasion-plans';
 import {validAssetSummary,validTermDeposit,type BankAssetSummary,type TermDeposit} from './bank-assets';
 export const bankRecipients=[
@@ -13,7 +14,7 @@ export function findBankRecipients(query:string){
 }
 export type BankRecipientId=typeof bankRecipients[number]['id'];
 export type TransferIntent={workspaceId?:string;recipientId:BankRecipientId;amount:number;executeAt?:number;protectedAmount?:number};
-export type BankSchedule=TransferIntent & {id:string;executeAt:number;createdAt:number;status:'pending'|'completed'|'cancelled'|'failed';error?:string};
+export type BankSchedule=TransferIntent & {id:string;executeAt:number;createdAt:number;status:'pending'|'completed'|'cancelled'|'failed';error?:string;reviewedTransferIds?:string[]};
 export type AAIntent={workspaceId?:string;amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
 export type AAShare={recipientId:BankRecipientId|'self';amount:number;paidAt?:number};
 export type AARequest=AAIntent & {id:string;title:string;createdAt:number;status:'pending'|'completed'|'cancelled';shares:AAShare[]};
@@ -33,7 +34,7 @@ export function transferImpact(s:BankSnapshot,intent:TransferIntent,excludeId?:s
  const available=Math.max(0,Math.min(s.limit,s.balance-held-pendingTotal-protectedAmount));
  return {pendingTotal,protectedAmount,available,remaining:s.balance-held-pendingTotal-protectedAmount-intent.amount};
 }
-export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number;impact?:TransferImpact};
+export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number;impact?:TransferImpact;review?:TransferReview};
 export type BankReceipt=TransferIntent & {id:string;completedAt:number;balanceAfter:number};
 export type BankControls={overseas:boolean;contactless:boolean;night:boolean};
 export const cardProducts=[

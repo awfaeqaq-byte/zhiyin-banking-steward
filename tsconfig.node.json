@@ -23,6 +23,7 @@
     "src/lib/steward-memory.ts",
     "src/lib/steward-profile.ts",
     "src/lib/bank-transfer.ts",
+    "src/lib/transfer-risk.ts",
     "src/lib/occasion-plans.ts",
     "src/lib/task-calendar.ts",
     "src/lib/financial-connections.ts",

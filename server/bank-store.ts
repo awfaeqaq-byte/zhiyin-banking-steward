@@ -1,3 +1,5 @@
+import {assessTransferRisk,validTransferReview} from '../src/lib/transfer-risk';
+import {requireTransferReview} from './transfer-risk';
 import {existsSync,readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync} from 'node:fs';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {validBankPayment,type BankPayment,type BankPaymentReceipt} from '../src/lib/bank-transfer';
@@ -29,7 +31,7 @@ export function createBankStore(file:string) {
   const s=JSON.parse(readFileSync(file,'utf8')) as State;
   if(s?.depositDrafts!==undefined&&(!Array.isArray(s.depositDrafts)||s.depositDrafts.length>20||!s.depositDrafts.every(validDepositDraft)))throw new Error('定存草稿损坏，已停止操作，请保留账本检查');
   if(s?.depositWithdrawalDrafts!==undefined&&(!Array.isArray(s.depositWithdrawalDrafts)||s.depositWithdrawalDrafts.length>20||!s.depositWithdrawalDrafts.every(validDepositWithdrawalDraft)))throw new Error('定存支取草稿损坏，已停止操作，请保留账本检查');
-  if(!s || s.version!==1 || !validBankSnapshot(s) || !Array.isArray(s.drafts) || !s.drafts.every(d=>validTransfer(d) && typeof d.id==='string' && Number.isSafeInteger(d.revision) && Number.isSafeInteger(d.balance) && Number.isFinite(d.expiresAt)) || !s.received || !Number.isSafeInteger(s.received.mom) || !Number.isSafeInteger(s.received.dad) || (s.wealth!==undefined&&(!validWealthSnapshot({...s.wealth,cashBalance:s.balance})||!Array.isArray(s.wealth.drafts)||!s.wealth.drafts.every(validWealthDraft)||!Array.isArray(s.wealth.redemptionDrafts))))throw new Error('银行账本损坏，已停止操作，请保留文件检查');
+  if(!s || s.version!==1 || !validBankSnapshot(s) || !Array.isArray(s.drafts) || !s.drafts.every(d=>validTransfer(d) && typeof d.id==='string' && Number.isSafeInteger(d.revision) && Number.isSafeInteger(d.balance) && Number.isFinite(d.expiresAt) && (d.review===undefined||validTransferReview(d.review))) || !s.received || !Number.isSafeInteger(s.received.mom) || !Number.isSafeInteger(s.received.dad) || (s.wealth!==undefined&&(!validWealthSnapshot({...s.wealth,cashBalance:s.balance})||!Array.isArray(s.wealth.drafts)||!s.wealth.drafts.every(validWealthDraft)||!Array.isArray(s.wealth.redemptionDrafts))))throw new Error('银行账本损坏，已停止操作，请保留文件检查');
   buildBankAssetSummary(s,s.wealth?.holdings,s.termDeposits);
   return s;
  };
@@ -88,7 +90,7 @@ export function createBankStore(file:string) {
   wealthRead():WealthBookState{return wealthState(read());},
   wealthMutate<T>(fn:(book:WealthBookState)=>T):T{return mutate(s=>{const book=wealthState(s),result=fn(book);if(!Number.isSafeInteger(book.cashBalance)||book.cashBalance<0)throw new Error('统一账户余额无效');if(book.cashBalance<s.balance)checkOccasionFunds(s,s.balance-book.cashBalance);const {cashBalance,...wealth}=book;s.balance=cashBalance;s.wealth=wealth;s.revision++;return result;});},
   importLegacyWealth(book:WealthBookState){return mutate(s=>{if(s.wealthMigrated)return false;if(s.wealth)throw new Error('统一理财账本已有数据，不能覆盖导入旧账本');if(!validWealthSnapshot(book))throw new Error('旧理财账本无效');const netSpent=4230000-book.cashBalance;if(!Number.isSafeInteger(netSpent)||netSpent<0)throw new Error('旧理财资金无法自动核对，请检查历史回执');if(netSpent>s.balance)throw new Error('银行卡余额不足以合并旧理财持仓，请先核对历史交易');checkOccasionFunds(s,netSpent);s.balance-=netSpent;s.wealth={version:1,receipts:book.receipts,assessment:book.assessment,holdings:book.holdings,redemptions:book.redemptions,drafts:[],redemptionDrafts:[]};s.wealthMigrated=true;s.revision++;return true;});},
-  schedule(id:string,now=Date.now()){return mutate(s=>{const existing=s.schedules?.find(item=>item.id===id);if(existing)return existing;guard(s,now);return authorizeSchedule(s,id,now);});},
+  schedule(id:string,now=Date.now(),riskReviewToken?:string){return mutate(s=>{const existing=s.schedules?.find(item=>item.id===id);if(existing)return existing;guard(s,now);return authorizeSchedule(s,id,now,riskReviewToken);});},
   cancelSchedule(id:string){return mutate(s=>{const item=s.schedules?.find(x=>x.id===id);if(!item)throw new Error('预约不存在');if(item.status==='cancelled')return item;if(item.status!=='pending')throw new Error('预约已经执行或结束');item.status='cancelled';s.revision++;return item;});},
   runDue(now=Date.now()){
    if(!read().schedules?.some(s=>s.status==='pending' && s.executeAt<=now))return [];
@@ -160,10 +162,11 @@ export function createBankStore(file:string) {
    if(input.amount>s.limit)throw new Error(`超过沙箱单笔限额${s.limit/100}元`);
    if(input.amount>s.balance)throw new Error('付款账户余额不足，不会使用其他平台资金');
    const impact=checkTransferBudget(s,input);
-   const draft={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),recipientId:input.recipientId,amount:input.amount,...(input.executeAt===undefined?{}:{executeAt:input.executeAt}),...(input.protectedAmount===undefined?{}:{protectedAmount:input.protectedAmount}),impact,id:crypto.randomUUID(),revision:s.revision,balance:s.balance,createdAt:now,expiresAt:now+300000};
+   const risk=assessTransferRisk(s,input,now);
+   const draft={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),recipientId:input.recipientId,amount:input.amount,...(input.executeAt===undefined?{}:{executeAt:input.executeAt}),...(input.protectedAmount===undefined?{}:{protectedAmount:input.protectedAmount}),impact,...(risk.large||risk.matches.length?{review:{...risk,token:crypto.randomUUID()}}:{}),id:crypto.randomUUID(),revision:s.revision,balance:s.balance,createdAt:now,expiresAt:now+300000};
    s.drafts=[...s.drafts.filter(d=>d.expiresAt>now).slice(-19),draft];return draft;
   });},
-  confirm(id:string,now=Date.now()):BankReceipt {return mutate(s=>{
+  confirm(id:string,now=Date.now(),riskReviewToken?:string):BankReceipt {return mutate(s=>{
    const existing=s.transactions.find(r=>r.id===id);if(existing)return existing;
    guard(s,now);
    const draft=s.drafts.find(d=>d.id===id);if(!draft)throw new Error('方案不存在，请重新核对');
@@ -172,6 +175,7 @@ export function createBankStore(file:string) {
    if(draft.revision!==s.revision)throw new Error('账户余额已变化，请重新核对');
    if(draft.amount>s.balance || draft.amount>s.limit)throw new Error('余额或限额不足');
    checkTransferBudget(s,draft);
+   requireTransferReview(s,draft,now,riskReviewToken);
    if(s.transactions.length>=5000)throw new Error('沙箱账本已满，请联系开发者归档');
    s.balance-=draft.amount;s.received[draft.recipientId]=(s.received[draft.recipientId]??0)+draft.amount;s.revision++;
    const receipt={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id:draft.id,recipientId:draft.recipientId,amount:draft.amount,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),completedAt:now,balanceAfter:s.balance};
@@ -199,7 +203,7 @@ export function bankMiddleware(store:ReturnType<typeof createBankStore>) {
    if(data?.type==='cancel-occasion'&&data.authorized===true)return send(200,store.cancelOccasion(data.id,data.revision));
    if(data?.type==='complete-occasion'&&data.authorized===true)return send(200,store.completeOccasion(data.id,data.revision));
    if(data?.type==='prepare-occasion-order'&&data.authorized===true)return send(200,store.prepareOccasionOrder(data.id,data.productId,data.revision));
-   if(data?.type==='schedule' && data.authorized===true && typeof data.draftId==='string')return send(200,store.schedule(data.draftId));
+   if(data?.type==='schedule' && data.authorized===true && typeof data.draftId==='string')return send(200,store.schedule(data.draftId,Date.now(),data.riskReviewToken));
    if(data?.type==='cancel-schedule' && data.authorized===true && typeof data.id==='string')return send(200,store.cancelSchedule(data.id));
    if(data?.type==='create-aa' && data.authorized===true)return send(200,store.createAA(data));
    if(data?.type==='settle-aa' && data.authorized===true && typeof data.id==='string' && typeof data.recipientId==='string')return send(200,store.settleAA(data.id,data.recipientId));
@@ -210,7 +214,7 @@ export function bankMiddleware(store:ReturnType<typeof createBankStore>) {
    if(data?.type==='prepare')return send(200,store.prepare(data));
    if(data?.type==='settings')return send(200,store.configure(data));
    if(data?.type==='apply-card' && data.authorized===true)return send(200,store.applyCard(data));
-   if(data?.type==='confirm' && data.authorized===true && typeof data.draftId==='string' && data.draftId.length<=80)return send(200,store.confirm(data.draftId));
+   if(data?.type==='confirm' && data.authorized===true && typeof data.draftId==='string' && data.draftId.length<=80)return send(200,store.confirm(data.draftId,Date.now(),data.riskReviewToken));
    return send(400,{error:'请在确认面板明确授权'});
   }catch(error){return send(error instanceof Error && 'code' in error?500:400,{error:error instanceof Error?error.message:'银行沙箱暂时不可用'});}
  };
