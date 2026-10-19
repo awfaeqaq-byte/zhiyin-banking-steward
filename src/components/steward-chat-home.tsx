@@ -312,7 +312,13 @@ export function StewardChatHome({
     })),
     [disabledReminders, insights.items],
   );
-  const [messages, setMessages] = useState<DisplayMessage[]>(()=>seamless?readMessages(conversationKey):workspace===undefined?readMessages():workspace?.messages || []);
+  const [messages, setMessages] = useState<DisplayMessage[]>(()=>{
+    if(seamless){
+      try{const cached=localStorage.getItem(conversationKey);if(cached&&!localStorage.getItem('zhiyin-steward-conversation-backup-v1'))localStorage.setItem('zhiyin-steward-conversation-backup-v1',cached);}catch{/* A storage quota error must not prevent loading the authoritative transcript. */}
+      return readMessages(conversationKey);
+    }
+    return workspace===undefined?readMessages():workspace?.messages || [];
+  });
   const conversationCutoff=useRef(localStorage.getItem('zhiyin-steward-conversation-cutoff')||'');
   const initialCachedIds=useRef(new Set(messages.map(m=>m.id)));
   const seenServerIds=useRef(new Set<string>());
