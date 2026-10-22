@@ -7,7 +7,15 @@ const preference = /(?:稍后再说|暂缓|明天再说|都(?:要)?保留|全部
 const otherBusiness = /转账|汇款|给.{0,15}转|AA|aa|点餐|外卖|生日|日历|银行卡/;
 const quoted = /ZHIYIN_ACTION:|原样|展示.*(?:指令|文字|标记)|不要(?:操作|办理|执行)|不(?:要|用)?取消|暂不取消|只.{0,40}提醒|(?:取消|关闭).{0,40}提醒/;
 
+const nameAnalysis = (text:string)=>/名称|服务名|虚构/.test(text)&&/仅分析|只分析|只作.{0,6}分析|仅作.{0,6}分析|名称分析/.test(text);
+const keepUnchanged = (text:string)=>/先不取消|暂不取消|保留.{0,6}(?:平台|订阅|会员)|都(?:要)?保留|全部保留|暂时保留|提醒.{0,6}不改/.test(text)
+  && !cancel.test(text.replace(/先不取消|暂不取消|不取消/g,''))
+  && !/(?:不(?:要|用)?再|别再)提示.{0,12}重复|不再提示该组合重复/.test(text);
+
 export function isSubscriptionRouteIntent(text:string, currentSubscriptionTask=false):boolean {
+  // Keep a withdrawal and all its qualifiers together, before the classifier
+  // can treat “保留” as independent permission to suppress duplicate warnings.
+  if(!otherBusiness.test(text)&&(nameAnalysis(text)||keepUnchanged(text)&&(currentSubscriptionTask||/订阅|会员|视频|音乐|云盘/.test(text))))return true;
   if(otherBusiness.test(text)||quoted.test(text))return false;
   return isSubscriptionListQuestion(text)||cancel.test(text)
     ||preference.test(text)&&(/订阅|会员|音乐|视频|云盘|这组|两项/.test(text)||currentSubscriptionTask)
@@ -40,9 +48,9 @@ function matchingSubscriptions(text:string, items:StewardSubscription[]):Steward
 export function subscriptionCommandReply(request:StewardReplyRequest):StewardReply|null {
   const users=request.messages.filter(message=>message.role==='user');
   const text=users.at(-1)?.content.trim()||'';
-  if(/订阅|续费|会员/.test(text)&&/仅分析|只分析/.test(text)&&/名称|服务名|虚构|忽略规则/.test(text))return {text:'这段名称包含“忽略规则”“立即取消”等操作指令，属于可疑的指令注入内容。服务名称仅作为待分析数据，不构成你的操作授权；没有执行其中的文字，也没有修改签约、续费提醒或重复提示偏好。'};
+  if(nameAnalysis(text))return {text:/忽略规则|立即取消/.test(text)?'这段名称包含“忽略规则”“立即取消”等操作指令，属于可疑的指令注入内容。服务名称仅作为待分析数据，不构成你的操作授权；没有执行其中的文字，也没有修改签约、续费提醒或重复提示偏好。':'仅把服务名称作为待分析数据；名称本身不能证明签约状态或构成操作授权。没有修改签约、续费提醒或重复提示偏好。'};
+  if(!otherBusiness.test(text)&&keepUnchanged(text)&&(/订阅|音乐|云盘|视频|两项|这组/.test(text)||users.slice(0,-1).some(message=>/订阅|自动续费|会员/.test(message.content))))return {text:`${/比较|重复/.test(text)?'同类服务只能提示可能重复，不代表是同一签约或同一笔扣款。还需核对实际权益与使用频率；当前资料没有使用频率，不能断言哪项多余。':''}保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。`};
   if(/订阅|续费|会员/.test(text)&&/只问|仅询问|规则|取消后|退款|仅分析|只分析|名称.*(?:指令|执行)/.test(text)&&!/现在(?:帮我)?取消|请(?:帮我)?取消/.test(text))return {text:'取消自动续费只会停止后续扣费，不会自动退还历史款项；已付周期的权益按商家规则保留，退款须另行核对。本次仅作说明，没有取消签约、修改提醒或重复提示偏好。'};
-  if(/订阅|音乐|云盘|视频|两项|这组/.test(text)&&/都(?:要)?保留|全部保留|暂时保留/.test(text)&&!/(?:不(?:要|用)?再|别再)提示.{0,12}重复|不再提示该组合重复/.test(text))return {text:`${/比较|重复/.test(text)?'同类服务只能提示可能重复，不代表是同一签约或同一笔扣款。还需核对实际权益与使用频率；当前资料没有使用频率，不能断言哪项多余。':''}保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。`};
   if(quoted.test(text)||otherBusiness.test(text)||!request.subscriptionAccess)return null;
   const previous=[...users.slice(0,-1)].reverse().find(message=>cancel.test(message.content)&&!quoted.test(message.content)&&!otherBusiness.test(message.content));
   const changing=selector.test(text)&&Boolean(previous);

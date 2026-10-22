@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {ArrowRight,ChevronRight,ReceiptText} from 'lucide-react';
 import type {BillAnalysis} from '../lib/bill-analysis';
-import {billReplyFacts} from '../lib/bill-reply-grounding';
+import {billReplyFacts,monthlyBillExpenses} from '../lib/bill-reply-grounding';
 import {formatCny} from '../lib/financial-connections';
 import type {BillFocus} from '../lib/steward-ui';
 import {Button} from './ui/button';
@@ -16,12 +16,14 @@ export function BillAnalysisCard({bill,stewardName='宁宁',loading=false,error=
  const ready=!error&&!loading&&!bill.needsClarification&&bill.sources.length>0&&bill.count>0;
  const shares=billReplyFacts(bill).categoryShares;
  const top=shares[0],largest=bill.largest[0],trend=bill.diagnosis.trend;
+ const monthly=bill.from.slice(0,7)!==bill.to.slice(0,7)?monthlyBillExpenses(bill):[];
  return <section className="steward-task-card bill-analysis-card" aria-label="账单分析" aria-busy={loading}>
   <header><span><ReceiptText size={19} aria-hidden="true"/><strong>账单分析</strong></span><span className="task-card-status">{error||loading?'数据待核对':bill.coverageIncomplete?'部分记录':'只读分析'}</span></header>
   <p className="bill-card-scope">{bill.needsClarification?'日期范围待确认':`${bill.from} — ${bill.to}`}<span>{bill.sources.join(' · ')||'账单来源待授权'}</span></p>
   {error?<p role="alert">{error}。金额与分析待核对，请稍后重试。</p>:loading?<p className="task-card-explanation" role="status">正在核对账单数据…</p>:bill.needsClarification?<p className="task-card-explanation">需要先确认月份或日期范围，再计算这次账单。</p>:!bill.sources.length?<p className="task-card-explanation">需要账单读取授权，才能分析这个范围。</p>:!bill.count?<p className="task-card-explanation">这段时间未返回交易记录，不代表没有消费。</p>:<>
    {bill.coverageIncomplete&&<p className="bill-card-limitation">{bill.coverage}</p>}
    <dl className="bill-card-totals"><div><dt>{bill.coverageIncomplete?'已返回消费小计':'消费支出'}</dt><dd>{formatCny(bill.expense)}</dd></div><div><dt>普通入账</dt><dd>{formatCny(bill.income)}</dd></div></dl>
+   {monthly.length>0&&<section className="bill-card-structure" aria-label="逐月消费小计"><h3>逐月消费小计</h3><ul>{monthly.map(({month,amount})=><li key={month}><span>{month}</span><strong>{formatCny(amount)}</strong></li>)}</ul><p className="task-card-note">仅按已返回记录计算；未列出月份不代表零消费，各月小计不代表完整月账单。退款、转账不抵扣消费。</p></section>}
    <div className="bill-card-structure"><h3>钱主要花在哪里</h3><p>{top&&bill.expense>0?`${top.name}占本次消费的 ${top.percent}%，是支出最多的分类。`:'本次未返回消费类支出，不能据此判断没有消费。'}</p>
     <ul>{shares.slice(0,5).map(category=><li key={category.name}><span>{category.name}</span><strong>{formatCny(Math.round(category.amountYuan*100))}</strong><small>{category.percent}%</small><span className="bill-card-bar" aria-hidden="true"><i style={{width:`${category.percent}%`}}/></span></li>)}</ul>
     {bill.categories.length>5&&<p className="task-card-note">另有 {bill.categories.length-5} 个分类，可展开完整明细。</p>}

@@ -71,6 +71,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
   const [category,setCategory]=useState(selectedCategory||'');
   const [focus,setFocus]=useState<BillFocus|undefined>(selectedFocus);
   const [expanded,setExpanded]=useState(false);
+  const [recordsOpened,setRecordsOpened]=useState(Boolean(selectedCategory));
   useEffect(()=>{setProvider(billProvider(question));},[question]);
   useEffect(()=>{setCategory(selectedCategory||'');setExpanded(false);},[question,selectedCategory]);
   useEffect(()=>{setFocus(selectedFocus);},[question,selectedFocus]);
@@ -88,6 +89,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
     onViewChange?.({question:billScopeQuestion(question,id),...(id?{provider:id}:{})});
   }
   function selectCategory(next:string) {
+    setRecordsOpened(true);
     setCategory(next);setFocus(undefined);setExpanded(false);
     onViewChange?.({question:scopedQuestion,provider,...(next?{category:next}:{})});
   }
@@ -124,7 +126,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
           <span>{c.name}</span><span className="bill-scene-bar" aria-hidden="true"><i style={{transform:`scaleX(${bill.expense?c.amount/bill.expense:0})`}}/></span><strong>{formatCny(c.amount)}</strong><ChevronRight size={15} aria-hidden="true"/>
         </button></li>)}</ul>
       </div>:section==='trend'?<div className="bill-scene-trend" key={section}><h3>前期对照</h3>{bill.diagnosis.trend?<><p>已返回消费金额{bill.diagnosis.trend.changePercent===0?'持平':`${bill.diagnosis.trend.changePercent>0?'增加':'减少'} ${Math.abs(bill.diagnosis.trend.changePercent)}%`}</p><small>{bill.diagnosis.trend.previousFrom} — {bill.diagnosis.trend.previousTo}；两期记录完整性未知。</small></>:<p className="bill-ui-note">前期记录不足，暂不能判断趋势。</p>}</div>:<div key={section}>{transactions()}</div>)}
-      {category&&!sections.includes('transactions')&&transactions()}
+      {(category||recordsOpened)&&!sections.includes('transactions')&&transactions()}
       {interpretationChanged&&<p className="bill-ui-note" role="status">查看范围已切换，上面的解读仍对应原范围。</p>}
       <button className="bill-scene-link" disabled={frozen} onClick={()=>onInteract({question:scopedQuestion,provider,...(category?{category}:{})})}>请{stewardName}分析当前账单<ArrowRight size={15} aria-hidden="true"/></button>
       {selected&&<p className="bill-scene-selection" role="status"><Check size={15} aria-hidden="true"/>已选中「{selected.title}」，可以直接补充。</p>}

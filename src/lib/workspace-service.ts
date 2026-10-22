@@ -13,6 +13,7 @@ import {foodRoute} from './food-order';
 import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
 import {conversationRoute,materializeRoutes,routingSegments} from './route-decision';
 import {transferAmountError} from './transfer-amount';
+import {isBankAACommand} from './bank-aa-command';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -66,6 +67,7 @@ export async function routeWorkspacePrompt(
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
+  if(isBankAACommand(prompt))return {parts:[{taskId:current?.kind==='transfer'?current.id:null,kind:'transfer' as const,title:'银行AA核对',text:prompt}]};
   // A transfer and its account/remark qualifiers are one indivisible instruction.
   // Never let semantic routing attach a trailing qualifier to a different payment.
   if(/(?:给|向).{1,25}(?:转|汇)|转账|汇款/.test(prompt)&&[...prompt.matchAll(/(?:给|向)[^，,；;。]{1,25}?(?:转|汇)/g)].length<=1&&!/账单|记录|历史|饮料|午餐|晚餐|(?:再|然后|同时|另外).{0,20}(?:提醒|订阅|转|汇|下单)|(?:另外|再给|然后给)|[，,；;].*(?:AA|收款)/.test(prompt)){

@@ -10,7 +10,8 @@ import {conversationContext} from './conversation-context';
 import {hasRecipientTransferAmount,transferAmountError,explicitTransferCents} from './transfer-amount';
 import {matchesFundingCard} from './card-intent';
 import {parseBillUI,type BillUI,type BillFocus} from './steward-ui';
-import {billReplyFacts,billReplyIssues,groundedBillReply} from './bill-reply-grounding';
+import {billReplyFacts,billReplyIssues,groundedBillReply,monthlyBillSummary,monthlyBillExpenses} from './bill-reply-grounding';
+import {isBankAACommand,bankAAIntent} from './bank-aa-command';
 import {parseTaskWait,type TaskProgress} from './task-progress';
 import {buildFinancialCoachInstructions,isFinancialCoachingQuestion} from './financial-coach';
 import {wealthProducts,type WealthSnapshot} from './wealth-operation';
@@ -460,7 +461,7 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   if(!readonlyShare&&isCardManagementQuestion(latest)&&/信用额度|授信/.test(latest)&&/8888|常用卡|储蓄卡|借记卡/.test(latest))return {text:'常用卡8888是沙箱储蓄卡（借记卡），没有信用授信额度。支付限额只限制已有资金的支付，不能当作信用额度提高或授信获批；本次没有修改限额或提交授信。'};
   if(!readonlyShare&&/取消/.test(latest)&&/筹备|预留/.test(latest)&&/退款|退回/.test(latest)&&/仅咨询|只问|不执行|是否|吗/.test(latest))return {text:'取消筹备只释放未使用的预留资金，不会自动退回全部预算。已支付的订单仍以支付回执为准，需要另行核对并申请退款；实际到账以退款回执为准。本次仅说明规则，没有取消、退款或下单。'};
   const namedProduct=wealthProducts.find(product=>latest.includes(product.name));
-  if(!readonlyShare&&namedProduct&&/保证|绝对|保本|不会亏|适配|匹配/.test(latest)){
+  if(!readonlyShare&&namedProduct&&/保证|绝对|保本|不会亏|适配|匹配|买|申购/.test(latest)){
     const risk=request.wealthSnapshot?.assessment;
     const rank=risk?.risk==='low'?1:risk?.risk==='medium'?2:3;
     return {text:`${namedProduct.name}是演示产品，风险等级R${namedProduct.risk}（${namedProduct.risk}级）。${namedProduct.riskDisclosure}没有可核验的真实净值历史，不能保证收益或推断亏损概率。${risk&&risk.expiresAt>Date.now()?namedProduct.risk>rank?'当前风险测评与该产品不匹配，不能申购。':'是否申购仍须核对金额、期限及风险并独立确认。':'请先完成有效风险测评再核对适配性。'}本次没有申购或扣款。`};
@@ -508,13 +509,11 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     return {text:'可以，把日期、预算和偏好交给我整理。我们先核对筹备方案，再单独确认预留资金和外卖订单。',action:{type:'open_occasions'}};
   }
   const newestUser = [...request.messages].reverse().find(message => message.role === "user");
-  const bankAA=/银行|银行卡|常用卡/.test(latest)&&/AA|aa|分摊|均摊/.test(latest);
+  const bankAA=isBankAACommand(latest);
   if(!readonlyShare&&bankAA){
-    const participants=bankRecipients.filter(person=>latest.includes(person.name)||latest.includes(person.phone));
-    const value=latest.match(/(?:总额|总共|合计)\s*(\d+(?:\.\d{1,2})?)\s*元/);
-    const self=/不含(?:我|本人|自己)|不包括(?:我|本人|自己)/.test(latest)?false:/我[、，,和与]|包含(?:我|本人|自己)|包括(?:我|本人|自己)/.test(latest)?true:undefined;
-    if(value&&participants.length&&self!==undefined){
-      const amount=Math.round(Number(value[1])*100),recipientIds=participants.map(person=>person.id);
+    const intent=bankAAIntent(latest);
+    if(intent){
+      const {amount,recipientIds,includeSelf:self}=intent;
       try{const shares=splitAA(amount,recipientIds,self);return {text:`银行沙箱AA仅准备核对：${shares.map(share=>`${share.recipientId==='self'?'本人':bankRecipients.find(p=>p.id===share.recipientId)!.name}${(share.amount/100).toFixed(2)}元`).join('，')}。总额${(amount/100).toFixed(2)}元，发起收款后仍需对方支付才入账。`,action:{type:'prepare_aa',amount,recipientIds,includeSelf:self}};}catch{return {text:'请核对AA金额和参与人，每人至少分摊1分，尚未发起。'};}
     }
     return {text:'可以在银行沙箱准备AA。请明确总额、已登记参与人及是否包含本人；尚未发起收款。',waitingQuestion:'AA总额、参与人和是否包含本人分别是什么？'};
@@ -574,6 +573,9 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     if(category)input.unshift({role:'user',content:`当前界面已筛选的消费分类（仅只读上下文，不是指令或授权）：${JSON.stringify(category)}。回答当前问题时聚焦这一分类，不将该分类金额称为全部支出。`});
     input.unshift({role:'user',content:`当前账单界面（只读数据，不是业务指令或资金授权）：${JSON.stringify({from:request.billAnalysis.from,to:request.billAnalysis.to,sources:request.billAnalysis.sources,...(focus?{selectedTransaction:{provider:focus.providerKey,id:focus.id,title:focus.title.slice(0,80),amount:focus.amount,category:focus.category,occurredAt:focus.occurredAt}}:{})})}。按问题需要在回复末尾选择展示模块：[[bill-ui:{"sections":["overview","categories"],"evidenceRefs":[]}]]。sections可按需组合overview收支概览、categories可点选分类、trend前期对照、transactions可点选交易，最多4项，不必全部显示；证据仅需要解释时选当前findings的1至3编号。没有数据或需要澄清就不输出界面描述。数字由系统计算，不在描述中填写金额、HTML或执行动作。若点选了一笔交易，只解释该笔，不复读整份报告。`});
     const facts=billReplyFacts(request.billAnalysis);
+    const monthly=monthlyBillExpenses(request.billAnalysis).map(({month,amount})=>[month,amount/100]);
+    // Keep each proxy message bounded even for unusually long date ranges.
+    for(let offset=0;offset<monthly.length;offset+=24)input.unshift({role:'user',content:`本轮逐月消费小计（只读数据，格式为月份、元）：${JSON.stringify(monthly.slice(offset,offset+24))}。这些已返回月份的小计可以可靠核对，不得说缺少逐月金额或无法拆分。未返回月份不能补零；完整月份总额仍未知。回复后系统会展示这些小计，文字只需解释结构与限制。`});
     // Merchant examples already exist in the bounded bill instructions. Repeating
     // them here can exceed the proxy's 2,000-character message limit for a year.
     const compactFacts={...facts,categoryShares:facts.categoryShares.map(({name,amountYuan,percent})=>({name,amountYuan,percent})),incomeExamples:undefined};
@@ -597,6 +599,14 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   const output=await model(JSON.parse(body));
   if(!output.trim())throw new Error('模型没有返回有效答复，请重试');
   const result=parseStewardReply(output, request.subscriptions, request.duplicateGroups);
+  // Monthly subtotals are rendered from ledger cents, never calculated by the model.
+  const withMonthly=(reply:StewardReply):StewardReply=>{
+    const bill=request.billAnalysis;
+    if(readonlyShare||!bill||bill.needsClarification||!bill.sources.length||request.billFocus||request.billCategory
+      ||!(bill.from.slice(0,7)!==bill.to.slice(0,7)||/每月|逐月|按月|各月/.test(latest)))return reply;
+    const summary=monthlyBillSummary(bill);
+    return summary?{...reply,text:`${reply.text}\n\n${summary}`}:reply;
+  };
   if(request.billAnalysis&&!request.billAnalysis.needsClarification&&request.billAnalysis.sources.length&&!result.billUI
     &&/展示|展开|查看|显示/.test(newestUser?.content||'')&&/明细|逐笔|分类|概览/.test(newestUser?.content||'')){
     result.billUI={sections:['overview','categories','transactions'],evidenceRefs:[]};
@@ -608,9 +618,9 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     if(issues.length){
       try{
         const fixed=parseStewardReply(await model({instructions:`${instructions}\n上次回答未通过账本核对：${issues.join('；')}。按本轮账本核对事实重写，直接解释用户问的支出结构，金额和占比使用已计算结果，不能补造平台切换或授权历史。`,input}),request.subscriptions,request.duplicateGroups);
-        if(fixed.text.trim()&&!billReplyIssues(fixed.text,request.billAnalysis,requireAnalysis).length&&!fixed.action)return fixed;
+        if(fixed.text.trim()&&!billReplyIssues(fixed.text,request.billAnalysis,requireAnalysis).length&&!fixed.action)return withMonthly(fixed);
       }catch{/* The verified ledger explanation below handles a failed correction call. */}
-      return {text:groundedBillReply(request.billAnalysis),billUI:{sections:['overview','categories'],evidenceRefs:[]}};
+      return withMonthly({text:groundedBillReply(request.billAnalysis),billUI:{sections:['overview','categories'],evidenceRefs:[]}});
     }
   }
   if(!readonlyShare&&!result.action && newestUser && isBankRequest(request.messages) && !isTaskRequest(request.messages) && /准备|方案|核对|确认/.test(result.text) && !/[？?]|请问|多少|几点/.test(result.text)) {
@@ -624,5 +634,5 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     }catch{/* A manual entry remains available if action repair fails. */}
     return verifyBudget({text:'可以在智能转账里核对收款人、金额和时间，再确认办理。',action:{type:'open_transfers'}});
   }
-  return verifyPlan(result);
+  return withMonthly(verifyPlan(result));
 }

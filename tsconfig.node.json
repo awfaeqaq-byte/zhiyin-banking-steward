@@ -22,6 +22,7 @@
     "src/lib/steward-memory.ts",
     "src/lib/steward-profile.ts",
     "src/lib/bank-transfer.ts",
+    "src/lib/bank-aa-command.ts",
     "src/lib/native-banking.ts",
     "src/lib/transfer-amount.ts",
     "src/lib/occasion-plans.ts",

@@ -3,6 +3,21 @@ import type {BillAnalysis} from './bill-analysis';
 const yuan=(cents:number)=>(cents/100).toLocaleString('zh-CN',{maximumFractionDigits:2});
 const share=(amount:number,total:number)=>total>0?Number((BigInt(amount)*1000n+BigInt(total)/2n)/BigInt(total))/10:0;
 
+export function monthlyBillExpenses(bill:BillAnalysis){
+ const months=new Map<string,number>();
+ for(const row of bill.transactions){
+  const month=row.occurredAt.slice(0,7);
+  months.set(month,(months.get(month)??0)+(row.amount<0&&row.kind!=='transfer'?-row.amount:0));
+ }
+ return [...months].sort(([a],[b])=>a.localeCompare(b)).map(([month,amount])=>({month,amount}));
+}
+
+export function monthlyBillSummary(bill:BillAnalysis):string{
+ const monthly=monthlyBillExpenses(bill);
+ if(!monthly.length)return '';
+ return `已返回记录的逐月消费小计：\n${monthly.map(({month,amount})=>`${month}：${yuan(amount)}元`).join('\n')}\n合计：${yuan(bill.expense)}元。退款、转账不抵扣消费；未列出的月份没有返回记录，不能当作零消费。各月小计不代表完整月账单。`;
+}
+
 /** Derived from the ledger, never from model prose or past assistant replies. */
 export function billReplyFacts(bill:BillAnalysis){
  const top=bill.categories.slice(0,2);
@@ -28,6 +43,7 @@ const tenths:Record<string,number>={一:10,二:20,三:30,四:40,五:50,六:60,�
 export function billReplyIssues(text:string,bill:BillAnalysis,requireAnalysis=false):string[]{
  if(bill.needsClarification||!bill.sources.length||!bill.count)return [];
  const issues=new Set<string>();
+ if(monthlyBillExpenses(bill).length&&/(?:逐月|每月|各月|按月).{0,20}(?:无法|不能).{0,8}(?:拆分|计算|提供|统计)|(?:缺少|没有|未提供).{0,10}逐月.{0,10}(?:金额|明细)/.test(text))issues.add('已返回月份有代码计算的小计，不能声称无法拆分或缺少逐月金额');
  const prose=text.replace(/“([^”]*)”|"([^"\n]*)"/g,(_whole,left:string|undefined,right:string|undefined)=>bill.categories.some(c=>c.name===(left??right))?(left??right)!:'');
  for(const clause of prose.split(/[。；\n]/)){
   if(/错误|没有依据|混淆|不应|不能算|不准确/.test(clause))continue;

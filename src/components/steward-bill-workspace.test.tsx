@@ -10,6 +10,18 @@ const wechat:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信
 ]};
 const alipay:ConnectedFinancialSource={...wechat,provider:'alipay',displayName:'支付宝',transactions:[{id:'tea',title:'奶茶',amount:-1000,category:'餐饮',occurredAt:'2026-09-21'}]};
 
+it('BI2-045 分类打开明细后查看全部记录，明细仍显示且恢复其他分类',async()=>{
+ const user=userEvent.setup();
+ render(<StewardBillWorkspace question="2026年9月账单" connections={{wechat_pay:wechat}} onInteract={vi.fn()} ui={{sections:['overview','categories'],evidenceRefs:[]}}/>);
+ expect(screen.queryByRole('button',{name:/请宁宁解释午餐/})).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:/查看餐饮交易/}));
+ expect(screen.getByRole('button',{name:/请宁宁解释午餐/})).toBeVisible();
+ expect(screen.queryByRole('button',{name:/请宁宁解释地铁/})).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'查看全部记录'}));
+ expect(screen.getByRole('button',{name:/请宁宁解释午餐/})).toBeVisible();
+ expect(screen.getByRole('button',{name:/请宁宁解释地铁/})).toBeVisible();
+});
+
 it('账单授权就地选择平台，默认仅交易账单，点击前不连接',async()=>{
  const connect=vi.fn(async()=>wechat),complete=vi.fn(),user=userEvent.setup();
  render(<InlineBillConsent provider="wechat_pay" connections={{}} onConnect={connect} onComplete={complete}/>);

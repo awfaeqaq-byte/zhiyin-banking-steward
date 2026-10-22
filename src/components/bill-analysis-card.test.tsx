@@ -15,6 +15,14 @@ const source:ConnectedFinancialSource={provider:'wechat_pay',displayName:'微信
 const bill=buildBillAnalysis({wechat_pay:source},'本月支出',Date.parse('2026-10-13'));
 const props={bill,onInspect:vi.fn(),onAnalyze:vi.fn()};
 
+it('BI2-014 年度逐月小计直接可见，缺失月份不补零',()=>{
+ const annual=buildBillAnalysis({wechat_pay:{...source,transactions:[...source.transactions,{id:'jan',title:'一月消费',amount:-1234,category:'餐饮',occurredAt:'2026-01-12'}]}},'2026年度账单',Date.parse('2026-10-22'));
+ render(<BillAnalysisCard {...props} bill={annual}/>);
+ const monthly=screen.getByRole('region',{name:'逐月消费小计'});
+ expect(monthly).toBeVisible();expect(monthly).toHaveTextContent('2026-01');expect(monthly).toHaveTextContent('¥12.34');expect(monthly).toHaveTextContent('2026-10');expect(monthly).toHaveTextContent('¥40');
+ expect(monthly).not.toHaveTextContent('2026-02');expect(monthly).toHaveTextContent('不代表零消费');
+});
+
 it('固定结论由真实分类占比和最大消费生成，转出和退款不混入收支',async()=>{
  render(<BillAnalysisCard {...props}/>);
  const card=screen.getByRole('region',{name:'账单分析'});
