@@ -1,3 +1,4 @@
+import {isGroupAAAuthorizationRequired} from '../lib/group-aa-authorization';
 import {LargeTransferNotice} from './large-transfer-notice';
 import {useId,useRef,useState} from 'react';
 import {ArrowRight,ArrowUpRight,CheckCircle2,ChevronDown,Clock3,Layers3,Send,ShieldCheck,WalletCards} from 'lucide-react';
@@ -79,7 +80,7 @@ export function SceneProgressCard({scene,onResume,disabled=false}:{scene:SceneFl
   {expenses&&!scene.error&&<div className="task-card-scene-expenses"><div><strong>{expenses.pendingCount} 笔实付可整理</strong><span>尚未记入账本 · 退款后净额</span></div><strong>{formatCny(expenses.netAmount)}</strong><p>核对后，再决定记账或分摊。</p></div>}
   {onResume&&(expenses||scene.next)&&<div className="task-card-scene-actions">
    {expenses&&<Button disabled={disabled||busy||!!scene.error} onClick={()=>void resume({kind:'expense',id:scene.id,workspaceId:scene.workspaceIds[0],action:'prepare_expenses'})}>{busy?'正在打开…':'整理本次费用'}<ArrowUpRight size={15} aria-hidden="true"/></Button>}
-   {scene.next&&<Button variant={expenses?'ghost':'primary'} disabled={disabled||busy} onClick={()=>void resume()}>{busy?'正在打开…':nextLabels[scene.next.kind]}<ArrowUpRight size={15} aria-hidden="true"/></Button>}
+   {scene.next&&<Button variant={expenses?'ghost':'primary'} disabled={disabled||busy} onClick={()=>void resume()}>{busy?'正在打开…':isGroupAAAuthorizationRequired(scene.error)&&scene.next.kind==='expense'?'重新授权原群':nextLabels[scene.next.kind]}<ArrowUpRight size={15} aria-hidden="true"/></Button>}
   </div>}
   {records.length>0&&<details className="task-card-scene-records" open={recordsOpen} onToggle={event=>setRecordsOpen(event.currentTarget.open)}>
    <summary aria-expanded={recordsOpen}><span>关联记录 <small>{records.length} 条</small></span><ChevronDown size={16} aria-hidden="true"/></summary>

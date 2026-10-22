@@ -1,3 +1,4 @@
+import {isGroupAAAuthorizationRequired,groupAAAuthorizationMessage,groupAAAuthorizedEvent} from '../lib/group-aa-authorization';
 import {
   forwardRef,
   useEffect,
@@ -38,17 +39,22 @@ import {TaskCardHeader} from './task-card-header';
 import {expenseBreakdownSummary} from '../lib/expense-breakdown';
 export type ExpenseNotebookHandle = {
   handle: (prompt: string) => Promise<string | null>;
+  restoreAuthorization: () => Promise<void>;
 };
 const money = (c: number) => `¥${(c / 100).toFixed(2)}`;
 const startPattern =
   /随手记|零散消费|记个账|帮我记|开始记|新活动|我先[付垫]|最后一起算|先垫付/;
 export const ExpenseNotebook = forwardRef<
   ExpenseNotebookHandle,
-  { onPrompt: (text: string) => void; activityKey?:string; sourceWorkspaceId?:string; sceneContext?:SceneContext; onReconcileSources?:()=>Promise<void>; activityTitle?:string; conversation?:boolean; onRecorded?:(prompt:string,text:string)=>Promise<void>; onNeedsInput?:(needs:boolean)=>void; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
->(function ExpenseNotebook({ onPrompt,activityKey,sourceWorkspaceId,sceneContext,onReconcileSources,activityTitle,conversation=false,onRecorded,onNeedsInput,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
+  { authorizationRequired?:boolean; onPrompt: (text: string) => void; activityKey?:string; sourceWorkspaceId?:string; sceneContext?:SceneContext; onReconcileSources?:()=>Promise<void>; activityTitle?:string; conversation?:boolean; onRecorded?:(prompt:string,text:string)=>Promise<void>; onNeedsInput?:(needs:boolean)=>void; initialBookId?:string; onBookSelected?:(id:string)=>Promise<void>; getMemoryContext?:(prompt:string)=>Promise<string>; stewardName?:string; initialHistory?:{role:'user'|'assistant';content:string}[] }
+>(function ExpenseNotebook({ authorizationRequired=false, onPrompt,activityKey,sourceWorkspaceId,sceneContext,onReconcileSources,activityTitle,conversation=false,onRecorded,onNeedsInput,initialBookId,onBookSelected,getMemoryContext,stewardName='宁宁',initialHistory=[] }, ref) {
   const activeKey=activityKey?`zhiyin-expense-active-${activityKey}`:'zhiyin-expense-active';
   const memoryEpoch=useRef(0);
   useEffect(()=>{const reset=()=>{memoryEpoch.current++;history.current=[];};window.addEventListener('zhiyin-memory-context-reset',reset);return()=>window.removeEventListener('zhiyin-memory-context-reset',reset);},[]);
+  const [needsAuthorization,setNeedsAuthorization]=useState(authorizationRequired);
+  const authorizationBlocked=useRef(authorizationRequired);
+  function markAuthorizationRequired(required:boolean){authorizationBlocked.current=required;setNeedsAuthorization(required);}
+  useEffect(()=>{markAuthorizationRequired(authorizationRequired);},[authorizationRequired]);
   const [state, setState] = useState<ExpenseState>(emptyExpenseState);
   const current = useRef(state),
     busyRef = useRef(false);
@@ -80,6 +86,7 @@ export const ExpenseNotebook = forwardRef<
   }
   async function activate(id: string) {
     if(id&&onBookSelected)await onBookSelected(id);
+    if(id!==active)markAuthorizationRequired(false);
     setActive(id);
     localStorage.setItem(activeKey, id);
     history.current = [];
@@ -129,8 +136,12 @@ export const ExpenseNotebook = forwardRef<
   async function save(op: ExpenseOperation) {
     return accept(await expenseRequest(op, current.current.revision));
   }
-  async function refreshProgress(b:ExpenseBook) {
-    const result=await groupAARequest('records',{groupId:b.group.id});
+  async function refreshProgress(b:ExpenseBook,reauthorized=false) {
+    if(authorizationBlocked.current&&!reauthorized)throw new Error(groupAAAuthorizationMessage);
+    let result:Awaited<ReturnType<typeof groupAARequest>>;
+    try{result=await groupAARequest('records',{groupId:b.group.id});}
+    catch(cause){if(isGroupAAAuthorizationRequired(cause)){markAuthorizationRequired(true);throw new Error(groupAAAuthorizationMessage);}throw cause;}
+    /* authorization was verified by the platform; existing receipt validation still applies */
     if(!Array.isArray(result.collections))throw new Error('未取得微信收款记录，请稍后重试');
     await load();
     let latest=current.current.books.find(x=>x.id===b.id)!;
@@ -150,7 +161,7 @@ export const ExpenseNotebook = forwardRef<
   }
   const refreshRef=useRef<()=>void>(()=>{});
   refreshRef.current=()=>{
-    if(!book?.batches.length||busyRef.current)return;
+    if(!book?.batches.length||busyRef.current||authorizationBlocked.current)return;
     void run(async()=>{await refreshProgress(book);});
   };
   useEffect(()=>{
@@ -160,6 +171,16 @@ export const ExpenseNotebook = forwardRef<
     window.addEventListener('zhiyin-expenses-updated',refresh);
     return ()=>{clearInterval(timer);window.removeEventListener('zhiyin-phone-foreground',refresh);window.removeEventListener('zhiyin-expenses-updated',refresh);};
   },[]);
+  async function restoreGroupAuthorization() {
+    if(!book)return;
+    await run(async()=>{
+      const response=await groupAARequest('choose',{groupId:book.group.id});
+      if(!response.group||response.group.id!==book.group.id)throw new Error('请选择此活动原群，原账本和收款回执没有更改。');
+      markAuthorizationRequired(false);setError('');
+      try{await refreshProgress(book,true);setNotice('原群授权已恢复，已核对原账本的收款进度；没有重新发起收款。');}
+      finally{window.dispatchEvent(new CustomEvent(groupAAAuthorizedEvent,{detail:{bookId:book.id}}));}
+    });
+  }
   async function run(fn: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -168,7 +189,8 @@ export const ExpenseNotebook = forwardRef<
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "记录未完成，请重试");
+      if(isGroupAAAuthorizationRequired(e)){markAuthorizationRequired(true);setError("");}
+      else setError(e instanceof Error ? e.message : "记录未完成，请重试");
       await load().catch(() => {});
     } finally {
       busyRef.current = false;
@@ -268,6 +290,7 @@ export const ExpenseNotebook = forwardRef<
     return text;
   }
   useImperativeHandle(ref, () => ({
+    restoreAuthorization:restoreGroupAuthorization,
     async handle(prompt) {
       if (busyRef.current) throw new Error("上一笔记录正在处理，请稍后再说");
       // Routing may arrive before the initial fetch paints the linked activity.
@@ -304,6 +327,7 @@ export const ExpenseNotebook = forwardRef<
         try {
           setExpanded(true);
           if(!book.batches.length)return expenseProgressText(book);
+          if(authorizationBlocked.current)return `${groupAAAuthorizationMessage}请在此活动里点击“重新授权原群”，消费与原收款回执都在。`;
           const latest=await refreshProgress(book);
           return asksReminder?await remindExpenseTomorrow(latest):expenseProgressText(latest);
         } finally {busyRef.current=false;setBusy(false);}
@@ -364,6 +388,7 @@ export const ExpenseNotebook = forwardRef<
     });
   }
   async function publish(batch: ExpenseBatch, b: ExpenseBook) {
+    if(authorizationBlocked.current)throw new Error(groupAAAuthorizationMessage);
     await verifySourceEntries(b.entries.filter(entry=>batch.entryIds.includes(entry.id)));
     const currentBook=current.current.books.find(x=>x.id===b.id),currentBatch=currentBook?.batches.find(x=>x.id===batch.id);
     if(!currentBook||!currentBatch||currentBatch.sourceChanged)throw new Error('原订单退款或金额已变化，请先核对原微信群收款，再返回修改');
@@ -387,6 +412,7 @@ export const ExpenseNotebook = forwardRef<
   async function submitSettlement() {
     if (!book) return;
     await run(async () => {
+      if(authorizationBlocked.current)throw new Error(groupAAAuthorizationMessage);
       const reviewed=JSON.stringify(book.entries.filter(e=>selected.includes(e.id)).map(e=>({id:e.id,amount:e.amount,fixed:e.fixed,shares:e.shares,refund:e.source?.refundedAmount})));
       await load();
       await verifySourceEntries(book.entries.filter(entry=>selected.includes(entry.id)));
@@ -444,7 +470,7 @@ export const ExpenseNotebook = forwardRef<
   const splitSummary = book && review ? expenseSplitSummary(book, selected) : null;
   const closed=!!book&&expenseActivityClosed(book);
   const needsReconciliation=!!book?.batches.some(batch=>batch.sourceChanged);
-  const phase=error||sourceError?'需要重新核对':setup?'待确认参与人':needsReconciliation?'待核对差额':review?'待核对分摊':candidates.length?'待确认费用':closed?'已结清':book?.batches.some(batch=>batch.status==='prepared')?'待微信确认':outstanding.length?'待结算':book?.batches.length?'待核对收款':book?'记录中':'待确认费用';
+  const phase=needsAuthorization?'待恢复群授权':error||sourceError?'需要重新核对':setup?'待确认参与人':needsReconciliation?'待核对差额':review?'待核对分摊':candidates.length?'待确认费用':closed?'已结清':book?.batches.some(batch=>batch.status==='prepared')?'待微信确认':outstanding.length?'待结算':book?.batches.length?'待核对收款':book?'记录中':'待确认费用';
   const activeWorkspace=!!book||setup||candidates.length>0;
   return (
     <section
@@ -453,7 +479,8 @@ export const ExpenseNotebook = forwardRef<
       aria-busy={busy}
     >
       <fieldset disabled={busy}>
-        {activeWorkspace&&<TaskCardHeader title={book?.title||activityTitle||'AA消费记录'} icon={<BookOpen size={18}/>} status={phase} tone={error||sourceError||needsReconciliation?'warning':closed?'success':phase==='记录中'?'neutral':'attention'} meta={book?`${book.group.name} · ${book.participants.length} 人参与`:undefined}/>}
+        {activeWorkspace&&<TaskCardHeader title={book?.title||activityTitle||'AA消费记录'} icon={<BookOpen size={18}/>} status={phase} tone={needsAuthorization||error||sourceError||needsReconciliation?'warning':closed?'success':phase==='记录中'?'neutral':'attention'} meta={book?`${book.group.name} · ${book.participants.length} 人参与`:undefined}/>}
+        {book&&needsAuthorization&&<section className="expense-source-warning expense-authorization" aria-label="原群授权待恢复"><strong>{book.group.name} · 待恢复授权</strong><p>{groupAAAuthorizationMessage}消费明细和上次回执都已保留。</p><button type="button" className="expense-primary" onClick={()=>void restoreGroupAuthorization()}>重新授权原群</button></section>}
         {candidates.length>0&&<section className="expense-source-review" aria-label="本次订单实付">
           <strong>这次已经付过的费用</strong>
           <p>从原订单带入实付，不用再填写金额。{book?'先按本次参与人平分，可继续调整。':'选择微信群和参与人后，再确认记入。'}</p>
@@ -514,7 +541,7 @@ export const ExpenseNotebook = forwardRef<
               }}>核对并结算</button>
             )}
             {review&&!expanded&&<button className="expense-primary" onClick={()=>setExpanded(true)}>继续核对分摊</button>}
-            {!expanded&&!review&&!outstanding.length&&book.batches.length>0&&!closed&&<button className="expense-primary" onClick={()=>{setExpanded(true);void run(async()=>{await refreshProgress(book);});}}>核对收款进度</button>}
+            {!expanded&&!review&&!outstanding.length&&book.batches.length>0&&!closed&&!needsAuthorization&&<button className="expense-primary" onClick={()=>{setExpanded(true);void run(async()=>{await refreshProgress(book);});}}>核对收款进度</button>}
             {expanded && (
               <div className="expense-body">
                 <div className="expense-tools">
@@ -645,6 +672,7 @@ export const ExpenseNotebook = forwardRef<
                           ))}
                         <button
                           className="expense-primary"
+                          disabled={needsAuthorization}
                           onClick={() => void submitSettlement()}
                         >
                           没问题，去微信确认收款 {money(totals.collectAmount)}
@@ -669,7 +697,7 @@ export const ExpenseNotebook = forwardRef<
                       <>
                         <p>{batch.sourceChanged?'原订单发生退款，旧收款方案已失效。先核对微信结果；确认未发布后才能返回修改。':'这些记录已锁定，避免重复发起。'}</p>
                         <button
-                          disabled={batch.sourceChanged}
+                          disabled={batch.sourceChanged||needsAuthorization}
                           onClick={() =>
                             void run(async () => {
                               await load();
@@ -679,10 +707,10 @@ export const ExpenseNotebook = forwardRef<
                         >
                           继续微信确认
                         </button>
-                        <button onClick={() => void reconcile(batch)}>
+                        <button disabled={needsAuthorization} onClick={() => void reconcile(batch)}>
                           核对结果
                         </button>
-                        <button onClick={() => void reconcile(batch, true)}>
+                        <button disabled={needsAuthorization} onClick={() => void reconcile(batch, true)}>
                           返回修改
                         </button>
                       </>
@@ -702,7 +730,7 @@ export const ExpenseNotebook = forwardRef<
                         {batch.receipt && !collectionProgress(book,batch,batch.receipt).cancelled && collectionProgress(book,batch,batch.receipt).members.map(m=>(
                           <div className="expense-person" key={m.id}><span>{m.name}</span><span>{money(m.amount)} · {m.paid?'已付':'未付'}</span></div>
                         ))}
-                        <button
+                        <button disabled={needsAuthorization}
                           onClick={() =>
                             void run(async () => {
                               await refreshProgress(book);

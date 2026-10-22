@@ -32,6 +32,7 @@
     "src/lib/expense-breakdown.ts",
     "src/lib/expense-follow-up.ts",
     "src/lib/group-aa.ts",
+    "src/lib/group-aa-authorization.ts",
     "src/lib/aa-relative-shares.ts",
     "src/lib/customer-context.ts",
     "src/lib/wealth-operation.ts",

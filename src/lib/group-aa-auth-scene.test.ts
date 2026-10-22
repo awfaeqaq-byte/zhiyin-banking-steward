@@ -26,8 +26,15 @@ it('失效授权只保留在事项状态，不再把后台错误追加为当前�
 });
 
 it('已有授权错误提醒会从首页派生通知移除，原AA对话与回执保留', () => {
- const initial=state();initial.conversation=[{id:'old-aa',role:'assistant',content:'已保存消费',workspaceId:'aa'},{id:'stale',role:'assistant',content:scene.summary,sceneId:'aa',workspaceId:'aa'},{id:'receipt',role:'assistant',content:'已收款回执',sceneId:'aa',workspaceId:'aa'}];
+ const initial=state();initial.conversation=[{id:'old-aa',role:'assistant',content:'已保存消费',workspaceId:'aa'},{id:'scene-stale',role:'assistant',content:scene.summary,sceneId:'aa',workspaceId:'aa'},{id:'receipt',role:'assistant',content:'已收款回执',sceneId:'aa',workspaceId:'aa'}];
  const next=applySceneSnapshot(initial,[scene]);
  expect(next.conversation?.map(message=>message.id)).toEqual(['old-aa','receipt']);
  expect(next.items).toEqual(initial.items);
+});
+
+it('明确恢复原群授权才重试对应账本，成功后清除本轮授权错误', async () => {
+ const request=vi.fn().mockResolvedValue(state()),expenses=vi.fn().mockResolvedValue(undefined);
+ await reconcileSceneSources({request,expenses,food:vi.fn(),occasion:vi.fn()},{retryExpenseBookIds:['book']});
+ expect(expenses).toHaveBeenCalledTimes(1);expect(expenses).toHaveBeenCalledWith('book');
+ expect(request.mock.lastCall?.[0]).toEqual({orders:[],errors:[]});
 });

@@ -1,3 +1,4 @@
+import {isGroupAAAuthorizationRequired} from '../lib/group-aa-authorization';
 import {MerchantInsightCard} from './merchant-insight-card';
 import {isMerchantPrompt,merchantAnswer,validMerchantInsight,type MerchantInsight} from '../lib/merchant-assistant';
 import {merchantRequest} from '../lib/merchant-service';
@@ -344,6 +345,8 @@ export function StewardChatHome({
     if(next.kind!=='expense'||next.action==='prepare_expenses')return;
     const notebook=expenseNotebooks.current[next.workspaceId];
     if(!notebook)throw new Error('原活动暂未载入，请稍后重试');
+    const authRequired=sceneFlows.some(scene=>scene.workspaceIds.includes(next.workspaceId)&&isGroupAAAuthorizationRequired(scene.error));
+    if(authRequired){await notebook.restoreAuthorization();return;}
     const result=await notebook.handle('查看收款进度');
     if(result===null)throw new Error('原活动暂未准备好，请在原事项中核对');
     requestAnimationFrame(()=>{
@@ -889,7 +892,7 @@ export function StewardChatHome({
       if(active)await onTurnComplete?.(user,answer,revision,failed,progress);
       else await onBackgroundTurn?.(w.id,user,answer,revision);
     };
-    const node=w.kind==='aa'&&seamless&&onOpenGroupAA?<ExpenseNotebook conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} sceneContext={context} onReconcileSources={()=>reconcileExpenseSources(w.id)} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={history}
+    const node=w.kind==='aa'&&seamless&&onOpenGroupAA?<ExpenseNotebook authorizationRequired={sceneFlows.some(scene=>scene.workspaceIds.includes(w.id)&&isGroupAAAuthorizationRequired(scene.error))} conversation ref={ref=>{expenseNotebooks.current[w.id]=ref;}} activityKey={w.id} sceneContext={context} onReconcileSources={()=>reconcileExpenseSources(w.id)} activityTitle={w.title} initialBookId={w.expenseBookId} initialHistory={history}
       onBookSelected={async id=>{await onBackgroundBook?.(w.id,id);}}
       onNeedsInput={needs=>setWaitingForAA(current=>current[w.id]===needs?current:{...current,[w.id]:needs})}
       onRecorded={async(user,text)=>{const id=`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current,{id,role:'assistant',content:text,workspaceId:w.id}]);setActiveReplyId(id);await onBackgroundTurn?.(w.id,user,text,revision);}}
@@ -1163,7 +1166,7 @@ export function StewardChatHome({
           )}
         </div>
         {!seamless && !fullSession && messages.length > 0 && <button className="desk-history-toggle" aria-expanded={historyOpen} aria-controls="steward-records" onClick={()=>setHistoryOpen(!historyOpen)}><History size={16} />对话记录 · {messages.length}<ChevronDown size={15} /></button>}
-        {!seamless&&onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook ref={expenseNotebook} activityKey={workspace?.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace?.id||''))?.context} onReconcileSources={workspace?()=>reconcileExpenseSources(workspace.id):undefined} initialBookId={workspace?.expenseBookId} onBookSelected={onWorkspaceBook} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
+        {!seamless&&onOpenGroupAA&&(workspace===undefined||workspace?.kind==='aa')&&<ExpenseNotebook authorizationRequired={sceneFlows.some(scene=>scene.workspaceIds.includes(workspace?.id||'')&&isGroupAAAuthorizationRequired(scene.error))} ref={expenseNotebook} activityKey={workspace?.id} sceneContext={sceneFlows.find(s=>s.workspaceIds.includes(workspace?.id||''))?.context} onReconcileSources={workspace?()=>reconcileExpenseSources(workspace.id):undefined} initialBookId={workspace?.expenseBookId} onBookSelected={onWorkspaceBook} stewardName={stewardName} onPrompt={text=>{setInput(text);composerInput.current?.focus();}}/>}
         {!seamless&&taskPanels.map(panel=><div key={panel.id}>{panel.node}</div>)}
         {viewError&&<p className="bill-ui-error" role="alert">{viewError}</p>}
         {error && (

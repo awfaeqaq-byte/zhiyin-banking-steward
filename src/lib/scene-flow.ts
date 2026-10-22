@@ -1,3 +1,4 @@
+import {isGroupAAAuthorizationRequired} from './group-aa-authorization';
 import type {Workspace,WorkspaceState} from './workspaces';
 import {validSceneContext,type SceneContext} from './scene-context';
 export type SceneStage='processing'|'waiting_user'|'waiting_authorization'|'waiting_external'|'completed'|'cancelled'|'failed';
@@ -30,7 +31,10 @@ function digest(value:string){let hash=2166136261;for(let i=0;i<value.length;i++
 export function applySceneSnapshot(state:WorkspaceState,scenes:SceneFlow[]):WorkspaceState{
  if(!Array.isArray(scenes)||scenes.length>100||!scenes.every(validScene)||new Set(scenes.map(s=>s.id)).size!==scenes.length||scenes.some(s=>s.workspaceIds.some(id=>!state.items.some(t=>t.id===id))))throw new Error('事项状态无效');
  const next=structuredClone(state);next.scenes=scenes;
+ // These are derived background warnings, not user messages or payment receipts.
+ if(next.conversation)next.conversation=next.conversation.filter(message=>!(message.role==='assistant'&&message.id.startsWith('scene-')&&message.sceneId&&isGroupAAAuthorizationRequired(message.content)));
  for(const scene of scenes){const previous=state.scenes?.find(s=>s.id===scene.id);
+  if(isGroupAAAuthorizationRequired(scene.error))continue;
   if(!scene.records.some(r=>r.kind!=='message')||scene.stage==='processing'||scene.records.filter(r=>r.kind!=='message').every(r=>r.status==='UNKNOWN')&&!scene.error)continue;
   const id=`scene-${digest(scene.id)}-${digest(scene.fingerprint)}`;next.conversation??=[];
   const existing=next.conversation.find(m=>m.id===id&&m.sceneId===scene.id);if(existing){existing.content=scene.summary;continue;}

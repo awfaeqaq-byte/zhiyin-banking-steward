@@ -22,3 +22,17 @@ it('网络失败保留现场，下一次前台事件重试；关闭期间的晚�
 });
 
 it('未启动时不后台读取，重新前台可启动；visibility事件能核对',async()=>{vi.mocked(reconcileSceneSources).mockResolvedValue(emptyWorkspaces());const accept=vi.fn(),view=renderHook(({enabled})=>useSceneContinuation(enabled,accept,'same'),{initialProps:{enabled:false}});expect(reconcileSceneSources).not.toHaveBeenCalled();await act(async()=>view.rerender({enabled:true}));await act(async()=>document.dispatchEvent(new Event('visibilitychange')));expect(reconcileSceneSources).toHaveBeenCalledTimes(2);view.unmount();});
+
+it('原群恢复授权后只重试原账本，保存中断时保留恢复请求到下一轮',async()=>{
+ vi.useFakeTimers();vi.mocked(reconcileSceneSources).mockResolvedValue(emptyWorkspaces());
+ const view=renderHook(()=>useSceneContinuation(true,vi.fn(),'same'));
+ await act(async()=>{});
+ vi.mocked(reconcileSceneSources).mockRejectedValueOnce(new Error('保存中断'));
+ await act(async()=>window.dispatchEvent(new CustomEvent('zhiyin-group-aa-authorized',{detail:{bookId:'original-book'}})));
+ expect(reconcileSceneSources).toHaveBeenLastCalledWith(undefined,{retryExpenseBookIds:['original-book']});
+ await act(async()=>{await vi.advanceTimersByTimeAsync(15000);});
+ expect(reconcileSceneSources).toHaveBeenLastCalledWith(undefined,{retryExpenseBookIds:['original-book']});
+ await act(async()=>{await vi.advanceTimersByTimeAsync(15000);});
+ expect(reconcileSceneSources).toHaveBeenLastCalledWith(undefined,{retryExpenseBookIds:[]});
+ view.unmount();
+});

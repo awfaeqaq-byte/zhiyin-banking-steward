@@ -1,3 +1,4 @@
+import {createExpenseStore} from '../../server/expense-store';
 import {it,expect,afterEach} from 'vitest';
 import {mkdtempSync,rmSync} from 'node:fs';import {join} from 'node:path';import {tmpdir} from 'node:os';
 import {createWorkspaceStore} from '../../server/workspace-store';import {createTaskStore} from '../../server/task-store';
@@ -35,4 +36,17 @@ it('新筹备明确属于原生日事项时关联，未知父任务或循环不�
  f.change({type:'message-routed',id:'msg',parts:[{taskId:null,relatedTaskId:'birthday',kind:'occasion',title:'王芳生日蛋糕',text:'给王芳生日准备蛋糕'}]});
  const child=f.workspace.get().items.find(t=>t.kind==='occasion')!;expect(child.sceneId).toBe('birthday');expect(()=>f.change({type:'scene-parent',id:'birthday',parentId:child.id})).toThrow('循环');
  f.change({type:'message-submit',id:'bad',text:'筹备生日',currentId:'birthday',memoryRevision:0});expect(()=>f.change({type:'message-routed',id:'bad',parts:[{taskId:null,relatedTaskId:'missing',kind:'occasion',title:'生日',text:'筹备生日'}]})).toThrow('关联');
+});
+
+
+it('旧AA缺少授权转为等用户恢复，刷新仍保留账本链接且不生成聊天错误',()=>{
+ const f=fixture();f.change({type:'create',id:'aa',kind:'aa',title:'原聚餐'});
+ const group={id:'group',name:'原群',revision:1,members:[{id:'me',name:'我',self:true}]};
+ createExpenseStore(join(f.dir,`.zhiyin-expenses-${scope}.local.json`)).change({type:'create',bookId:'book',title:'原聚餐',group,participants:['me'],defaultPayerId:'me',revision:0,requestId:crypto.randomUUID()});
+ f.change({type:'link',id:'aa',expenseBookId:'book'});
+ const next=f.service.reconcile(scope,{errors:[{workspaceId:'aa',message:'此群授权已失效，请重新选择'}]});
+ expect(next.scenes?.[0]).toMatchObject({stage:'waiting_user',next:{kind:'expense',id:'book'}});
+ expect(next.conversation?.some(message=>message.content.includes('授权'))??false).toBe(false);
+ expect(f.service.get(scope).scenes?.[0].error).toContain('授权');
+ expect(next.items[0].expenseBookId).toBe('book');
 });

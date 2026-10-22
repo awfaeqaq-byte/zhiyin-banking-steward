@@ -219,3 +219,7 @@
 .expense-tools { color: var(--muted); font-size: 12px; flex-wrap: wrap; }
 .expense-tools button { font-size: 14px; }
 @media (max-width: 380px) { .expense-notebook-active { padding: 12px; } .expense-source-row { align-items: flex-start; } }
+
+.expense-authorization {margin-block: 12px; padding: 14px; background: #fff5dc; border-radius: 10px;}
+.expense-authorization > strong {display: block; font-size: 14px;}
+.expense-authorization > p {margin-block: 6px 10px; font-size: 13px;}
