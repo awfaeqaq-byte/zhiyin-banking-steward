@@ -15,3 +15,6 @@
 .task-due-notice{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;margin:8px 0 16px;border:0;border-radius:12px;background:#edf6f6;color:#236e80;text-align:left;cursor:pointer;min-height:58px}.task-due-notice>span{flex:1;min-width:0}.task-due-notice strong{font-size:14px;display:block;overflow-wrap:anywhere}.task-due-notice small{display:block;font-size:12px;margin-top:4px;color:#516d78}.task-due-notice:focus-visible{outline:2px solid #237586;outline-offset:3px}
 
 .app-shell.mode-native .main-content.page-tasks>.page-heading{align-items:center;padding:0;margin-bottom:8px;background:#f1fafc}
+
+.task-scope-note{margin:0 0 16px;color:var(--cal-muted);font-size:12px;line-height:1.7}
+.task-editor .task-save-error{padding:10px 12px;border-radius:10px;background:#fff3ed;color:#893e2c}

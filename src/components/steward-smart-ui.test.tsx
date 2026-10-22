@@ -14,13 +14,15 @@ it('首页账单以同一回复组件展示，切平台即时更新结论并隐�
  render(<StewardChatHome {...base} homePreview connections={{wechat_pay:source,alipay}} reply={reply}/>);
  await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  const card=await screen.findByRole('region',{name:'账单分析'});
- expect(card.closest('.steward-message.assistant')).toBeTruthy();expect(card).toHaveTextContent('餐饮占本次消费的 83.3%');
- expect(screen.getByText('仅对应当前范围的补充解读。')).not.toBeVisible();
- await user.click(within(card).getByText('查看明细与切换平台'));
+ expect(card.closest('.steward-message.assistant')).toBeTruthy();expect(card).toHaveTextContent('餐饮');expect(card).toHaveTextContent('83.3%');
+ expect(screen.queryByText('仅对应当前范围的补充解读。')).not.toBeInTheDocument();
+ await user.click(within(card).getByRole('button',{name:'明细 2'}));
  await user.click(within(card).getByRole('button',{name:'只看支付宝'}));
- await waitFor(()=>expect(card).toHaveTextContent('交通占本次消费的 100%'));
+ await user.click(within(card).getByRole('button',{name:'概览'}));
+ await waitFor(()=>expect(card).toHaveTextContent('100%'));
  expect(screen.queryByText('仅对应当前范围的补充解读。')).not.toBeInTheDocument();expect(reply).toHaveBeenCalledTimes(1);
- await user.click(within(card).getByRole('button',{name:'请宁宁进一步分析'}));
+ await user.click(within(card).getByRole('button',{name:'解读'}));
+ await user.click(within(card).getByRole('button',{name:'重新分析当前账单'}));
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);
  expect(screen.getAllByRole('region',{name:'账单分析'})).toHaveLength(1);
 });
@@ -30,10 +32,12 @@ it('授权账单刷新后即使总额不变，也不展示旧流水的模型解�
  const view=render(<StewardChatHome {...props}/>);
  await user.type(screen.getByRole('textbox'),'本月支出');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  const card=await screen.findByRole('region',{name:'账单分析'});
- expect(within(card).getByText('查看宁宁的补充解读')).toBeInTheDocument();
+ await user.click(within(card).getByRole('button',{name:'解读'}));
+ expect(within(card).getByText('最大一笔是午餐，可以继续核对午餐用途。')).toBeVisible();
  view.rerender(<StewardChatHome {...props} connections={{wechat_pay:{...source,transactions:[{...source.transactions[0],title:'超市'}]}}}/>);
  await waitFor(()=>expect(within(card).getByText(/补充解读需重新生成/)).toBeInTheDocument());
- expect(within(card).queryByText('查看宁宁的补充解读')).not.toBeInTheDocument();
+ expect(within(card).queryByText('最大一笔是午餐，可以继续核对午餐用途。')).not.toBeInTheDocument();
+ await user.click(within(card).getByRole('button',{name:'概览'}));
  expect(within(card).getByText('超市')).toBeInTheDocument();
 });
 it('分析按钮发送明确分析意图和当前平台，历史回复不能把全部平台改成支付宝',async()=>{

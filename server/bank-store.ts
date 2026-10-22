@@ -3,7 +3,7 @@ import {requireTransferReview} from './transfer-risk';
 import {existsSync,readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync} from 'node:fs';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {validBankPayment,type BankPayment,type BankPaymentReceipt} from '../src/lib/bank-transfer';
-import {validTransfer,validBankSnapshot,cardProducts,type CardApplication,type TransferIntent,type BankDraft,type BankReceipt,type BankSnapshot,type BankSettings} from '../src/lib/bank-transfer';
+import {validTransfer,validBankSnapshot,validBankCardId,bankCards,cardProducts,type BankCardId,type BankCardSummary,type CardApplication,type TransferIntent,type BankDraft,type BankReceipt,type BankSnapshot,type BankSettings} from '../src/lib/bank-transfer';
 import {authorizeSchedule,executeDue,createAA,settleAA,checkTransferBudget,type SmartState} from './smart-bank';
 import type {AAIntent,BankRecipientId} from '../src/lib/bank-transfer';
 import type {WealthBookState} from './wealth-store';
@@ -12,23 +12,25 @@ import {buildBankAssetSummary,validDepositDraft,validDepositWithdrawalDraft,type
 import {prepareTermDeposit,confirmTermDeposit,prepareTermWithdrawal,confirmTermWithdrawal} from './term-deposits';
 import {availableBankFunds, heldOccasionBudget, occasionTotals, occasionChangeImpact, occasionProducts, validateOccasionDraft, validOccasionId, type OccasionDraft, type OccasionOrder, type OccasionPlan} from '../src/lib/occasion-plans';
 type State=SmartState & {version:1;wealth?:Omit<WealthBookState,'cashBalance'>;wealthMigrated?:boolean;termDeposits?:BankSnapshot['termDeposits'];depositDrafts?:DepositDraft[];depositWithdrawalDrafts?:DepositWithdrawalDraft[]};
-function snapshot(s:State):BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[],occasions=[],cardApplications=[],termDeposits=[]}=s;return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections,occasions,cardApplications,termDeposits,assetSummary:buildBankAssetSummary(s,s.wealth?.holdings,termDeposits)};}
+function accountSnapshot(s:State):BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[],occasions=[],cardApplications=[],termDeposits=[]}=s;return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections,occasions,cardApplications,termDeposits,assetSummary:buildBankAssetSummary(s,s.wealth?.holdings,termDeposits)};}
 function occasion(s:State,id:string){const plan=s.occasions?.find(p=>p.id===id);if(!plan)throw new Error('筹备安排不存在');return plan;}
 function checkOccasionFunds(s:State,amount:number,excludeId?:string){
  const pending=(s.schedules??[]).filter(p=>p.status==='pending');
  const obligations=pending.reduce((sum,p)=>sum+p.amount,0)+Math.max(0,...pending.map(p=>p.protectedAmount??0));
  if(s.balance-heldOccasionBudget(s,excludeId)-obligations<amount)throw new Error('扣除已有预约和预留后资金不足，请调整预算');
 }
-const initial=():State=>({version:1,revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],drafts:[],received:{mom:0,dad:0}});
+const initial=(cardId:BankCardId):State=>({version:1,cardId,revision:0,balance:cardId==='primary'?4230000:0,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],drafts:[],received:{mom:0,dad:0}});
 function guard(s:SmartState,now:number){
  if(s.frozen)throw new Error('付款卡已挂失，请先恢复沙箱卡');
  const hour=new Date(now+8*3600000).getUTCHours();
  if(s.controls.night && (hour>=23 || hour<6))throw new Error('夜间保护生效中（北京时间23:00—06:00），请在银行卡设置核对');
 }
-export function createBankStore(file:string) {
+function createSingleBankStore(file:string,cardId:BankCardId) {
+ const snapshot=(s:State):BankSnapshot=>({...accountSnapshot(s),cardId});
  const read=():State=>{
-  if(!existsSync(file))return initial();
+  if(!existsSync(file))return initial(cardId);
   const s=JSON.parse(readFileSync(file,'utf8')) as State;
+  if(s?.cardId!==cardId&&!(cardId==='primary'&&s?.cardId===undefined))throw new Error('银行卡与账本不匹配，已停止操作');
   if(s?.depositDrafts!==undefined&&(!Array.isArray(s.depositDrafts)||s.depositDrafts.length>20||!s.depositDrafts.every(validDepositDraft)))throw new Error('定存草稿损坏，已停止操作，请保留账本检查');
   if(s?.depositWithdrawalDrafts!==undefined&&(!Array.isArray(s.depositWithdrawalDrafts)||s.depositWithdrawalDrafts.length>20||!s.depositWithdrawalDrafts.every(validDepositWithdrawalDraft)))throw new Error('定存支取草稿损坏，已停止操作，请保留账本检查');
   if(!s || s.version!==1 || !validBankSnapshot(s) || !Array.isArray(s.drafts) || !s.drafts.every(d=>validTransfer(d) && typeof d.id==='string' && Number.isSafeInteger(d.revision) && Number.isSafeInteger(d.balance) && Number.isFinite(d.expiresAt) && (d.review===undefined||validTransferReview(d.review))) || !s.received || !Number.isSafeInteger(s.received.mom) || !Number.isSafeInteger(s.received.dad) || (s.wealth!==undefined&&(!validWealthSnapshot({...s.wealth,cashBalance:s.balance})||!Array.isArray(s.wealth.drafts)||!s.wealth.drafts.every(validWealthDraft)||!Array.isArray(s.wealth.redemptionDrafts))))throw new Error('银行账本损坏，已停止操作，请保留文件检查');
@@ -37,7 +39,7 @@ export function createBankStore(file:string) {
  };
  function mutate<T>(fn:(s:State)=>T):T {
   let lock:number;try{lock=openSync(file+'.lock','wx',0o600);}catch{throw Object.assign(new Error('账户正在处理，请稍后重试'),{code:'BANK_BUSY'});}
-  try{const s=read(),result=fn(s);writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});renameSync(file+'.tmp',file);return result;}finally{closeSync(lock);unlinkSync(file+'.lock');}
+  try{const s=read(),result=fn(s);s.cardId=cardId;writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});renameSync(file+'.tmp',file);return result;}finally{closeSync(lock);unlinkSync(file+'.lock');}
  }
  const emptyWealth=():Omit<WealthBookState,'cashBalance'>=>({version:1,drafts:[],redemptionDrafts:[],receipts:[],holdings:[],redemptions:[]});
  const wealthState=(s:State):WealthBookState=>({...emptyWealth(),...s.wealth,cashBalance:s.balance});
@@ -183,16 +185,54 @@ export function createBankStore(file:string) {
   });},
  };
 }
-export function bankMiddleware(store:ReturnType<typeof createBankStore>) {
+export function createBankStore(file:string) {
+ // Only registered IDs map to filenames; request data never becomes a path.
+ const stores={primary:createSingleBankStore(file,'primary'),living:createSingleBankStore(file+'.living.json','living'),reserve:createSingleBankStore(file+'.reserve.json','reserve')};
+ const forCard=(cardId:unknown)=>{if(!validBankCardId(cardId))throw new Error('卡片不存在，请重新选择');return stores[cardId];};
+ const readAccounts=()=>bankCards.map(card=>{
+  try{return {card,state:stores[card.id].get()};}
+  catch(error){throw new Error(`${card.name}（尾号 ${card.last4}）读取失败，银行卡汇总暂不可用`,{cause:error});}
+ });
+ const summarizeCards=(accounts:ReturnType<typeof readAccounts>):BankCardSummary[]=>accounts.map(({card,state:{revision,balance,limit,frozen,controls}})=>({...card,revision,balance,limit,frozen,controls}));
+ const getCards=():BankCardSummary[]=>summarizeCards(readAccounts());
+ return {
+  ...stores.primary,
+  forCard,
+  get():BankSnapshot{
+   const accounts=readAccounts();
+   return {...accounts[0].state,cards:summarizeCards(accounts),allSchedules:accounts.flatMap(({card,state})=>(state.schedules??[]).map(schedule=>({...schedule,cardId:card.id})))};
+  },
+  getCards,
+  runDue(now=Date.now()){
+   const completed:ReturnType<typeof stores.primary.runDue>=[],failures:Error[]=[];
+   for(const card of bankCards){
+    try{completed.push(...stores[card.id].runDue(now));}
+    catch(error){failures.push(new Error(`${card.name}（尾号 ${card.last4}）预约调度失败`,{cause:error}));}
+   }
+   if(failures.length)throw new AggregateError(failures,failures.map(error=>error.message).join('；'));
+   return completed;
+  },
+ };
+}
+export function bankMiddleware(rootStore:ReturnType<typeof createBankStore>) {
  return async(req:IncomingMessage,res:ServerResponse)=>{
   const send=(code:number,data:unknown)=>{res.statusCode=code;res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(data));};
   try{
    if(req.headers['sec-fetch-site']==='cross-site' || (req.headers.origin && new URL(req.headers.origin).host!==req.headers.host))return send(403,{error:'仅允许同源访问'});
-   if(req.method==='GET')return send(200,store.get());
+   const url=new URL(req.url??'/','http://localhost');
+   if(url.searchParams.getAll('cardId').length>1)throw new Error('卡片信息不明确，请重新选择');
+   const queryCardId=url.searchParams.get('cardId');
+   if(queryCardId!==null&&!validBankCardId(queryCardId))throw new Error('卡片不存在，请重新选择');
+   if(req.method==='GET')return send(200,url.searchParams.get('view')==='cards'?rootStore.getCards():queryCardId===null||queryCardId==='primary'?rootStore.get():rootStore.forCard(queryCardId).get());
    if(req.method!=='POST')return send(405,{error:'不支持的方法'});
    if(req.headers['x-zhiyin-bank']!=='1' || !req.headers['content-type']?.startsWith('application/json'))return send(403,{error:'请求格式无效'});
    let body='';for await(const chunk of req){body+=chunk.toString();if(Buffer.byteLength(body)>8192)return send(413,{error:'请求过大'});}
    const data=JSON.parse(body);
+   if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('请求格式无效');
+   const cardId=Object.hasOwn(data,'cardId')?data.cardId:queryCardId??'primary';
+   if(queryCardId!==null&&queryCardId!==cardId)throw new Error('卡片信息不一致，请重新选择');
+   const store=rootStore.forCard(cardId);
+   if(cardId!=='primary'&&!['settings','prepare','confirm','status','schedule','cancel-schedule','payment','refund-payment','create-aa','settle-aa','cancel-aa'].includes(data.type))throw new Error('这项服务目前使用日常支付卡，请返回该卡办理');
    if(data?.type==='prepare-deposit')return send(200,store.prepareDeposit(data));
    if(data?.type==='confirm-deposit'&&data.authorized===true&&typeof data.draftId==='string')return send(200,store.confirmDeposit(data.draftId));
    if(data?.type==='prepare-deposit-withdrawal'&&typeof data.depositId==='string')return send(200,store.prepareDepositWithdrawal(data.depositId));
@@ -212,7 +252,7 @@ export function bankMiddleware(store:ReturnType<typeof createBankStore>) {
    if(data?.type==='refund-payment' && data.authorized===true && typeof data.paymentId==='string' && data.paymentId.length<=180)return send(200,store.refundPayment(data.paymentId));
    if(data?.type==='status' && typeof data.draftId==='string' && data.draftId.length<=80)return send(200,store.status(data.draftId));
    if(data?.type==='prepare')return send(200,store.prepare(data));
-   if(data?.type==='settings')return send(200,store.configure(data));
+   if(data?.type==='settings'){const next=store.configure(data);return send(200,cardId==='primary'?rootStore.get():next);}
    if(data?.type==='apply-card' && data.authorized===true)return send(200,store.applyCard(data));
    if(data?.type==='confirm' && data.authorized===true && typeof data.draftId==='string' && data.draftId.length<=80)return send(200,store.confirm(data.draftId,Date.now(),data.riskReviewToken));
    return send(400,{error:'请在确认面板明确授权'});

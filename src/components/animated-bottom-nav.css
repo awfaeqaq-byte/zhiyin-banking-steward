@@ -1,0 +1,49 @@
+/* One persistent selection surface makes the relationship between tabs visible.
+   It uses the existing icon footprint; safe-area and 64px navigation stay intact. */
+.app-shell .bottom-nav.animated-bottom-nav { isolation: isolate; }
+.app-shell .bottom-nav.animated-bottom-nav .bottom-nav-indicator {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 0;
+  border-radius: 12px;
+  background: var(--pale);
+  pointer-events: none;
+}
+.app-shell .bottom-nav.animated-bottom-nav button {
+  position: relative;
+  z-index: 1;
+  border-radius: 10px;
+}
+.app-shell .bottom-nav.animated-bottom-nav[data-indicator-ready="true"] button > span {
+  background: transparent;
+}
+.app-shell .bottom-nav.animated-bottom-nav button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell .bottom-nav.animated-bottom-nav .bottom-nav-indicator {
+    transition: transform 320ms cubic-bezier(.22, 1, .36, 1);
+  }
+  .app-shell .bottom-nav.animated-bottom-nav button > span svg {
+    transform: none;
+    transition: transform 280ms var(--motion-ease), stroke-width 180ms ease;
+  }
+  .app-shell .bottom-nav.animated-bottom-nav button.active > span svg {
+    transform: translateY(-1px) scale(1.12);
+    stroke-width: 2.15;
+  }
+  /* Keep measured icon containers still while the glyph acknowledges a press. */
+  .app-shell .bottom-nav.animated-bottom-nav button:active:not(:disabled) { transform: none; }
+  .app-shell .bottom-nav.animated-bottom-nav button:active:not(:disabled) > span svg {
+    transform: scale(.9);
+    transition-duration: 100ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .bottom-nav.animated-bottom-nav .bottom-nav-indicator,
+  .app-shell .bottom-nav.animated-bottom-nav button > span svg { transition: none; }
+  .app-shell .bottom-nav.animated-bottom-nav button > span svg { transform: none; }
+}

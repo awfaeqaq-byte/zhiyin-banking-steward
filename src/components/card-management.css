@@ -1,0 +1,141 @@
+.card-management { max-width: 1000px; margin-inline: auto; color: var(--ink); }
+.card-management :is(button, summary) { min-height: 44px; }
+.card-management :is(button, input, summary):focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.card-management-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.card-management-heading > div { flex: 1; min-width: 0; }
+.card-back { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; color: var(--ink); background: transparent; }
+.card-back:hover { background: var(--pale); }
+.card-management-heading h1 { margin: 0; font-size: 26px; line-height: 1.4; font-weight: 650; }
+.card-management-heading p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.card-refresh { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 0; background: transparent; color: var(--teal-dark); font-size: 13px; flex-shrink: 0; }
+.card-refresh:disabled { opacity: .6; cursor: wait; }
+.card-refresh .is-refreshing { animation: card-refresh-spin .8s linear infinite; }
+/* The exposed 54px card slots remain touch targets. The selected card comes
+   forward; its identity and account data travel together. */
+.card-wallet { --wallet-card-height: 214px; --wallet-slot: 54px; position: relative; isolation: isolate; width: 100%; max-width: 460px; height: calc(var(--wallet-card-height) + (var(--wallet-count) - 1) * var(--wallet-slot) + 28px); margin: 8px auto 18px; }
+.card-wallet-lining { position: absolute; inset: 13px -5px -2px; border-radius: 22px 22px 25px 25px; background: #dbe7e2; box-shadow: inset 0 2px 5px rgb(20 55 47 / 7%); }
+.wallet-bank-card { --card-ink: #f4fffb; --card-soft: #c5e5dc; --chip-line: #7c8169; --card-material: linear-gradient(115deg, #1c6661 0%, #164c4b 67%, #103e40 100%); position: absolute; inset: 0 0 auto; width: 100%; height: var(--wallet-slot); padding: 0; border: 0; border-radius: 16px; color: var(--card-ink); background: transparent; text-align: left; overflow: visible; cursor: pointer; transform: translateY(calc(var(--wallet-position) * var(--wallet-slot))); -webkit-tap-highlight-color: transparent; }
+.wallet-bank-card[data-card-id="living"] { --card-ink: #254d45; --card-soft: #34594e; --card-material: linear-gradient(115deg, #e1ebd9 0%, #ccdcca 67%, #bed0bf 100%); }
+.wallet-bank-card[data-card-id="reserve"] { --card-soft: #c9dbe3; --card-material: linear-gradient(115deg, #3d5c6d 0%, #274451 65%, #1d3542 100%); }
+.wallet-bank-card[data-selected="true"] { height: var(--wallet-card-height); }
+/* The hit area is only the exposed slot; the visual card never stretches.
+   Paint the entire face behind its neighbours, including during a switch. */
+.wallet-card-surface { position: relative; display: flex; flex-direction: column; width: 100%; height: var(--wallet-card-height); padding: 0 21px; border-radius: inherit; overflow: hidden; background: var(--card-material); box-shadow: 0 -2px 9px rgb(14 39 36 / 7%); pointer-events: none; }
+.wallet-bank-card[data-selected="true"] .wallet-card-surface { box-shadow: 0 10px 20px rgb(17 49 43 / 17%); animation: wallet-card-reveal 220ms cubic-bezier(.2,.75,.25,1) both; }
+.wallet-bank-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.wallet-bank-card:focus-visible .wallet-card-header { outline: 2px solid currentColor; outline-offset: -5px; border-radius: 10px; }
+.wallet-card-surface::after { content: ""; position: absolute; right: -65px; top: 65px; width: 280px; height: 280px; border: 1px solid currentColor; border-radius: 50%; opacity: .09; box-shadow: 0 0 0 23px rgb(255 255 255 / 4%), 0 0 0 47px rgb(255 255 255 / 3%); pointer-events: none; }
+.wallet-card-header { flex-shrink: 0; position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; height: var(--wallet-slot); }
+.wallet-card-name { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; }
+.wallet-card-name svg { flex-shrink: 0; }
+.wallet-card-peek { font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: .04em; transition: opacity 140ms ease; }
+.wallet-card-selected { position: absolute; right: 0; opacity: 0; transition: opacity 140ms ease; }
+.wallet-bank-card[data-selected="true"] .wallet-card-peek { opacity: 0; }
+.wallet-bank-card[data-selected="true"] .wallet-card-selected { opacity: 1; }
+.wallet-card-face { flex-shrink: 0; position: relative; z-index: 1; display: grid; gap: 15px; }
+.wallet-card-chip-row { display: flex; align-items: center; gap: 10px; height: 29px; }
+.wallet-card-chip { width: 35px; height: 27px; color: #d7ceaa; }
+.wallet-contactless { transform: rotate(90deg); opacity: .7; }
+.wallet-card-chip-row > span { margin-left: auto; font-size: 11px; color: var(--card-soft); }
+.wallet-card-number { display: flex; align-items: center; gap: 16px; font-size: 19px; font-variant-numeric: tabular-nums; letter-spacing: .09em; line-height: 1.3; }
+.wallet-card-number > span { opacity: .65; font-size: 17px; }
+.wallet-card-number strong { font-weight: 550; }
+.wallet-card-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.wallet-card-balance { display: grid; gap: 3px; }
+.wallet-card-balance small { font-size: 11px; color: var(--card-soft); }
+.wallet-card-balance strong { font-size: 23px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.wallet-card-status { display: inline-flex; align-items: center; gap: 5px; padding-bottom: 4px; font-size: 11px; color: var(--card-soft); white-space: nowrap; }
+.wallet-card-status > span { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.card-wallet-pocket { position: absolute; z-index: 5; left: -5px; right: -5px; bottom: -2px; height: 30px; border-radius: 3px 3px 24px 24px; background: linear-gradient(#dbe7e2, #e5ede7); box-shadow: 0 -2px 4px rgb(18 48 40 / 4%); pointer-events: none; }
+.card-wallet-pocket::after { content: ""; position: absolute; bottom: 8px; left: 15px; right: 15px; height: 6px; border-bottom: 1px dashed #a5bfb4; border-radius: 0 0 16px 16px; opacity: .65; }
+.selected-card { display: grid; gap: 22px; }
+.card-account-section { padding: 0 2px; }
+.card-detail-placeholder { min-height: 455px; }
+.card-application-controls { border: 0; padding: 0; margin: 0; min-width: 0; }
+.card-ask:disabled { opacity: .6; cursor: not-allowed; }
+.card-detail-heading { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.card-detail-heading h2 { margin: 0; display: grid; gap: 3px; font-size: 17px; line-height: 1.5; }
+.card-detail-heading h2 > span { color: var(--muted); font-size: 12px; font-weight: 400; }
+.card-state { display: inline-flex; gap: 5px; align-items: center; color: var(--teal-dark); font-size: 12px; white-space: nowrap; padding-top: 3px; }
+.card-state[data-frozen="true"] { color: var(--danger); }
+.card-available { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card-available > span { color: var(--muted); font-size: 13px; }
+.card-available > strong { font-size: 16px; font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.card-balance-note { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.card-transfer-button { width: 100%; margin-top: 12px; min-height: 48px; border-radius: 12px; }
+.card-ask { display: flex; gap: 8px; align-items: center; width: 100%; border: 0; background: transparent; color: var(--teal-dark); font-size: 13px; text-align: left; margin-top: 5px; padding: 8px 0; }
+.card-ask span { flex: 1; }
+.card-ask svg { flex-shrink: 0; }
+.card-permissions h2 { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px; margin: 0 0 10px; font-size: 17px; line-height: 1.5; }
+.card-permissions h2 span { font-size: 12px; font-weight: 400; color: var(--muted); }
+.card-permission-list { padding-inline: 16px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.card-permission-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 0; min-height: 66px; border: 0; background: transparent; color: var(--ink); text-align: left; }
+.card-permission-row + .card-permission-row { border-top: 1px solid var(--line); }
+.card-permission-row > svg { color: var(--teal-dark); flex-shrink: 0; }
+.card-permission-row > span { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.card-permission-row strong { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.card-permission-row small { color: var(--muted); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.card-permission-row .switch-root { min-height: 26px; flex-shrink: 0; }
+.card-permission-row .switch-root:before { inset: -9px -1px; }
+.card-limit-row:hover { color: var(--teal-dark); }
+.card-limit-row:disabled { opacity: .6; cursor: not-allowed; }
+.card-freeze-button { width: 100%; margin-top: 10px; }
+.card-change-receipt { display: flex; align-items: flex-start; gap: 8px; color: var(--teal-dark); font-size: 13px; line-height: 1.65; margin: 10px 0 0; }
+.card-change-receipt > svg { flex-shrink: 0; margin-top: 2px; }
+.card-history, .card-new-application { border-top: 1px solid var(--line); }
+.card-history > summary, .card-new-application > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; cursor: pointer; }
+.card-history > summary::-webkit-details-marker, .card-new-application > summary::-webkit-details-marker { display: none; }
+.card-history > summary > span, .card-new-application > summary > span { display: grid; gap: 3px; font-size: 14px; font-weight: 600; }
+.card-history > summary small, .card-new-application > summary small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.card-history > summary > svg, .card-new-application > summary > svg { transition: transform 180ms ease; color: var(--muted); flex-shrink: 0; }
+.card-history[open] > summary > svg, .card-new-application[open] > summary > svg { transform: rotate(180deg); }
+.card-new-application .card-application { margin: 0; padding: 0; border: 0; background: transparent; }
+.card-new-application .card-application > h3 { display: none; }
+.card-record-list > p { margin: 4px 0 12px; font-size: 13px; color: var(--muted); }
+.card-record-list > details { padding-block: 10px; border-top: 1px solid var(--line); }
+.card-record-list summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
+.card-record-list summary > span { display: grid; gap: 4px; font-size: 14px; }
+.card-record-list summary > strong { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 14px; }
+.card-record-list :is(small, p) { font-size: 12px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.card-management-error { display: flex; align-items: flex-start; gap: 8px; padding: 12px 0; color: var(--danger); font-size: 13px; line-height: 1.6; }
+.card-management-error > svg { flex-shrink: 0; margin-top: 2px; }
+.card-management-error p { margin: 0; }
+.card-management-error small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.card-management-error .button-base { margin-top: 8px; }
+.card-loading { margin: 12px 0; font-size: 14px; color: var(--muted); }
+.card-limit-form { display: grid; gap: 8px; }
+.card-limit-form p { margin: 0 0 6px; color: var(--muted); font-size: 14px; }
+.card-limit-form label { font-size: 14px; font-weight: 600; }
+.card-limit-form input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: #fff; font-size: 18px; font-variant-numeric: tabular-nums; caret-color: var(--teal); }
+.card-limit-form input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.card-limit-form small { color: var(--muted); font-size: 12px; }
+.card-confirm-copy { font-size: 14px; line-height: 1.8; margin: 0; }
+.card-confirm-error { color: var(--danger); font-size: 13px; line-height: 1.6; }
+.card-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+.card-confirm-actions .button-base { min-height: 44px; }
+@keyframes card-refresh-spin { to { transform: rotate(360deg); } }
+@keyframes wallet-card-reveal { from { opacity: 0; } to { opacity: 1; } }
+@media (min-width: 760px) {
+  .selected-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; gap: 22px 28px; }
+  .card-account-section { grid-column: 1; grid-row: 1; }
+  .card-detail-placeholder { min-height: 330px; }
+  .card-permissions { grid-column: 2; grid-row: 1 / span 3; }
+  .card-history, .card-new-application { grid-column: 1; }
+}
+@media (max-width: 480px) {
+  .card-management-heading h1 { font-size: 23px; }
+  .card-management-heading { gap: 8px; margin-bottom: 14px; }
+  .card-account-section { padding-inline: 2px; }
+  .selected-card { gap: 20px; }
+  .card-confirm-actions { grid-template-columns: 1fr; }
+}
+@media (max-width: 360px) {
+  .wallet-card-surface { padding-inline: 17px; }
+  .wallet-card-number { gap: 11px; font-size: 18px; }
+  .wallet-card-number > span { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wallet-bank-card, .wallet-card-peek, .wallet-card-selected, .card-history > summary > svg, .card-new-application > summary > svg { transition: none; }
+  .wallet-bank-card[data-selected="true"] .wallet-card-surface { animation: none; }
+  .card-refresh .is-refreshing { animation: none; }
+}

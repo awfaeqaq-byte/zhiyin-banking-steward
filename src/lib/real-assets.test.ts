@@ -48,11 +48,11 @@ it('无效金额、期限、过期方案和损坏定存停止操作，不改账�
  expect(()=>bank.prepareDeposit({amount:100000,months:4},now)).toThrow();
  const draft=bank.prepareDeposit({amount:100000,months:3},now);const before=readFileSync(file,'utf8');
  expect(()=>bank.confirmDeposit(draft.id,now+300001)).toThrow(/过期/);expect(readFileSync(file,'utf8')).toBe(before);
- const state=JSON.parse(before);state.termDeposits=[null];writeFileSync(file,JSON.stringify(state));expect(()=>bank.get()).toThrow(/损坏/);
+ const state=JSON.parse(before);state.termDeposits=[null];writeFileSync(file,JSON.stringify(state));expect(()=>bank.get()).toThrow(/读取失败/);
 });
 it('损坏定存草稿不能反向加钱，读取与执行都停止，不覆写原文件',()=>{
  const {file,bank}=fixture();const draft=bank.prepareDeposit({amount:100000,months:3},now);
  const state=JSON.parse(readFileSync(file,'utf8'));state.depositDrafts[0].amount=-100000;writeFileSync(file,JSON.stringify(state));
- const before=readFileSync(file,'utf8');expect(()=>bank.get()).toThrow(/损坏/);
+ const before=readFileSync(file,'utf8');expect(()=>bank.get()).toThrow(/读取失败/);
  expect(()=>bank.confirmDeposit(draft.id,now+1)).toThrow(/损坏/);expect(readFileSync(file,'utf8')).toBe(before);
 });

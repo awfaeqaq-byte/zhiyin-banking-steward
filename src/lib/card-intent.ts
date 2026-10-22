@@ -1,3 +1,15 @@
+import {bankCards,type BankCardId} from './bank-transfer';
+
+/** Resolve only a named card or explicit tail number; an amount is not a card number. */
+export function cardIntentTarget(text:string):BankCardId|'unknown'|'ambiguous'|null{
+ const matches=new Set<BankCardId>();
+ for(const card of bankCards)if(text.includes(card.name)||new RegExp(`(?:尾号|卡号|卡片|银行卡|卡)\\s*${card.last4}(?!\\d)|(?<!\\d)${card.last4}\\s*(?:的)?(?:银行卡|卡)`).test(text))matches.add(card.id);
+ if(/常用卡|主卡/.test(text))matches.add('primary');
+ const tails=Array.from(text.matchAll(/(?:尾号|卡号|卡片|银行卡|卡)\s*(\d{4,19})(?!\d)|(?<!\d)(\d{4,19})\s*(?:的)?(?:银行卡|卡)/g));
+ if(tails.some(match=>!bankCards.some(card=>card.last4===(match[1]??match[2]))))return 'unknown';
+ if(matches.size>1)return 'ambiguous';
+ return [...matches][0]??null;
+}
 export type CardIntent=
  | {kind:'limit';yuan:number}
  | {kind:'freeze'}

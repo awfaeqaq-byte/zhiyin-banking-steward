@@ -1,3 +1,4 @@
+import {useConversationArrival} from '../lib/use-interface-motion';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
@@ -75,6 +76,7 @@ import {depositRequestForMessages} from '../lib/bank-assets';
 import {TermDepositPanel} from './term-deposit-panel';
 import {StewardVoice} from './steward-voice';
 import type {VoiceBusiness} from '../lib/realtime-voice';
+import type {VoiceContextLoader,VoiceTurn} from '../lib/voice-conversation';
 
 import type {SceneFlow,SceneNext} from '../lib/scene-flow';
 import {reconcileSceneSources} from '../lib/scene-service';
@@ -108,6 +110,9 @@ type AttentionEvent =
 
 type Props = {
   voiceEnabled?:boolean;
+  voiceReviewing?:boolean;
+  getVoiceContext?:VoiceContextLoader;
+  onVoiceTurn?:(turn:VoiceTurn)=>void;
   onVoiceRequest?:VoiceBusiness;
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
@@ -239,6 +244,7 @@ function actionSubscription(
 
 export function StewardChatHome({
   voiceEnabled=true,
+  voiceReviewing=false,getVoiceContext,onVoiceTurn,
   onVoiceRequest,
   wechatShare,onWechatShareDone,
   seamless=false, homePreview=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,conversationRuns,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
@@ -326,6 +332,19 @@ export function StewardChatHome({
   const latestMessages=useRef(messages);
   latestMessages.current=messages;
   const [homeConversationHydrated,setHomeConversationHydrated]=useState(false);
+  const messageSurface = useConversationArrival(messages.map(message => message.id), !seamless || homeConversationHydrated, conversationKey);
+  async function resumeSceneAtSource(next:SceneNext){
+    await onResumeScene?.(next);
+    if(next.kind!=='expense'||next.action==='prepare_expenses')return;
+    const notebook=expenseNotebooks.current[next.workspaceId];
+    if(!notebook)throw new Error('原活动暂未载入，请稍后重试');
+    const result=await notebook.handle('查看收款进度');
+    if(result===null)throw new Error('原活动暂未准备好，请在原事项中核对');
+    requestAnimationFrame(()=>{
+      const panel=Array.from(messageSurface.current?.querySelectorAll<HTMLElement>('[data-task-id]')||[]).find(element=>element.dataset.taskId===next.workspaceId);
+      panel?.scrollIntoView?.({block:'nearest',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    });
+  }
   useEffect(()=>{
     if(seamless&&conversationMessages===undefined&&contextWorkspaces.length)setMessages(current=>recoverReplies(current,contextWorkspaces));
   },[seamless,contextWorkspaces,conversationMessages]);
@@ -407,7 +426,7 @@ export function StewardChatHome({
     if(!initialDraft){handledDraft.current='';return;}
     if(handledDraft.current===initialDraft)return;
     handledDraft.current=initialDraft;
-    setInput(initialDraft);
+    setInput(current=>current.trim()&&current!==initialDraft?`${current.trimEnd()}；${initialDraft}`:initialDraft);
     onInitialDraftConsumed?.();
     window.setTimeout(()=>composerInput.current?.focus(),0);
   },[initialDraft,onInitialDraftConsumed]);
@@ -751,7 +770,8 @@ export function StewardChatHome({
         const needsConsent=Boolean(response.action?.type==='open_connections'&&!billAnalysis?.sources.length||billAnalysis&&!billAnalysis.sources.length);
         setBillScenes(current=>({...current,[key]:{
           key,anchorId:responseId,question,
-          interpretationQuestion:question,
+          interpretationQuestion:question,interpretationCategory:selectedCategory||'',
+          ...(interaction.current||selectedFocus?{preferredView:'insight' as const}:{}),
           ...(billAnalysis?{interpretationLedger:billLedgerFingerprint(billAnalysis)}:{}),
           ...(selectedCategory?{category:selectedCategory}:{}),
           ui:response.billUI||{sections:['overview','categories'],evidenceRefs:evidenceRefs(response.text)},
@@ -787,6 +807,17 @@ export function StewardChatHome({
     event.preventDefault();
     if(wechatShare){try{void sendPrompt(sharePrompt(wechatShare,input.trim()||wechatShare.instruction));}catch(cause){setError(cause instanceof Error?cause.message:'请核对分享材料');}}
     else void sendPrompt(input);
+  }
+
+  async function retryBillData() {
+    if(!refreshSubscriptions||revalidatingBill||refreshing||sending||externalBusy)return;
+    setRevalidatingBill(true);setBillDataError('');
+    try {
+      const result=await refreshSubscriptions();
+      setBillConnections(result.connections);setBillDataError(result.error);
+      setBillScenes(current=>Object.fromEntries(Object.entries(current).map(([key,scene])=>[key,{...scene,ui:scene.ui?{...scene.ui,evidenceRefs:[]}:undefined}])));
+    } catch(cause) {setBillDataError(cause instanceof Error?cause.message:'账单未能重新核对，请重试。');}
+    finally {setRevalidatingBill(false);}
   }
 
   function interactWithBill(scene:BillScene,value:BillInteraction) {
@@ -852,7 +883,7 @@ export function StewardChatHome({
     return node?[{id:w.id,title:w.title,active:active||Boolean(waitingForAA[w.id]),disabled:w.status!=='active',pendingMessageId:prompt?.messageId,node}]:[];
   });
   return (
-    <div className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
+    <div ref={messageSurface} className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
         <div className="steward-thread-context" aria-label="对话日期">
           <span>今天</span>
@@ -1017,11 +1048,12 @@ export function StewardChatHome({
             const related = action ? actionSubscription(action, subscriptions) : undefined;
             const linkedScene=message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id?sceneFlows.find(s=>s.id===message.sceneId):undefined;
             const subscriptionOverview=latestInTask&&(action?.type==='open_subscriptions'||action?.type==='prepare_cancel'||/^(?:帮我|请|给我)?(?:查看|看看|检查|列出|整理)(?:一下|下)?(?:我的|当前|全部)?(?:订阅|会员|续费)(?:安排|情况|清单|列表)?[。！!\s]*$/.test(sourceText));
-            const taskSurface=seamless&&message.role==='assistant'&&!historyOpen?(action?.type==='prepare_transfer'&&onPrepareTransfer?<TransferPlanCard intent={action} quote={message.transferQuote} sourceText={message.transferSource||sourceText} disabled={sending||externalBusy} onReview={intent=>onPrepareTransfer(intent,message.workspaceId)}/>:subscriptionOverview?<SubscriptionReviewCard items={subscriptions} error={refreshError} disabled={sending||externalBusy||refreshing} onReviewCancel={onPrepareCancel} onToggleReminder={onToggleReminder} onOpen={onOpenSubscriptions}/>:linkedScene?<SceneProgressCard scene={linkedScene} onResume={onResumeScene} disabled={sending||externalBusy}/>:null):null;
+            const taskSurface=seamless&&message.role==='assistant'&&!historyOpen?(action?.type==='prepare_transfer'&&onPrepareTransfer?<TransferPlanCard intent={action} quote={message.transferQuote} sourceText={message.transferSource||sourceText} disabled={sending||externalBusy} onReview={intent=>onPrepareTransfer(intent,message.workspaceId)}/>:subscriptionOverview?<SubscriptionReviewCard items={subscriptions} error={refreshError} disabled={sending||externalBusy||refreshing} onReviewCancel={onPrepareCancel} onToggleReminder={onToggleReminder} onOpen={onOpenSubscriptions}/>:linkedScene?<SceneProgressCard scene={linkedScene} onResume={onResumeScene?resumeSceneAtSource:undefined} disabled={sending||externalBusy}/>:null):null;
             const scene=seamless?Object.values(billScenes).find(s=>s.anchorId===message.id):undefined;
             const currentBill=scene&&!scene.needsConsent&&scene.question?buildBillAnalysis(billConnections,scene.question,billReferenceTime(billConnections,referenceTime)):undefined;
             const interpretationChanged=Boolean(currentBill&&(
               !scene?.interpretationLedger||scene.interpretationLedger!==billLedgerFingerprint(currentBill)||
+              (scene.category||'')!==(scene.interpretationCategory||'')||
               scene.interpretationQuestion&&billScopeQuestion(scene.interpretationQuestion,billProvider(scene.interpretationQuestion))!==billScopeQuestion(scene.question,billProvider(scene.question))));
             // The bill card and consent panel own data navigation. A model choice
             // is only a conversational follow-up, never a substitute for a real row.
@@ -1029,24 +1061,26 @@ export function StewardChatHome({
               !/(?:查看|核对|分析|切换|换个|连接|授权|读取).{0,25}(?:账单|明细|交易|平台|支付宝|微信|时间段|月份)/.test(choice)
               && !/^(?:只看|就看|查看|切换到|看)?(?:微信(?:支付)?|支付宝|全部平台|全部)(?:的)?(?:账单)?$/.test(choice)):parsed.choices;
             const billSurface=scene&&scene.needsConsent&&onConnectSource?<InlineBillConsent key={`bill-scene-${scene.key}`} provider={scene.provider} connections={billConnections} onConnect={onConnectSource} disabled={sending||externalBusy||refreshing||revalidatingBill} onComplete={(updated,selected)=>continueAuthorizedBill(scene,updated,selected)}/>:scene&&scene.question?<StewardBillWorkspace
-              key={`bill-scene-${scene.key}`} question={scene.question} connections={billConnections} ui={scene.ui}
+              key={`bill-scene-${scene.key}`} compact={homePreview} question={scene.question} connections={billConnections} ui={scene.ui}
               selectedCategory={scene.category} selectedFocus={scene.focus}
               interpretationChanged={interpretationChanged}
               stewardName={stewardName} disabled={sending||externalBusy||viewSaving} loading={refreshing||revalidatingBill}
-              error={refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)}
+              error={refreshing||revalidatingBill?'':refreshError||billDataError} now={billReferenceTime(billConnections,referenceTime)}
               onViewChange={value=>void changeBillView(scene,value)} onInteract={value=>interactWithBill(scene,value)}
               onRequestConnection={onConnectSource?provider=>setBillScenes(current=>({...current,[scene.key]:{...scene,needsConsent:true,provider}})):undefined}/>:null;
             const billCard=homePreview&&scene&&currentBill?<BillAnalysisCard
-              bill={currentBill}
+              bill={currentBill} initialView={scene.preferredView}
+              onRetry={refreshSubscriptions?()=>void retryBillData():undefined}
+              selectedCategory={scene.category} onCategoryChange={category=>void changeBillView(scene,{question:scene.question,provider:billProvider(scene.question),...(category?{category}:{})})}
               stewardName={stewardName} disabled={sending||externalBusy||viewSaving} loading={refreshing||revalidatingBill}
-              error={refreshError||billDataError} details={billSurface}
+              error={refreshing||revalidatingBill?'':refreshError||billDataError} details={billSurface}
               interpretationChanged={interpretationChanged}
               explanation={<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>}
               onInspect={focus=>interactWithBill(scene,{question:scene.question,provider:billProvider(scene.question),focus})}
               onAnalyze={()=>interactWithBill(scene,{question:scene.question,provider:billProvider(scene.question),...(scene.category?{category:scene.category}:{})})}/>:null;
             // Current ledger first, then its explanation. Consent still follows the question asking for it.
             return [scene?.needsConsent||billCard?null:billSurface,(
-              <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}`} role={message.retryPrompt?'alert':undefined} key={message.id}>
+              <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}${billCard?' has-bill-card':''}`} data-message-id={message.id} data-workspace-id={message.workspaceId} role={message.retryPrompt?'alert':undefined} key={message.id}>
                 {homePreview&&message.role==='assistant'&&<img className="home-reply-avatar" src={stewardImage} alt=""/>}
                 <div className="steward-brief">
                   {homePreview&&message.role==='assistant'&&<div className="home-reply-identity"><strong>{stewardName}</strong><span>AI</span></div>}
@@ -1056,7 +1090,7 @@ export function StewardChatHome({
                       ? <WealthInlineCompare reply={parsed.text} replyAssessedAt={message.riskAssessedAt} stewardName={stewardName} onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>
                       : <details className="wealth-archived-reply"><summary>历史理财说明</summary><StewardReplyContent content={parsed.text} stewardName={stewardName}/></details>
                     : seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:homePreview&&message.role==='assistant'?<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>)}
-                  {!taskSurface&&message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id&&sceneFlows.find(s=>s.id===message.sceneId)?.next&&onResumeScene&&<button className="desk-text-action" onClick={()=>void onResumeScene(sceneFlows.find(s=>s.id===message.sceneId)!.next!)}>{({food:'查看原订单',occasion:'继续核对筹备',expense:'查看收款进度',calendar:'查看日历安排',bank:'查看银行记录'} as const)[sceneFlows.find(s=>s.id===message.sceneId)!.next!.kind]}</button>}
+                  {!taskSurface&&message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id&&sceneFlows.find(s=>s.id===message.sceneId)?.next&&onResumeScene&&<button className="desk-text-action" onClick={()=>void resumeSceneAtSource(sceneFlows.find(s=>s.id===message.sceneId)!.next!).catch(cause=>setError(cause instanceof Error?cause.message:'原事项暂未打开'))}>{({food:'查看原订单',occasion:'继续核对筹备',expense:'查看收款进度',calendar:'查看日历安排',bank:'查看银行记录'} as const)[sceneFlows.find(s=>s.id===message.sceneId)!.next!.kind]}</button>}
                   {(message.retryRunId&&onRetryMessage||!message.retryRunId&&message.retryPrompt&&message.id===activeReplyId)&&<button className="desk-text-action" disabled={sending||externalBusy||viewSaving} onClick={()=>void retryMessage(message)}>重试这条消息</button>}
                   {!historyOpen && message.id===activeReplyId && message.view==='term_deposit' && <TermDepositPanel scope={message.workspaceId??workspace?.id??'home'} initialRequest={depositRequestForMessages(messages.slice(0,messages.findIndex(m=>m.id===message.id)))??''}/>}
                   {!historyOpen && memory?.state.enabled && memory.error && <p className="memory-help" role="status">本次未能读取长期记忆，可到个人中心重试。</p>}
@@ -1104,7 +1138,7 @@ export function StewardChatHome({
           }}/>
           {(sending || seamless&&externalBusy) && (
             <div className="steward-message assistant waiting">
-              <div className="desk-working" role="status"><LoaderCircle className="spin" size={17} />{!sending?(processingPhase==='routing'?'正在理解你的意思…':processingPhase==='replying'?`${stewardName}正在整理回复…`:'正在核对所需信息…'):requestPhase === 'checking' ? '正在核对授权数据…' : `${stewardName}正在整理回复…`}</div>
+              <div className="desk-working" role="status"><span className="steward-working-dots" aria-hidden="true"><i/><i/><i/></span>{!sending?(processingPhase==='routing'?'正在理解你的意思…':processingPhase==='replying'?`${stewardName}正在整理回复…`:'正在核对所需信息…'):requestPhase === 'checking' ? '正在核对授权数据…' : `${stewardName}正在整理回复…`}</div>
             </div>
           )}
         </div>
@@ -1139,7 +1173,7 @@ export function StewardChatHome({
               {sending&&!onRoutePrompt ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
             </button>
           </div>
-          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} enabled={voiceEnabled} disabled={sending||externalBusy||viewSaving||!!wechatShare} onActiveChange={setVoiceActive}/>}
+          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} getContext={getVoiceContext} onTurn={onVoiceTurn} reviewing={voiceReviewing} enabled={voiceEnabled} disabled={!!wechatShare} onActiveChange={setVoiceActive}/>}
           <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />涉及资金的操作仍需你确认</span>
         </form>
       </section>

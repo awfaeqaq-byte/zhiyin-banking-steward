@@ -1,0 +1,118 @@
+/* One motion language for the shipped steward UI. Content is usable immediately;
+   only interaction and true incoming messages receive motion. */
+:root {
+  --motion-press: 120ms;
+  --motion-control: 180ms;
+  --motion-panel: 320ms;
+}
+
+/* History is not a new result. The arrival hook animates newly appended replies. */
+.app-shell .steward-chat-home,
+.app-shell .steward-message,
+.app-shell .steward-message .steward-bill-scene,
+.app-shell .steward-message .bill-reply { animation: none; }
+
+.app-shell :is(.home-preview-nav, .bottom-nav) button,
+.app-shell .home-preview-conversations,
+.app-shell .home-preview-identity,
+.app-shell .steward-reply-choices button,
+.app-shell .steward-chat-composer button,
+.app-shell :is(.primary-button, .secondary-button, .text-link, .back-button),
+.conversation-sheet button,
+.conversation-modal button {
+  transition: background-color var(--motion-control) ease,
+    color var(--motion-control) ease, border-color var(--motion-control) ease,
+    transform var(--motion-press) var(--motion-ease);
+}
+.app-shell .bottom-nav button > span {
+  transition: background-color var(--motion-control) ease, color var(--motion-control) ease;
+}
+.app-shell .bottom-nav button > span svg {
+  transition: transform var(--motion-control) var(--motion-ease);
+}
+.app-shell .bottom-nav button.active > span svg { transform: translateY(-1px); }
+.app-shell .steward-composer-field {
+  transition: border-color var(--motion-control) ease, box-shadow var(--motion-control) ease;
+}
+.app-shell .steward-chat-composer input { caret-color: var(--teal); }
+.app-shell .steward-chat-composer button:disabled { cursor: default; }
+.app-shell .steward-chat-composer button svg {
+  transition: transform var(--motion-press) var(--motion-ease);
+}
+
+/* Movement stays inside the workspace instead of widening the phone canvas. */
+.app-shell .workspace { overflow-x: clip; }
+.steward-working-dots { display: inline-flex; align-items: center; gap: 3px; width: 22px; height: 18px; flex: none; color: var(--teal); }
+.steward-working-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.bill-card-bar i { transform-origin: left; transition: transform 320ms var(--motion-ease); }
+
+/* Keep the drawer in the same visual family as the homepage. */
+.conversation-sheet { background: var(--canvas); color: var(--ink); }
+.conversation-sheet-head { color: var(--ink); }
+.conversation-sheet-head button { min-width: 44px; min-height: 44px; border-radius: 10px; }
+.conversation-sheet-new { background: var(--teal); min-height: 44px; font-weight: 600; }
+.conversation-search { color: var(--muted); font-size: 12px; }
+.conversation-search input { min-height: 44px; border-color: var(--line); font-size: 16px; }
+.conversation-filter { background: var(--pale); }
+.conversation-filter button { min-height: 40px; }
+.conversation-list-select span { color: var(--muted); font-size: 12px; }
+.conversation-list-actions button { min-height: 36px; font-size: 12px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .app-shell .steward-chat-composer button:not(:disabled):hover svg { transform: translate(1px,-1px); }
+  .conversation-sheet-head button:hover { background: var(--pale); }
+  .conversation-sheet-new:hover:not(:disabled) { background: var(--teal-dark); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell :is(.home-preview-nav, .bottom-nav) button:active:not(:disabled),
+  .app-shell .home-preview-conversations:active,
+  .app-shell .home-preview-identity:active,
+  .app-shell .steward-reply-choices button:active:not(:disabled),
+  .app-shell .steward-chat-composer button:active:not(:disabled),
+  .app-shell :is(.primary-button, .secondary-button, .back-button):active:not(:disabled),
+  .conversation-sheet button:active:not(:disabled),
+  .conversation-modal button:active:not(:disabled) { transform: scale(.97); }
+
+  .conversation-modal-backdrop { animation: interface-scrim-in 160ms ease-out; }
+  .conversation-sheet-backdrop { transition: background-color 160ms ease; }
+  .conversation-sheet {
+    transform: none;
+    opacity: 1;
+    transition: transform var(--motion-panel) var(--motion-ease), opacity 180ms ease;
+  }
+  @starting-style {
+    .conversation-sheet-backdrop { background-color: transparent; }
+    .conversation-sheet { transform: translateX(-100%); opacity: .5; }
+  }
+  .conversation-modal { animation: interface-panel-in 200ms var(--motion-ease); }
+  .conversation-sheet-backdrop[data-state="closed"] { background-color: transparent; }
+  .conversation-sheet-backdrop[data-state="closed"] .conversation-sheet { transform: translateX(-100%); opacity: 0; transition-duration: 160ms; }
+  .steward-message.waiting .desk-working { animation: interface-status-in 160ms ease-out; }
+  .steward-reply-choices { animation: interface-status-in 180ms ease-out; }
+  .steward-working-dots i { animation: interface-working-dot 1.1s ease-in-out infinite; }
+  .steward-working-dots i:nth-child(2) { animation-delay: 140ms; }
+  .steward-working-dots i:nth-child(3) { animation-delay: 280ms; }
+  .dialog-content[data-state="open"] { animation-duration: 320ms; }
+}
+
+@keyframes interface-scrim-in { from { background-color: transparent; } }
+@keyframes interface-panel-in { from { translate: 0 6px; opacity: .7; } to { translate: 0 0; opacity: 1; } }
+@keyframes interface-status-in { from { opacity: .55; } to { opacity: 1; } }
+@keyframes interface-working-dot {
+  0%, 65%, 100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference) {
+  .dialog-content[data-state="open"] { animation-name: interface-sheet-in; }
+}
+@keyframes interface-sheet-in { from { opacity: .35; translate: 0 64px; } to { opacity: 1; translate: 0 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .bottom-nav button > span svg,
+  .app-shell .steward-chat-composer button svg { transform: none; }
+  .conversation-sheet-backdrop,
+  .conversation-sheet,
+  .conversation-modal-backdrop,
+  .conversation-modal { animation: none !important; }
+}

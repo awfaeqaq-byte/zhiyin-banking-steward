@@ -94,3 +94,26 @@ it('returns to wealth with the existing navigation callback', async () => {
   await user.click(screen.getByRole('button', { name: '返回财富' }));
   expect(onBack).toHaveBeenCalledOnce();
 });
+
+
+it('shows retained filters in favorites and clears them without losing saved funds', async () => {
+  const user = userEvent.setup();
+  localStorage.setItem('zhiyin-fund-watchlist', '["medical","energy"]');
+  render(<FundDiscovery onOpenRisk={vi.fn()} />);
+  await user.type(screen.getByRole('searchbox'), '油气');
+  await user.click(screen.getByRole('button', { name: /我的自选/ }));
+  expect(fundNames()).toHaveLength(1);
+  expect(screen.getByLabelText('当前筛选条件')).toHaveTextContent('搜索“油气”');
+  await user.click(screen.getByRole('button', { name: '清除筛选' }));
+  expect(fundNames()).toHaveLength(2);
+  expect(screen.getByRole('button', { name: /我的自选/ })).toHaveAttribute('aria-pressed', 'true');
+  expect(JSON.parse(localStorage.getItem('zhiyin-fund-watchlist')!)).toEqual(['medical', 'energy']);
+});
+
+it('uses the selected steward and explains the handoff before analysis', async () => {
+  const onAskNingning = vi.fn();
+  render(<FundDiscovery initialFundId="energy" stewardName="阿衡" onOpenRisk={vi.fn()} onAskNingning={onAskNingning} />);
+  expect(screen.getByText(/回到财富后会带入这只基金的提问/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: '请阿衡分析' }));
+  expect(onAskNingning).toHaveBeenCalledWith('energy');
+});

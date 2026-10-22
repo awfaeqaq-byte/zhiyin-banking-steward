@@ -36,3 +36,33 @@
 .conversation-sheet-list{display:grid;gap:8px;overflow-y:auto;}.conversation-list-item{border:1px solid #deebe7;border-radius:12px;background:#fff;padding:8px;}.conversation-list-select{display:grid;width:100%;gap:3px;text-align:left;background:transparent;border:0;padding:5px;color:#244b47;cursor:pointer;font:inherit;}.conversation-list-select[aria-current="page"]{color:#0d786f;}.conversation-list-select strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.conversation-list-select span{font-size:11px;color:#718883;}
 .conversation-list-actions{display:flex;justify-content:flex-end;gap:5px;border-top:1px solid #edf2f0;padding-top:5px;}.conversation-list-actions button{border:0;background:transparent;color:#55716d;font:inherit;font-size:11px;padding:6px;cursor:pointer;}.conversation-list-actions button:last-child{color:#ad4b42;}.conversation-list-empty{font-size:13px;color:#728782;text-align:center;padding:20px 0;}
 .conversation-modal-backdrop{z-index:1010;display:grid;place-items:center;padding:20px;box-sizing:border-box;}.conversation-modal{width:min(100%,340px);display:grid;gap:13px;box-sizing:border-box;background:#fff;border-radius:16px;padding:20px;color:#234440;box-shadow:0 18px 40px #0d292a40;}.conversation-modal strong{font-size:16px;}.conversation-modal p{margin:0;font-size:13px;line-height:1.5;color:#5d726e;}.conversation-modal>div{display:flex;justify-content:flex-end;gap:8px;}.conversation-modal button{min-height:38px;padding:0 14px;border:1px solid #d4e0dd;border-radius:10px;background:#f8fbfa;color:#28544f;font:inherit;font-size:13px;cursor:pointer;}.conversation-modal button:last-child{background:#137e74;color:#fff;border-color:#137e74;}.conversation-modal button.conversation-danger{background:#a8443c;border-color:#a8443c;}
+
+/* Portal surfaces retain the homepage tokens and usable touch targets. */
+.conversation-sheet .conversation-sheet-head h2,.conversation-modal-backdrop .conversation-modal h2{margin:0;font-size:inherit;font-weight:600;}
+.conversation-modal-backdrop .conversation-modal{color:var(--ink);border-radius:var(--radius-card,14px);}
+.conversation-modal-backdrop .conversation-modal h2{font-size:17px;}
+.conversation-sheet :is(.conversation-filter,.conversation-list-actions) button,
+.conversation-sheet .conversation-list-select,
+.conversation-modal-backdrop .conversation-modal :is(button,input){min-height:44px;}
+.conversation-sheet .conversation-list-actions{flex-wrap:wrap;}
+.conversation-sheet .conversation-list-actions button{flex:1;min-width:44px;}
+.conversation-modal-backdrop .conversation-modal input{font-size:16px;}
+.scenario-conversations:focus,.conversation-task-panel:focus{outline:2px solid var(--teal);outline-offset:3px;}
+.scenario-conversation small,.scenario-message b{font-size:12px;}
+
+@media (prefers-reduced-motion:no-preference){
+ .conversation-sheet-backdrop[data-state],.conversation-modal-backdrop[data-state]{transition:none;}
+ .conversation-sheet-backdrop[data-state="open"],.conversation-modal-backdrop[data-state="open"]{animation:conversation-mask-in 180ms ease both;}
+ .conversation-sheet-backdrop[data-state="closed"],.conversation-modal-backdrop[data-state="closed"]{animation:conversation-mask-out 160ms ease both;pointer-events:none;}
+ .conversation-sheet-backdrop .conversation-sheet[data-state]{transition:none;}
+ .conversation-sheet-backdrop .conversation-sheet[data-state="open"]{animation:conversation-sheet-in 280ms var(--motion-ease,cubic-bezier(.16,1,.3,1)) both;}
+ .conversation-sheet-backdrop .conversation-sheet[data-state="closed"]{animation:conversation-sheet-out 160ms ease both;pointer-events:none;}
+ .conversation-modal-backdrop .conversation-modal[data-state="open"]{animation:conversation-panel-in 200ms var(--motion-ease,cubic-bezier(.16,1,.3,1)) both;}
+ .conversation-modal-backdrop .conversation-modal[data-state="closed"]{animation:conversation-panel-out 160ms ease both;pointer-events:none;}
+}
+@keyframes conversation-mask-in{from{background-color:transparent;}to{background-color:rgba(11,35,33,.36);}}
+@keyframes conversation-mask-out{from{background-color:rgba(11,35,33,.36);}to{background-color:transparent;}}
+@keyframes conversation-sheet-in{from{transform:translateX(-100%);opacity:.5;}to{transform:none;opacity:1;}}
+@keyframes conversation-sheet-out{from{transform:none;opacity:1;}to{transform:translateX(-100%);opacity:0;}}
+@keyframes conversation-panel-in{from{translate:0 8px;opacity:.5;}to{translate:0 0;opacity:1;}}
+@keyframes conversation-panel-out{from{translate:0 0;opacity:1;}to{translate:0 8px;opacity:0;}}

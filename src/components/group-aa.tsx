@@ -10,6 +10,8 @@ import {
   ArrowUpRight,
   Check,
   Search,
+  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 import {
   calculateGroupAA,
@@ -21,7 +23,7 @@ import {
 } from "../lib/group-aa";
 import { formatCny } from "../lib/financial-connections";
 import "./group-aa.css";
-export function GroupAA() {
+export function GroupAA({onOpenHistory}: {onOpenHistory?: () => void} = {}) {
   const [group, setGroup] = useState<AAGroup | null>(null);
   const [plan, setPlan] = useState<AAPlan>({ title: "聚餐AA", items: [] });
   const [selected, setSelected] = useState<string[]>([]);
@@ -180,6 +182,7 @@ export function GroupAA() {
   }
   return (
     <section className="group-aa" aria-label="微信群智能AA">
+      {onOpenHistory && <button type="button" className="aa-history-launch" onClick={onOpenHistory}><BookOpen size={19}/><span><strong>历史 AA 账本</strong><small>查看消费明细、分摊和收款进度</small></span><ChevronRight size={17}/></button>}
       <p className="aa-intro">
         点选参与人，把复杂的分摊交给宁宁。<span>沙箱联动 · 不读取真实微信</span>
       </p>

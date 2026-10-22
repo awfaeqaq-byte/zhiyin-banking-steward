@@ -1,13 +1,15 @@
-import {useEffect,useState,type ReactNode} from 'react';
+import {useEffect,useId,useRef,useState,type ReactNode} from 'react';
+import {AnimatedCollapse} from './animated-collapse';
 
 type Message={id:string;role:'user'|'assistant';workspaceId?:string};
 export type ConversationTaskPanel={id:string;title:string;active:boolean;disabled?:boolean;pendingMessageId?:string;node:ReactNode};
 function TaskPanel({panel,anchored}:{panel:ConversationTaskPanel;anchored:boolean}){
  const [expanded,setExpanded]=useState(panel.active);
+ const contentId=useId();const summary=useRef<HTMLButtonElement>(null);
  useEffect(()=>{setExpanded(panel.active);},[panel.active]);
- return <section className="conversation-task-panel" hidden={!anchored} aria-label={`${panel.title}方案与进度`}>
-  {!panel.active&&<button className="conversation-task-summary" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>{expanded?'收起':'查看'}{panel.title}方案与进度</button>}
-  <div hidden={!panel.active&&!expanded}><fieldset className="conversation-task-controls" disabled={panel.disabled}>{panel.node}</fieldset></div>
+ return <section className="conversation-task-panel" data-task-id={panel.id} hidden={!anchored} aria-label={`${panel.title}方案与进度`}>
+  {!panel.active&&<button ref={summary} className="conversation-task-summary" aria-controls={contentId} aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>{expanded?'收起':'查看'}{panel.title}方案与进度</button>}
+  <AnimatedCollapse id={contentId} open={panel.active||expanded} returnFocusRef={summary}><fieldset className="conversation-task-controls" disabled={panel.disabled}>{panel.node}</fieldset></AnimatedCollapse>
  </section>;
 }
 /** Keep every task in one keyed sibling list: moving its anchor must not remount its draft or replay a prompt. */

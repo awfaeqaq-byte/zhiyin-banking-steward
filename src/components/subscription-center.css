@@ -1,0 +1,14 @@
+.subscription-item.subscription-item-located {
+  outline: 2px solid var(--teal, #007d7c);
+  outline-offset: 3px;
+  scroll-margin-block: 24px;
+}
+.subscription-located-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 16px 0;
+  color: var(--teal-dark, #006665);
+  font-size: 12px;
+}

@@ -1,4 +1,4 @@
-import {afterEach,expect,it} from 'vitest';
+import {afterEach,expect,it,vi} from 'vitest';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -8,7 +8,7 @@ import {createBankStore} from '../../server/bank-store';
 import {createSceneService} from '../../server/scene-service';
 
 const scope='11111111-1111-4111-8111-111111111111',dirs:string[]=[];
-afterEach(()=>dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true})));
+afterEach(()=>{vi.restoreAllMocks();dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true}));});
 function fixture(){
  const dir=mkdtempSync(join(tmpdir(),'scene-source-'));dirs.push(dir);
  const workspace=createWorkspaceStore(join(dir,`.zhiyin-workspaces-${scope}.local.json`));
@@ -21,7 +21,8 @@ function fixture(){
 }
 it('关联AA只取本事项真实银行付款，未付订单与别人的筹备不进入候选',async()=>{
  const f=fixture(),bank=createBankStore(join(f.dir,'.zhiyin-bank.local.json'));
- const now=Date.now(),draft={title:'生日',recipient:'王芳',budget:50000,prepareAt:now+1000,deliverAt:now+86400000,address:'家',contact:'本人',note:'',productIds:['cake-light','flowers-seasonal']};
+ const now=Date.parse('2026-10-22T12:00:00+08:00');vi.spyOn(Date,'now').mockReturnValue(now);
+ const draft={title:'生日',recipient:'王芳',budget:50000,prepareAt:now+1000,deliverAt:now+86400000,address:'家',contact:'本人',note:'',productIds:['cake-light','flowers-seasonal']};
  bank.saveOccasion({id:'birthday',draft,revision:0},now);bank.reserveOccasion('birthday',bank.get().revision,now);
  const order=bank.prepareOccasionOrder('birthday','cake-light',bank.get().revision,now);
  bank.prepareOccasionOrder('birthday','flowers-seasonal',bank.get().revision,now);

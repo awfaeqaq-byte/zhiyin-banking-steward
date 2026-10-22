@@ -1,0 +1,39 @@
+.funding-insights.funding-insights-facts {
+  gap: 16px;
+  padding: 20px;
+  border-color: var(--line, #d5ebee);
+  border-radius: 14px;
+  background: var(--paper, #fff);
+}
+.funding-insights-facts > header h2 { margin: 0; font-size: 17px; }
+.funding-insights-facts > header p,
+.funding-insights.funding-insights-facts > header small,
+.funding-insights-facts .funding-insights-scope {
+  margin: 4px 0 0;
+  color: var(--muted, #506d7c);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.funding-observed-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.funding-observed-totals dt { color: var(--muted, #506d7c); font-size: 12px; }
+.funding-observed-totals dd { margin: 5px 0 0; color: var(--ink, #133346); font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.funding-insights-empty { margin: 0; color: var(--muted, #506d7c); font-size: 14px; line-height: 1.7; }
+.funding-insights-facts .funding-insight-grid { grid-template-columns: 1fr; gap: 0; }
+.funding-insights-facts .funding-insight-grid button {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 4px 12px;
+  min-height: 44px;
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--line, #d5ebee);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.funding-insights-facts .funding-insight-grid button > span { grid-row: 1 / 4; color: var(--teal-dark, #006665); background: var(--pale, #eaf8f7); }
+.funding-insights-facts .funding-insight-grid button small { font-size: 12px; }
+.funding-insights-facts .funding-insight-grid button strong { font-size: 14px; overflow-wrap: anywhere; }
+.funding-insights-facts .funding-insight-grid button em { grid-column: 2; margin-top: 2px; font-size: 12px; }
+.funding-insights-facts .funding-insight-grid button:focus-visible { outline: 2px solid var(--teal, #007d7c); outline-offset: 3px; border-radius: 10px; }
+@media (hover: hover) { .funding-insights-facts .funding-insight-grid button:hover { background: var(--pale, #eaf8f7); } }
+@media (max-width: 540px) { .funding-insights.funding-insights-facts { padding: 16px; } }

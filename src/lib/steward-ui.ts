@@ -11,6 +11,8 @@ export type BillScene = {
   focus?:BillFocus;
   category?:string;
   interpretationQuestion?:string;
+  interpretationCategory?:string;
+  preferredView?:'insight';
   interpretationLedger?:string;
 };
 const sections=['overview','categories','trend','transactions'];
@@ -71,6 +73,8 @@ export function restoreBillScenes(raw:string|null):Record<string,BillScene> {
       ...(v.focus&&['wechat_pay','alipay'].includes(v.focus.provider)&&typeof v.focus.id==='string'&&v.focus.id.length<=200?{focus:{provider:v.focus.provider,id:v.focus.id}}:{}),
       ...(typeof v.category==='string'&&v.category.length>0&&v.category.length<=80?{category:v.category}:{}),
       ...(typeof v.interpretationQuestion==='string'&&v.interpretationQuestion.length<=1000?{interpretationQuestion:v.interpretationQuestion}:{}),
+      ...(typeof v.interpretationCategory==='string'&&v.interpretationCategory.length<=80?{interpretationCategory:v.interpretationCategory}:{}),
+      ...(v.preferredView==='insight'?{preferredView:'insight' as const}:{}),
       ...(typeof v.interpretationLedger==='string'&&/^[\da-f]{1,8}:[\da-f]{1,8}$/.test(v.interpretationLedger)?{interpretationLedger:v.interpretationLedger}:{}),
     }]));
   }catch{return {};}

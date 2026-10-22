@@ -16,6 +16,38 @@ import {
   type ExpenseCommand,
 } from "../lib/expense-notebook";
 afterEach(() => vi.restoreAllMocks());
+it('首页收起 AA 账本后仍保留原活动和待核对的消费选择',async()=>{
+  const group:aa.AAGroup={id:'collapse-group',name:'饭搭子',revision:1,members:[
+    {id:'me',name:'我',self:true},{id:'li',name:'李娜'},
+  ]};
+  let state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'collapse-book',title:'周末聚餐',group,participants:['me','li'],defaultPayerId:'me',revision:0,requestId:'create'});
+  for(const [id,title,amount] of [['dinner','晚饭',10000],['drink','饮料',2000]] as const){
+    state=changeExpenses(state,{type:'add',bookId:'collapse-book',entryId:id,entry:{title,amount,payerId:'me',fixed:[],shares:[{memberId:'me',weight:1},{memberId:'li',weight:1}]},revision:state.revision,requestId:`add-${id}`});
+  }
+  localStorage.setItem('zhiyin-expense-active','collapse-book');
+  const persistence=vi.spyOn(service,'expenseRequest').mockResolvedValue(state);
+  const bridge=vi.spyOn(aa,'groupAARequest').mockResolvedValue({collections:[]});
+  const model=vi.spyOn(service,'requestExpenseReply').mockResolvedValue({action:'clarify',message:'这笔怎么分？'});
+  const onBookSelected=vi.fn<(id:string)=>Promise<void>>().mockResolvedValue(undefined);
+  const ref=createRef<ExpenseNotebookHandle>();
+  render(<ExpenseNotebook ref={ref} conversation initialBookId="collapse-book" initialHistory={[{role:'user',content:'这次饭钱我先垫'}]} onBookSelected={onBookSelected} onPrompt={vi.fn()}/>);
+  await userEvent.click(await screen.findByRole('button',{name:'核对并结算'}));
+  await userEvent.click(screen.getByRole('checkbox',{name:'结算饮料'}));
+  await userEvent.click(screen.getByRole('button',{name:'收起活动'}));
+
+  expect(screen.getByRole('button',{name:'周末聚餐 · 展开账本'})).toHaveAttribute('aria-expanded','false');
+  expect(localStorage.getItem('zhiyin-expense-active')).toBe('collapse-book');
+  expect(onBookSelected).not.toHaveBeenCalled();
+  expect(bridge).not.toHaveBeenCalled();
+  expect(persistence.mock.calls.every(([operation])=>!operation)).toBe(true);
+  await userEvent.click(screen.getByRole('button',{name:'继续核对分摊'}));
+  expect(screen.getByRole('checkbox',{name:'结算晚饭'})).toBeChecked();
+  expect(screen.getByRole('checkbox',{name:'结算饮料'})).not.toBeChecked();
+
+  await act(async()=>{await ref.current!.handle('刚才这笔怎么分？');});
+  expect(model.mock.calls[0][0].id).toBe('collapse-book');
+  expect(model.mock.calls[0][2]).toEqual([{role:'user',content:'这次饭钱我先垫'}]);
+});
 it('女生半价不能按总额一半固定分配，真实解析后只回传一次正确分摊',async()=>{
   const prompt='夜宵220元，女生半价，其他人通a';
   const group:aa.AAGroup={id:'half-price-group',name:'夜宵搭子',revision:1,members:[
@@ -172,6 +204,10 @@ it("可以修改活动名称、暂停再继续，无关问题交还普通管家"
   await screen.findByRole("button", { name: /周末出游/ });
   await userEvent.click(screen.getByRole("button", { name: /周末出游/ }));
   await userEvent.click(screen.getByRole("button", { name: "收起活动" }));
+  expect(screen.getByRole("button", { name: "周末出游 · 展开账本" })).toBeInTheDocument();
+  await act(async () =>
+    expect(await ref.current!.handle("暂停记账")).toContain("记录还在"),
+  );
   await userEvent.click(screen.getByRole("button", { name: "随手记消费" }));
   await userEvent.click(screen.getByRole("button", { name: "暂不开始" }));
   expect(screen.queryByText("把这次消费记在一起")).not.toBeInTheDocument();

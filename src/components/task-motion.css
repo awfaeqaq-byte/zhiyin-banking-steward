@@ -1,0 +1,134 @@
+/* Task motion communicates selection and disclosure. History remains still.
+   Keep task containers transform-free: some planners own fixed composers. */
+
+.task-calendar,
+.steward-task-card,
+.conversation-task-panel,
+.steward-bill-scene,
+.steward-inline-consent,
+.funding-plan {
+  --task-motion-fast: 130ms;
+  --task-motion-state: 180ms;
+  --task-motion-reveal: 220ms;
+  --task-motion-ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+/* Color is the primary selection signal, including with reduced motion. */
+.task-calendar button,
+.steward-task-card .button-base,
+.conversation-task-summary,
+.bill-scene-sources button,
+.bill-card-largest button,
+.bill-scene-categories button,
+.bill-scene-transactions button,
+.bill-provider-choices label,
+.funding-horizon label span {
+  transition-property: background-color, border-color, color, opacity;
+  transition-duration: var(--task-motion-state, 180ms);
+  transition-timing-function: var(--task-motion-ease, cubic-bezier(.16, 1, .3, 1));
+}
+
+.task-card-header .task-card-status,
+.task-event-status,
+.task-card-reminder .switch-root {
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.task-calendar :is(select, input, textarea) {
+  transition: border-color 130ms ease-out, background-color 130ms ease-out;
+  caret-color: var(--teal, #007d7c);
+}
+
+.bill-provider-choices label > svg {
+  transition: opacity 130ms ease-out;
+}
+
+.task-calendar .task-event-summary[aria-expanded="true"] {
+  background-color: var(--cal-pale, #eaf8f7);
+}
+
+/* The selected week remains the same DOM row as the other weeks fold away. */
+.task-calendar .task-days-animated { display: block; }
+.task-calendar .task-week-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.task-calendar .task-days-animated > .animated-collapse { opacity: 1; }
+
+/* A selected date stays selected while hovering or pressing it. */
+.task-calendar .task-days button.selected:hover,
+.task-calendar .task-days button.selected:active,
+.task-calendar .task-view-switch button[aria-pressed="true"]:hover {
+  background-color: var(--teal-dark, #006665);
+  color: var(--paper, #fff);
+}
+
+.conversation-task-summary:focus-visible,
+.task-card-reminder .switch-root:focus-visible,
+.task-calendar :is(button, select, summary):focus-visible {
+  outline: 2px solid var(--teal, #007d7c);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .conversation-task-summary:hover:not(:disabled),
+  .bill-scene-categories button:hover:not(:disabled),
+  .bill-scene-transactions button:hover:not(:disabled) {
+    background-color: var(--pale, #eaf8f7);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Native disclosures appear immediately at full height; fade only their
+     contents, avoiding clipped evidence and layout-driven height animation. */
+  :is(.bill-card-disclosure, .bill-scene-proof, .task-ended, .funding-charges, .transfer-risk-review)[open] > :not(summary),
+  .expense-row details[open] > :not(summary),
+  .task-calendar .task-editor {
+    animation: task-disclosure-open 180ms ease-out;
+  }
+
+  .task-month-toggle svg,
+  .task-event-chevron,
+  .expense-heading > svg,
+  .bill-scene-proof > summary svg {
+    transition: transform var(--task-motion-state, 180ms) var(--task-motion-ease, cubic-bezier(.16, 1, .3, 1));
+  }
+
+  /* Press feedback is confined to small controls. Summary rows and task
+     containers retain their position so reading and scrolling stay stable. */
+  .task-calendar :is(.task-days, .task-month-nav, .task-view-switch, .task-editor-types) button,
+  .steward-task-card .button-base {
+    transition-property: background-color, border-color, color, opacity, transform;
+  }
+
+  .task-calendar :is(.task-days, .task-month-nav, .task-view-switch, .task-editor-types) button:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: scale(.96);
+    transition-duration: var(--task-motion-fast, 130ms);
+  }
+
+  .steward-task-card .button-base:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: scale(.99);
+    transition-duration: var(--task-motion-fast, 130ms);
+  }
+
+  .task-card-reminder .switch-thumb {
+    transition: transform var(--task-motion-state, 180ms) var(--task-motion-ease, cubic-bezier(.16, 1, .3, 1));
+  }
+}
+
+@keyframes task-disclosure-open {
+  from { opacity: .72; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Semantic colors, expanded backgrounds and focus rings remain visible;
+     rotation and switch positions change immediately without travelling. */
+  .task-month-toggle svg,
+  .task-event-chevron,
+  .expense-heading > svg,
+  .bill-scene-proof > summary svg,
+  .task-card-reminder .switch-thumb {
+    transition: none;
+  }
+}

@@ -75,7 +75,7 @@ it('模型按需求选择展示模块，空记录不冒充零支出，授权撤�
  const props={question:'本月支出',connections:{wechat_pay:wechat},onInteract:vi.fn()};
  const view=render(<StewardBillWorkspace {...props} ui={{sections:['transactions'],evidenceRefs:[]}}/>);
  expect(screen.getByRole('button',{name:/请宁宁解释午餐/})).toBeVisible();
- expect(screen.queryByRole('heading',{name:'消费分布'})).not.toBeInTheDocument();
+ expect(screen.queryByRole('heading',{name:'钱花在哪里'})).not.toBeInTheDocument();
  view.rerender(<StewardBillWorkspace {...props} connections={{wechat_pay:{...wechat,transactions:[]}}}/>);
  expect(screen.getByText(/未返回交易记录/)).toBeVisible();expect(screen.queryByText('¥0')).not.toBeInTheDocument();
  view.rerender(<StewardBillWorkspace {...props} connections={{wechat_pay:{...wechat,scopes:[]}}}/>);
@@ -108,10 +108,66 @@ it('分类收起、长列表展开、交易证据和不足的趋势均可操作'
  const many={...wechat,transactions:[...wechat.transactions,...Array.from({length:5},(_,i)=>({id:`s${i}`,title:'便利店',amount:-1000,category:'购物',occurredAt:'2026-09-20'}))]};
  const props={question:'本月支出',connections:{wechat_pay:many},onInteract:change,onRequestConnection:connect,ui:{sections:['trend','transactions'] as const,evidenceRefs:[1]}};
  render(<StewardBillWorkspace {...props} ui={{...props.ui,sections:[...props.ui.sections]}}/>);
- expect(screen.getByText('前期记录不足，暂不能判断趋势。')).toBeVisible();
+ expect(screen.getByText('前期记录不足，暂不能判断消费趋势。')).toBeVisible();
  await user.click(screen.getByRole('button',{name:'展开更多 · 7 笔'}));
  expect(screen.getAllByRole('button',{name:/请宁宁解释便利店/})).toHaveLength(5);
  await user.click(screen.getByRole('button',{name:'收起明细'}));
  await user.click(screen.getByRole('button',{name:'加入支付宝账单'}));expect(connect).toHaveBeenCalledWith('alipay');
  expect(screen.getByText('核对交易依据')).toBeVisible();
+});
+
+it('紧凑明细只出现一份流水，不重复概览、分类图或分析入口',async()=>{
+ const user=userEvent.setup(),interact=vi.fn(),viewChange=vi.fn();
+ render(<StewardBillWorkspace compact question="本月支出" connections={{wechat_pay:wechat}} ui={{sections:['overview','categories','trend'],evidenceRefs:[]}} onInteract={interact} onViewChange={viewChange}/>);
+ const scene=screen.getByRole('region',{name:'账单工作区'});
+ expect(within(scene).queryByText('支出一起看清楚')).not.toBeInTheDocument();
+ expect(within(scene).queryByText('消费支出')).not.toBeInTheDocument();
+ expect(within(scene).queryByText('消费分布')).not.toBeInTheDocument();
+ expect(within(scene).queryByText('¥30')).not.toBeInTheDocument();
+ expect(within(scene).queryByRole('button',{name:'请宁宁分析当前账单'})).not.toBeInTheDocument();
+ expect(within(scene).getByRole('heading',{name:'全部交易'})).toBeVisible();
+ expect(within(scene).getAllByText('−¥25')).toHaveLength(1);
+ expect(within(scene).getAllByText('−¥5')).toHaveLength(1);
+ expect(within(scene).getAllByText('消费')).toHaveLength(2);
+ await user.click(within(scene).getByRole('button',{name:'只看微信支付'}));
+ expect(interact).not.toHaveBeenCalled();
+ expect(viewChange).toHaveBeenCalledWith(expect.objectContaining({provider:'wechat_pay'}));
+ await user.click(within(scene).getByRole('button',{name:/请宁宁解释午餐/}));
+ expect(interact).toHaveBeenCalledWith(expect.objectContaining({focus:{provider:'wechat_pay',id:'lunch'}}));
+ expect(within(scene).getByRole('status')).toHaveTextContent('已选中「午餐」');
+});
+
+it('紧凑明细承接所选消费分类，并能恢复所有交易类型',async()=>{
+ const user=userEvent.setup();
+ const source:ConnectedFinancialSource={...wechat,transactions:[...wechat.transactions,
+  {id:'salary',title:'工资到账',amount:100000,category:'其他',kind:'income',occurredAt:'2026-09-20'},
+  {id:'returned',title:'订单退款',amount:800,category:'购物',kind:'refund',occurredAt:'2026-09-20'},
+  {id:'in',title:'好友转入',amount:900,category:'其他',kind:'transfer',occurredAt:'2026-09-20'},
+  {id:'out',title:'转给好友',amount:-700,category:'其他',kind:'transfer',occurredAt:'2026-09-20'},
+ ]};
+ render(<StewardBillWorkspace compact question="本月支出" selectedCategory="餐饮" connections={{wechat_pay:source}} onInteract={vi.fn()}/>);
+ expect(screen.getByRole('heading',{name:'餐饮消费'})).toBeVisible();
+ expect(screen.queryByRole('button',{name:/请宁宁解释地铁/})).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'查看全部记录'}));
+ await user.click(screen.getByRole('button',{name:'展开更多 · 6 笔'}));
+ for(const [title,type,amount] of [['工资到账','入账','+¥1,000'],['订单退款','退款','+¥8'],['好友转入','转入','+¥9'],['转给好友','转出','−¥7']]){
+  const row=screen.getByRole('button',{name:new RegExp(`请宁宁解释${title}`)});
+  expect(within(row).getByText(type)).toBeVisible();
+  expect(within(row).getByText(amount)).toBeVisible();
+ }
+});
+
+it('紧凑明细在核对和错误期间隐藏旧数据，暂停时所有交互均不可用',()=>{
+ const props={compact:true,question:'本月支出',connections:{wechat_pay:{...wechat,transactions:[...wechat.transactions,...Array.from({length:4},(_,i)=>({id:`extra${i}`,title:'便利店',amount:-1000,category:'购物',occurredAt:'2026-09-20'}))]}},onInteract:vi.fn()};
+ const view=render(<StewardBillWorkspace {...props} disabled/>);
+ expect(screen.getByRole('button',{name:'查看全部平台'})).toBeDisabled();
+ expect(screen.getByRole('button',{name:/请宁宁解释午餐/})).toBeDisabled();
+ expect(screen.getByRole('button',{name:'展开更多 · 6 笔'})).toBeDisabled();
+ view.rerender(<StewardBillWorkspace {...props} loading/>);
+ expect(screen.getByRole('status')).toHaveTextContent('正在核对账单数据');
+ expect(screen.queryByText('−¥25')).not.toBeInTheDocument();
+ view.rerender(<StewardBillWorkspace {...props} error="平台暂时不可用"/>);
+ expect(screen.getByRole('alert')).toHaveTextContent('暂不使用旧记录');
+ expect(screen.queryByRole('button',{name:/请宁宁解释/})).not.toBeInTheDocument();
+ expect(screen.queryByText('−¥25')).not.toBeInTheDocument();
 });

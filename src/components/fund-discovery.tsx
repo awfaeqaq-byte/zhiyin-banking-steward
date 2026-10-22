@@ -25,12 +25,13 @@ function Metric({ value, label }: { value: number; label: string }) {
 
 interface FundDiscoveryProps {
   onOpenRisk: () => void;
+  stewardName?: string;
   onBack?: () => void;
   initialFundId?: string;
   onAskNingning?: (fundId: string) => void;
 }
 
-export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning }: FundDiscoveryProps) {
+export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning, stewardName = '宁宁' }: FundDiscoveryProps) {
   const [selectedId, setSelectedId] = useState<string | null>(() => findCatalogFund(initialFundId)?.id ?? null);
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('all');
@@ -45,6 +46,7 @@ export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning
   const listButtons = useRef(new Map<string, HTMLButtonElement>());
   const previousSelection = useRef<string | null>(null);
   const selectedFund = findCatalogFund(selectedId ?? undefined);
+  const activeFilters = [query.trim() && `搜索“${query.trim()}”`, kind !== 'all' && kind, weeklyFilter !== 'all' && (weeklyFilter === 'positive' ? '近一周上涨' : '近一周下跌')].filter(Boolean);
 
   useEffect(() => { setSelectedId(findCatalogFund(initialFundId)?.id ?? null); }, [initialFundId]);
   useEffect(() => {
@@ -83,7 +85,7 @@ export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning
       {(selectedFund || onBack) && <button type="button" className="fund-text-action" onClick={() => selectedFund ? setSelectedId(null) : onBack?.()} aria-label={selectedFund ? '返回基金列表' : '返回财富'}><ArrowLeft size={18} aria-hidden="true" />{selectedFund ? '基金列表' : '财富'}</button>}
       <h1>基金筛选</h1>
       </div>
-      <p>和财富页共用产品目录，选好后交给宁宁结合你的计划分析。</p>
+      <p>这里用于查资料和管理自选。选好后返回财富，请{stewardName}结合你的计划分析。</p>
     </header>
 
     {storageMessage && <p className="fund-storage-message" role="status">{storageMessage}</p>}
@@ -100,12 +102,13 @@ export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning
         <h3>分析前需要了解</h3>
         <p>资料日期 {selectedFund.dataDate} · 非实时行情</p>
         <p>资料来源：既有选基截图录入，数值尚未由基金官方核验。过往表现不预示未来收益。</p>
-        <p>风险等级、申购费用和赎回规则待核验。宁宁可以帮助梳理关注点，当前资料不用于直接下单。</p>
+        <p>风险等级、申购费用和赎回规则待核验。{stewardName}可以帮助梳理关注点，当前资料不用于直接下单。</p>
       </div>
       <div className="fund-detail-actions">
         <button type="button" className="fund-secondary-action" aria-pressed={watchlist.includes(selectedFund.id)} onClick={() => toggleWatchlist(selectedFund.id)}>{watchlist.includes(selectedFund.id) ? <BookmarkCheck size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}{watchlist.includes(selectedFund.id) ? '已加入自选' : '加入自选'}</button>
-        {onAskNingning && <button type="button" className="fund-primary-action" onClick={() => onAskNingning(selectedFund.id)}><MessageCircle size={18} aria-hidden="true" />请宁宁分析</button>}
+        {onAskNingning && <button type="button" className="fund-primary-action" onClick={() => onAskNingning(selectedFund.id)}><MessageCircle size={18} aria-hidden="true" />请{stewardName}分析</button>}
       </div>
+      {onAskNingning && <p className="fund-handoff-hint">回到财富后会带入这只基金的提问，你可以修改后发送。</p>}
       <button type="button" className="fund-risk-link" onClick={onOpenRisk}>查看风险测评<ChevronRight size={16} aria-hidden="true" /></button>
     </section> : <>
       <div className="fund-search">
@@ -125,7 +128,8 @@ export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning
         <label><span>排序指标</span><select aria-label="排序指标" value={period} onChange={event => setPeriod(event.target.value as SortPeriod)}>{Object.entries(periodLabels).map(([value, label]) => <option key={value} value={value}>{label}涨跌幅</option>)}</select></label>
         <button type="button" aria-label={ascending ? '切换为从高到低排序' : '切换为从低到高排序'} onClick={() => setAscending(value => !value)}>{ascending ? <ArrowUpWideNarrow size={17} aria-hidden="true" /> : <ArrowDownWideNarrow size={17} aria-hidden="true" />}{ascending ? '从低到高' : '从高到低'}</button>
       </div>
-      <div className="fund-results-summary"><span role="status">{visibleFunds.length} 只基金</span><span>资料日期 {catalogFunds[0]?.dataDate} · 非实时</span></div>
+      {activeFilters.length > 0 && <div className="fund-active-filters" aria-label="当前筛选条件"><p>{activeFilters.join(" · ")}</p><button type="button" onClick={clearFilters}>清除筛选</button></div>}
+      <div className="fund-results-summary"><span role="status">{onlySaved?'自选中共':'共'} {visibleFunds.length} 只基金</span><span>资料日期 {catalogFunds[0]?.dataDate} · 非实时</span></div>
       {visibleFunds.length ? <ul className="fund-results" aria-label="基金列表">{visibleFunds.map(fund => <li key={fund.id}>
         <div className="fund-row-heading">
           <button type="button" className="fund-name" ref={button => { if (button) listButtons.current.set(fund.id, button); else listButtons.current.delete(fund.id); }} aria-label={`查看 ${fund.name}`} onClick={() => { lastOpenedId.current = fund.id; setSelectedId(fund.id); }}>{fund.name}</button>
@@ -133,7 +137,7 @@ export function FundDiscovery({ onOpenRisk, onBack, initialFundId, onAskNingning
         </div>
         <p className="fund-row-category">{fund.category}{fund.sector ? ` · ${fund.sector}` : ''}</p>
         <div className="fund-row-data"><Metric value={fund.metrics[period]} label={`${periodLabels[period]}涨跌幅`} /><Metric value={fund.metrics[period === 'year' ? 'quarter' : 'year']} label={period === 'year' ? '近三个月涨跌幅' : '近一年涨跌幅'} /><button type="button" className="fund-row-detail" aria-label={`了解 ${fund.name}`} onClick={() => { lastOpenedId.current = fund.id; setSelectedId(fund.id); }}>详情<ChevronRight size={16} aria-hidden="true" /></button></div>
-      </li>)}</ul> : <div className="fund-empty"><Bookmark size={26} aria-hidden="true" /><h2>{onlySaved && watchlist.length === 0 ? '还没有自选基金' : '没有符合条件的基金'}</h2><p>{onlySaved && watchlist.length === 0 ? '把感兴趣的基金加入自选，方便下次继续了解。' : '试试其他名称、类型或涨跌条件。'}</p><button type="button" className="fund-secondary-action" onClick={onlySaved && watchlist.length === 0 ? showAll : clearFilters}>{onlySaved && watchlist.length === 0 ? '浏览全部基金' : '清除筛选'}</button></div>}
+      </li>)}</ul> : <div className="fund-empty"><Bookmark size={26} aria-hidden="true" /><h2>{onlySaved && watchlist.length === 0 ? '还没有自选基金' : '没有符合条件的基金'}</h2><p>{onlySaved && watchlist.length === 0 ? '把感兴趣的基金加入自选，方便下次继续了解。' : '试试其他名称、类型或涨跌条件。'}</p>{onlySaved && watchlist.length === 0 && <button type="button" className="fund-secondary-action" onClick={showAll}>浏览全部基金</button>}</div>}
     </>}
   </div>;
 }

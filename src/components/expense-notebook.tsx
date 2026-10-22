@@ -522,10 +522,7 @@ export const ExpenseNotebook = forwardRef<
                     {book.group.name} · {book.participants.length} 人
                   </span>
                   <button
-                    onClick={() => {
-                      activate("");
-                      setExpanded(false);
-                    }}
+                    onClick={() => setExpanded(false)}
                   >
                     收起活动
                   </button>

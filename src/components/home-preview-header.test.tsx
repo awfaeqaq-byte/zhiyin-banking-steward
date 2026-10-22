@@ -9,3 +9,9 @@ it('页头保留日程、订阅、个人中心与管家选择入口',async()=>{
  await user.click(screen.getByRole('button',{name:'个人中心'}));expect(props.onProfile).toHaveBeenCalled();
  await user.click(screen.getByRole('button',{name:'选择私人管家'}));expect(props.onSwitchSteward).toHaveBeenCalled();
 });
+it('首页提供常驻指南入口时，不重复底部的个人中心',async()=>{
+ const onHelp=vi.fn();render(<HomePreviewHeader {...props} onHelp={onHelp}/>);
+ await userEvent.click(screen.getByRole('button',{name:'查看使用指南'}));
+ expect(onHelp).toHaveBeenCalledOnce();
+ expect(screen.queryByRole('button',{name:'个人中心'})).not.toBeInTheDocument();
+});

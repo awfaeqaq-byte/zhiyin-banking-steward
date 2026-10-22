@@ -1,3 +1,5 @@
+import * as Dialog from '@radix-ui/react-dialog';
+import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import {useCallback,useEffect,useMemo,useRef,useState,type ComponentProps} from 'react';
 import {StewardChatHome,readConversationSnapshot} from './steward-chat-home';
 import {emptyWorkspaces,validWorkspaces,type WorkspaceOperation} from '../lib/workspaces';
@@ -16,18 +18,23 @@ import {occasionFoodRequest} from '../lib/occasion-food-bridge';
 import './steward-workspaces.css';
 import {voiceTaskResult,abortableVoicePause} from '../lib/voice-task-bridge';
 import type {VoiceBusiness} from '../lib/realtime-voice';
-type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt;conversationListOpen?:boolean;onConversationListOpenChange?:(open:boolean)=>void};
+import {buildVoiceContext,type VoiceTurn} from '../lib/voice-conversation';
+type Props=ComponentProps<typeof StewardChatHome>&{route?:typeof routeWorkspacePrompt;conversationListOpen?:boolean;onConversationListOpenChange?:(open:boolean)=>void;conversationRequest?:{id:string;token:string};onConversationRequestConsumed?:()=>void};
 type Queued={id:string;text:string;token:string;messageId:string;replyId:string;sourceText:string};
 const TURN_SAVED='zhiyin-workspace-turn-saved';
 /** Server owns originals, jobs and transcript. This view only claims the next
  * read/prepare task and supplies browser-authorized sandbox data. */
-export function StewardWorkspaces({route,conversationListOpen,onConversationListOpenChange,...props}:Props){
+export function StewardWorkspaces({route,conversationListOpen,onConversationListOpenChange,conversationRequest,onConversationRequestConsumed,...props}:Props){
  const [state,setState]=useState(emptyWorkspaces),[loaded,setLoaded]=useState(false),[error,setError]=useState('');
  const [active,setActive]=useState(()=>localStorage.getItem('zhiyin-workspace-active')||'');
  const [selectedConversationId,setSelectedConversationId]=useState(()=>localStorage.getItem('zhiyin-conversation-selected')||'');
+ const [storedConversationId,setStoredConversationId]=useState('');
  const [localSessionOpen,setLocalSessionOpen]=useState(false),[sessionQuery,setSessionQuery]=useState(''),[sessionFilter,setSessionFilter]=useState<'active'|'archived'>('active');
  const sessionOpen=conversationListOpen??localSessionOpen,setSessionOpen=onConversationListOpenChange??setLocalSessionOpen;
  const [editingTitle,setEditingTitle]=useState<{id:string;value:string}>(),[deleteId,setDeleteId]=useState('');
+ const workspaceRoot=useRef<HTMLDivElement>(null),sheet=useRef<HTMLDivElement>(null);
+ const sheetOpener=useRef<HTMLElement|null>(null),renameOpener=useRef<HTMLElement|null>(null),deleteOpener=useRef<HTMLElement|null>(null);
+ const selectedAfterClose=useRef<string|null>(null);
  const [claimAttempt,setClaimAttempt]=useState(0);
  const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
  const submitTail=useRef<Promise<unknown>>(Promise.resolve());
@@ -50,7 +57,7 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
  const phase=activeRun?.trace.at(-1)?.stage;
  const work=state.items.find(w=>w.id===(job?.taskId||active)&&w.status==='active');
  const sessions=[...state.items].sort((a,b)=>b.updatedAt-a.updatedAt);
- const selectedConversation=state.items.find(w=>w.id===selectedConversationId);
+ const selectedConversation=state.items.find(w=>w.id===selectedConversationId&&(w.status==='archived'||w.id===storedConversationId));
  const visibleSessions=sessions.filter(item=>item.status===sessionFilter&&item.title.toLowerCase().includes(sessionQuery.trim().toLowerCase()));
  const accept=useCallback((next:ReturnType<typeof emptyWorkspaces>)=>{setState(current=>next.revision>current.revision?next:current);},[]);
  useSceneContinuation(loaded&&!route,accept,JSON.stringify({items:state.items.map(t=>({id:t.id,status:t.status,sceneId:t.sceneId,book:t.expenseBookId,food:t.progress?.food?.orderId})),runs:state.runs?.map(r=>({id:r.id,status:r.status}))}));
@@ -80,12 +87,51 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
    throw new Error('任务正在保存，请重试');
   });saveTail.current=result.catch(()=>undefined);return result;
  }
-  function selectConversation(id:string){
-    setSelectedConversationId(id);
-    if(id)localStorage.setItem('zhiyin-conversation-selected',id);else localStorage.removeItem('zhiyin-conversation-selected');
-    if(state.items.some(item=>item.id===id&&item.status==='active')){setActive(id);localStorage.setItem('zhiyin-workspace-active',id);}
+  function revealConversation(id:string){
+    const root=workspaceRoot.current;if(!root)return;
+    const history=root.querySelector<HTMLElement>('.scenario-conversations');
+    const target=history?.dataset.conversationId===id?history
+      :Array.from(root.querySelectorAll<HTMLElement>('[data-task-id]')).find(node=>node.dataset.taskId===id)
+        ??Array.from(root.querySelectorAll<HTMLElement>('[data-workspace-id]')).filter(node=>node.dataset.workspaceId===id).at(-1);
+    if(target){target.tabIndex=-1;target.scrollIntoView?.({block:'start',behavior:'auto'});target.focus({preventScroll:true});}
+    else root.querySelector<HTMLInputElement>('#steward-chat-input')?.focus({preventScroll:true});
+  }
+  function restoreSheetFocus(opener:HTMLElement|null){
+    const target=opener?.isConnected?opener:sheet.current?.querySelector<HTMLElement>('.conversation-sheet-head button');
+    target?.focus({preventScroll:true});
+  }
+  function selectConversation(id:string,storedHistory=false){
+    const archived=currentState.current.items.some(item=>item.id===id&&item.status==='archived');
+    setSelectedConversationId(archived||storedHistory?id:'');
+    setStoredConversationId(storedHistory?id:'');
+    if(archived||storedHistory)localStorage.setItem('zhiyin-conversation-selected',id);else localStorage.removeItem('zhiyin-conversation-selected');
+    if(id&&!archived){setActive(id);localStorage.setItem('zhiyin-workspace-active',id);}
+    if(sessionOpen)selectedAfterClose.current=id;
+    else window.requestAnimationFrame(()=>revealConversation(id));
     setSessionOpen(false);
   }
+  const conversationNavigation=useRef({select:selectConversation,consumed:onConversationRequestConsumed});
+  conversationNavigation.current={select:selectConversation,consumed:onConversationRequestConsumed};
+  const handledConversationRequest=useRef('');
+  const requestedConversationId=conversationRequest?.id,requestedConversationToken=conversationRequest?.token;
+  useEffect(()=>{
+    if(!loaded||!requestedConversationId||!requestedConversationToken||handledConversationRequest.current===requestedConversationToken)return;
+    let live=true;
+    void workspaceRequest().then(next=>{
+      if(!live)return;
+      // A background result may already be newer than this navigation read.
+      const latest=next.revision>=currentState.current.revision?next:currentState.current;
+      currentState.current=latest;accept(latest);
+      if(!latest.items.some(item=>item.id===requestedConversationId))throw new Error('原对话已不存在，AA账本仍可在历史账本中查看');
+      const storedHistory=!latest.conversation?.some(message=>message.workspaceId===requestedConversationId);
+      conversationNavigation.current.select(requestedConversationId,storedHistory);setError('');
+    }).catch(cause=>{if(live)setError(cause instanceof Error?cause.message:'原对话暂时无法打开，请从历史账本重试');}).finally(()=>{
+      if(!live)return;
+      handledConversationRequest.current=requestedConversationToken;
+      conversationNavigation.current.consumed?.();
+    });
+    return()=>{live=false;};
+  },[loaded,requestedConversationId,requestedConversationToken,accept]);
   async function createConversation(){
     const id=crypto.randomUUID();
     try{await save({type:'create',id,title:'新对话',kind:'general'});selectConversation(id);setActive(id);localStorage.setItem('zhiyin-workspace-active',id);setError('');}
@@ -208,11 +254,11 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   }catch(cause){setError(cause instanceof Error?cause.message:'回复保存状态尚未核实，请勿重复资金操作');}
  }
  async function serverReply(context:StewardReplyRequest){const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});accept(result.state);return result.reply;}
- const voiceRequest:VoiceBusiness=(text,id,signal)=>{
+ const voiceRequest:VoiceBusiness=(text,id,signal,context)=>{
   const previous=voiceRequests.current.get(id);if(previous)return previous;
   const result=(async()=>{
    if(signal.aborted)throw new Error('语音已结束');
-   await arrange(text,[],undefined,{messageId:id});
+   await arrange(text,context?.recent||[],undefined,{messageId:id});
    const deadline=Date.now()+120000;
    while(!signal.aborted&&Date.now()<deadline){const next=await request();if(signal.aborted)throw new Error('语音已结束');accept(next);const answer=voiceTaskResult(next,id);if(answer)return answer;await abortableVoicePause(signal);}
    throw new Error('语音已结束或处理超时，请在首页核对原事项，不要重复提交。');
@@ -227,38 +273,43 @@ export function StewardWorkspaces({route,conversationListOpen,onConversationList
   const added=entries.filter(message=>!message.messageId&&!owned.has(message.id)&&!known.has(message.id));if(!added.length)return;
   try{if(route)await save({type:'conversation-append',id:crypto.randomUUID(),messages:added});else accept(await messageStateRequest({type:'append',id:crypto.randomUUID(),messages:added}));}catch(cause){setError(cause instanceof Error?cause.message:'聊天记录尚未保存');}
  },[loaded,route,accept]);
-  return <div className="steward-workspaces">
+  return <div ref={workspaceRoot} className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
     {conversationListOpen===undefined&&<div className="conversation-toolbar">
       <button type="button" onClick={()=>setSessionOpen(true)} aria-label="打开会话列表">☰ 会话 {state.items.some(item=>item.status==='active')&&<span>{state.items.filter(item=>item.status==='active').length}</span>}</button>
       <strong>{selectedConversation?.title||`与${props.stewardName}对话`}</strong>
       <button type="button" onClick={()=>void createConversation()} disabled={!loaded||busy}>＋ 新对话</button>
     </div>}
-    {sessionOpen&&<div className="conversation-sheet-backdrop" onClick={()=>setSessionOpen(false)}>
-      <aside className="conversation-sheet" role="dialog" aria-modal="true" aria-label="会话管理" onClick={event=>event.stopPropagation()}>
-        <div className="conversation-sheet-head"><strong>会话</strong><button type="button" onClick={()=>setSessionOpen(false)} aria-label="关闭会话列表">×</button></div>
+    <Dialog.Root open={sessionOpen} onOpenChange={setSessionOpen}>
+     <Dialog.Portal><Dialog.Overlay className="conversation-sheet-backdrop">
+      <Dialog.Content ref={sheet} className="conversation-sheet" aria-label="会话管理" aria-labelledby={undefined} onOpenAutoFocus={()=>{sheetOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;}} onCloseAutoFocus={event=>{event.preventDefault();const selected=selectedAfterClose.current;selectedAfterClose.current=null;if(selected!==null)revealConversation(selected);else sheetOpener.current?.focus({preventScroll:true});}}>
+        <div className="conversation-sheet-head"><Dialog.Title>会话</Dialog.Title><Dialog.Close type="button" aria-label="关闭会话列表">×</Dialog.Close></div>
+        <Dialog.Description className="sr-only">选择对话回到原来的消息和方案；已归档的对话可查看历史记录。</Dialog.Description>
         <button type="button" className="conversation-sheet-new" onClick={()=>void createConversation()} disabled={busy}>＋ 新对话</button>
         <label className="conversation-search">搜索会话<input value={sessionQuery} onChange={event=>setSessionQuery(event.target.value)} placeholder="搜索标题"/></label>
         <div className="conversation-filter"><button type="button" aria-pressed={sessionFilter==='active'} onClick={()=>setSessionFilter('active')}>最近对话</button><button type="button" aria-pressed={sessionFilter==='archived'} onClick={()=>setSessionFilter('archived')}>已归档</button></div>
         <div className="conversation-sheet-list">{visibleSessions.length?visibleSessions.map(item=><div className="conversation-list-item" key={item.id}>
-          <button type="button" className="conversation-list-select" aria-current={item.id===selectedConversation?.id?'page':undefined} onClick={()=>selectConversation(item.id)}><strong>{item.title}</strong><span>{item.messages.length/2} 轮 · {new Date(item.updatedAt).toLocaleDateString('zh-CN')}</span></button>
-          <div className="conversation-list-actions"><button type="button" onClick={()=>setEditingTitle({id:item.id,value:item.title})}>重命名</button><button type="button" onClick={()=>void statusConversation(item.id,item.status==='active'?'archived':'active')}>{item.status==='active'?'归档':'恢复'}</button><button type="button" onClick={()=>setDeleteId(item.id)}>删除</button></div>
+          <button type="button" className="conversation-list-select" aria-current={item.id===(selectedConversation?.id||active)?'page':undefined} onClick={()=>selectConversation(item.id)}><strong>{item.title}</strong><span>{Math.floor(item.messages.length/2)} 轮 · {new Date(item.updatedAt).toLocaleDateString('zh-CN')}</span></button>
+          <div className="conversation-list-actions"><button type="button" onClick={event=>{renameOpener.current=event.currentTarget;setEditingTitle({id:item.id,value:item.title});}}>重命名</button><button type="button" onClick={()=>void statusConversation(item.id,item.status==='active'?'archived':'active')}>{item.status==='active'?'归档':'恢复'}</button><button type="button" onClick={event=>{deleteOpener.current=event.currentTarget;setDeleteId(item.id);}}>删除</button></div>
         </div>):<p className="conversation-list-empty">这里还没有对话。</p>}</div>
-      </aside>
-    </div>}
-    {editingTitle&&<div className="conversation-modal-backdrop"><div role="dialog" aria-modal="true" aria-label="重命名会话" className="conversation-modal"><strong>重命名会话</strong><input aria-label="会话标题" maxLength={60} value={editingTitle.value} onChange={event=>setEditingTitle({...editingTitle,value:event.target.value})} onKeyDown={event=>{if(event.key==='Enter')void renameConversation();}}/><div><button type="button" onClick={()=>setEditingTitle(undefined)}>取消</button><button type="button" disabled={!editingTitle.value.trim()} onClick={()=>void renameConversation()}>保存</button></div></div></div>}
-    {deleteId&&<div className="conversation-modal-backdrop"><div role="alertdialog" aria-modal="true" aria-label="确认删除会话" className="conversation-modal"><strong>删除这段对话？</strong><p>这会删除此会话的历史消息。资金操作记录仍以业务账本为准。</p><div><button type="button" onClick={()=>setDeleteId('')}>取消</button><button type="button" className="conversation-danger" onClick={()=>void deleteConversation()}>确认删除</button></div></div></div>}
-    {selectedConversation&&<section className="scenario-conversations" aria-label="当前会话记录">
-      <div className="scenario-conversations-heading"><strong>{selectedConversation.title}</strong><span>{Math.floor(selectedConversation.messages.length/2)} 轮对话</span><button type="button" onClick={()=>selectConversation('')}>返回首页对话</button></div>
+      </Dialog.Content>
+     </Dialog.Overlay></Dialog.Portal>
+    </Dialog.Root>
+    <Dialog.Root open={Boolean(editingTitle)} onOpenChange={open=>{if(!open)setEditingTitle(undefined);}}><Dialog.Portal><Dialog.Overlay className="conversation-modal-backdrop"><Dialog.Content className="conversation-modal" onCloseAutoFocus={event=>{event.preventDefault();restoreSheetFocus(renameOpener.current);}}><Dialog.Title>重命名会话</Dialog.Title><Dialog.Description className="sr-only">修改显示名称，原消息和业务记录会保留。</Dialog.Description><input aria-label="会话标题" maxLength={60} value={editingTitle?.value||''} onChange={event=>setEditingTitle(current=>current?{...current,value:event.target.value}:current)} onKeyDown={event=>{if(event.key==='Enter')void renameConversation();}}/><div><Dialog.Close type="button">取消</Dialog.Close><button type="button" disabled={!editingTitle?.value.trim()} onClick={()=>void renameConversation()}>保存</button></div></Dialog.Content></Dialog.Overlay></Dialog.Portal></Dialog.Root>
+    <AlertDialog.Root open={Boolean(deleteId)} onOpenChange={open=>{if(!open)setDeleteId('');}}><AlertDialog.Portal><AlertDialog.Overlay className="conversation-modal-backdrop"><AlertDialog.Content className="conversation-modal" aria-label="确认删除会话" aria-labelledby={undefined} onCloseAutoFocus={event=>{event.preventDefault();restoreSheetFocus(deleteOpener.current);}}><AlertDialog.Title>删除这段对话？</AlertDialog.Title><AlertDialog.Description>这会删除此会话的历史消息。资金操作记录仍以业务账本为准。</AlertDialog.Description><div><AlertDialog.Cancel type="button">取消</AlertDialog.Cancel><button type="button" className="conversation-danger" onClick={()=>void deleteConversation()}>确认删除</button></div></AlertDialog.Content></AlertDialog.Overlay></AlertDialog.Portal></AlertDialog.Root>
+    {selectedConversation&&<section className="scenario-conversations" data-conversation-id={selectedConversation.id} aria-label="当前会话记录">
+      <div className="scenario-conversations-heading"><strong>{selectedConversation.title}</strong><span>{selectedConversation.status==='archived'?'已归档 · 只读记录':'原对话 · 只读记录'}</span><button type="button" onClick={()=>selectConversation('')}>关闭历史记录</button></div>
       <div className="scenario-conversation" role="log" aria-label={selectedConversation.title}>
         {selectedConversation.messages.length?selectedConversation.messages.map(message=><p key={message.id} className={`scenario-message ${message.role}`}>
           <b>{message.role==='user'?'用户':props.stewardName}</b><span>{message.content}</span>
-        </p>):<p className="scenario-conversation-empty">这里还没有消息，和{props.stewardName}说点什么吧。</p>}
-        <small>本区展示模型对话记录；资金和设置变更以业务回执为准。</small>
+        </p>):<p className="scenario-conversation-empty">这段对话中还没有消息。</p>}
+        <small>{selectedConversation.status==='archived'?'这里只查看历史消息。需要继续这件事时，可先在会话列表恢复；资金操作以业务回执为准。':'这里保留这项活动的原始对话。可关闭记录，继续向管家交代；资金操作以业务回执为准。'}</small>
       </div>
     </section>}
     <StewardChatHome {...props}
       onVoiceRequest={voiceRequest}
+      getVoiceContext={async()=>{if(!loaded)throw new Error('首页记录尚未载入，请稍后开始通话');const memory=props.memory?await props.memory.refresh():undefined;if(props.memory&&!memory)throw new Error('上下文暂未核对，请稍后开始通话');return buildVoiceContext(currentState.current.conversation||[],memory??undefined);}}
+      onVoiceTurn={(turn:VoiceTurn)=>{const memoryRevision=props.memory?.current.current.revision??0;void persistEntries([{id:`user-${turn.id}`,role:'user',content:turn.user,memoryRevision},...(turn.assistant?[{id:`reply-${turn.id}`,role:'assistant' as const,content:turn.assistant,memoryRevision}]:[])]);}}
       seamless
       sceneFlows={state.scenes}
       onResumeScene={resumeScene}

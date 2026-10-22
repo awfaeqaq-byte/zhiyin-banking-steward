@@ -135,3 +135,80 @@
 .wealth-bank-expand[open] { padding-bottom: 14px; }
 .wealth-bank-topline > button { border-radius: 10px; }
 .wealth-catalog-open { min-height: 44px; }
+
+.wealth-bank-read-status { margin: 10px 0; color: var(--wealth-muted); font-size: 14px; line-height: 1.65; }
+.wealth-bank-read-error { display: flex; align-items: center; gap: 12px; margin: 12px 0; padding: 12px; border: 1px solid var(--wealth-line); border-radius: 12px; background: #fff; }
+.wealth-bank-read-error > div { min-width: 0; flex: 1; }
+.wealth-bank-read-error strong { font-size: 14px; color: var(--danger, #b34c51); }
+.wealth-bank-read-error p { margin: 3px 0 0; color: var(--wealth-muted); font-size: 12px; overflow-wrap: anywhere; }
+.wealth-bank-read-error button { flex: none; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 10px; background: var(--pale, #eaf8f7); color: var(--wealth-blue); font: inherit; font-weight: 600; cursor: pointer; }
+.wealth-bank-tabs button:disabled { opacity: .5; cursor: default; }
+.wealth-bank-next-step { display: grid; justify-items: start; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--wealth-line); }
+.wealth-bank-next-step p { margin: 0; color: var(--wealth-muted); font-size: 14px; line-height: 1.65; }
+@media (max-width: 360px) { .wealth-bank-read-error { align-items: stretch; flex-direction: column; } .wealth-bank-read-error button { align-self: start; } }
+
+/* Product surfaces share the card wallet's deep teal and pale sage materials. */
+.wealth-bank-top { padding-bottom: 0; }
+.wealth-bank-top h2 { font-size: 24px; }
+.wealth-bank-balance { padding: 3px 0 6px; border: 0; }
+.wealth-bank-balance strong { font-size: 14px; }
+.wealth-bank-tabs { margin: 0 0 14px; }
+.wealth-bank-section-title { align-items: center; margin-top: 18px; }
+.wealth-product-showcase .wealth-bank-section-title { margin-top: 0; }
+.wealth-purpose-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 9px; scrollbar-width: thin; scrollbar-color: #95bfbd transparent; }
+.wealth-purpose-tabs button { flex-shrink: 0; min-height: 44px; padding: 6px 12px; border: 0; border-radius: 10px; color: var(--wealth-muted); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.wealth-purpose-tabs button[aria-pressed="true"] { color: #164c4b; background: #dcece5; font-weight: 700; }
+.wealth-product-rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(255px, 88%); align-items: stretch; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 1px 8px; scrollbar-width: thin; scrollbar-color: #8eaaa3 transparent; }
+.wealth-product-rail:has(> :only-child) { grid-auto-columns: 100%; }
+.wealth-product-pass { --product-soft: #c7e4df; display: grid; width: 100%; min-width: 0; padding: 0; border: 0; border-radius: 16px; text-align: left; color: #f1fcf8; background: linear-gradient(125deg, #226961, #164c4b 72%); font: inherit; scroll-snap-align: start; transition: filter 180ms, transform 180ms; }
+.wealth-product-pass-open { display: grid; gap: 13px; width: 100%; min-width: 0; padding: 19px 18px 8px; border: 0; border-radius: inherit; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.wealth-product-pass-ask { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: 0 18px 4px; padding: 5px 0; border: 0; border-top: 1px solid color-mix(in srgb,currentColor 20%,transparent); background: transparent; color: var(--product-soft); font: inherit; font-size: 12px; cursor: pointer; }
+.wealth-product-pass[data-tone="2"] { --product-soft: #365d50; background: linear-gradient(125deg, #e1ebd9, #ccdcca); color: #254d45; }
+.wealth-product-pass[data-tone="3"] { --product-soft: #c9dbe3; background: linear-gradient(125deg, #3d5c6d, #1d3542); }
+.wealth-product-pass-title { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.wealth-product-pass-title strong { font-size: 19px; font-weight: 650; }
+.wealth-product-pass-title svg { flex: none; margin-top: 4px; }
+.wealth-product-pass-description { min-height: 38px; max-width: 29em; color: var(--product-soft); font-size: 12px; line-height: 1.6; }
+.wealth-product-pass-term { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.wealth-product-pass-term > svg { flex: none; align-self: center; }
+.wealth-product-pass-term > span { display: flex; gap: 5px; align-items: baseline; font-size: 12px; }
+.wealth-product-pass-term strong { font-size: 28px; line-height: 1.1; font-weight: 600; letter-spacing: -.03em; }
+.wealth-product-pass-term i { margin-left: auto; font-size: 11px; font-style: normal; white-space: nowrap; color: var(--product-soft); }
+.wealth-product-duration { display: flex; gap: 4px; }
+.wealth-product-duration > i { height: 4px; flex: 1; border-radius: 2px; background: color-mix(in srgb,currentColor 15%,transparent); }
+.wealth-product-duration > i[data-filled="true"] { background: color-mix(in srgb,currentColor 65%,transparent); }
+.wealth-product-duration-scale { display: flex; justify-content: space-between; margin-top: -9px; color: var(--product-soft); font-size: 10px; font-variant-numeric: tabular-nums; }
+.wealth-product-pass-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 2px; font-size: 12px; color: var(--product-soft); font-variant-numeric: tabular-nums; }
+.wealth-product-pass-footer b { margin: 0 5px; font-weight: 400; }
+.wealth-product-rail-caption { margin: 2px 0 0; color: var(--wealth-muted); font-size: 11px; }
+.wealth-banking .wealth-product-pass button:focus-visible { outline-color: currentColor; outline-offset: -4px; }
+.wealth-banking > .wealth-conversation { margin: 16px 0 6px; border: 0; background: #deefea; }
+.wealth-banking .wealth-conversation-toggle { min-height: 58px; }
+.wealth-banking .wealth-conversation-toggle > svg:first-child { box-sizing: content-box; flex: none; width: 18px; height: 18px; padding: 9px; border-radius: 50%; background: #164c4b; color: #e5f8f1; }
+.wealth-banking .wealth-conversation-toggle strong { font-size: 14px; }
+.wealth-bank-risk strong { font-size: 12px; }
+.wealth-bank-risk small { font-size: 11px; }
+.wealth-bank-gate h3 { font-size: 14px; }
+.wealth-catalog { margin-top: 14px; }
+.wealth-catalog-intro { font-size: 12px; }
+.wealth-catalog-list { display: grid; gap: 0; }
+.wealth-catalog-list article.wealth-catalog-feature { padding: 16px 17px 9px; margin: 2px 0 3px; border: 0; border-radius: 16px; background: #e1ebe0; }
+.wealth-catalog-feature-topic { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 9px; color: #315747; font-size: 12px; }
+.wealth-catalog-feature-topic > span { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+.wealth-catalog-feature-topic > small { font-size: 11px; }
+.wealth-catalog-feature .wealth-catalog-open strong { font-size: 17px; line-height: 1.55; color: #254d45; }
+.wealth-catalog-feature .wealth-catalog-open small { display: none; }
+.wealth-catalog-feature .wealth-catalog-row > span { color: #365d50; }
+.wealth-catalog-feature .wealth-catalog-row strong { color: #893d30; font-size: 22px; }
+.wealth-catalog-feature .wealth-catalog-row strong.is-negative { color: #27604b; }
+.wealth-catalog-feature .wealth-catalog-row > button { background: transparent; color: #315747; padding-right: 0; }
+.wealth-catalog-entry .wealth-catalog-open strong { font-size: 14px; font-weight: 600; line-height: 1.55; }
+.wealth-catalog-entry .wealth-catalog-open small { font-size: 11px; }
+.wealth-catalog-entry .wealth-catalog-row { margin-top: 0; }
+.wealth-catalog-row > button { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; }
+.wealth-catalog-expand { display: flex; justify-content: center; align-items: center; gap: 4px; width: 100%; min-height: 44px; padding: 8px; border: 0; border-radius: 10px; background: #e8f3f3; color: var(--wealth-blue); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.wealth-catalog-expand[aria-expanded="true"] svg { transform: rotate(-90deg); }
+.wealth-catalog .wealth-bank-footnote { margin-top: 9px; font-size: 11px; }
+@media (hover:hover) { .wealth-product-pass:hover { filter: brightness(1.04); transform: translateY(-2px); } }
+@media (min-width: 600px) { .wealth-product-rail { grid-auto-columns: minmax(270px, 60%); } }
+@media (prefers-reduced-motion: reduce) { .wealth-product-pass { transition: none; transform: none; } .wealth-product-rail { scroll-behavior: auto; } }

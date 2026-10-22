@@ -1,4 +1,4 @@
-import {bankRecipients,type BankSchedule} from './bank-transfer';
+import {bankCards,bankRecipients,type BankCardId,type BankSchedule} from './bank-transfer';
 import type {ConnectedFinancialSource} from './financial-connections';
 import type {OccasionPlan} from './occasion-plans';
 
@@ -6,7 +6,7 @@ export type ReminderDraft={workspaceId?:string;title:string;dueAt:number;note?:s
 export type Reminder=ReminderDraft&{id:string;status:'pending'|'completed'|'cancelled';createdAt:number;updatedAt:number};
 export type TaskState={revision:number;tasks:Reminder[]};
 export type TaskCommand={revision:number;id:string}&({type:'save'}&ReminderDraft|{type:'status';status:Reminder['status']});
-export type CalendarEvent={workspaceId?:string;id:string;title:string;dueAt:number;kind:'reminder'|'birthday'|'transfer'|'renewal'|'occasion';allDay?:boolean;status:string;note?:string;amount?:number;source?:string;sourceId?:string};
+export type CalendarEvent={workspaceId?:string;cardId?:BankCardId;id:string;title:string;dueAt:number;kind:'reminder'|'birthday'|'transfer'|'renewal'|'occasion';allDay?:boolean;status:string;note?:string;amount?:number;source?:string;sourceId?:string};
 export const dayKey=(time:number)=>new Date(time+8*3600000).toISOString().slice(0,10);
 export const timeLabel=(time:number)=>new Date(time+8*3600000).toISOString().slice(11,16);
 export const localTaskTime=(time:number)=>`${dayKey(time)}T${timeLabel(time)}`;
@@ -48,7 +48,7 @@ export function updateTasks(state:TaskState,command:TaskCommand,now=Date.now()):
  }else throw new Error('不支持的日程操作');
  return {revision:state.revision+1,tasks:existing?state.tasks.map(t=>t.id===next.id?next:t):[...state.tasks,next]};
 }
-export function calendarEvents(tasks:Reminder[],schedules:BankSchedule[],sources:ConnectedFinancialSource[],occasions:OccasionPlan[]=[],year?:number):CalendarEvent[]{
+export function calendarEvents(tasks:Reminder[],schedules:(BankSchedule & {cardId?:BankCardId})[],sources:ConnectedFinancialSource[],occasions:OccasionPlan[]=[],year?:number):CalendarEvent[]{
  return [
   ...occasions.filter(p=>p.status!=='draft').flatMap(p=>[{id:`occasion:prepare:${p.id}`,sourceId:p.id,title:`${p.title} · 开始筹备`,dueAt:p.prepareAt,kind:'occasion' as const,status:p.status==='reserved'?'pending':p.status,note:'筹备时间已到时，在方案中核对商品并去外卖付款。不会自动下单。'},{id:`occasion:deliver:${p.id}`,sourceId:p.id,title:`${p.title} · 期望送达`,dueAt:p.deliverAt,kind:'occasion' as const,status:p.status==='reserved'?'pending':p.status,note:'这是你填写的期望送达时间，不是商家保证；在外卖订单核对配送状态。'}]),
   ...tasks.flatMap<CalendarEvent>(t=>{
@@ -57,7 +57,7 @@ export function calendarEvents(tasks:Reminder[],schedules:BankSchedule[],sources
     const dueAt=year===undefined?nextAnnualDate(month,day):annualDate(month,day,year);
     return dueAt===null?[]:[{...t,dueAt,kind:'birthday' as const}];
   }),
-  ...schedules.map(t=>({id:`transfer:${t.id}`,sourceId:t.id,title:`转账给${bankRecipients.find(r=>r.id===t.recipientId)?.name??'收款人'}`,dueAt:t.executeAt,kind:'transfer' as const,status:t.status,amount:t.amount,note:t.error||'预约转账会由银行系统到期执行；此处展示最新状态。'})),
+  ...schedules.map(t=>({id:`transfer:${t.cardId??'primary'}:${t.id}`,cardId:t.cardId??'primary',sourceId:t.id,title:`转账给${bankRecipients.find(r=>r.id===t.recipientId)?.name??'收款人'}`,dueAt:t.executeAt,kind:'transfer' as const,status:t.status,amount:t.amount,note:`${bankCards.find(card=>card.id===(t.cardId??'primary'))?.name} · 尾号 ${bankCards.find(card=>card.id===(t.cardId??'primary'))?.last4}。${t.error||'预约转账会由银行系统到期执行；此处展示最新状态。'}`})),
   ...sources.filter(s=>s.scopes.includes('autopay')).flatMap(s=>s.autopays.filter(a=>Number.isSafeInteger(a.nextChargeAt)&&a.nextChargeAt!>0&&a.nextChargeAt!<4102444800000&&!s.cancelledAutopayIds?.includes(a.id)).map(a=>({id:`renewal:${s.provider}:${a.id}`,sourceId:a.id,source:s.provider,title:a.title,dueAt:a.nextChargeAt!,kind:'renewal' as const,status:'pending',amount:a.amount,note:`${s.displayName} · 下次预计扣费，实际结果以平台账单为准。`}))),
  ].sort((a,b)=>a.dueAt-b.dueAt||a.id.localeCompare(b.id));
 }

@@ -16,7 +16,7 @@ import { WechatSmartImage } from '../../components/WechatSmartImage';
 import type { Message } from '../../types';
 import { resolveChatPeerByWxid } from '../../utils/resolveChatPeer';
 import { getWechatWalletBackend } from '../../wallet/backend';
-import {NINGNING_WXID} from '../../chat-ai/zhiyin';
+import {NINGNING_WXID,ningningPlainText} from '../../chat-ai/zhiyin';
 import {NingningChatTools} from '../../components/NingningChatTools';
 import {useMessageShare} from '../../components/useMessageShare';
 
@@ -169,7 +169,7 @@ const ChatBubble = React.memo<ChatBubbleProps>(function ChatBubble({
           }`}
           style={isMe ? { backgroundColor: 'var(--app-c-chat-bubble-me-bg)' } : undefined}
         >
-          <span className="text-app-text">{msg.content}</span>
+          <span className={`text-app-text${msg.senderId===NINGNING_WXID ? ' whitespace-pre-wrap' : ''}`}>{msg.senderId===NINGNING_WXID ? ningningPlainText(msg.content) : msg.content}</span>
         </div>
       )}
 
@@ -369,7 +369,7 @@ export const ChatDetail: React.FC = () => {
   const selectedTransfer = selectedTransferId
     ? walletTransfers.find(transfer => transfer.id === selectedTransferId) || null
     : null;
-  const messageShare=useMessageShare({id:chat?.id||'',name:chat?.user.name||'',kind:'direct'},(chat?.messages??[]).filter(m=>m.type==='text').map(m=>({id:m.id,sender:m.senderId===user.wxid?t.aa_me:chat!.user.name,text:m.content,sentAt:m.timestamp})));
+  const messageShare=useMessageShare({id:chat?.id||'',name:chat?.user.name||'',kind:'direct'},(chat?.messages??[]).filter(m=>m.type==='text').map(m=>({id:m.id,sender:m.senderId===user.wxid?t.aa_me:chat!.user.name,text:m.senderId===NINGNING_WXID?ningningPlainText(m.content):m.content,sentAt:m.timestamp})));
 
   if (!chat) {
     return <div className="min-h-screen bg-app-bg pt-20 text-center text-(--app-c-tw-text-gray-400)">未找到联系人</div>;

@@ -51,3 +51,14 @@ it('管家入口只交接输入草稿，月历可收起且保持所选日期',as
  await user.click(screen.getByRole('button',{name:'收起月历'}));expect(within(screen.getByRole('group',{name:'选择日期'})).getAllByRole('button')).toHaveLength(7);
  expect(screen.getByRole('button',{name:new RegExp(dayKey(start()))})).toHaveAttribute('aria-pressed','true');expect(api.fetcher.mock.calls.every(([,init])=>!init?.body)).toBe(true);
 });
+
+it('筛选空态提供恢复全部类型，不误导用户新建银行预约',async()=>{
+ serve();const user=userEvent.setup();render(<TaskCalendar {...props} initialDate={start()}/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'添加提醒'})).toBeEnabled());
+ await user.selectOptions(screen.getByLabelText('筛选日程类型'),'transfer');
+ expect(screen.getByText('这个范围内暂无此类安排')).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'记下一件要做的事'})).not.toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'查看全部类型'}));
+ expect(screen.getByLabelText('筛选日程类型')).toHaveValue('all');
+ expect(screen.getByText(/添加提醒只记录待办/)).toBeInTheDocument();
+});

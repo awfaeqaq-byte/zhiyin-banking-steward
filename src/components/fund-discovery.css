@@ -104,3 +104,8 @@
   .fund-detail-metrics { gap: 6px; }
   .fund-detail-metrics .fund-metric > span { font-size: 12px; }
 }
+
+.fund-active-filters { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; padding: 3px 10px; border-radius: 10px; background: var(--pale, #eaf8f7); }
+.fund-active-filters p { flex: 1; min-width: 0; margin: 0; color: var(--fund-muted); font-size: 12px; overflow-wrap: anywhere; }
+.fund-active-filters button { flex: none; min-height: 44px; border: 0; padding: 6px 0; background: transparent; color: var(--fund-accent); font-weight: 600; }
+.fund-handoff-hint { margin: 10px 0 0; color: var(--fund-muted); font-size: 12px; line-height: 1.65; }

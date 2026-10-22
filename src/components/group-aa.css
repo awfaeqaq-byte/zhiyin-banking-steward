@@ -340,3 +340,8 @@
   object-fit: cover;
   border-radius: 6px;
 }
+.aa-history-launch { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 70px; padding: 14px 16px; margin-bottom: 18px; border: 1px solid #d5ebee; border-radius: 14px; background: #fff; color: #007d7c; cursor: pointer; text-align: left; }
+.aa-history-launch > span { display: grid; flex: 1; gap: 4px; }
+.aa-history-launch strong { color: #133346; font-size: 15px; font-weight: 600; }
+.aa-history-launch small { color: #506d7c; font-size: 12px; line-height: 1.5; }
+.aa-history-launch:focus-visible { outline: 2px solid #007d7c; outline-offset: 3px; }

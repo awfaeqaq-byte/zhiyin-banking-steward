@@ -118,3 +118,22 @@ it('暂不撤销保持预约，确认撤销后同步转账标签，新预约也�
  ]);
  expect(snapshot.balance).toBe(4230000);expect(snapshot.transactions).toHaveLength(0);
 });
+it('备用卡AA的到账说明、创建请求和刷新范围一致，保留主卡未决收款',async()=>{
+ const calls:Array<{url:string;body:Record<string,unknown>}>=[];
+ const snapshot={cardId:'living',revision:0,balance:0,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[],aaRequests:[] as unknown[]};
+ const pending={requestId:'primary-aa',title:'主卡未决',amount:200,recipientIds:['mom'],includeSelf:false};
+ localStorage.setItem('zhiyin-aa-pending',JSON.stringify(pending));
+ vi.spyOn(globalThis,'fetch').mockImplementation(async(url,options)=>{
+  const body=JSON.parse(String(options?.body||'{}'));calls.push({url:String(url),body});
+  if(body.type==='create-aa'){const item={...body,id:body.requestId,createdAt:1,status:'pending',shares:[{recipientId:'mom',amount:100}]};snapshot.aaRequests=[item];return new Response(JSON.stringify(item));}
+  return new Response(JSON.stringify(snapshot));
+ });
+ const user=userEvent.setup();render(<SmartTransfers cardId="living" initial={{kind:'aa',amount:100,recipientIds:['mom'],includeSelf:false}} onDone={vi.fn()}/>);
+ await user.click(screen.getByRole('button',{name:'核对AA分摊'}));
+ expect(screen.getByText(/收款到账生活备用卡 6216/)).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'确认发起AA收款'}));
+ await screen.findByText('0/1 人已付');
+ expect(calls.find(call=>call.body.type==='create-aa')?.body.cardId).toBe('living');
+ expect(calls.filter(call=>!call.body.type).every(call=>call.url.endsWith('?cardId=living'))).toBe(true);
+ expect(localStorage.getItem('zhiyin-aa-pending')).toBe(JSON.stringify(pending));
+});

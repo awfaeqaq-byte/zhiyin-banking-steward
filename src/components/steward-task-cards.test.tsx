@@ -29,6 +29,8 @@ it('明确订阅概览使用固定组件，复杂解释仍保留普通回复',as
  const source={provider:'alipay' as const,displayName:'支付宝',accountMasked:'测试',scopes:['autopay' as const],autopays:[{id:'video',title:'视频会员',merchant:'视频',amount:2500,cycle:'月' as const,nextChargeAt:Date.now()+86400000}],transactions:[],syncedAt:new Date().toISOString()};
  render(<StewardChatHome {...base} connections={{alipay:source}} reply={reply}/>);
  await say('查看我的订阅');const card=await screen.findByRole('region',{name:'订阅安排'});expect(card).toHaveTextContent('视频会员');
+ expect(within(card).queryByRole('button',{name:'核对并取消视频会员'})).not.toBeInTheDocument();
+ await userEvent.click(within(card).getByRole('button',{name:/视频会员.*管理订阅/}));
  await userEvent.click(within(card).getByRole('button',{name:'核对并取消视频会员'}));expect(base.onPrepareCancel).toHaveBeenCalledWith('alipay','video');
  await say('解释一下为什么这些服务权益不同');await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));expect(screen.getAllByText('已整理。').length).toBeGreaterThan(0);
 });

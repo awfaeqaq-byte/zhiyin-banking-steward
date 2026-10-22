@@ -36,7 +36,7 @@ it('固定结论由真实分类占比和最大消费生成，转出和退款不�
  render(<BillAnalysisCard {...props}/>);
  const card=screen.getByRole('region',{name:'账单分析'});
  expect(card).toHaveTextContent('¥40');expect(card).toHaveTextContent('¥1,000');
- expect(card).toHaveTextContent('餐饮占本次消费的 75%');
+ expect(card).toHaveTextContent('餐饮');expect(card).toHaveTextContent('75%');
  expect(card).toHaveTextContent('最大一笔消费');expect(card).not.toHaveTextContent('异常消费');
  await userEvent.click(screen.getByText('退款、转账与统计范围'));
  expect(card).toHaveTextContent('退款单列');expect(card).toHaveTextContent('转出');expect(card).toHaveTextContent('¥200');
@@ -44,10 +44,11 @@ it('固定结论由真实分类占比和最大消费生成，转出和退款不�
 it('点击真实交易才继续解释，完整明细和补充解读按需展开',async()=>{
  const inspect=vi.fn(),analyze=vi.fn();
  render(<BillAnalysisCard {...props} onInspect={inspect} onAnalyze={analyze} details={<p>原有平台切换面板</p>} explanation={<p>模型补充解释</p>}/>);
- expect(inspect).not.toHaveBeenCalled();expect(screen.getByText('模型补充解释')).not.toBeVisible();
+ expect(inspect).not.toHaveBeenCalled();expect(screen.queryByText('模型补充解释')).not.toBeInTheDocument();
  await userEvent.click(screen.getByRole('button',{name:/解释午餐/}));expect(inspect).toHaveBeenCalledWith({provider:'wechat_pay',id:'meal'});
+ await userEvent.click(screen.getByRole('button',{name:'解读'}));expect(screen.getByText('模型补充解释')).toBeVisible();
  await userEvent.click(screen.getByRole('button',{name:'请宁宁进一步分析'}));expect(analyze).toHaveBeenCalledOnce();
- await userEvent.click(screen.getByText('查看明细与切换平台'));expect(screen.getByText('原有平台切换面板')).toBeVisible();
+ await userEvent.click(screen.getByRole('button',{name:'明细 5'}));expect(screen.getByText('原有平台切换面板')).toBeVisible();
 });
 it('同步失败和加载期间隐藏旧数字及分析入口',()=>{
  const view=render(<BillAnalysisCard {...props} error="平台暂不可用" explanation={<p>旧解读</p>}/>);
@@ -61,16 +62,49 @@ it('空账单、未授权和待明确日期不能伪造零消费结论',()=>{
  view.rerender(<BillAnalysisCard {...props} bill={buildBillAnalysis({},'本月支出')}/>);expect(screen.getByText(/需要账单读取授权/)).toBeVisible();
  view.rerender(<BillAnalysisCard {...props} bill={{...bill,needsClarification:true}}/>);expect(screen.getByText(/确认月份或日期范围/)).toBeVisible();
 });
-it('不完整数据明确为小计，换范围后隐藏旧解读且不虚构消费趋势',()=>{
+it('不完整数据明确为小计，换范围后隐藏旧解读且不虚构消费趋势',async()=>{
  render(<BillAnalysisCard {...props} bill={{...bill,coverageIncomplete:true,coverage:'数据不完整：仅返回部分交易。'}} interpretationChanged explanation={<p>旧范围解读</p>}/>);
  const card=screen.getByRole('region',{name:'账单分析'});
  expect(card).toHaveTextContent('已返回消费小计');expect(card).toHaveTextContent('数据不完整');
- expect(screen.queryByText('旧范围解读')).not.toBeInTheDocument();expect(card).toHaveTextContent('补充解读需重新生成');
+ expect(screen.queryByText('旧范围解读')).not.toBeInTheDocument();
+ await userEvent.click(screen.getByRole('button',{name:'解读'}));expect(card).toHaveTextContent('补充解读需重新生成');
  expect(card).not.toHaveTextContent('环比');
 });
-it('前期数据仅按等长时段比较，零消费样本不推断日常习惯',()=>{
+it('前期数据仅按等长时段比较，零消费样本不推断日常习惯',async()=>{
  const view=render(<BillAnalysisCard {...props} bill={{...bill,diagnosis:{...bill.diagnosis,trend:{previousFrom:'2026-09-18',previousTo:'2026-09-30',previousExpense:2000,currentExpense:4000,changePercent:100,label:'等长时段'}}}}/>);
- expect(screen.getByText(/增加 100%/)).toBeVisible();expect(screen.getByText(/两期记录完整性未知/)).toBeVisible();
+ await userEvent.click(screen.getByText(/查看前期对照/));
+ expect(screen.getAllByText(/增加 100%/)[0]).toBeVisible();expect(screen.getByText(/两期记录完整性未知/)).toBeVisible();
  view.rerender(<BillAnalysisCard {...props} bill={buildBillAnalysis({wechat_pay:{...source,transactions:[source.transactions[2]]}},'本月支出',Date.parse('2026-10-13'))}/>);
  expect(screen.getByText(/未返回消费类支出/)).toBeVisible();expect(within(screen.getByRole('region',{name:'账单分析'})).queryByText('最大一笔消费')).not.toBeInTheDocument();
+});
+
+
+it('概览点选分类就地核对交易，不自动请求模型，收起后恢复最大消费',async()=>{
+ const inspect=vi.fn(),analyze=vi.fn();
+ render(<BillAnalysisCard {...props} onInspect={inspect} onAnalyze={analyze}/>);
+ await userEvent.click(screen.getByRole('button',{name:/查看交通交易/}));
+ expect(screen.getByRole('heading',{name:'交通交易'})).toBeVisible();
+ expect(screen.queryByText('最大一笔消费')).not.toBeInTheDocument();
+ expect(inspect).not.toHaveBeenCalled();expect(analyze).not.toHaveBeenCalled();
+ await userEvent.click(screen.getByRole('button',{name:/解释地铁/}));
+ expect(inspect).toHaveBeenCalledWith({provider:'wechat_pay',id:'metro'});
+ await userEvent.click(screen.getByRole('button',{name:/查看交通交易/}));
+ expect(screen.getByText('最大一笔消费')).toBeVisible();
+});
+it('刷新核对时隐藏当前解读，失败后不能继续用旧数字解读',async()=>{
+ const view=render(<BillAnalysisCard {...props} explanation={<p>旧解读</p>}/>);
+ await userEvent.click(screen.getByRole('button',{name:'解读'}));
+ expect(screen.getByText('旧解读')).toBeVisible();
+ view.rerender(<BillAnalysisCard {...props} loading explanation={<p>旧解读</p>}/>);
+ expect(screen.queryByText('旧解读')).not.toBeInTheDocument();
+ view.rerender(<BillAnalysisCard {...props} error="读取失败" explanation={<p>旧解读</p>}/>);
+ expect(screen.queryByText('旧解读')).not.toBeInTheDocument();
+});
+
+it('失败可就地重试读取，不把重试当成再次模型分析',async()=>{
+ const retry=vi.fn(),analyze=vi.fn();
+ render(<BillAnalysisCard {...props} error="平台未响应。" onRetry={retry} onAnalyze={analyze}/>);
+ expect(screen.getByRole('alert')).not.toHaveTextContent('。。');
+ await userEvent.click(screen.getByRole('button',{name:'重新核对账单'}));
+ expect(retry).toHaveBeenCalledOnce();expect(analyze).not.toHaveBeenCalled();
 });

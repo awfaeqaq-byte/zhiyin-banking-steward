@@ -37,6 +37,21 @@ export function transferImpact(s:BankSnapshot,intent:TransferIntent,excludeId?:s
 export type BankDraft=TransferIntent & {id:string;revision:number;balance:number;createdAt:number;expiresAt:number;impact?:TransferImpact;review?:TransferReview};
 export type BankReceipt=TransferIntent & {id:string;completedAt:number;balanceAfter:number};
 export type BankControls={overseas:boolean;contactless:boolean;night:boolean};
+export const bankCards=[
+ {id:'primary',name:'日常支付卡',last4:'8888',kind:'debit',isPrimary:true},
+ {id:'living',name:'生活备用卡',last4:'6216',kind:'debit',isPrimary:false},
+ {id:'reserve',name:'储蓄备用卡',last4:'9073',kind:'debit',isPrimary:false},
+] as const;
+export type BankCardId=typeof bankCards[number]['id'];
+export type BankCardSchedule=BankSchedule & {cardId:BankCardId};
+export type BankCardSummary={id:BankCardId;name:string;last4:string;kind:'debit';isPrimary:boolean;revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls};
+export function validBankCardId(value:unknown):value is BankCardId{return bankCards.some(card=>card.id===value);}
+export function validBankCardSummaries(value:unknown):value is BankCardSummary[] {
+ return Array.isArray(value)&&value.length===bankCards.length&&new Set(value.map(card=>card?.id)).size===bankCards.length&&value.every(card=>{
+  const definition=bankCards.find(item=>item.id===card?.id);
+  return definition&&card.name===definition.name&&card.last4===definition.last4&&card.kind===definition.kind&&card.isPrimary===definition.isPrimary&&Number.isSafeInteger(card.revision)&&card.revision>=0&&Number.isSafeInteger(card.balance)&&card.balance>=0&&Number.isSafeInteger(card.limit)&&card.limit>=10000&&card.limit<=5000000&&typeof card.frozen==='boolean'&&card.controls&&['overseas','contactless','night'].every(key=>typeof card.controls[key]==='boolean');
+ });
+}
 export const cardProducts=[
  {id:'standard-debit',name:'标准借记卡',annualFee:0,benefit:'日常转账与支付',condition:'持有演示沙箱账户',materials:'无需提交真实身份资料'},
  {id:'safety-debit',name:'安心借记卡',annualFee:0,benefit:'默认开启夜间保护',condition:'持有演示沙箱账户',materials:'无需提交真实身份资料'},
@@ -44,7 +59,7 @@ export const cardProducts=[
 export type CardApplication={id:string;productId:string;createdAt:number;status:'submitted'};
 export type BankPayment={id:string;channel:'wechat'|'alipay'|'overseas';amount:number;merchant:string;occasionId?:string};
 export type BankPaymentReceipt=BankPayment & {completedAt:number;balanceAfter:number;refundedAt?:number;refundBalanceAfter?:number};
-export type BankSnapshot={revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[];cardApplications?:CardApplication[];occasions?:import('./occasion-plans').OccasionPlan[];assetSummary?:BankAssetSummary;termDeposits?:TermDeposit[];asOf?:number};
+export type BankSnapshot={cardId?:BankCardId;cards?:BankCardSummary[];allSchedules?:BankCardSchedule[];revision:number;balance:number;limit:number;frozen:boolean;controls:BankControls;transactions:BankReceipt[];payments?:BankPaymentReceipt[];schedules?:BankSchedule[];aaRequests?:AARequest[];collections?:AACollection[];cardApplications?:CardApplication[];occasions?:import('./occasion-plans').OccasionPlan[];assetSummary?:BankAssetSummary;termDeposits?:TermDeposit[];asOf?:number};
 export function validBankPayment(value:unknown):value is BankPayment {
  if(!value || typeof value!=='object')return false;
  const p=value as BankPayment;
@@ -54,6 +69,17 @@ export type BankSettings={revision:number;limit?:number;frozen?:boolean;controls
 export function validBankSnapshot(v:unknown):v is BankSnapshot {
  if(!v || typeof v!=='object')return false;
  const s=v as BankSnapshot;
+ if(s.cardId!==undefined&&!validBankCardId(s.cardId))return false;
+ if(s.allSchedules!==undefined&&(
+  s.cardId!==undefined&&s.cardId!=='primary'||!Array.isArray(s.allSchedules)||s.allSchedules.length>3000||
+  !s.allSchedules.every(item=>item&&validBankCardId(item.cardId)&&validTransfer(item)&&typeof item.id==='string'&&/^[\w-]{1,80}$/.test(item.id)&&Number.isSafeInteger(item.executeAt)&&item.executeAt>0&&Number.isFinite(item.createdAt)&&['pending','completed','cancelled','failed'].includes(item.status)&&(item.error===undefined||typeof item.error==='string')&&(item.reviewedTransferIds===undefined||Array.isArray(item.reviewedTransferIds)&&item.reviewedTransferIds.every(id=>typeof id==='string')))||
+  new Set(s.allSchedules.map(item=>`${item.cardId}:${item.id}`)).size!==s.allSchedules.length
+ ))return false;
+ if(s.cards!==undefined){
+  if(s.cardId!==undefined&&s.cardId!=='primary'||!validBankCardSummaries(s.cards))return false;
+  const primary=s.cards.find(card=>card.isPrimary)!;
+  if(primary.balance!==s.balance||primary.revision!==s.revision||primary.limit!==s.limit||primary.frozen!==s.frozen||!s.controls||['overseas','contactless','night'].some(key=>primary.controls[key as keyof BankControls]!==s.controls[key as keyof BankControls]))return false;
+ }
  if(s.assetSummary!==undefined&&(!validAssetSummary(s.assetSummary)||s.assetSummary.cash!==s.balance))return false;
  if(s.termDeposits!==undefined&&(!Array.isArray(s.termDeposits)||s.termDeposits.length>1000||!s.termDeposits.every(validTermDeposit)||new Set(s.termDeposits.map(d=>d.id)).size!==s.termDeposits.length))return false;
  if(s.asOf!==undefined&&(!Number.isSafeInteger(s.asOf)||s.asOf<=0))return false;
@@ -67,9 +93,20 @@ export function validTransfer(value:unknown):value is TransferIntent {
  const v=value as TransferIntent;
  return (v.workspaceId===undefined||typeof v.workspaceId==='string'&&/^[\w-]{1,80}$/.test(v.workspaceId))&&bankRecipients.some(r=>r.id===v.recipientId) && Number.isSafeInteger(v.amount) && v.amount>0 && (v.executeAt===undefined || (Number.isSafeInteger(v.executeAt) && v.executeAt>0)) && (v.protectedAmount===undefined || (Number.isSafeInteger(v.protectedAmount) && v.protectedAmount>=0));
 }
-export async function bankRequest<T>(body?:object):Promise<T> {
- const response=await fetch('/api/zhiyin/bank',{cache:'no-store',signal:AbortSignal.timeout(8000),...(body?{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1'},body:JSON.stringify(body)}:{})});
+async function requestBank<T>(url:string,body?:object):Promise<T> {
+ const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(8000),...(body?{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1'},body:JSON.stringify(body)}:{})});
  const data=await response.json();
  if(!response.ok){const error=new Error(data.error || '银行沙箱暂时不可用');error.name=response.status===400?'BankRejection':'BankUnavailable';throw error;}
  return data as T;
+}
+export function bankRequest<T>(body?:object,cardId?:BankCardId):Promise<T> {
+ if(cardId!==undefined&&!validBankCardId(cardId))return Promise.reject(new Error('卡片不存在，请重新选择'));
+ if(cardId!==undefined&&body&&'cardId' in body&&body.cardId!==cardId)return Promise.reject(new Error('卡片信息不一致，请重新选择'));
+ const scoped=cardId!==undefined&&cardId!=='primary';
+ return requestBank<T>('/api/zhiyin/bank'+(!body&&scoped?`?cardId=${cardId}`:''),body&&scoped?{...body,cardId}:body);
+}
+export async function bankCardsRequest():Promise<BankCardSummary[]> {
+ const cards=await requestBank<unknown>('/api/zhiyin/bank?view=cards');
+ if(!validBankCardSummaries(cards))throw new Error('银行卡列表数据不可用，请重试');
+ return cards;
 }

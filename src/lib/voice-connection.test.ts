@@ -8,8 +8,12 @@ it('真实浏览器握手流程：只申请音频、等会话配置确认再收�
  const peers:Peer[]=[];vi.stubGlobal('RTCPeerConnection',class extends Peer{constructor(){super();peers.push(this);}});vi.stubGlobal('Audio',function(){return audio;});vi.stubGlobal('isSecureContext',true);
  const media=vi.fn(async()=>({getTracks:()=>[track],getAudioTracks:()=>[track]}));vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:media}});
  const fetcher=vi.fn<typeof fetch>(async url=>new Response(JSON.stringify(String(url).endsWith('status')?{configured:true}:{answer:'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n',session:{instructions:'test-role',tools:[]}})));
- const c=createVoiceConnection({stewardName:'宁宁',business:vi.fn(),onState:vi.fn(),fetcher});await c.start();await vi.waitFor(()=>expect(c.getState().phase).toBe('listening'));
+ const business=vi.fn(()=>new Promise<{text:string}>(()=>{}));
+ const c=createVoiceConnection({stewardName:'宁宁',business,onState:vi.fn(),fetcher});await c.start();await vi.waitFor(()=>expect(c.getState().phase).toBe('listening'));
  expect(media).toHaveBeenCalledWith({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});expect(sent).toContainEqual({type:'session.update',session:{instructions:'test-role',tools:[]}});expect(track.enabled).toBe(true);
+ const receive=(event:object)=>txt.onmessage?.({data:JSON.stringify(event)});
+ receive({type:'input_audio_buffer.speech_started',item_id:'user-1'});receive({type:'conversation.item.input_audio_transcription.completed',item_id:'user-1',transcript:'帮我看账单'});receive({type:'response.created',response:{id:'response-1'}});receive({type:'response.output_item.done',response_id:'response-1',item:{type:'function_call',call_id:'call-1',name:'ask_steward',arguments:'{"text":"帮我看账单"}'}});
+ await vi.waitFor(()=>expect(business).toHaveBeenCalledOnce());expect(track.enabled).toBe(true);
  c.setMuted(true);expect(track.enabled).toBe(false);c.setMuted(false);expect(track.enabled).toBe(true);c.stop();expect(stop).toHaveBeenCalledOnce();expect(peers[0].closed).toBe(true);expect(pause).toHaveBeenCalled();
 });
 it('没有凭证不申请麦克风，没有 HTTPS 不创建远端会话',async()=>{
@@ -27,5 +31,5 @@ it('退出时即使麦克风授权迟到，也停止全部音轨',async()=>{
 });
 it('退出时配置查询迟到，不能再向用户申请麦克风权限',async()=>{
  let done:(r:Response)=>void=()=>{};const media=vi.fn(async()=>({getTracks:()=>[]}));vi.stubGlobal('isSecureContext',true);vi.stubGlobal('RTCPeerConnection',vi.fn());vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:media}});
- const fetcher=vi.fn(()=>new Promise<Response>(r=>{done=r;}));const c=createVoiceConnection({stewardName:'宁宁',business:vi.fn(),onState:vi.fn(),fetcher});const start=c.start();c.stop();done(new Response(JSON.stringify({configured:true})));await start;expect(media).not.toHaveBeenCalled();
+ const getContext=vi.fn(async()=>({recent:[],preferences:[]}));const fetcher=vi.fn(()=>new Promise<Response>(r=>{done=r;}));const c=createVoiceConnection({stewardName:'宁宁',business:vi.fn(),getContext,onState:vi.fn(),fetcher});const start=c.start();c.stop();done(new Response(JSON.stringify({configured:true})));await start;expect(media).not.toHaveBeenCalled();expect(getContext).not.toHaveBeenCalled();
 });

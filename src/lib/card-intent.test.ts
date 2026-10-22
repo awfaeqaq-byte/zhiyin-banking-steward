@@ -12,3 +12,14 @@ describe('卡片自然语言只准备待确认动作',()=>{
   ['我想申请银行卡',{kind:'application'}],
  ])('%s', (input,expected)=>expect(parseCardIntent(input)).toEqual(expected));
 });
+
+it('识别明确卡片和尾号，未知卡与多卡不会落到默认卡，金额不会充当尾号',async()=>{
+ const {cardIntentTarget}=await import('./card-intent');
+ expect(cardIntentTarget('挂失尾号6216的卡')).toBe('living');
+ expect(cardIntentTarget('把储蓄备用卡的限额调到2000')).toBe('reserve');
+ expect(cardIntentTarget('挂失尾号1234的卡')).toBe('unknown');
+ expect(cardIntentTarget('挂失银行卡1234')).toBe('unknown');
+ expect(cardIntentTarget('冻结1234卡')).toBe('unknown');
+ expect(cardIntentTarget('关闭尾号8888和尾号6216的境外交易')).toBe('ambiguous');
+ expect(cardIntentTarget('把支付限额改成6216元')).toBeNull();
+});

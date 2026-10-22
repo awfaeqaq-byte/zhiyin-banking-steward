@@ -83,9 +83,7 @@ async function switchMode(
   user: ReturnType<typeof userEvent.setup>,
   name: "经典款" | "AI 原生",
 ) {
-  if (screen.queryByRole("button", { name: "个人中心" })) {
-    await user.click(screen.getByRole("button", { name: "个人中心" }));
-  }
+  await user.click(screen.queryByRole("button", { name: "个人中心" }) ?? screen.getByRole("button", { name: "我的" }));
   await user.click(screen.getByRole("button", { name: /^设置/ }));
   await user.click(screen.getByRole("radio", { name: new RegExp(name) }));
   await user.click(screen.getByRole("button", { name: "返回" }));
@@ -140,6 +138,7 @@ it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页"
   expect(screen.queryByText("优酷VIP会员连续包月")).not.toBeInTheDocument();
   await user.type(screen.getByRole("textbox", { name: "和宁宁说点什么" }), "帮我取消优酷会员续费");
   await user.click(screen.getByRole("button", { name: "发送给宁宁" }));
+  await user.click(await screen.findByRole("button", { name: /优酷VIP会员连续包月.*管理订阅/ }));
   await user.click(await screen.findByRole("button", { name: "核对并取消优酷VIP会员连续包月" }));
 
   expect(await screen.findByRole("dialog", { name: "取消自动续费" })).toHaveTextContent("优酷VIP会员连续包月");
@@ -159,7 +158,7 @@ it("首页加载、手机回到前台和返回首页都会同步订阅", async (
   await waitFor(() => expect(screen.queryByRole("button", { name: "查看全部订阅" })).not.toBeInTheDocument());
   expect(screen.queryByText(/已检查|0 项订阅/)).not.toBeInTheDocument();
   expect(refresh).toHaveBeenCalledTimes(2);
-  await user.click(screen.getByRole("button", { name: "个人中心" }));
+  await user.click(screen.getByRole("button", { name: "我的" }));
   await user.click(screen.getByRole("button", { name: "返回" }));
   await waitFor(() => expect(refresh).toHaveBeenCalledTimes(3));
 });
@@ -223,7 +222,7 @@ it("资产页进入真实资金安排并保留返回路径", async () => {
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole("button", { name: "资产" }));
-  await user.click(screen.getByRole("button", { name: /近期资金安排/ }));
+  await user.click(screen.getByRole("button", { name: "查看资金安排" }));
   expect(screen.getByRole("heading", { name: "近期资金安排" })).toBeInTheDocument();
   expect(screen.getByText("先连接你的支付账户")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "返回" }));
