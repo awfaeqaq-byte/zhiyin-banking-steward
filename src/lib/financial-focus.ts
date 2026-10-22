@@ -50,6 +50,7 @@ export type FinancialFocusChange={rules:FinancialFocusRule[];message:string;kind
 
 export function applyFinancialFocusCommand(prompt:string,current:FinancialFocusRule[],now=Date.now()):FinancialFocusChange|null{
   const text=prompt.trim();
+  if(/仅分析|只分析|仅询问|只问|只(?:给建议|比较)|不(?:要|用)(?:实际)?(?:执行|操作)|(?:引号|名称|标题).{0,15}(?:不是|不作为|当作|只是)/.test(text))return null;
   const topicInfo=topics.find(item=>item.pattern.test(text));
   if(!topicInfo)return null;
   const removing=/取消.*(?:关注|提醒|统计)|不再.*(?:关注|提醒|统计)|别再.*(?:关注|提醒|统计)|停止.*(?:关注|提醒|统计)/.test(text);

@@ -23,7 +23,8 @@ export async function readLocalWechatSource(configFile:string,importerFile:strin
   if(!stat.isFile()||stat.size>50*1024*1024)throw new Error('本地微信账单不存在或超过 50MB');
   const sha=createHash('sha256').update(readFileSync(config.sourcePath)).digest('hex');
   if(config.expectedSha256&&sha!==config.expectedSha256)throw new Error('微信账单文件哈希已变化，请重新授权');
-  const {stdout}=await execFileAsync(process.env.ZHIYIN_PYTHON||'python3',[importerFile,config.sourcePath],{encoding:'utf8',maxBuffer:32*1024*1024,timeout:120000});
+  const python=process.env.ZHIYIN_PYTHON||(process.platform==='win32'?'python':'python3');
+  const {stdout}=await execFileAsync(python,[importerFile,config.sourcePath],{encoding:'utf8',env:{...process.env,PYTHONIOENCODING:'utf-8'},maxBuffer:32*1024*1024,timeout:120000});
   const parsed=JSON.parse(stdout) as {transactions?:Array<{id:string;merchant:string;amountCents:number;direction:'expense'|'income';category:string;occurredAt:string;linkedId?:string}>;importReport?:{sha256?:string;quarantinedRows?:number}};
   if(parsed.importReport?.sha256!==sha||!Array.isArray(parsed.transactions))throw new Error('微信账单导入校验失败');
   const [year,number]=month.split('-').map(Number);

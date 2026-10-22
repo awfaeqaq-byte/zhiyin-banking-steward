@@ -27,7 +27,7 @@ with zipfile.ZipFile(path,'w') as z:
  z.writestr('xl/workbook.xml','<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="账单" sheetId="1" r:id="rId1"/></sheets></workbook>')
  z.writestr('xl/_rels/workbook.xml.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>')
  z.writestr('xl/worksheets/sheet1.xml',sheet)`;
- execFileSync('python3',['-c',script,file]);
+ execFileSync(process.env.ZHIYIN_PYTHON||(process.platform==='win32'?'python':'python3'),['-c',script,file]);
  const sha=createHash('sha256').update(readFileSync(file)).digest('hex');
  writeFileSync(config,JSON.stringify({sourcePath:file,expectedSha256:sha,enabled:true}));
  const source=await readLocalWechatSource(config,resolve('scripts/import_wechat_bill.py'),'2026-09');

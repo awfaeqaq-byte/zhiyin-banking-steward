@@ -37,7 +37,8 @@ describe('账单分析',()=>{
     expect(buildBillAnalysis({wechat_pay:{...source,transactions:rows}},'账单',now).transferIn).toBe(2000);
     expect(buildBillAnalysis({},'今天账单',now).from).toBe('2026-09-24');
     expect(buildBillAnalysis({},'最近30天账单',now).from).toBe('2026-08-26');
-    for(const q of ['最近15天账单','2026年13月账单','2027年1月账单','历史账单','8月1日至8月20日账单']) expect(buildBillAnalysis({},q,now).needsClarification).toBe(true);
+    for(const q of ['最近15天账单','2026年13月账单','2027年1月账单','历史账单']) expect(buildBillAnalysis({},q,now).needsClarification).toBe(true);
+    expect(buildBillAnalysis({},'8月1日至8月20日账单',now)).toMatchObject({from:'2026-08-01',to:'2026-08-20',needsClarification:false});
     expect(billInstructions('宁宁')).toContain('null');
   });
   it('按分计算本月消费、收入、退款、转账并保留来源',()=>{

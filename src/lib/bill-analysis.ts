@@ -16,7 +16,8 @@ export function billReferenceTime(connections: Connections, fallback = Date.now(
 }
 
 export function isBillQuestion(question: string) {
-  return /账单|收支|消费|花了|花费|花销|花在哪|花到哪|支出|收入|退款|转账记录|流水|大额/.test(question)
+  return (/账单|收支|消费|花了|花费|花销|花在哪|花到哪|支出|收入|退款|转账记录|流水|大额/.test(question)
+    ||/分类/.test(question)&&/这笔|交易|\d+(?:\.\d+)?元/.test(question))
     && !/取消.*(续费|订阅)|关闭.*提醒/.test(question);
 }
 
@@ -32,12 +33,27 @@ export function billQuestionForMessages(messages: Array<{role:string; content:st
   return null;
 }
 
-function billPeriod(question: string, now: number) {
+export function billPeriod(question: string, now: number) {
   const today = day(now);
   const [year, month] = today.split('-').map(Number);
   let from = `${today.slice(0, 7)}-01`;
   let to = today;
   let needsClarification = false;
+  const validDate=(value:string)=>Number.isFinite(midnight(value))&&day(midnight(value))===value&&value>='2000-01-01'&&value<=today;
+  const range=question.match(/(?:(\d{4})[年\-/])?(\d{1,2})[月\-/](\d{1,2})[日号]?\s*(?:至|到|—|～|~)\s*(?:(\d{4})[年\-/])?(?:(\d{1,2})[月\-/])?(\d{1,2})[日号]?/);
+  if(range){
+    const format=(y:number,m:number,d:number)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const startYear=Number(range[1]||year),startMonth=Number(range[2]);
+    from=format(startYear,startMonth,Number(range[3]));to=format(Number(range[4]||startYear),Number(range[5]||startMonth),Number(range[6]));
+    return {from,to,needsClarification:!validDate(from)||!validDate(to)||from>to};
+  }
+  const single=question.match(/(?:(\d{4})年)?(\d{1,2})月(\d{1,2})[日号]/);
+  if(single){from=to=`${single[1]||year}-${single[2].padStart(2,'0')}-${single[3].padStart(2,'0')}`;return {from,to,needsClarification:!validDate(from)};}
+  const annual=question.match(/(\d{4})年(?:度|全年|账单|收支|消费)/);
+  if((annual||/今年|去年|前年/.test(question))&&!/季度|半年|\d{1,2}月/.test(question)){
+    const y=annual?Number(annual[1]):year-(/前年/.test(question)?2:/去年/.test(question)?1:0);
+    return {from:`${y}-01-01`,to:y===year?today:`${y}-12-31`,needsClarification:y<2000||y>year};
+  }
   const explicit = question.match(/(?:(\d{4})年)?(\d{1,2})月/);
   if (/去年|前年|季度|半年|今年|本周|上周|前天|下个?月|明天|未来|接下来|至(?!今)|月.*到.*月|\d{4}-\d{2}|\d+日|\d+号|\d+\/\d+/.test(question)) {
     needsClarification = true;
@@ -103,7 +119,7 @@ export function buildBillAnalysis(connections: Connections, question: string, no
   }
   return {
     ...period, sources:sources.map(source=>source.displayName), expense,income,refund,transferIn,transferOut,
-    count:rows.length,
+    count:rows.length,expenseCount:purchases.length,
     transactions:[...rows].sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt)),
     diagnosis:diagnoseBills(history,period.from,period.to,quality),
     categories:[...categories].map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount),

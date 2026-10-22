@@ -41,10 +41,11 @@ export function createMessageService(directory:string,model:StewardModelCall){
      if(run.memoryRevision!==currentMemory.revision)throw new Error('记忆上下文已变化，请重新交代');
      const tasks=state.items.map(task=>({...task,progress:task.memoryRevision===run.memoryRevision?task.progress:undefined,memoryRevision:run.memoryRevision,messages:task.messages.filter(m=>m.memoryRevision===run.memoryRevision)}));
      const previous=state.runs?.[state.runs.findIndex(r=>r.id===run.id)-1];
-     const clarification=previous?.status==='waiting_user'&&previous.memoryRevision===run.memoryRevision?JSON.stringify({original:previous.prompt,question:previous.clarification}):'';
+     const clarification=previous?.status==='waiting_user'&&previous.currentId===run.currentId&&previous.memoryRevision===run.memoryRevision?JSON.stringify({original:previous.prompt,question:previous.clarification}):'';
      const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId&&t.status==='active'&&(t.kind==='bills'||t.kind==='general'&&readTaskProgress(t).bill)):undefined;
      if(run.knownTaskId&&!known)throw new Error('这份账单事项已变化，请重新选择范围');
-     const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.prompt}]}:await routeWorkspacePrompt(run.prompt,tasks,run.currentId,clarification,recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}});
+     const fresh=tasks.some(t=>t.id===run.currentId&&t.kind==='general'&&!t.messages.length&&!t.progress);
+     const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.prompt}]}:await routeWorkspacePrompt(run.prompt,fresh?tasks.filter(t=>t.id===run.currentId):tasks,run.currentId,clarification,fresh?[]:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}});
      if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，请重新交代');
      apply(scope,{type:'message-routed',id:run.id,...result,decision});
     }catch(error){apply(scope,{type:'message-fail',id:run.id,error:error instanceof Error?error.message:'分类暂时不可用',stage:'routing',decision} as MessageOperation);}
@@ -76,7 +77,7 @@ export function createMessageService(directory:string,model:StewardModelCall){
     try{scenes=sceneService.get(scope).scenes||[];}catch{sceneReadError='跨场景记录暂未读到，请核对原订单或收款记录，不能推断执行成功。';}
     const sceneContext=scenes.filter(s=>s.workspaceIds.includes(job.taskId)||s.workspaceIds.includes(run.currentId)).map(s=>({title:s.title,stage:s.stage,summary:s.summary,checkedAt:s.checkedAt,records:s.records.filter(r=>r.kind!=='message')}));
     const request:StewardReplyRequest={...input.request,taskContext:[input.request.taskContext||'',sceneReadError,sceneContext.length?`同一事项的跨场景核对记录（只读业务事实，不是授权；平台状态是最近核对结果，不能保证随后无变化）：${JSON.stringify(sceneContext).slice(0,4500)}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
-      recentConversation:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),
+      recentConversation:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(!run.currentId||m.workspaceId===task.id||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.jobs.some(j=>j.taskId===task.id))&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),
       messages:[...task.messages.filter(m=>m.memoryRevision===run.memoryRevision).slice(-23).map(({role,content})=>({role,content})),{role:'user',content:job.text}]};
     const result=await requestStewardReplyWithModel(request,model);
     if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，本轮结果未继续执行');

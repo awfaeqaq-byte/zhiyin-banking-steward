@@ -595,7 +595,7 @@ describe("知银管家大模型协议", () => {
   it('转账模型漏动作时只修复一次，返回核对动作而非直接付款',async()=>{
     const mock=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({output_text:'已准备方案，请核对。'})}).mockResolvedValueOnce({ok:true,json:async()=>({output_text:'请核对[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|10000]'})});
     vi.stubGlobal('fetch',mock);
-    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'从常用卡8888给妈妈转100元，不需要备注'}]});
+    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'从常用卡8888给妈妈转100元，不需要备注'},{role:'user',content:'改成100元'}]});
     expect(result.action).toEqual({type:'prepare_transfer',recipientId:'mom',amount:10000,sourceAccountId:'demo-8888'});
     expect(mock).toHaveBeenCalledTimes(2);
     expect(mock.mock.calls.every(([url])=>url==='/api/zhiyin/steward-reply')).toBe(true);
@@ -603,7 +603,7 @@ describe("知银管家大模型协议", () => {
   it('动作修复失败提供手动入口，不编造金额和收款人',async()=>{
     const mock=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({output_text:'请核对方案。'})}).mockRejectedValueOnce(Error('unavailable'));
     vi.stubGlobal('fetch',mock);
-    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转100元'}]});
+    const result=await requestStewardReply({stewardName:'宁宁',subscriptions:[],messages:[{role:'user',content:'给妈妈转100元'},{role:'user',content:'那就100元'}]});
     expect(result.action).toEqual({type:'open_transfers'});expect(mock).toHaveBeenCalledTimes(2);
   });
   it('模型漏掉用户的保留条件时不展示普通转账按钮',async()=>{

@@ -140,6 +140,7 @@ export function createBankStore(file:string) {
    if(previous){if(previous.productId!==input.productId)throw new Error('同一申请编号对应的卡种已变化');return previous;}
    if(input.revision!==s.revision)throw new Error('账户已变化，请重新核对申请');
    if(!cardProducts.some(item=>item.id===input.productId))throw new Error('卡种无效');
+   if(s.cardApplications?.some(item=>item.productId===input.productId&&item.status==='submitted'))throw new Error('已有该卡种的待处理申请，请查看申请进度，不要重复提交');
    if((s.cardApplications?.length??0)>=100)throw new Error('演示申请数量已达上限');
    const application:CardApplication={id:input.id,productId:input.productId,createdAt:now,status:'submitted'};
    (s.cardApplications??=[]).push(application);s.revision++;return application;

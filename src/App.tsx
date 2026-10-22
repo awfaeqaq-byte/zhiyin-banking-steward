@@ -63,7 +63,7 @@ import { BillReports } from "./components/bill-reports";
 import { CardApplicationPanel } from "./components/card-application";
 import {AuthorizationCenter} from './components/authorization-center';
 import {OverseasPaymentDemo} from './components/overseas-payment-demo';
-import {parseCardIntent} from './lib/card-intent';
+import {parseCardIntent,matchesFundingCard} from './lib/card-intent';
 import { AgentAutomationCenter } from "./components/agent-automation-center";
 import { FinancialFocusRules } from "./components/financial-focus-rules";
 import { FundingInsights } from "./components/funding-insights";
@@ -274,7 +274,7 @@ export default function App() {
   const {
     connections, setConnections, refresh: refreshSubscriptions,
     refreshing: subscriptionsRefreshing, error: subscriptionRefreshError,
-    setError: setSubscriptionRefreshError,
+    setError: setSubscriptionRefreshError, getCurrentConnections,
   } = useSubscriptionSync(() => read("zhiyin-connections", {}));
   const [disabledSubscriptionReminders, setDisabledSubscriptionReminders] = useState<string[]>(
     () => read("zhiyin-disabled-subscription-reminders", []),
@@ -403,6 +403,7 @@ export default function App() {
     document.querySelector(".workspace")?.scrollTo({ top: 0 });
   }
   function openCardIntent(instruction?:string){
+    if(instruction&&!matchesFundingCard(instruction)){setToast('没有匹配到可操作的卡片。当前仅常用卡尾号8888支持沙箱操作，请核对卡片；未修改任何卡片。');return;}
     const intent=instruction?parseCardIntent(instruction):null;
     go('cards');
     if(!intent)return;
@@ -1369,6 +1370,7 @@ export default function App() {
               disabledReminders={disabledSubscriptionReminders}
               recurringReviews={recurringReviews}
               refreshSubscriptions={refreshSubscriptions}
+              getCurrentConnections={getCurrentConnections}
               refreshError={subscriptionRefreshError}
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}

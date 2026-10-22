@@ -5,6 +5,7 @@ import {workspaceRequest,routeWorkspacePrompt} from '../lib/workspace-service';
 import {messageStateRequest,messageReplyRequest,type MessageClientOperation} from '../lib/message-service';
 import {taskContinuation,readTaskProgress,type TaskProgress} from '../lib/task-progress';
 import type {StewardChatMessage,StewardReplyRequest} from '../lib/steward-chat';
+import {subscriptionFingerprint} from '../lib/subscription-access';
 import type {ConversationEntry,MessageOperation} from '../lib/message-flow';
 import {WECHAT_SHARE_PREFIX} from '../lib/wechat-message-share';
 import {useSceneContinuation} from '../lib/use-scene-continuation';
@@ -26,6 +27,8 @@ export function StewardWorkspaces({route,...props}:Props){
  const [claimAttempt,setClaimAttempt]=useState(0);
  const owner=useRef(crypto.randomUUID()),claiming=useRef(false),saveTail=useRef<Promise<unknown>>(Promise.resolve());
  const currentState=useRef(state);currentState.current=state;
+ const acknowledgedEntries=useRef(new Set<string>());
+ for(const entry of state.conversation||[])acknowledgedEntries.current.add(entry.id);
  const receiptOwner=useRef(localStorage.getItem('zhiyin-transfer-workspace')||'');
  const activeRun=state.runs?.find(r=>['routing','ready','processing'].includes(r.status));
  const job=activeRun?.jobs.find(j=>j.status==='claimed'&&j.owner===owner.current);
@@ -37,6 +40,8 @@ export function StewardWorkspaces({route,...props}:Props){
  const sessions=[...state.items].sort((a,b)=>b.updatedAt-a.updatedAt);
  const selectedConversation=state.items.find(w=>w.id===selectedConversationId)||state.items.find(w=>w.title.startsWith('赛题验收·'));
  const managedConversation=selectedConversation?.status==='active'&&(selectedConversationId||selectedConversation.title.startsWith('赛题验收·'))?selectedConversation:null;
+ const latestConversationRun=managedConversation?[...(state.runs||[])].reverse().find(run=>run.currentId===managedConversation.id):undefined;
+ const conversationFeedback=latestConversationRun&&['waiting_user','failed','interrupted'].includes(latestConversationRun.status)?latestConversationRun:undefined;
  const visibleSessions=sessions.filter(item=>item.status===sessionFilter&&item.title.toLowerCase().includes(sessionQuery.trim().toLowerCase()));
  const accept=useCallback((next:ReturnType<typeof emptyWorkspaces>)=>{setState(current=>next.revision>current.revision?next:current);},[]);
  useSceneContinuation(loaded&&!route,accept,JSON.stringify({items:state.items.map(t=>({id:t.id,status:t.status,sceneId:t.sceneId,book:t.expenseBookId,food:t.progress?.food?.orderId})),runs:state.runs?.map(r=>({id:r.id,status:r.status}))}));
@@ -116,7 +121,7 @@ export function StewardWorkspaces({route,...props}:Props){
   if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
   const id=meta?.messageId||crypto.randomUUID();const refreshed=props.memory?await props.memory.refresh():null;const revision=refreshed?.revision??props.memory?.current.current.revision??0;
   try{
-   const last=currentState.current.runs?.filter(r=>r.status==='waiting_user').at(-1);
+   const last=currentState.current.runs?.filter(r=>r.status==='waiting_user'&&r.currentId===(managedConversation?.id||work?.id||'')).at(-1);
    const source=route&&last?`${last.prompt}；补充：${text}`:text;
    let next=await request({type:'submit',id,text:source,displayText:meta?.displayText||text,currentId:managedConversation?.id||work?.id||'',memoryRevision:revision,...(knownBillTaskId?{knownTaskId:knownBillTaskId}:{})});accept(next);
    if(route){
@@ -140,11 +145,19 @@ export function StewardWorkspaces({route,...props}:Props){
    if(executing.current?.token===item.token)executing.current=undefined;
   }catch(cause){setError(cause instanceof Error?cause.message:'回复保存状态尚未核实，请勿重复资金操作');}
  }
- async function serverReply(context:StewardReplyRequest){const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});accept(result.state);return result.reply;}
+ async function serverReply(context:StewardReplyRequest){
+  const item=injected||executing.current;if(!item)throw new Error('消息任务尚未准备好');
+  const version=subscriptionFingerprint(props.getCurrentConnections?.()||props.connections);
+  const result=await messageReplyRequest({id:item.messageId,jobId:item.token,owner:owner.current,request:context});
+  const question=context.messages.filter(message=>message.role==='user').at(-1)?.content||'';
+  if(/自动续费|订阅|签约/.test(question)&&props.getCurrentConnections&&version!==subscriptionFingerprint(props.getCurrentConnections()))throw new Error('授权或订阅已变化，本次结果已作废，请重新查询。');
+  accept(result.state);return result.reply;
+ }
  const persistEntries=useCallback(async(entries:ConversationEntry[])=>{
   if(!loaded)return;
-  const known=new Set(currentState.current.conversation?.map(m=>m.id));const added=entries.filter(m=>!known.has(m.id));if(!added.length)return;
-  try{if(route)await save({type:'conversation-append',id:crypto.randomUUID(),messages:added});else accept(await messageStateRequest({type:'append',id:crypto.randomUUID(),messages:added}));}catch(cause){setError(cause instanceof Error?cause.message:'聊天记录尚未保存');}
+  const added=entries.filter(m=>!acknowledgedEntries.current.has(m.id));if(!added.length)return;
+  for(const entry of added)acknowledgedEntries.current.add(entry.id);
+  try{if(route)await save({type:'conversation-append',id:crypto.randomUUID(),messages:added});else accept(await messageStateRequest({type:'append',id:crypto.randomUUID(),messages:added}));}catch(cause){for(const entry of added)acknowledgedEntries.current.delete(entry.id);setError(cause instanceof Error?cause.message:'聊天记录尚未保存');}
  },[loaded,route,accept]);
   return <div className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
@@ -175,6 +188,10 @@ export function StewardWorkspaces({route,...props}:Props){
         </p>):<p className="scenario-conversation-empty">这里还没有消息，和宁宁说点什么吧。</p>}
         <small>本区展示模型对话记录；资金和设置变更以业务回执为准。</small>
       </div>
+    </section>}
+    {conversationFeedback&&<section role="log" aria-label="宁宁需要补充的信息" className="scenario-conversation">
+      <p className="scenario-message user"><b>你</b><span>{conversationFeedback.displayText}</span></p>
+      <p className="scenario-message assistant"><b>宁宁</b><span>{conversationFeedback.clarification||`这条消息未完成：${conversationFeedback.error||'请重新说明本次请求'}。尚未执行资金操作。`}</span></p>
     </section>}
     <StewardChatHome key={managedConversation?.id||'frontstage'} {...props}
       seamless={!managedConversation}

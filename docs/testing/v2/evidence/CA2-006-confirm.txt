@@ -1,0 +1,128 @@
+2026-10-21T16:23:42.013Z
+[可见页面]
+常用卡 · 8888
+
+每一项权限，都由你掌握
+
+知银 · 演示账户
+储蓄卡
+••••   ••••   ••••   8888
+叶先生
+常用账户
+卡片状态正常，安全保护已开启
+可用余额
+刷新账户
+¥42,300
+智能转账与AA收款
+银行转账账单
+
+尚无银行沙箱转账记录。
+
+用卡小贴士
+
+不常使用的交易方式可以随时关闭。若发现卡片遗失，请立即挂失，并核对近期交易。
+
+单笔支付限额
+¥20,000
+境外交易
+已关闭
+无卡支付
+已开启
+夜间保护
+23:00 — 06:00
+境外交易渠道验证
+
+向境外演示商户支付 ¥1.00（人民币沙箱金额），可验证境外开关、挂失、夜间保护、无卡支付、限额和余额的服务端拦截。
+
+测试境外付款
+挂失这张卡
+
+设置保存到银行沙箱。挂失、单笔限额、夜间保护和无卡支付会拦截相应付款；境外交易开关会拦截上方的境外沙箱渠道。不影响真实银行账户。
+
+卡申请
+
+对比演示卡种，提交后仅生成沙箱申请，不代表真实银行审批或发卡。
+
+标准借记卡
+年费 ¥0 · 日常转账与支付申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+安心借记卡
+年费 ¥0 · 默认开启夜间保护申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+管家
+资产
+财富
+卡片
+我的
+确认开启境外交易？
+
+请核对变更前后状态和支付影响
+
+境外交易：当前关闭 → 拟开启。夜间保护与无卡支付会影响沙箱付款；境外交易目前仅保存偏好。
+
+取消
+确认开启
+[可访问性字段值]
+Browser tab: 7, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 00:23
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		7 container 知银
+			8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				120 container
+					121 container 确认开启境外交易？, ID: radix-:rs:
+						122 heading 确认开启境外交易？, Value: 2, ID: radix-:rt:
+							123 text 确认开启境外交易？
+						124 text 请核对变更前后状态和支付影响
+						125 button 关闭
+						126 image
+						127 container
+							128 text 境外交易 ：当前 关闭  → 拟 开启 。夜间保护与无卡支付会影响沙箱付款；境外交易目前仅保存偏好。
+						129 button 取消
+						130 button 确认开启
+							131 text 确认
+							132 text 开启
+		80 container
+			81 text 23:46
+			82 text 10月21日 周三
+			83 text 暂无通知消息
+			84 text 中国电信HD | 中国联通HD
+			85 text 10月21日 周三
+			86 image signal
+			87 image wifi
+			88 text 78 %
+			89 container battery
+			90 button Wi‑Fi
+				91 container Xiaomi_AX3
+					92 container
+						93 text Xiaomi_AX3 Xiaomi_AX3
+				94 text 已连接
+			95 button 移动数据
+				96 container 中国联通
+					97 text 中国联通
+				98 text 已开启
+			99 text 暂无播放
+			100 button 蓝牙
+			101 button 飞行模式
+			102 button 静音
+			103 button 手电筒
+			104 button 截屏
+			105 button 省电模式
+			106 button 投屏
+			107 button 旋转锁定
+			108 button 相册
+			109 button 设置
+			110 button 显示
+				111 text A
+			112 button NFC
+				113 text N
+			114 button 票证
+			115 button 护眼
+			116 button 定位
+			117 button 深色
+			118 button 编辑
+	119 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 125 button 关闭

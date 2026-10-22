@@ -11,6 +11,15 @@ const source: ConnectedFinancialSource = {
 const fresh = { ...source, autopays: [{ id: "new", title: "新增会员", amount: 2500, cycle: "月" }] };
 
 describe("订阅实时同步", () => {
+  it('拒绝授权后再断开所有平台，旧错误会清除且不再请求平台',async()=>{
+    const load=vi.fn(async()=>({status:'denied' as const}));
+    const {result}=renderHook(()=>useSubscriptionSync(()=>({alipay:source}),load));
+    await act(async()=>{await result.current.refresh();});
+    expect(result.current.error).toContain('授权已失效');
+    expect(result.current.getCurrentConnections()).toEqual({});
+    await act(async()=>{expect(await result.current.refresh()).toEqual({connections:{},error:''});});
+    expect(result.current.error).toBe('');expect(load).toHaveBeenCalledOnce();
+  });
   it("只有账单授权时也刷新，以识别历史周期扣费", async () => {
     const load = vi.fn(async () => ({ status: "granted" as const, source }));
     const { result } = renderHook(() => useSubscriptionSync(() => ({ alipay: { ...source, scopes: ["transactions"] } }), load));

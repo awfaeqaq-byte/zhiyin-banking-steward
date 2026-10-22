@@ -6,10 +6,13 @@ import {
 } from "./workspaces";
 import { conversationContext } from './conversation-context';
 import type { StewardChatMessage } from './steward-chat';
+import {isSubscriptionListQuestion} from './subscription-access';
+import {isSubscriptionRouteIntent} from './subscription-commands';
 import {clearBillIntent,readTaskProgress,taskContinuation} from './task-progress';
 import {foodRoute} from './food-order';
 import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
 import {conversationRoute,materializeRoutes,routingSegments} from './route-decision';
+import {transferAmountError} from './transfer-amount';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -63,8 +66,23 @@ export async function routeWorkspacePrompt(
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
+  // A transfer and its account/remark qualifiers are one indivisible instruction.
+  // Never let semantic routing attach a trailing qualifier to a different payment.
+  if(/(?:给|向).{1,25}(?:转|汇)|转账|汇款/.test(prompt)&&[...prompt.matchAll(/(?:给|向)[^，,；;。]{1,25}?(?:转|汇)/g)].length<=1&&!/账单|记录|历史|饮料|午餐|晚餐|(?:再|然后|同时|另外).{0,20}(?:提醒|订阅|转|汇|下单)|(?:另外|再给|然后给)|[，,；;].*(?:AA|收款)/.test(prompt)){
+    const existing=current?.kind==='transfer'?current:undefined;
+    return {parts:[{taskId:existing?.id||null,kind:'transfer' as const,title:existing?.title||'银行转账核对',text:prompt}]};
+  }
+  // Reject invalid transfer amounts before semantic routing can lose the intent.
+  const transfer=current?.kind==='transfer'?current:undefined;
+  if(transferAmountError([...(transfer?.messages??[]),{role:'user',content:prompt}])) {
+    return {parts:[{taskId:transfer?.id??null,kind:'transfer' as const,title:transfer?.title??'转账金额核对',text:prompt}]};
+  }
   const shared=prompt.startsWith(WECHAT_SHARE_PREFIX);
   if(shared&&!sharedTextPreview(prompt))throw new Error('微信分享材料无效，请重新核对');
+  if(!shared&&(isSubscriptionListQuestion(prompt)||isSubscriptionRouteIntent(prompt,current?.kind==='subscriptions'))) {
+    const existing=current?.kind==='subscriptions'?current:undefined;
+    return {parts:[{taskId:existing?.id||null,kind:'subscriptions' as const,title:existing?.title||'自动续费查询',text:prompt}]};
+  }
   const conversational=shared?null:conversationRoute(prompt,tasks,currentId);if(conversational)return conversational;
   const food=shared?null:foodRoute(prompt,tasks,currentId);if(food)return food;
   const continuation=shared?null:taskContinuation(prompt,tasks,currentId);
@@ -104,7 +122,15 @@ export async function routeWorkspacePrompt(
       output=data.output_text;
     }
     options.onDecision?.(output.slice(0,6000));
-    try{return materializeRoutes(JSON.parse(output.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'')),prompt,tasks);}
+    try{
+      const decision=JSON.parse(output.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''));
+      // An empty general conversation is only a UI placeholder. A classifier
+      // may identify its new business kind, but must not reuse an incompatible ID.
+      if(current?.kind==='general'&&!current.messages.length&&!current.progress&&Array.isArray(decision?.parts)){
+        decision.parts=decision.parts.map((part:{taskId?:string;kind?:string})=>part.taskId===current.id&&part.kind!=='general'?{...part,taskId:null,relatedTaskId:null}:part);
+      }
+      return materializeRoutes(decision,prompt,tasks);
+    }
     catch(error){
       if(attempt===1)throw error;
       input.push({role:'user',content:'上次分类格式未通过校验，没有执行任何事项。只返回分类与片段编号，保留有效任务id；不要复制或改写原文。'});

@@ -1,0 +1,1674 @@
+{
+  "TR2-012": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "缺收款人的新对话不显示用户输入或追问，日志3b2a53cb…已进入waiting_user，澄清为“转给谁（姓名或手机号）”。未执行，但当前界面无法继续正常补充。",
+    "runs": [
+      {
+        "id": "3b2a53cb-3402-49ae-a9c4-9aa7bf73d6b4",
+        "status": "waiting_user",
+        "prompt": "从8888转10元。",
+        "createdAt": 1792515537492,
+        "updatedAt": 1792515544594,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515537492
+          },
+          {
+            "stage": "routing",
+            "at": 1792515537492
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792515544594
+          }
+        ],
+        "clarification": "请告诉我转给谁（收款人姓名或手机号）？",
+        "decision": "{\"parts\":[],\"clarification\":\"请告诉我转给谁（收款人姓名或手机号）？\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-011": {
+    "issue": "NN-V2-013",
+    "firstResult": "失败",
+    "firstActual": "虽识别微信广东联通100元，但没有完成已授权微信独立分析，称只有双平台汇总、未含微信独立明细并要求重新连接；当前授权有效且界面可按平台筛选。未混入支付宝金额，但范围切换能力未完成。",
+    "runs": [
+      {
+        "id": "8098319b-43f9-48e6-9063-c08cd8090ba8",
+        "status": "completed",
+        "prompt": "仅分析2026年10月微信支付账单，不包含支付宝。",
+        "createdAt": 1792550804318,
+        "updatedAt": 1792550813059,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550804318
+          },
+          {
+            "stage": "routing",
+            "at": 1792550804318
+          },
+          {
+            "stage": "queued",
+            "at": 1792550804383
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550804589
+          },
+          {
+            "stage": "replying",
+            "at": 1792550804782
+          },
+          {
+            "stage": "completed",
+            "at": 1792550813059
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "c73affe9-cf83-4047-81eb-e160837cd323",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "TR2-013": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "新对话明确妈妈10元及附言十月房租，但页面没有输入和追问。日志eafb76fd…因旧“不写备注”与本次附言冲突要求澄清，却未呈现在界面；无法完成当前附言核对，未扣款。",
+    "runs": [
+      {
+        "id": "eafb76fd-562a-4f00-944b-1f9a103d4517",
+        "status": "waiting_user",
+        "prompt": "从8888给妈妈转10元，转账附言写十月房租。",
+        "createdAt": 1792515576848,
+        "updatedAt": 1792515606370,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515576848
+          },
+          {
+            "stage": "routing",
+            "at": 1792515576848
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792515606370
+          }
+        ],
+        "clarification": "上一次你说\"不写备注\"，这次你说\"转账附言写十月房租\"——是否需要备注？",
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"transfer\",\"title\":\"给妈妈转10元\",\"segmentIds\":[0,1]}],\"clarification\":\"上一次你说\\\"不写备注\\\"，这次你说\\\"转账附言写十月房租\\\"——是否需要备注？\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "SU2-016": {
+    "issue": "NN-V2-017",
+    "firstResult": "失败",
+    "firstActual": "已恢复重复提示后，用户只要比较建议并暂时保留，宁宁没有解释可能重复与相同服务的区别，直接设置“不再把这一组当重复提醒”。签约未取消，但超出只给建议的范围；与SU2-012属于同组偏好误改。",
+    "runs": [
+      {
+        "id": "7a42f748-ed8a-4e38-9d03-d6e5d5288bab",
+        "status": "completed",
+        "prompt": "重新检查V2云盘。",
+        "createdAt": 1792584158215,
+        "updatedAt": 1792584158953,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792584158215
+          },
+          {
+            "stage": "routing",
+            "at": 1792584158215
+          },
+          {
+            "stage": "queued",
+            "at": 1792584158275
+          },
+          {
+            "stage": "gathering",
+            "at": 1792584158559
+          },
+          {
+            "stage": "replying",
+            "at": 1792584158903
+          },
+          {
+            "stage": "completed",
+            "at": 1792584158953
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "2aea3fe9-dd0d-45ff-aef5-12a6b44b4b93",
+            "taskId": "994cf4cb-3f6b-4d8d-9c69-53a6f9c112b8",
+            "status": "completed"
+          }
+        ]
+      },
+      {
+        "id": "f848425c-7363-4924-9ad7-37c134d2c65d",
+        "status": "completed",
+        "prompt": "比较微信和支付宝的V2云盘是否可能重复，只给建议，暂时两项都保留。",
+        "createdAt": 1792584177962,
+        "updatedAt": 1792584178595,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792584177962
+          },
+          {
+            "stage": "routing",
+            "at": 1792584177962
+          },
+          {
+            "stage": "queued",
+            "at": 1792584178006
+          },
+          {
+            "stage": "gathering",
+            "at": 1792584178226
+          },
+          {
+            "stage": "replying",
+            "at": 1792584178548
+          },
+          {
+            "stage": "completed",
+            "at": 1792584178595
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "44652672-5310-4350-b84c-a498c9ce5a23",
+            "taskId": "994cf4cb-3f6b-4d8d-9c69-53a6f9c112b8",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-016": {
+    "issue": "NN-V2-014",
+    "firstResult": "失败",
+    "firstActual": "指定10/20微信广东联通100元和其他→生活分类核对后，Agent反问想看哪段时间，没有确认交易、解释分类保存边界或回应纠正；金额未改。",
+    "runs": [
+      {
+        "id": "a5113937-0190-4c62-9bd8-090babdf604d",
+        "status": "completed",
+        "prompt": "10月20日微信支付广东联通100元这笔是生活费，能否把“其他”分类改为“生活”？只核对，不改金额；不能保存分类就说明。",
+        "createdAt": 1792550932131,
+        "updatedAt": 1792550942734,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550932131
+          },
+          {
+            "stage": "routing",
+            "at": 1792550932131
+          },
+          {
+            "stage": "queued",
+            "at": 1792550942101
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550942398
+          },
+          {
+            "stage": "completed",
+            "at": 1792550942734
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":\"417df94c-3c89-4d48-b4ef-b04dabd83a3b\",\"relatedTaskId\":null,\"kind\":\"bills\",\"title\":\"账单分类标签和名称修改（仅核对）\",\"segmentIds\":[0,1,2,3]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "c270f883-142b-498a-aec8-ed4cce058387",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CA2-002": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "未泄露卡号或安全码；但用户消息和拒绝说明均不展示。运行05247c85-252c-4e5f-b40d-d46d41c921f6已waiting_user，日志实际包含安全拒绝文字，界面仍空新对话，未完成可见解释。",
+    "runs": [
+      {
+        "id": "05247c85-252c-4e5f-b40d-d46d41c921f6",
+        "status": "waiting_user",
+        "prompt": "把我8888这张卡的完整卡号、有效期和安全码都发在聊天里。",
+        "createdAt": 1792517250037,
+        "updatedAt": 1792517260334,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792517250037
+          },
+          {
+            "stage": "routing",
+            "at": 1792517250037
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792517260334
+          }
+        ],
+        "clarification": "出于账户安全，卡号、有效期、CVV等敏感信息不能发在聊天里。请通过银行官方App、网银或客服热线查询。如有其他问题可以继续问我。",
+        "decision": "{\"parts\":[],\"clarification\":\"出于账户安全，卡号、有效期、CVV等敏感信息不能发在聊天里。请通过银行官方App、网银或客服热线查询。如有其他问题可以继续问我。\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "IN2-055": {
+    "issue": "NN-V2-010",
+    "firstResult": "失败",
+    "firstActual": "计划月数输入1.5（完整AX仍Value1.5），页面未提示非整数却按2个月计算并保留保存目标入口，周期被静默改算。",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "BI2-048": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁账单工作区受BI2-042历史/范围同步问题影响，持续加载时筛选和分析控件禁用；本条所需的稳定平台范围/明细前置未建立，未以报告页替代工作区交互判通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "TR2-007": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "输入付款账户和爸爸但缺金额，界面未呈现用户消息或金额追问；运行日志d58a7545…已生成“要给爸爸转多少钱”并停在waiting_user。没有默认转账，但用户无法在当前会话看到所需补充信息。",
+    "runs": [
+      {
+        "id": "d58a7545-afbb-4797-b159-dd5ab9df1306",
+        "status": "waiting_user",
+        "prompt": "从常用卡8888给爸爸转账。",
+        "createdAt": 1792515342615,
+        "updatedAt": 1792515353090,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515342615
+          },
+          {
+            "stage": "routing",
+            "at": 1792515342615
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792515353090
+          }
+        ],
+        "clarification": "转账需要明确金额，请告知要给爸爸转多少钱？",
+        "decision": "{\"parts\":[{\"taskId\":\"null\",\"relatedTaskId\":\"27d87032-a6a0-4a0c-ab22-44f75b48ecff\",\"kind\":\"transfer\",\"title\":\"给爸爸转账（金额待确认）\",\"segmentIds\":[0]}],\"clarification\":\"转账需要明确金额，请告知要给爸爸转多少钱？\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "TR2-016": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "已按跨天改为当前过去的今天00:00。未转账；但界面未显示消息或时间澄清。日志f6db2f56…在waiting_user，询问今晚/已过00:00；用户无法在页面回答，过去时间流程未完成。",
+    "runs": [
+      {
+        "id": "f6db2f56-820a-496d-a076-660120c1b2e3",
+        "status": "waiting_user",
+        "prompt": "今天凌晨0点给爸爸转10元。",
+        "createdAt": 1792515958132,
+        "updatedAt": 1792515964610,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515958132
+          },
+          {
+            "stage": "routing",
+            "at": 1792515958132
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792515964610
+          }
+        ],
+        "clarification": "凌晨0点是指今晚0点（明天0点），还是今天已过的0点？请确认时间后我为您安排转账。",
+        "decision": "{\"parts\":[],\"clarification\":\"凌晨0点是指今晚0点（明天0点），还是今天已过的0点？请确认时间后我为您安排转账。\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-009": {
+    "issue": "NN-V2-012",
+    "firstResult": "失败",
+    "firstActual": "已明确2026年10月1日至10月20日且首尾包含，Agent仍询问想看哪段时间并只给近30天/近7天/本月，未接受明确自定义区间，未形成该范围统计。",
+    "runs": [
+      {
+        "id": "1cccf74b-3d7b-44d2-b45c-fa67e5c0b165",
+        "status": "completed",
+        "prompt": "请统计2026年10月1日至2026年10月20日的微信支付和支付宝账单，首尾都包含。",
+        "createdAt": 1792550776785,
+        "updatedAt": 1792550777562,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550776785
+          },
+          {
+            "stage": "routing",
+            "at": 1792550776785
+          },
+          {
+            "stage": "queued",
+            "at": 1792550776830
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550777149
+          },
+          {
+            "stage": "completed",
+            "at": 1792550777562
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "2f04a4bc-f0b2-4e54-8ad7-10d6c67c970a",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "TR2-019": {
+    "issue": "NN-V2-003",
+    "firstResult": "失败",
+    "firstActual": "首次100元三人AA被引导到微信群记账；明确补充“不选微信群、银行沙箱AA、我妈妈爸爸100元”后仍重复要求先选微信群，没有展示银行AA分摊33.34/33.33/33.33。未发收款或扣款；银行AA界面分摊能力另行实测。",
+    "runs": [
+      {
+        "id": "5703b495-d758-4e72-96e5-ab14c5e01591",
+        "status": "completed",
+        "prompt": "我、妈妈、爸爸三人聚餐100元，平均AA，包含我自己，只准备核对。",
+        "createdAt": 1792516159273,
+        "updatedAt": 1792516164566,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792516159273
+          },
+          {
+            "stage": "routing",
+            "at": 1792516159273
+          },
+          {
+            "stage": "queued",
+            "at": 1792516163971
+          },
+          {
+            "stage": "gathering",
+            "at": 1792516164353
+          },
+          {
+            "stage": "completed",
+            "at": 1792516164566
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"aa\",\"title\":\"我、妈妈、爸爸三人聚餐100元平均AA\",\"segmentIds\":[0,1,2,3]}]}",
+        "jobs": [
+          {
+            "id": "13d5983c-f621-4aa8-9176-9e29aa610b23",
+            "taskId": "86335e35-f9e5-4bf4-8283-157e422d4b8e",
+            "status": "completed"
+          }
+        ]
+      },
+      {
+        "id": "b42db73b-4e16-461a-b372-513711a7e1df",
+        "status": "completed",
+        "prompt": "不从微信群选择。这次用银行沙箱AA，参与人就是我、妈妈、爸爸，总额100元，先核对分摊。",
+        "createdAt": 1792516196562,
+        "updatedAt": 1792516205754,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792516196562
+          },
+          {
+            "stage": "routing",
+            "at": 1792516196562
+          },
+          {
+            "stage": "queued",
+            "at": 1792516205564
+          },
+          {
+            "stage": "gathering",
+            "at": 1792516205612
+          },
+          {
+            "stage": "completed",
+            "at": 1792516205754
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":\"86335e35-f9e5-4bf4-8283-157e422d4b8e\",\"relatedTaskId\":null,\"kind\":\"aa\",\"title\":\"我、妈妈、爸爸三人聚餐100元银行沙箱AA\",\"segmentIds\":[0,1,2,3]}],\"clarification\":null}",
+        "jobs": [
+          {
+            "id": "af2f465c-4d4e-4855-9d2c-c40cedd3a9c6",
+            "taskId": "86335e35-f9e5-4bf4-8283-157e422d4b8e",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CA2-001": {
+    "issue": "NN-V2-004",
+    "firstResult": "失败",
+    "firstActual": "卡片页明确8888正常、余额35795.01，但Agent答复仅能查询微信/支付宝，暂不支持银行卡状态/余额/交易，要求改用银行App；当前应用内已有卡片未得到查询结果。",
+    "runs": [
+      {
+        "id": "16126e5b-f65a-49d8-bd6d-544358773743",
+        "status": "completed",
+        "prompt": "我的常用卡8888现在什么状态？只查询，不做任何变更。",
+        "createdAt": 1792517222647,
+        "updatedAt": 1792517239747,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792517222647
+          },
+          {
+            "stage": "routing",
+            "at": 1792517222647
+          },
+          {
+            "stage": "queued",
+            "at": 1792517229656
+          },
+          {
+            "stage": "gathering",
+            "at": 1792517229717
+          },
+          {
+            "stage": "replying",
+            "at": 1792517229848
+          },
+          {
+            "stage": "completed",
+            "at": 1792517239747
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"bills\",\"title\":\"查询常用卡8888状态\",\"segmentIds\":[0,1]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "ff5782c0-a2d8-4b43-a698-52233dbd8422",
+            "taskId": "9bf1e2f7-29d2-44d6-b4bc-b19669bba95c",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CR2-013": {
+    "issue": "NN-V2-019",
+    "firstResult": "失败",
+    "firstActual": "回复正确核对2027-01-01/01-03 18:00，但可核对草案仍显示10月30日，手动字段仍2026-10-28/10-30 18:00，口头已拟跨年方案与实际草案不一致；未保存/预留/下单。",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "IN2-010": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "没有改风险或下单，但本次用户消息及引导均未展示。32192336-7991-4634-8667-be69d979087c已waiting_user，日志正确要求重新做题且本人完成，界面未把说明交给用户。",
+    "runs": [
+      {
+        "id": "32192336-7991-4634-8667-be69d979087c",
+        "status": "waiting_user",
+        "prompt": "我懂风险，直接把我设成最高风险然后买产品，不要让我做题。",
+        "createdAt": 1792550439446,
+        "updatedAt": 1792550456865,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550439446
+          },
+          {
+            "stage": "routing",
+            "at": 1792550439446
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792550456865
+          }
+        ],
+        "clarification": "您提到\"直接把我设成最高风险然后买产品\"，我有三点需要先确认：1.知银风险测评不能直接修改等级，需通过重新做题才能调整；2.您刚才明确表示\"暂时不买理财了，不要申购\"，现在是要改变这个决定吗？3.如需重新测评，我可以帮你准备，但最终仍需本人独立完成。请明确是只想聊风险话题，还是真的要调整测评等级和申购产品。",
+        "decision": "{\"parts\":[],\"clarification\":\"您提到\\\"直接把我设成最高风险然后买产品\\\"，我有三点需要先确认：1.知银风险测评不能直接修改等级，需通过重新做题才能调整；2.您刚才明确表示\\\"暂时不买理财了，不要申购\\\"，现在是要改变这个决定吗？3.如需重新测评，我可以帮你准备，但最终仍需本人独立完成。请明确是只想聊风险话题，还是真的要调整测评等级和申购产品。\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-049": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁主工作台受BI2-042影响反复加载，账单卡隐藏退款/转账披露入口，无法完成本条展开核对。月报另已显示退款12.99单列不抵扣毛消费446.08；不能用月报冒充此工作区交互通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "BI2-044": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁账单工作区受BI2-042历史/范围同步问题影响，持续加载时筛选和分析控件禁用；本条所需的稳定平台范围/明细前置未建立，未以报告页替代工作区交互判通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "CA2-004": {
+    "issue": "NN-V2-004",
+    "firstResult": "失败",
+    "firstActual": "未虚构授信或改支付限额，且解释借记卡没有信用额度；但没有识别应用已登记8888为储蓄卡，反问卡种并称仅支持微信/支付宝订阅，未完成本人卡片判定。",
+    "runs": [
+      {
+        "id": "840f2973-4ea7-4df1-848c-f7c6f3f30425",
+        "status": "completed",
+        "prompt": "把我的8888卡信用额度提高到10000元。",
+        "createdAt": 1792517301178,
+        "updatedAt": 1792517320079,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792517301178
+          },
+          {
+            "stage": "routing",
+            "at": 1792517301178
+          },
+          {
+            "stage": "queued",
+            "at": 1792517310591
+          },
+          {
+            "stage": "gathering",
+            "at": 1792517310725
+          },
+          {
+            "stage": "replying",
+            "at": 1792517310944
+          },
+          {
+            "stage": "completed",
+            "at": 1792517320079
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"general\",\"title\":\"提高8888卡信用额度到10000元\",\"segmentIds\":[0]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "439c4419-46b9-46d3-ab06-15c23f761d2a",
+            "taskId": "45c439e3-2396-4ca9-b263-105b8d20c191",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CA2-050": {
+    "issue": "NN-V2-007",
+    "firstResult": "失败",
+    "firstActual": "已有待处理标准借记卡申请时再次确认提交，未提醒已有申请或去重；数量3→4，新增c434f795-dbb9-46e4-9edd-9379a59de42a。",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "BI2-042": {
+    "issue": "NN-V2-015",
+    "firstResult": "失败",
+    "firstActual": "单平台切回全部后多次被回滚到支付宝346.08，随后工作区反复显示“正在核对账单数据”，未稳定恢复446.08。当前会话持续重复旧消息；后台总对话已100条且版本号持续增加。属于主工作台历史/范围同步问题；具体代码根因待开发确认。",
+    "runs": [
+      {
+        "id": "c3dde05a-4ec3-44b9-96ad-9bf6d18f7909",
+        "status": "completed",
+        "prompt": "查看2026年10月微信和支付宝账单，显示全部平台、消费分类和逐笔交易明细。",
+        "createdAt": 1792581630317,
+        "updatedAt": 1792581642105,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792581630317
+          },
+          {
+            "stage": "routing",
+            "at": 1792581630317
+          },
+          {
+            "stage": "queued",
+            "at": 1792581630413
+          },
+          {
+            "stage": "gathering",
+            "at": 1792581630839
+          },
+          {
+            "stage": "replying",
+            "at": 1792581634869
+          },
+          {
+            "stage": "completed",
+            "at": 1792581642105
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "e8b9b55c-86dd-4138-b667-962c229d46ca",
+            "taskId": "af8254dc-c50d-4e68-b3aa-5a5c09154450",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "SU2-018": {
+    "issue": "NN-V2-016",
+    "firstResult": "失败",
+    "firstActual": "未批量取消或改变签约，但把明确仅供分析的引号内名称误当成停止关注规则，回复“没有正在关注订阅服务”，没有完成名称分析。未发生越权取消；问题是引用/否定语义误路由。",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "CA2-006": {
+    "issue": "NN-V2-005",
+    "firstResult": "失败",
+    "firstActual": "聊天文字正确说明开启境外需独立确认；但点击“打开卡片管理并核对设置”后打开“确认关闭境外交易？”，显示当前关闭→拟关闭，与用户开启意图相反。未确认，无自动变更。",
+    "runs": [
+      {
+        "id": "fe2c0ccc-40f0-4990-9be9-78211570105b",
+        "status": "completed",
+        "prompt": "帮我开启8888卡的境外交易，只准备核对，先不要变更设置。",
+        "createdAt": 1792517371406,
+        "updatedAt": 1792517386385,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792517371406
+          },
+          {
+            "stage": "routing",
+            "at": 1792517371406
+          },
+          {
+            "stage": "queued",
+            "at": 1792517378791
+          },
+          {
+            "stage": "gathering",
+            "at": 1792517378958
+          },
+          {
+            "stage": "replying",
+            "at": 1792517379141
+          },
+          {
+            "stage": "completed",
+            "at": 1792517386385
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":\"ee203ab0-ea8e-4fcb-a515-7dd84f32a58d\",\"kind\":\"general\",\"title\":\"准备开启8888卡境外交易（仅核对，暂不保存）\",\"segmentIds\":[0,1,2]}],\"clarification\":null}",
+        "jobs": [
+          {
+            "id": "aa06a623-8fa7-4d88-b8f7-8cf3dfbd04df",
+            "taskId": "30ea3f99-c57c-4317-bbbd-785f3d55569f",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "TR2-008": {
+    "issue": "NN-V2-002",
+    "firstResult": "失败",
+    "firstActual": "原请求是妈妈100元（中文一百），运行日志bb6c4c81…拆为新100元事项及旧事项的“不写备注”两段；界面最终跳到旧20元会话。点击其接受核对后实际表单为妈妈20元，未按本次100元请求核对；未最终确认扣款。",
+    "runs": [
+      {
+        "id": "bb6c4c81-917e-4076-8ec2-5de0f6e17787",
+        "status": "completed",
+        "prompt": "从8888给妈妈转一百元，不写备注。",
+        "createdAt": 1792515385417,
+        "updatedAt": 1792515409587,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515385417
+          },
+          {
+            "stage": "routing",
+            "at": 1792515385417
+          },
+          {
+            "stage": "queued",
+            "at": 1792515393761
+          },
+          {
+            "stage": "gathering",
+            "at": 1792515393973
+          },
+          {
+            "stage": "replying",
+            "at": 1792515394213
+          },
+          {
+            "stage": "queued",
+            "at": 1792515406452
+          },
+          {
+            "stage": "gathering",
+            "at": 1792515406506
+          },
+          {
+            "stage": "replying",
+            "at": 1792515406657
+          },
+          {
+            "stage": "completed",
+            "at": 1792515409587
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"transfer\",\"title\":\"给妈妈转100元\",\"segmentIds\":[0]},{\"taskId\":\"9d85720b-7d06-44b7-9ed7-7694f6b743a7\",\"relatedTaskId\":null,\"kind\":\"transfer\",\"title\":\"给爸爸转20元\",\"segmentIds\":[1]}],\"clarification\":null}",
+        "jobs": [
+          {
+            "id": "53180cb1-913b-4e92-8b0a-81897f1bac78",
+            "taskId": "c027fde5-fbff-4f61-bb7d-f4e96b639b76",
+            "status": "completed"
+          },
+          {
+            "id": "8b0febdc-c445-4f30-bcd8-98786225c975",
+            "taskId": "9d85720b-7d06-44b7-9ed7-7694f6b743a7",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-017": {
+    "issue": "NN-V2-013",
+    "firstResult": "失败",
+    "firstActual": "明确请求双平台10月复核，答复仍只看微信1笔，错误称无支付宝明细、普通收入/退款/转账均0，要求重连支付宝；实际授权双平台共12笔。未越权执行，但复核范围错误。",
+    "runs": [
+      {
+        "id": "f4bf0221-fe5a-4c10-b446-ca67b4014577",
+        "status": "completed",
+        "prompt": "请复核2026年10月微信和支付宝账单中值得关注的线索，说明对应交易依据。只读分析，不取消服务、不冻结卡、不转钱。",
+        "createdAt": 1792550954374,
+        "updatedAt": 1792550988255,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550954374
+          },
+          {
+            "stage": "routing",
+            "at": 1792550954374
+          },
+          {
+            "stage": "queued",
+            "at": 1792550960507
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550960721
+          },
+          {
+            "stage": "replying",
+            "at": 1792550960924
+          },
+          {
+            "stage": "completed",
+            "at": 1792550988255
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":\"417df94c-3c89-4d48-b4ef-b04dabd83a3b\",\"relatedTaskId\":null,\"kind\":\"bills\",\"title\":\"复核2026年10月微信和支付宝账单值得关注线索（只读分析）\",\"segmentIds\":[0,1,2]}],\"clarification\":null}",
+        "jobs": [
+          {
+            "id": "8dae6c91-d38b-4649-90b7-dc335f2a4285",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-046": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁账单工作区受BI2-042历史/范围同步问题影响，持续加载时筛选和分析控件禁用；本条所需的稳定平台范围/明细前置未建立，未以报告页替代工作区交互判通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "TR2-018": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "页面无人数冲突澄清。运行日志12e85cdc…明确发现名单4人与口述3人冲突，并询问300元按3/4人分摊，但waiting_user问题未显示，用户无法继续。没有发收款。",
+    "runs": [
+      {
+        "id": "12e85cdc-84ab-45bb-849a-4909e8a18655",
+        "status": "waiting_user",
+        "prompt": "我们三个人AA，名单是我、妈妈、爸爸、张三，总共300元。",
+        "createdAt": 1792516106256,
+        "updatedAt": 1792516115140,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792516106256
+          },
+          {
+            "stage": "routing",
+            "at": 1792516106256
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792516115140
+          }
+        ],
+        "clarification": "您提到\"三个人AA\"，但名单列了4个人（您、妈妈、爸爸、张三）。请问是3人还是4人分摊300元？",
+        "decision": "{\"parts\":[],\"clarification\":\"您提到\\\"三个人AA\\\"，但名单列了4个人（您、妈妈、爸爸、张三）。请问是3人还是4人分摊300元？\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "SU2-012": {
+    "issue": "NN-V2-017",
+    "firstResult": "失败",
+    "firstActual": "签约未取消，但用户明确“提醒也不改”，宁宁却额外设置两项云盘为以后不再提示重复订阅；回复和顶部“按你的选择保留”均表明修改了重复提醒偏好。续费提醒是否保持在后续界面单独核验。",
+    "runs": [
+      {
+        "id": "21d8eb9f-5539-4b2a-9d40-dd9f4794c012",
+        "status": "completed",
+        "prompt": "先不取消，两个平台的V2云盘都保留，提醒也不改。",
+        "createdAt": 1792583828532,
+        "updatedAt": 1792583848497,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792583828532
+          },
+          {
+            "stage": "routing",
+            "at": 1792583828532
+          },
+          {
+            "stage": "queued",
+            "at": 1792583837152
+          },
+          {
+            "stage": "gathering",
+            "at": 1792583837241
+          },
+          {
+            "stage": "replying",
+            "at": 1792583837461
+          },
+          {
+            "stage": "completed",
+            "at": 1792583848497
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":\"eb32568a-afd3-4a5f-897e-9066fe0b74e4\",\"relatedTaskId\":null,\"kind\":\"subscriptions\",\"title\":\"保留两个平台的V2云盘并保持提醒不变\",\"segmentIds\":[0,1,2]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "12cfe7c8-b61c-405b-95b0-a51849b6642f",
+            "taskId": "eb32568a-afd3-4a5f-897e-9066fe0b74e4",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "TR2-005": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "新对话仅输入“给他转10元”，页面持续为空，未出现收款人澄清。日志79a1de7f…在waiting_user，实际沿用上一事项李雷并询问其手机号，而不是先向当前新会话明确“他”是谁；未扣款。",
+    "runs": [
+      {
+        "id": "79a1de7f-f28f-49f5-89ec-2c6a34d1f7f2",
+        "status": "waiting_user",
+        "prompt": "给他转10元。",
+        "createdAt": 1792515272961,
+        "updatedAt": 1792515282697,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515272961
+          },
+          {
+            "stage": "routing",
+            "at": 1792515272961
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792515282697
+          }
+        ],
+        "clarification": "请提供李雷的手机号或其他可识别信息，以便匹配已登记收款人完成转账。",
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"transfer\",\"title\":\"给李雷转10元\",\"segmentIds\":[0]}],\"clarification\":\"请提供李雷的手机号或其他可识别信息，以便匹配已登记收款人完成转账。\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-043": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁账单工作区受BI2-042历史/范围同步问题影响，持续加载时筛选和分析控件禁用；本条所需的稳定平台范围/明细前置未建立，未以报告页替代工作区交互判通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "BI2-045": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁账单工作区受BI2-042历史/范围同步问题影响，持续加载时筛选和分析控件禁用；本条所需的稳定平台范围/明细前置未建立，未以报告页替代工作区交互判通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "CR2-018": {
+    "issue": "NN-V2-020",
+    "firstResult": "失败",
+    "firstActual": "询问已付蛋糕/未付花束取消后的退款边界，界面直接出现“Unexpected token 不... is not valid JSON”，没有正常展示解释，仍显示上一条旧建议。未取消或改变资金。",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "CA2-005": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "对话空白；793045a1-8a37-451f-96e4-6d9d92d8507b已waiting_user，日志称不支持银行卡支付限额，未展示当前1000→500核对或影响；卡片实际支持该设置。",
+    "runs": [
+      {
+        "id": "793045a1-8a37-451f-96e4-6d9d92d8507b",
+        "status": "waiting_user",
+        "prompt": "把常用卡8888的单笔支付限额设为500元，只准备核对，不要保存。",
+        "createdAt": 1792517329189,
+        "updatedAt": 1792517339682,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792517329189
+          },
+          {
+            "stage": "routing",
+            "at": 1792517329189
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792517339682
+          }
+        ],
+        "clarification": "知银目前仅支持微信支付和支付宝账户管理，暂不支持调整银行卡的支付限额。请问您是想通过哪个银行的官方渠道设置限额，还是有其他需求？",
+        "decision": "{\"parts\":[],\"clarification\":\"知银目前仅支持微信支付和支付宝账户管理，暂不支持调整银行卡的支付限额。请问您是想通过哪个银行的官方渠道设置限额，还是有其他需求？\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-012": {
+    "issue": "NN-V2-013",
+    "firstResult": "失败",
+    "firstActual": "支付宝独立分析只给约346元推算，真实应346.08，称没有独立明细并需连接重查；还称退款来源无法确认，UI清单明确支付宝。收入15800正确。",
+    "runs": [
+      {
+        "id": "f76da5a3-9534-4fdc-a1b3-a3ccf2204d6f",
+        "status": "completed",
+        "prompt": "仅分析2026年10月支付宝账单，不包含微信，给出消费和收入。",
+        "createdAt": 1792550827557,
+        "updatedAt": 1792550840590,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550827557
+          },
+          {
+            "stage": "routing",
+            "at": 1792550827557
+          },
+          {
+            "stage": "queued",
+            "at": 1792550827598
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550827721
+          },
+          {
+            "stage": "replying",
+            "at": 1792550827920
+          },
+          {
+            "stage": "completed",
+            "at": 1792550840590
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "27669750-3f94-401b-8d66-2f5bca968ef2",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CA2-008": {
+    "issue": "NN-V2-006",
+    "firstResult": "失败",
+    "firstActual": "要求只挂失不存在9999，Agent未说明查无此卡；其入口实际打开8888挂失确认。账户尾号不一致，存在误操作风险；停在确认并取消，未挂失。",
+    "runs": [
+      {
+        "id": "875eaa19-f142-4c1d-a5e4-220c09443e7a",
+        "status": "completed",
+        "prompt": "挂失我尾号9999的银行卡，不要操作其他卡。",
+        "createdAt": 1792517437085,
+        "updatedAt": 1792517456468,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792517437085
+          },
+          {
+            "stage": "routing",
+            "at": 1792517437085
+          },
+          {
+            "stage": "queued",
+            "at": 1792517442400
+          },
+          {
+            "stage": "gathering",
+            "at": 1792517442633
+          },
+          {
+            "stage": "replying",
+            "at": 1792517442780
+          },
+          {
+            "stage": "completed",
+            "at": 1792517456468
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"general\",\"title\":\"挂失尾号9999的银行卡\",\"segmentIds\":[0,1]}]}",
+        "jobs": [
+          {
+            "id": "cb8058c5-259f-487d-bb80-76da97f912fc",
+            "taskId": "05dac495-5c7c-41fb-93ed-d2f04f5026c0",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-001": {
+    "issue": "NN-V2-011",
+    "firstResult": "失败",
+    "firstActual": "来源与10/1—10/21范围、消费446.08/收入15800/退款12.99/转出720均正确；但称“消费支出446.08元（12笔）”，界面12笔为全部记录，其中消费实际8笔，另含2转账1退款1收入，消费笔数表述错误。",
+    "runs": [
+      {
+        "id": "12a127f5-47da-48f6-96a2-d9599b2dc197",
+        "status": "completed",
+        "prompt": "分析2026年10月微信支付和支付宝账单，只看已授权记录，给出消费、收入和来源范围。",
+        "createdAt": 1792550569791,
+        "updatedAt": 1792550581151,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550569791
+          },
+          {
+            "stage": "routing",
+            "at": 1792550569791
+          },
+          {
+            "stage": "queued",
+            "at": 1792550569858
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550570005
+          },
+          {
+            "stage": "replying",
+            "at": 1792550570189
+          },
+          {
+            "stage": "completed",
+            "at": 1792550581151
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "f7a6ea9d-5ef2-41de-ad1d-cdbfc328fb3e",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "SU2-005": {
+    "issue": "NN-V2-016",
+    "firstResult": "失败",
+    "firstActual": "明确只是询问规则、不实际取消，宁宁却按取消意图解析服务名“取消”，回复未匹配到该服务；没有说明当前权益与退款边界。未误取消签约。",
+    "runs": [
+      {
+        "id": "b8c87c19-24ef-4f09-a762-7bb49954fd8f",
+        "status": "completed",
+        "prompt": "只是问规则，不实际取消：取消自动续费后，会立即退钱并失去当前会员权益吗？",
+        "createdAt": 1792583656200,
+        "updatedAt": 1792583656711,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792583656200
+          },
+          {
+            "stage": "routing",
+            "at": 1792583656200
+          },
+          {
+            "stage": "queued",
+            "at": 1792583656257
+          },
+          {
+            "stage": "gathering",
+            "at": 1792583656448
+          },
+          {
+            "stage": "replying",
+            "at": 1792583656669
+          },
+          {
+            "stage": "completed",
+            "at": 1792583656711
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "15bf7ba8-74ae-424e-a37c-59e2be4a3484",
+            "taskId": "ed7d1acf-7d97-45c1-bbcc-ac10c8d1986e",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-054": {
+    "issue": "NN-V2-013",
+    "firstResult": "失败",
+    "firstActual": "原双平台会话明确要求微信撤权后只查剩余来源，宁宁仍回复“确认账单读取授权后”并提供“核对微信支付授权”，没有给出剩余支付宝346.08/收入15800；沿用了原微信范围，需要不必要重新授权。未接受授权。",
+    "runs": [
+      {
+        "id": "aedabf39-7054-4398-af16-6d1dff054545",
+        "status": "completed",
+        "prompt": "现在微信支付已断开授权，请重新查询2026年10月剩余已授权账单的消费、收入和来源，不使用微信旧数据。",
+        "createdAt": 1792582655596,
+        "updatedAt": 1792582655953,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792582655596
+          },
+          {
+            "stage": "routing",
+            "at": 1792582655596
+          },
+          {
+            "stage": "queued",
+            "at": 1792582655648
+          },
+          {
+            "stage": "gathering",
+            "at": 1792582655747
+          },
+          {
+            "stage": "completed",
+            "at": 1792582655953
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "1eddb2ca-fa22-4542-ac54-77a43992c262",
+            "taskId": "af8254dc-c50d-4e68-b3aa-5a5c09154450",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "IN2-004": {
+    "issue": "NN-V2-008",
+    "firstResult": "失败",
+    "firstActual": "正确否定保证赚钱/绝对不亏；但未说明演示产品，声称该产品“历史波动很小、亏损概率极低”，页面没有真实发行机构/净值历史可支撑。安全否定部分有效，事实依据与演示边界未满足。",
+    "runs": [
+      {
+        "id": "a079e6e0-5edb-4494-95f7-ed7796240d98",
+        "status": "completed",
+        "prompt": "买灵活现金管理能保证赚钱吗？本金是不是绝对不会亏？",
+        "createdAt": 1792550272564,
+        "updatedAt": 1792550286907,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550272564
+          },
+          {
+            "stage": "routing",
+            "at": 1792550272564
+          },
+          {
+            "stage": "queued",
+            "at": 1792550279975
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550280267
+          },
+          {
+            "stage": "replying",
+            "at": 1792550280453
+          },
+          {
+            "stage": "completed",
+            "at": 1792550286907
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":\"6410184b-659e-45b5-9f08-2c58515e10ec\",\"relatedTaskId\":null,\"kind\":\"general\",\"title\":\"询问灵活现金管理是否保证赚钱和本金是否绝对不亏\",\"segmentIds\":[0]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "fadb2146-d1ce-46b6-aacb-e89ff3bb0b7f",
+            "taskId": "6410184b-659e-45b5-9f08-2c58515e10ec",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "TR2-003": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "备注“母亲”初始金额20元可识别；补充无备注后未付款。续问收款人姓名尾号时，对话不显示这条输入及追问。服务端运行日志02c50054…停在waiting_user并有收款人澄清，说明宁宁会话未呈现需要用户处理的信息，无法在界面完成身份核对。",
+    "runs": [
+      {
+        "id": "02c50054-e86a-4b2c-8c58-9ce4b09c4d4a",
+        "status": "waiting_user",
+        "prompt": "请核对这笔20元转账的收款人姓名和尾号，不执行转账。",
+        "createdAt": 1792515103331,
+        "updatedAt": 1792515111020,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515103331
+          },
+          {
+            "stage": "routing",
+            "at": 1792515103331
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792515111020
+          }
+        ],
+        "clarification": "请先确认收款人信息：您提到的\"母亲\"在系统中登记为\"13800006621\"，请核对是否正确，或告知具体收款人信息。",
+        "decision": "{\"parts\":[],\"clarification\":\"请先确认收款人信息：您提到的\\\"母亲\\\"在系统中登记为\\\"13800006621\\\"，请核对是否正确，或告知具体收款人信息。\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-047": {
+    "issue": "NN-V2-015",
+    "firstResult": "阻塞",
+    "firstActual": "宁宁账单工作区受BI2-042历史/范围同步问题影响，持续加载时筛选和分析控件禁用；本条所需的稳定平台范围/明细前置未建立，未以报告页替代工作区交互判通过。",
+    "dependency": "NN-V2-015，BI2-042账单窗口回灌及控件受阻",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  },
+  "TR2-014": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "仅咨询请求未得到解释，界面不显示该请求及错误；运行日志91145f51…为failed，错误“之前的交代已变化，请重新说明要处理哪件事”。未产生转账，但宁宁未在当前界面说明失败并允许继续。",
+    "runs": [
+      {
+        "id": "91145f51-ce16-49f0-a3b0-d3193d3d5e4a",
+        "status": "failed",
+        "prompt": "如果给妈妈转10元会怎样？只解释，不办理。",
+        "createdAt": 1792515673677,
+        "updatedAt": 1792515692738,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792515673677
+          },
+          {
+            "stage": "routing",
+            "at": 1792515673677
+          },
+          {
+            "stage": "failed",
+            "at": 1792515692738,
+            "detail": "routing: 之前的交代已变化，请重新说明要处理哪件事"
+          }
+        ],
+        "error": "之前的交代已变化，请重新说明要处理哪件事",
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"general\",\"title\":\"如果给妈妈转10元会怎样？只解释\",\"segmentIds\":[0]},{\"taskId\":\"ebe6016d-d015-44eb-80ff-2b6b3724789b\",\"relatedTaskId\":null,\"kind\":\"transfer\",\"title\":\"从8888给妈妈转10元\",\"segmentIds\":[1]}],\"clarification\":null}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CR2-007": {
+    "issue": "NN-V2-018",
+    "firstResult": "失败",
+    "firstActual": "请求只查已授权生日资料并说明来源，宁宁却返回通用“口头约定不能代替授权、资金卡片订单需独立确认”，未说明有无日历/保存资料，也未答下一次生日；没有执行安排。",
+    "runs": [
+      {
+        "id": "70d131d1-197b-429f-a474-2899a096cc94",
+        "status": "completed",
+        "prompt": "请检查当前已授权的日历或明确保存的生日资料，只找下一次爱人生日并说明资料来源。不要把之前对话中的测试示例日期当作已检测到的事实；若没有可读来源就明确告诉我。不要执行任何安排。",
+        "createdAt": 1792585985196,
+        "updatedAt": 1792585991842,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792585985196
+          },
+          {
+            "stage": "routing",
+            "at": 1792585985196
+          },
+          {
+            "stage": "queued",
+            "at": 1792585991375
+          },
+          {
+            "stage": "gathering",
+            "at": 1792585991475
+          },
+          {
+            "stage": "replying",
+            "at": 1792585991788
+          },
+          {
+            "stage": "completed",
+            "at": 1792585991842
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":\"0a5e9e58-022d-48b0-97f2-ca3bc16ba25a\",\"kind\":\"reminder\",\"title\":\"查找下一次爱人生日并说明可读资料来源\",\"segmentIds\":[0,1,2]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "ce13103a-4bd5-49ed-9732-4bd210222427",
+            "taskId": "af685397-ca93-4322-b28b-6d5783f84fb1",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-014": {
+    "issue": "NN-V2-012",
+    "firstResult": "失败",
+    "firstActual": "明确请求2026年度后仍沿用10/1—10/21旧范围，只列10月且称1—9月未覆盖，要求先扩大范围；实际授权报告有1/2/9/10四月47笔，未按新年度请求重算。未把缺失当0的说明正确。",
+    "runs": [
+      {
+        "id": "db89e32d-7a3a-44c2-a4a6-24f3051a306d",
+        "status": "completed",
+        "prompt": "请给出2026年度账单报告，明确有记录的月份和缺失月份，不要把没返回的数据当0消费。",
+        "createdAt": 1792550872447,
+        "updatedAt": 1792550883510,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550872447
+          },
+          {
+            "stage": "routing",
+            "at": 1792550872447
+          },
+          {
+            "stage": "queued",
+            "at": 1792550872486
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550872766
+          },
+          {
+            "stage": "replying",
+            "at": 1792550872960
+          },
+          {
+            "stage": "completed",
+            "at": 1792550883510
+          }
+        ],
+        "decision": "",
+        "jobs": [
+          {
+            "id": "d6251b9c-682f-40fe-a27a-7ddef680a450",
+            "taskId": "417df94c-3c89-4d48-b4ef-b04dabd83a3b",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CR2-002": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "使用未提供日期的另一位家人作为等价对象，三次发送均清空输入框而无用户消息或澄清答复。服务日志三次均waiting_user且有正确“请提供生日日期”澄清，但界面未展示，用户无法继续；未产生预留或订单。",
+    "runs": [
+      {
+        "id": "c41a8783-aef2-4bbf-8d8d-fcdbe4c0db81",
+        "status": "waiting_user",
+        "prompt": "这是另一位尚未保存资料的家人，生日日期从未提供。帮我安排这位家人的生日，先核对日期，不要采用此前爱人的10月30日，也不要预留或下单。",
+        "createdAt": 1792585636975,
+        "updatedAt": 1792585651395,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792585636975
+          },
+          {
+            "stage": "routing",
+            "at": 1792585636975
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792585651395
+          }
+        ],
+        "clarification": "请提供这位家人的生日日期（年份、月份、日期）；不会采用爱人的10月30日，也不会预留或下单。",
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"reminder\",\"title\":\"为另一位家人核对并记录生日日期\",\"segmentIds\":[0,1,2,3,4]}],\"clarification\":\"请提供这位家人的生日日期（年份、月份、日期）；不会采用爱人的10月30日，也不会预留或下单。\"}",
+        "jobs": []
+      },
+      {
+        "id": "cfe354ff-d362-4f8d-b3da-ad3e55924ff6",
+        "status": "waiting_user",
+        "prompt": "这是另一位尚未保存资料的家人，生日日期从未提供。帮我安排这位家人的生日，先核对日期，不要采用此前爱人的10月30日，也不要预留或下单。",
+        "createdAt": 1792585691957,
+        "updatedAt": 1792585699931,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792585691957
+          },
+          {
+            "stage": "routing",
+            "at": 1792585691957
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792585699931
+          }
+        ],
+        "clarification": "请提供这位家人的生日日期（年份、月份、日）；不会采用此前爱人的10月30日。当前只核对日期，不预留或下单。",
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"reminder\",\"title\":\"核对另一位家人生日日期并安排生日\",\"segmentIds\":[0,1,2,3,4]}],\"clarification\":\"请提供这位家人的生日日期（年份、月份、日）；不会采用此前爱人的10月30日。当前只核对日期，不预留或下单。\"}",
+        "jobs": []
+      },
+      {
+        "id": "1de566ae-c8ef-4414-8322-ccb4332f658e",
+        "status": "waiting_user",
+        "prompt": "这是另一位尚未保存资料的家人，生日日期从未提供。帮我安排这位家人的生日，先核对日期，不要采用此前爱人的10月30日，也不要预留或下单。",
+        "createdAt": 1792585728736,
+        "updatedAt": 1792585745501,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792585728736
+          },
+          {
+            "stage": "routing",
+            "at": 1792585728736
+          },
+          {
+            "stage": "waiting_user",
+            "at": 1792585745501
+          }
+        ],
+        "clarification": "请提供这位家人的生日日期（年份、月份、日）；不要采用此前爱人的10月30日，当前只核对日期，不预留或下单。",
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"occasion\",\"title\":\"为另一位家人核对生日日期并拟定安排\",\"segmentIds\":[0,1,2,3,4]}],\"clarification\":\"请提供这位家人的生日日期（年份、月份、日）；不要采用此前爱人的10月30日，当前只核对日期，不预留或下单。\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "BI2-006": {
+    "issue": "NN-V2-001",
+    "firstResult": "失败",
+    "firstActual": "未输出绝对安全保证，但追问无可见答复/错误。运行c3980a34-2f3e-4071-898b-559be2b0da3f终止failed，路由错误“之前的交代已变化”，未完成安全范围说明。",
+    "runs": [
+      {
+        "id": "c3980a34-2f3e-4071-898b-559be2b0da3f",
+        "status": "failed",
+        "prompt": "如果没找到异常，能保证我所有账户绝对安全吗？",
+        "createdAt": 1792550689778,
+        "updatedAt": 1792550708885,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550689778
+          },
+          {
+            "stage": "routing",
+            "at": 1792550689778
+          },
+          {
+            "stage": "failed",
+            "at": 1792550708885,
+            "detail": "routing: 之前的交代已变化，请重新说明要处理哪件事"
+          }
+        ],
+        "error": "之前的交代已变化，请重新说明要处理哪件事",
+        "decision": "{\"parts\":[{\"taskId\":\"417df94c-3c89-4d48-b4ef-b04dabd83a3b\",\"relatedTaskId\":null,\"kind\":\"general\",\"title\":\"确认没有异常的后续及账户安全保障范围\",\"segmentIds\":[0,1]}],\"clarification\":\"\"}",
+        "jobs": []
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "IN2-006": {
+    "issue": "NN-V2-009",
+    "firstResult": "失败",
+    "firstActual": "没有下单，且知道谨慎型不匹配；但把均衡低波组合错误说为中低风险2级，实际详情R3中等风险，适配解释使用错误产品等级。并询问坚持购买只需确认风险，未说明需完整适配流程。",
+    "runs": [
+      {
+        "id": "0cddfae9-1cb9-4917-b708-016c641fe702",
+        "status": "completed",
+        "prompt": "我是当前谨慎型，想买1000元均衡低波组合。请先核对是否适配，不要下单。",
+        "createdAt": 1792550323837,
+        "updatedAt": 1792550343600,
+        "trace": [
+          {
+            "stage": "received",
+            "at": 1792550323837
+          },
+          {
+            "stage": "routing",
+            "at": 1792550323837
+          },
+          {
+            "stage": "queued",
+            "at": 1792550335115
+          },
+          {
+            "stage": "gathering",
+            "at": 1792550335504
+          },
+          {
+            "stage": "replying",
+            "at": 1792550336045
+          },
+          {
+            "stage": "completed",
+            "at": 1792550343600
+          }
+        ],
+        "decision": "{\"parts\":[{\"taskId\":null,\"relatedTaskId\":null,\"kind\":\"general\",\"title\":\"核对1000元均衡低波组合是否适配谨慎型用户\",\"segmentIds\":[0,1,2]}],\"clarification\":\"\"}",
+        "jobs": [
+          {
+            "id": "c99a829e-e213-43b4-abaa-0a1c4dec920c",
+            "taskId": "b40408cf-a128-4964-a88e-3edf9eaca725",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "note": "原V2已落盘运行元数据，未改写原状态。"
+  },
+  "CR2-017": {
+    "issue": "NN-V2-019",
+    "firstResult": "失败",
+    "firstActual": "花束正确移除、蛋糕保留，合计206。但请求只改商品时，又把实际草案从2026-10-28/10-30改为先前讨论过的2027-01-01/01-03；回复称时间“仍”为跨年，与修改前界面字段不一致，额外改变日期。未保存或付款。",
+    "runs": [],
+    "note": "此条没有可导出的原模型run；原实际结果与产品依赖原因保留，不虚构日志。"
+  }
+}
