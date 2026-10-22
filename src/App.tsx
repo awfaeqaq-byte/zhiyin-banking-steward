@@ -56,8 +56,6 @@ import { DataConnections } from "./components/data-connections";
 import { PhoneContactPicker } from "./components/phone-contact-picker";
 import { SubscriptionCenter } from "./components/subscription-center";
 import {HomePreviewHeader} from './components/home-preview-header';
-import {ElderHome} from './components/elder-home';
-import './components/elder-mode.css';
 import { StewardWorkspaces } from "./components/steward-workspaces";
 import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
@@ -225,17 +223,9 @@ function Row({
 }
 
 export default function App() {
-  const [standardMode, setMode] = useState<"classic" | "native">(() =>
+  const [mode, setMode] = useState<"classic" | "native">(() =>
     read<string>("zhiyin-mode", "classic") === "native" ? "native" : "classic",
   );
-  const [elderMode, setElderMode] = useState(() => read<unknown>('zhiyin-elder-mode', false) === true);
-  const [elderChatOpen, setElderChatOpen] = useState(false);
-  const mode = elderMode ? 'native' : standardMode;
-  useEffect(() => {
-    save('zhiyin-elder-mode', elderMode);
-    document.body.dataset.zhiyinAppearance = elderMode ? 'elder' : 'standard';
-    return () => { delete document.body.dataset.zhiyinAppearance; };
-  }, [elderMode]);
   const stewardWorkerStarted=useRef(mode==='native');
   if(mode==='native')stewardWorkerStarted.current=true;
   const [page, setPage] = useState<Page>("home");
@@ -323,8 +313,8 @@ export default function App() {
   }, [controls]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
   useEffect(() => {
-    save("zhiyin-mode", standardMode);
-  }, [standardMode]);
+    save("zhiyin-mode", mode);
+  }, [mode]);
   useEffect(() => {
     save("zhiyin-connections", connections);
   }, [connections]);
@@ -412,11 +402,6 @@ export default function App() {
     window.scrollTo({ top: 0 });
     document.querySelector(".workspace")?.scrollTo({ top: 0 });
   }
-  function askSteward(prompt: string) {
-    setChatDraft(prompt);
-    if (elderMode) setElderChatOpen(true);
-    go('home');
-  }
   function openCardIntent(instruction?:string){
     const intent=instruction?parseCardIntent(instruction):null;
     go('cards');
@@ -438,14 +423,10 @@ export default function App() {
       goBack();
       return true;
     }
-    if (elderMode && elderChatOpen) {
-      setElderChatOpen(false);
-      return true;
-    }
     return false;
   });
   usePhoneBridge();
-  const wechatShare=useWechatShare(()=>{setMode('native');setElderChatOpen(true);setPage('home');setModal(null);setPageHistory([]);});
+  const wechatShare=useWechatShare(()=>{setMode('native');setPage('home');setModal(null);setPageHistory([]);});
   useEffect(() => {
     if (connections.wechat_pay) return;
     let cancelled = false;
@@ -517,8 +498,7 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   }
   const activeNav =
-    elderMode ? (page === 'home' ? 'home' : ['assets', 'deposits', 'funding'].includes(page) ? 'assets' : 'profile')
-      : page === "cards" ? "cards"
+    page === "cards" ? "cards"
       : page === "risk" || page === "plan" || page === "funds" ? "risk"
       : page === "profile" || page === "settings" || page === "connections" || page === "subscriptions"
       ? "profile"
@@ -619,7 +599,7 @@ export default function App() {
     );
   }
   return (
-    <div className={`app-shell mode-${mode} ${elderMode ? 'elder-mode' : ''} ${elderMode && !elderChatOpen ? 'elder-home-view' : ''} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
+    <div className={`app-shell mode-${mode} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
       <aside className="sidebar" hidden={mode === "native"}>
         <a
           className="brand"
@@ -679,17 +659,7 @@ export default function App() {
         </div>
       </aside>
       <div className="workspace">
-        <div className="appearance-toolbar" role="group" aria-label="界面版本">
-          <span>{elderMode ? '长辈版' : '普通版'}</span>
-          <button type="button" className="appearance-toggle" aria-label={elderMode ? '切换到普通版' : '切换到长辈版'} onClick={() => setElderMode(value => !value)}>
-            {elderMode ? '切换普通版' : '切换长辈版'}
-          </button>
-        </div>
-        {page === 'home' && elderMode && elderChatOpen && <header className="elder-chat-heading fixed-chat-header">
-          <button type="button" aria-label="返回长辈版首页" onClick={() => setElderChatOpen(false)}><ArrowLeft aria-hidden="true" size={24}/>返回首页</button>
-          <strong>和{steward.name}聊聊</strong>
-        </header>}
-        {page === "home" && mode === 'native' && !elderMode && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} bank={bank.state} bankError={bank.error} hidden={hidden} onHiddenChange={setHidden} onRefresh={bank.refresh} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onAssets={()=>go('assets')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')}/>}
+        {page === "home" && mode === 'native' && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} bank={bank.state} bankError={bank.error} hidden={hidden} onHiddenChange={setHidden} onRefresh={bank.refresh} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onAssets={()=>go('assets')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')}/>}
         {page === "home" && mode === 'classic' && (
           <header className="topbar">
             <button
@@ -758,14 +728,6 @@ export default function App() {
         <main
           className={`main-content page-${page} ${page === "home" ? "home-content" : "is-detail-page"}`}
         >
-          {page === 'home' && elderMode && !elderChatOpen && <ElderHome
-            stewardName={steward.name} stewardImage={steward.image}
-            bank={bank.state} bankError={bank.error} hidden={hidden}
-            onToggleHidden={() => setHidden(value => !value)} onRefresh={() => { void bank.refresh(); }}
-            onAssets={() => go('assets')} onTransfer={() => setBankIntent({recipientId:'mom',amount:0})}
-            onBills={() => go('spending')} onSubscriptions={() => go('subscriptions')}
-            onChat={() => setElderChatOpen(true)} onHelp={() => setModal('help')}
-          />}
           {page === "home" && mode === "classic" && (
             <>
               <div className="home-title">
@@ -1049,7 +1011,7 @@ export default function App() {
                 connections={connections}
                 automationAttention={homeAutomationAttention}
                 onOpenAutomations={() => go("automations")}
-                onAsk={askSteward}
+                onAsk={(prompt) => { setChatDraft(prompt); go("home"); }}
               />
               <WealthOperationMvp amount="30000" term="12" availableBalance={bank.state?.balance} />
             </>
@@ -1217,7 +1179,7 @@ export default function App() {
                       subtitle="月报 · 周检 · 异常复核"
                       onClick={() => go("automations")} />
                     <Row icon={Settings2} title="设置"
-                      subtitle={elderMode ? '长辈版 · 大字显示' : `使用模式 · ${standardMode === "classic" ? "经典款" : "AI 原生"}`}
+                      subtitle={`使用模式 · ${mode === "classic" ? "经典款" : "AI 原生"}`}
                       onClick={() => go("settings")} />
                   </div>
                 </section>
@@ -1257,13 +1219,6 @@ export default function App() {
               <Heading title="设置" subtitle="选择适合你的使用方式" />
               <div className="settings-content">
                 <fieldset className="mode-preferences">
-                  <legend>界面显示</legend>
-                  <label className={`mode-option ${elderMode ? 'selected' : ''}`}>
-                    <input type="checkbox" checked={elderMode} onChange={event => setElderMode(event.target.checked)}/>
-                    <span><strong>长辈版</strong><small>大字、大按钮，常用功能更好找。随时可以切回普通版。</small></span>
-                  </label>
-                </fieldset>
-                <fieldset className="mode-preferences">
                   <legend>使用模式</legend>
                   <p id="mode-help">
                     只改变办理方式。管家、偏好与未完成安排都会保留。
@@ -1284,24 +1239,24 @@ export default function App() {
                   ).map(([value, title, description]) => (
                     <label
                       key={value}
-                      className={`mode-option ${standardMode === value ? "selected" : ""}`}
+                      className={`mode-option ${mode === value ? "selected" : ""}`}
                     >
                       <input
                         type="radio"
                         name="usage-mode"
                         value={value}
-                        checked={standardMode === value}
+                        checked={mode === value}
                         aria-describedby="mode-help"
                         onChange={() => {
                           setMode(value);
-                          setToast(elderMode ? `普通版已设为${title}，切回普通版即可体验` : `已切换为${title}，返回首页即可体验`);
+                          setToast(`已切换为${title}，返回首页即可体验`);
                         }}
                       />
                       <span>
                         <strong>{title}</strong>
                         <small>{description}</small>
                       </span>
-                      {standardMode === value && <Check size={19} aria-hidden="true" />}
+                      {mode === value && <Check size={19} aria-hidden="true" />}
                     </label>
                   ))}
                 </fieldset>
@@ -1393,16 +1348,16 @@ export default function App() {
                 onOpenBills={() => go("spending")} onOpenWealth={() => go("risk")} onOpenCards={() => go("cards")}
                 onSnapshotChange={setAutomationSnapshot}
                 onDiscussRun={(run:AutomationRun)=>{
-                  askSteward(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
+                  setChatDraft(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
+                  go('home');
                 }} />
             </>
           )}
           {stewardWorkerStarted.current && (
-            <div hidden={mode !== "native" || page !== "home" || (elderMode && !elderChatOpen)} style={mode !== "native" || page !== "home" || (elderMode && !elderChatOpen)?{display:"none"}:undefined} aria-label="管家处理现场">
+            <div hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
               homePreview
-              elderMode={elderMode}
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
               memory={memory}
@@ -1492,16 +1447,12 @@ export default function App() {
           className="bottom-nav"
           aria-label="主导航"
         >
-          {(elderMode ? [
-            {page: 'home' as const, label: '首页', icon: MessageCircle},
-            {page: 'assets' as const, label: '我的账户', icon: Wallet},
-            {page: 'profile' as const, label: '更多服务', icon: UserRound},
-          ] : nav).map(({ page: p, label, icon: Icon }) => (
+          {nav.map(({ page: p, label, icon: Icon }) => (
             <button
               aria-current={activeNav === p ? "page" : undefined}
               key={p}
               className={activeNav === p ? "active" : ""}
-              onClick={() => { if (elderMode && p === 'home') setElderChatOpen(false); go(p); }}
+              onClick={() => go(p)}
             >
               <span>
                 <Icon size={23} />
