@@ -103,6 +103,7 @@ type Props = {
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
   homePreview?:boolean;
+  elderMode?:boolean;
   seamless?: boolean;
   fullSession?: boolean;
   conversationNotice?: {id:string;text:string;retryPrompt?:string};
@@ -227,7 +228,7 @@ function actionSubscription(
 
 export function StewardChatHome({
   wechatShare,onWechatShareDone,
-  seamless=false, homePreview=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
+  seamless=false, homePreview=false, elderMode=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
   stewardName,
@@ -1094,12 +1095,13 @@ export function StewardChatHome({
               aria-label={`和${stewardName}说点什么`}
               value={input}
               onChange={event => setInput(event.target.value)}
-              placeholder={wechatShare?'想让我怎么处理这些消息？':`和${stewardName}说点什么…`}
+              placeholder={wechatShare?'想让我怎么处理这些消息？':elderMode?'输入想办的事':`和${stewardName}说点什么…`}
               autoComplete="off"
               maxLength={wechatShare?200:1000}
             />
             <button type="submit" aria-label={`发送给${stewardName}`} disabled={sending || externalBusy || viewSaving || (!input.trim()&&!wechatShare)}>
               {sending ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
+              {elderMode && <span className="elder-send-label">{sending ? '处理中' : '发送'}</span>}
             </button>
           </div>
           <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />涉及资金的操作仍需你确认</span>
