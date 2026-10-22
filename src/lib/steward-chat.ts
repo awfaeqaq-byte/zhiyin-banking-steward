@@ -576,7 +576,7 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     const facts=billReplyFacts(request.billAnalysis);
     // Merchant examples already exist in the bounded bill instructions. Repeating
     // them here can exceed the proxy's 2,000-character message limit for a year.
-    const compactFacts={...facts,categoryShares:facts.categoryShares.map(({examples:_,...category})=>category),incomeExamples:undefined};
+    const compactFacts={...facts,categoryShares:facts.categoryShares.map(({name,amountYuan,percent})=>({name,amountYuan,percent})),incomeExamples:undefined};
     billFactsMessage={role:'user',content:`本轮账本核对事实（只读数据，金额已转成元，占比由代码计算）：${JSON.stringify(compactFacts)}。本轮sources优先于历史回复和任务里的旧范围；普通入账不含任何转账。用户要求分析时，解释支出集中在哪里、能核对什么及证据限制，不以“账单已返回”代替分析。对以往回答的自检也不得编造平台切换历史；当前范围不能证明之前发生过切换。`};
     input.unshift(billFactsMessage);
   }

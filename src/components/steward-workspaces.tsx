@@ -51,7 +51,7 @@ export function StewardWorkspaces({route,...props}:Props){
    else if(next.kind==='occasion')props.onOpenOccasions?.(undefined,next.id);else if(next.kind==='calendar')props.onOpenTasks?.(next.date);else if(next.kind==='bank')props.onPrepareTransfer?.({kind:'records'});
   }catch(cause){setError(cause instanceof Error?cause.message:'原事项暂未打开');}
  }
- async function save(operation:WorkspaceOperation|((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation)){
+ const save=useCallback(async(operation:WorkspaceOperation|((latest:ReturnType<typeof emptyWorkspaces>)=>WorkspaceOperation))=>{
   const result=saveTail.current.then(async()=>{
    for(let attempt=0;attempt<3;attempt++){
     const latest=await workspaceRequest();
@@ -60,7 +60,7 @@ export function StewardWorkspaces({route,...props}:Props){
    }
    throw new Error('任务正在保存，请重试');
   });saveTail.current=result.catch(()=>undefined);return result;
- }
+ },[accept]);
   function selectConversation(id:string){
     setSelectedConversationId(id);
     localStorage.setItem('zhiyin-conversation-selected',id);
@@ -88,21 +88,21 @@ export function StewardWorkspaces({route,...props}:Props){
   }
  // Explicit route injection is used by isolated component tests. Production
  // classification always runs in the server worker; both paths use its reducer.
- async function request(operation?:MessageClientOperation){
+ const request=useCallback(async(operation?:MessageClientOperation)=>{
   if(!route)return messageStateRequest(operation);
   if(!operation)return workspaceRequest();
   if(operation.type==='submit')return save({...operation,type:'message-submit'} as unknown as MessageOperation);
   if(operation.type==='claim')return save({type:'message-claim',id:operation.id,jobId:operation.jobId,owner:operation.owner});
   if(operation.type==='complete')return save({...operation,type:'message-complete'});
   return save({type:operation.type==='import'?'conversation-import':'conversation-append',id:operation.id,messages:operation.messages});
- }
+ },[route,save]);
  const load=useCallback(async()=>{
   try{
    let next=await (route?workspaceRequest():messageStateRequest());
    if(next.conversation===undefined){const messages=readConversationSnapshot(next.items);next=route?await save({type:'conversation-import',id:crypto.randomUUID(),messages}):await messageStateRequest({type:'import',id:crypto.randomUUID(),messages});}
    accept(next);setLoaded(true);setError('');
   }catch(cause){setError(cause instanceof Error?cause.message:'之前的消息暂时无法载入');}
- },[route,accept]);
+ },[route,accept,save]);
  useEffect(()=>{void load();},[load]);
  useEffect(()=>{const receive=(event:Event)=>{const next=(event as CustomEvent).detail;if(validWorkspaces(next))accept(next);};window.addEventListener(TURN_SAVED,receive);return()=>window.removeEventListener(TURN_SAVED,receive);},[accept]);
  useEffect(()=>{
@@ -110,13 +110,13 @@ export function StewardWorkspaces({route,...props}:Props){
   let live=true;
   const poll=async()=>{try{const next=await request();if(live){accept(next);if(!claiming.current&&next.runs?.find(r=>['routing','ready','processing'].includes(r.status))?.status==='ready')setClaimAttempt(attempt=>attempt+1);}}catch(cause){if(live)setError(cause instanceof Error?cause.message:'消息状态暂时未能更新');}};
   const timer=window.setInterval(()=>void poll(),500);return()=>{live=false;window.clearInterval(timer);};
- },[loaded,busy,route,accept]);
+ },[loaded,busy,request,accept]);
  useEffect(()=>{
   if(!loaded||!activeRun||activeRun.status!=='ready'||claiming.current)return;
   const next=activeRun.jobs.find(j=>j.status==='queued');if(!next)return;
   claiming.current=true;
   void request({type:'claim',id:activeRun.id,jobId:next.id,owner:owner.current}).then(result=>{setActive(next.taskId);localStorage.setItem('zhiyin-workspace-active',next.taskId);if(managedConversation){setSelectedConversationId(next.taskId);localStorage.setItem('zhiyin-conversation-selected',next.taskId);}accept(result);setError('');}).catch(cause=>{setError(cause instanceof Error?cause.message:'这条消息暂时未能领取');}).finally(()=>{claiming.current=false;});
- },[loaded,activeRun,route,accept,claimAttempt]);
+ },[loaded,activeRun,request,accept,claimAttempt,managedConversation]);
  async function arrange(text:string,recent:StewardChatMessage[]=[],knownBillTaskId?:string,meta?:{messageId:string;displayText?:string}){
   if(!loaded)throw new Error('消息记录尚未载入，请稍后重试');
   const id=meta?.messageId||crypto.randomUUID();const refreshed=props.memory?await props.memory.refresh():null;const revision=refreshed?.revision??props.memory?.current.current.revision??0;
@@ -158,7 +158,7 @@ export function StewardWorkspaces({route,...props}:Props){
   const added=entries.filter(m=>!acknowledgedEntries.current.has(m.id));if(!added.length)return;
   for(const entry of added)acknowledgedEntries.current.add(entry.id);
   try{if(route)await save({type:'conversation-append',id:crypto.randomUUID(),messages:added});else accept(await messageStateRequest({type:'append',id:crypto.randomUUID(),messages:added}));}catch(cause){for(const entry of added)acknowledgedEntries.current.delete(entry.id);setError(cause instanceof Error?cause.message:'聊天记录尚未保存');}
- },[loaded,route,accept]);
+ },[loaded,route,accept,save]);
   return <div className="steward-workspaces">
     {error&&<div className="workspace-feedback" role="alert">{error}{!loaded&&<button onClick={()=>void load()}>重新载入</button>}</div>}
     <div className="conversation-toolbar">
