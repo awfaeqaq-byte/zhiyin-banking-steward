@@ -25,6 +25,17 @@ function targetName(text:string):string {
   return (text.match(/(?:取消|关闭|停止)\s*(.+?)(?:自动续费|订阅|签约|[，,。！!？?]|$)/)?.[1]||'').replace(/^(?:一下|微信支付|微信|支付宝)/,'').replace(/\d+(?:\.\d{1,2})?\s*元(?:的)?/g,'').replace(/(?:的|吧|吗)$/,'').trim();
 }
 
+function matchingSubscriptions(text:string, items:StewardSubscription[]):StewardSubscription[] {
+  const name=targetName(text);
+  const exact=items.filter(item=>text.includes(item.id)||name===item.title);
+  if(exact.length)return exact;
+  // Compare complete names after removing common membership/billing wording.
+  // Keep product qualifiers so a partial merchant name cannot select another plan.
+  const normalize=(value:string)=>value.replace(/自动续费|连续包[月季年]|续费|订阅|会员|vip|\s/gi,'');
+  const normalized=normalize(name);
+  return normalized?items.filter(item=>normalize(item.title)===normalized):[];
+}
+
 /** Prepare one real current target. This never calls the partner cancellation API. */
 export function subscriptionCommandReply(request:StewardReplyRequest):StewardReply|null {
   const users=request.messages.filter(message=>message.role==='user');
@@ -49,8 +60,8 @@ export function subscriptionCommandReply(request:StewardReplyRequest):StewardRep
   }
   const named=targetName(text);
   const origin=changing?previous!.content:text;
-  const titles=items.filter(item=>targetName(origin)===item.title||origin.includes(item.id));
-  let matches=items.filter(item=>text.includes(item.id)||named===item.title);
+  const titles=matchingSubscriptions(origin,items);
+  let matches=matchingSubscriptions(text,items);
   if(changing)matches=titles;
   if(!matches.length&&!changing)return {text:`当前有效清单没有匹配到${named||'这个项目'}，可能已关闭或名称不符。请核对名称和平台；没有替换为其他订阅，也没有取消。`};
   if(desired)matches=matches.filter(item=>item.provider===desired);

@@ -70,6 +70,44 @@ describe('逐条测试记录中的订阅失败回归',()=>{
  it('S13 不存在对象含有已知名称前缀，也不能替换成已知对象',async()=>{
   const result=await requestStewardReplyWithModel(context('取消微信测试云盘AZ自动续费'),forbiddenModel());expect(result.action).toBeUndefined();
  });
+ it('会员简称可核对完整签约名称，但不调用模型猜测目标',async()=>{
+  const input=context('帮我取消优酷会员续费'),model=forbiddenModel();
+  input.subscriptions=[{...input.subscriptions[0],id:'youku-month',provider:'alipay',title:'优酷VIP会员连续包月'}];
+  const result=await requestStewardReplyWithModel(input,model);
+  expect(result.action).toEqual({type:'prepare_cancel',provider:'alipay',subscriptionId:'youku-month'});
+  expect(result.text).toContain('优酷VIP会员连续包月');expect(result.text).toContain('现在尚未取消');expect(model).not.toHaveBeenCalled();
+ });
+ it('会员简称不能把产品限定词不同的签约当作目标',async()=>{
+  const input=context('帮我取消优酷会员续费');
+  input.subscriptions=[{...input.subscriptions[0],id:'youku-kids',provider:'alipay',title:'优酷少儿VIP会员连续包月'}];
+  const result=await requestStewardReplyWithModel(input,forbiddenModel());
+  expect(result.action).toBeUndefined();expect(result.text).toContain('没有匹配');
+ });
+ it('会员简称对应多平台签约时先追问，后续仍按平台和金额选定',async()=>{
+  const input=context('取消优酷会员续费'),model=forbiddenModel();
+  input.subscriptions=[
+   {...input.subscriptions[0],id:'youku-wechat',provider:'wechat_pay',title:'优酷VIP会员连续包月',amount:1500},
+   {...input.subscriptions[0],id:'youku-alipay',provider:'alipay',title:'优酷会员连续包月',amount:2500},
+  ];
+  const first=await requestStewardReplyWithModel(input,model);
+  expect(first.action).toBeUndefined();expect(first.waitingQuestion).toBeTruthy();
+  expect(first.text).toContain('微信支付 · 优酷VIP会员连续包月 · 15.00元/月');expect(first.text).toContain('支付宝 · 优酷会员连续包月 · 25.00元/月');
+  input.messages.push({role:'user',content:'支付宝25元那项'});
+  expect((await requestStewardReplyWithModel(input,model)).action).toEqual({type:'prepare_cancel',provider:'alipay',subscriptionId:'youku-alipay'});
+  expect(model).not.toHaveBeenCalled();
+ });
+ it('同平台同金额的简称冲突不能任选，完整签约名称才能消歧',async()=>{
+  const input=context('取消优酷会员续费'),model=forbiddenModel();
+  input.subscriptions=[
+   {...input.subscriptions[0],id:'youku-month',provider:'alipay',title:'优酷VIP会员连续包月',amount:1500},
+   {...input.subscriptions[0],id:'youku-year',provider:'alipay',title:'优酷VIP会员连续包年',amount:1500},
+  ];
+  expect((await requestStewardReplyWithModel(input,model)).action).toBeUndefined();
+  input.messages.push({role:'user',content:'支付宝15元那项'});
+  expect((await requestStewardReplyWithModel(input,model)).action).toBeUndefined();
+  input.messages.push({role:'user',content:'取消优酷VIP会员连续包年'});
+  expect((await requestStewardReplyWithModel(input,model)).action).toEqual({type:'prepare_cancel',provider:'alipay',subscriptionId:'youku-year'});
+ });
  it('S03 对应平台没自动续费权限时，不拿另一平台权限代替',async()=>{
   const input=context('取消微信测试云盘A自动续费');input.subscriptionAccess={providers:['alipay'],incompleteProviders:[]};
   expect((await requestStewardReplyWithModel(input,forbiddenModel())).action).toEqual({type:'open_connections',provider:'wechat_pay',scope:'autopay'});
