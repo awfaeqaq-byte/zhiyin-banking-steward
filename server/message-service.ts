@@ -1,3 +1,5 @@
+import {createMerchantStore} from './merchant';
+import {merchantAnswer} from '../src/lib/merchant-assistant';
 import {randomUUID} from 'node:crypto';
 import {join} from 'node:path';
 import type {IncomingMessage,ServerResponse} from 'node:http';
@@ -86,6 +88,11 @@ export function createMessageService(directory:string,model:StewardModelCall){
    try{
     const current=memory.get();if(current.revision!==run.memoryRevision)throw new Error('记忆上下文已变化，请重新交代');
     const progress=readTaskProgress(task);
+    if(task.kind==='merchant'){
+      const result=merchantAnswer(createMerchantStore(directory).get(scope),job.text);
+      complete(scope,{type:'message-complete',id:run.id,jobId:job.id,owner:input.owner,assistant:result.text,memoryRevision:run.memoryRevision,failed:false,merchantUI:result.merchantUI,progress:{goal:task.title,stage:'ready'}});
+      return result;
+    }
     let scenes:NonNullable<ReturnType<typeof sceneService.get>['scenes']>=[],sceneReadError='';
     try{scenes=sceneService.get(scope).scenes||[];}catch{sceneReadError='跨场景记录暂未读到，请核对原订单或收款记录，不能推断执行成功。';}
     const scene=scenes.find(s=>s.workspaceIds.includes(job.taskId));
@@ -123,7 +130,12 @@ export function messageMiddleware(directory:string,model:StewardModelCall){
    if(body.type==='submit')return send(200,service.submit(scope,body));
    if(body.type==='retry')return send(200,service.retry(scope,body));
    if(body.type==='claim')return send(200,service.claim(scope,body.id,body.jobId,body.owner));
-   if(body.type==='complete')return send(200,service.complete(scope,{...body,type:'message-complete'}));
+   if(body.type==='complete'){
+    const state=service.get(scope),run=state.runs?.find(item=>item.id===body.id),job=run?.jobs.find(item=>item.id===body.jobId);
+    if(body.merchantUI!==undefined||body.failed!==true&&state.items.find(item=>item.id===job?.taskId)?.kind==='merchant')return send(403,{error:'经营分析必须由服务端核对账本后保存'});
+    return send(200,service.complete(scope,{...body,type:'message-complete'}));
+   }
+   if(['import','append'].includes(body.type)&&Array.isArray(body.messages)&&body.messages.some((message:{merchantUI?:unknown})=>message?.merchantUI!==undefined))return send(403,{error:'经营快照不能由客户端导入'});
    if(body.type==='reply')return send(200,{reply:await service.reply(scope,body),state:service.get(scope)});
    if(body.type==='import')return send(200,service.operate(scope,{type:'conversation-import',id:body.id,messages:body.messages}));
    if(body.type==='append')return send(200,service.operate(scope,{type:'conversation-append',id:body.id,messages:body.messages}));

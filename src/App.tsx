@@ -73,6 +73,7 @@ import { FundingPlan } from "./components/funding-plan";
 import { FundDiscovery } from "./components/fund-discovery";
 import {TaskCalendar} from './components/task-calendar';
 import {GroupAA} from './components/group-aa';
+import {MerchantWorkspace} from './components/merchant-workspace';
 import {AAHistory} from './components/aa-history';
 import {OccasionPlanner} from './components/occasion-planner';
 import {memoryContext} from './lib/steward-memory';
@@ -115,6 +116,7 @@ type Page =
   | "tasks"
   | "group-aa"
   | "aa-history"
+  | "merchant"
   | "occasions"
   | "subscriptions"
   | "automations";
@@ -967,6 +969,7 @@ function AppContent() {
                     <Row icon={BellRing} title="订阅与续费" subtitle="查看签约、续费提醒与取消方案" onClick={()=>go('subscriptions')}/>
                     <Row icon={CalendarDays} title="日程" subtitle="提醒、生日与已建立的预约安排" onClick={()=>go('tasks')}/>
                     <Row icon={Users} title="微信群智能AA" subtitle="记录消费，核对分摊后再收款" onClick={()=>go('group-aa')}/>
+                    <Row icon={FileText} title="我的小店" subtitle="点餐码、菜品收入与经营账本" onClick={()=>go('merchant')}/>
                     <Row icon={FileText} title="历史 AA 账本" subtitle="查看每次消费、分摊与收款进度" onClick={()=>go('aa-history')}/>
                     <Row icon={CalendarDays} title="生活筹备" subtitle="重要日子、预算与外卖订单" onClick={()=>{setOccasionEntry({});go('occasions');}}/>
                     <Row icon={CalendarDays} title="我的关注" subtitle="持续检查账单、理财与异常线索" onClick={()=>go('automations')}/>
@@ -1125,6 +1128,7 @@ function AppContent() {
           )}
           {page === 'tasks' && <><Heading title="日程"/><TaskCalendar stewardName={steward.name} onDiscuss={mode==='native'?prompt=>{setChatDraft(prompt);go('home');}:undefined} initialDate={taskDate} schedules={bank.state?.allSchedules??bank.state?.schedules??[]} occasions={bank.state?.occasions??[]} onOpenOccasion={id=>{setOccasionEntry({id});go('occasions');}} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={cardId=>cardId&&cardId!=='primary'?setCardTransfer({cardId,initial:{kind:'records'}}):setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(null);setSubscriptionFocusTarget(`${source}:${id}`);go('subscriptions');}}/></>}
           {page === 'group-aa' && <><Heading title="微信群智能AA"/><GroupAA onOpenHistory={()=>go('aa-history')}/></>}
+          {page === 'merchant' && <><Heading title="我的小店"/><MerchantWorkspace stewardName={steward.name} onAsk={prompt=>{setMode('native');setChatDraft(prompt);go('home');}}/></>}
           {page === 'aa-history' && <><Heading title="历史 AA 账本"/><AAHistory stewardName={steward.name} onStartBook={()=>{setMode('native');setChatDraft('帮我记下这次聚餐的消费，最后一起 AA');go('home');}} onOpenGroupAA={()=>go('group-aa')} onOpenConversation={id=>{setMode('native');setConversationRequest({id,token:crypto.randomUUID()});go('home');}}/></>}
           {page === 'occasions' && <><Heading title="生活筹备"/><OccasionPlanner stewardName={steward.name} initialPrompt={occasionEntry.prompt} initialPlanId={occasionEntry.id} getMemoryContext={async prompt=>{const current=await memory.refresh();return current?memoryContext(current,prompt):'';}} onOpenCalendar={date=>{setTaskDate(date);go('tasks');}}/></>}
           {page === "funding" && (
@@ -1178,6 +1182,7 @@ function AppContent() {
               onConnectSource={connectFinancialSource}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
+              onOpenMerchant={()=>go('merchant')}
               onOpenGroupAA={()=>go('group-aa')}
               onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
               occasionPlans={bank.state?.occasions}

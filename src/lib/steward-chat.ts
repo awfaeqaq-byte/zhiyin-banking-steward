@@ -1,3 +1,4 @@
+import type {MerchantInsight} from './merchant-assistant';
 import type { ExternalFinancialProvider } from "./financial-connections";
 import {formatSceneContext,type SceneContext} from './scene-context';
 import {readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
@@ -37,6 +38,7 @@ export type StewardSubscription = {
 };
 
 export type StewardAction =
+  | {type:'open_merchant'}
   | {type:'open_connections';provider?:ExternalFinancialProvider}
   | ({type:'prepare_task'} & ReminderDraft)
   | {type:'open_tasks'}
@@ -62,6 +64,7 @@ export type StewardAction =
   };
 
 export type StewardReply = {
+  merchantUI?:MerchantInsight;
   text: string;
   action?: StewardAction;
   billUI?:BillUI;

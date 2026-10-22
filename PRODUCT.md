@@ -59,3 +59,15 @@ The current deliverable is an interactive competition prototype using illustrati
 ## Accessibility & Inclusion
 
 Use readable Chinese typography, strong contrast, keyboard-operable controls, visible focus, reduced-motion support, and at least 44px touch targets. Do not rely on color alone for financial or risk status.
+
+
+## 小店经营创新场景（第一阶段）
+
+个人版六大功能仍是主线。新增“我的 → 我的小店”，面向同时经营小店的个人用户，复用首页统一对话。当前实现顾客扫码点单 → 店主核对并记录实际收款 → 菜品销量与收入 → 经营流水 → 首页经营分析快照。
+
+- 顾客只取得公开菜单与自己的订单回执，不读取经营账本。店名、菜单和价格由店主核对；初始菜品可编辑，没有预造营业记录。
+- 订单由服务端按菜单单价计算，提交后为待收款。店主登记收款、取消、全额退款和已发生支出；登记不会发起真实支付或退款。
+- 今天、近 7 个自然日、全部三个范围按北京时间统计。收款、退款、支出按事件时间；销量排行使用期间已收款且当前未退款订单。现金差额不是利润。
+- 首页“小店经营”事项独立分流，服务端从本地账本计算经营摘要；不依赖个人平台账单授权。历史卡片保留查询快照，不自动改写历史金额。
+- 网络结果不明时保留原请求，店主和顾客均先核对同一请求回执，避免重复订单或记账。
+- 当前为本地原型：浏览器 scope 用于账本隔离，并非生产商户身份认证。二维码需指向手机可访问的部署地址；localhost 只能本机预览。尚未接入微信商户支付、部分退款、库存、成本核算、税务、多员工权限；经营资金到期安排在后续阶段接入。

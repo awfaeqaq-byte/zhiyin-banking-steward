@@ -1,3 +1,4 @@
+import {merchantMiddleware} from './merchant';
 import type {Plugin,ViteDevServer,PreviewServer} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {createVoiceConfigStore,voiceMiddleware,voiceOfferMiddleware,voiceStatusMiddleware} from './voice-service';
@@ -24,6 +25,7 @@ export function memoryPlugin():Plugin {
   const scenes=sceneMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const sceneExpenses=sceneExpensesMiddleware(fileURLToPath(new URL('../',import.meta.url)),createSceneExpenseResolver(fileURLToPath(new URL('../',import.meta.url))));
   const messages=messageMiddleware(fileURLToPath(new URL('../',import.meta.url)),localStewardModel);
+  const merchant=merchantMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const expenses=expenseMiddleware(fileURLToPath(new URL('../',import.meta.url)));
   const middleware=memoryMiddleware(createMemoryStore(fileURLToPath(new URL('../.zhiyin-memory.local.json',import.meta.url))));
   const bankStore=createBankStore(fileURLToPath(new URL('../.zhiyin-bank.local.json',import.meta.url)));
@@ -45,11 +47,11 @@ export function memoryPlugin():Plugin {
   const protect=(req:import('node:http').IncomingMessage,res:import('node:http').ServerResponse,next:()=>void)=>{
     let url=req.url || '';try{url=decodeURIComponent(url);}catch{/* Malformed URLs cannot match a file. */}
     if(url.includes('.zhiyin-voice.local.json')){res.statusCode=403;res.end('Forbidden');return;}
-    if(['.zhiyin-workspaces-','.zhiyin-expenses-','.zhiyin-memory.local.json','.zhiyin-bank.local.json','.zhiyin-tasks.local.json','.zhiyin-wealth.local.json','.zhiyin-market-cache.local.json','.zhiyin-fund-samples.local.json','.zhiyin-automations.local.json','.zhiyin-bill-grants.local.json','.zhiyin-bill-source.local.json','.zhiyin-mastra.db'].some(name=>url.includes(name))){res.statusCode=403;res.end('Forbidden');return;}next();
+    if(['.zhiyin-merchant.local.json','.zhiyin-workspaces-','.zhiyin-expenses-','.zhiyin-memory.local.json','.zhiyin-bank.local.json','.zhiyin-tasks.local.json','.zhiyin-wealth.local.json','.zhiyin-market-cache.local.json','.zhiyin-fund-samples.local.json','.zhiyin-automations.local.json','.zhiyin-bill-grants.local.json','.zhiyin-bill-source.local.json','.zhiyin-mastra.db'].some(name=>url.includes(name))){res.statusCode=403;res.end('Forbidden');return;}next();
   };
   const routes=[
     ['/api/sandbox/voice-config',voiceMiddleware(voiceConfig)],['/api/zhiyin/voice/status',voiceStatusMiddleware(voiceConfig)],['/api/zhiyin/voice/offer',voiceOfferMiddleware(voiceConfig)],
-    ['/api/zhiyin/scenes',scenes],['/api/zhiyin/scene-expenses',sceneExpenses],['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/messages',messages],['/api/zhiyin/expenses',expenses],
+    ['/api/zhiyin/merchant',merchant],['/api/zhiyin/scenes',scenes],['/api/zhiyin/scene-expenses',sceneExpenses],['/api/zhiyin/reset',reset],['/api/zhiyin/workspaces',workspaces],['/api/zhiyin/messages',messages],['/api/zhiyin/expenses',expenses],
     ['/api/zhiyin/memory',middleware],['/api/zhiyin/bank',bank],['/api/zhiyin/tasks',tasks],
     ['/api/zhiyin/wealth',wealth],['/api/zhiyin/bill-source',billSource],
     ['/api/zhiyin/market-context',market],['/api/zhiyin/fund-samples',fundSamples],

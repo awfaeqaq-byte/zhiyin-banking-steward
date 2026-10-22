@@ -1,3 +1,6 @@
+import {MerchantInsightCard} from './merchant-insight-card';
+import {isMerchantPrompt,merchantAnswer,validMerchantInsight,type MerchantInsight} from '../lib/merchant-assistant';
+import {merchantRequest} from '../lib/merchant-service';
 import {useConversationArrival} from '../lib/use-interface-motion';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
@@ -82,6 +85,7 @@ import type {SceneFlow,SceneNext} from '../lib/scene-flow';
 import {reconcileSceneSources} from '../lib/scene-service';
 
 type DisplayMessage = StewardChatMessage & {
+  merchantUI?:MerchantInsight;
   id: string;
   messageId?:string;
   memoryRevision?:number;
@@ -151,6 +155,7 @@ type Props = {
   onOpenFunding?: () => void;
   onOpenTasks?:(date?:number)=>void;
   onOpenGroupAA?:()=>void;
+  onOpenMerchant?:()=>void;
   onOpenOccasions?:(prompt?:string,planId?:string)=>void;
   occasionPlans?:OccasionPlan[];
   onPrepareTask?:(draft:ReminderDraft)=>void;
@@ -179,6 +184,7 @@ const conversationKey = "zhiyin-steward-conversation-v1";
 function readOnlyView(view:unknown):DisplayMessage['view'] {return view==='term_deposit'||view==='wealth_compare'?view:undefined;}
 
 function readOnlyEntry(action?: StewardAction): StewardAction | undefined {
+  if(action?.type==='open_merchant')return {type:'open_merchant'};
   if(action?.type!=='open_connections')return undefined;
   if(action.provider!==undefined&&!['wechat_pay','alipay'].includes(action.provider))return undefined;
   return {type:'open_connections',...(action.provider?{provider:action.provider}:{})};
@@ -236,7 +242,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
-  if (action.type==='open_connections'||action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
+  if (action.type==='open_merchant'||action.type==='open_connections'||action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
   );
@@ -260,7 +266,7 @@ export function StewardChatHome({
   onConnectSource,
   onOpenFunding,
   onOpenTasks,
-  onOpenGroupAA,
+  onOpenGroupAA,onOpenMerchant,
   onOpenOccasions,
   occasionPlans,
   onPrepareTask,
@@ -655,6 +661,18 @@ export function StewardChatHome({
         setBillScenes(current=>{const next={...current};delete next[workspace?.id||'bill'];return next;});
         setMessages(current=>[...current.filter(message=>message.id!==id),{id,role:'assistant',content:outcome,workspaceId:workspace?.id}]);
         setActiveReplyId(id);return;
+      }
+      if(!readonlyShare&&(workspace?.kind==='merchant'||!workspace&&isMerchantPrompt(prompt))){
+        const response=workspace?.kind==='merchant'
+          ?await reply({stewardName,subscriptions:[],messages:requestMessages})
+          :merchantAnswer(await merchantRequest(),prompt);
+        if(epoch!==contextEpoch.current)return;
+        outcome=response.text;
+        const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;
+        setMessages(current=>[...current.filter(message=>message.id!==id),{id,role:'assistant',content:outcome,workspaceId:workspace?.id,action:{type:'open_merchant'},...(validMerchantInsight(response.merchantUI)?{merchantUI:response.merchantUI}:{})}]);
+        setActiveReplyId(id);setActiveBill(null);
+        if(progress)progress={goal:workspace?.title||'小店经营',stage:'ready'};
+        return;
       }
       const expenseReply=readonlyShare?null:await (seamless&&workspace?expenseNotebooks.current[workspace.id]:expenseNotebook.current)?.handle(prompt);
       if(expenseReply){outcome=expenseReply;const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:expenseReply,workspaceId:workspace?.id}]);setActiveReplyId(id);return;}
@@ -1090,6 +1108,8 @@ export function StewardChatHome({
                       ? <WealthInlineCompare reply={parsed.text} replyAssessedAt={message.riskAssessedAt} stewardName={stewardName} onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>
                       : <details className="wealth-archived-reply"><summary>历史理财说明</summary><StewardReplyContent content={parsed.text} stewardName={stewardName}/></details>
                     : seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:homePreview&&message.role==='assistant'?<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>)}
+                  {message.role==='assistant'&&message.merchantUI&&<MerchantInsightCard summary={message.merchantUI.summary} shopName={message.merchantUI.shopName} onOpen={onOpenMerchant}/>}
+                  {action?.type==='open_merchant'&&!message.merchantUI&&onOpenMerchant&&<button onClick={onOpenMerchant}>打开我的小店<ArrowRight size={16}/></button>}
                   {!taskSurface&&message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id&&sceneFlows.find(s=>s.id===message.sceneId)?.next&&onResumeScene&&<button className="desk-text-action" onClick={()=>void resumeSceneAtSource(sceneFlows.find(s=>s.id===message.sceneId)!.next!).catch(cause=>setError(cause instanceof Error?cause.message:'原事项暂未打开'))}>{({food:'查看原订单',occasion:'继续核对筹备',expense:'查看收款进度',calendar:'查看日历安排',bank:'查看银行记录'} as const)[sceneFlows.find(s=>s.id===message.sceneId)!.next!.kind]}</button>}
                   {(message.retryRunId&&onRetryMessage||!message.retryRunId&&message.retryPrompt&&message.id===activeReplyId)&&<button className="desk-text-action" disabled={sending||externalBusy||viewSaving} onClick={()=>void retryMessage(message)}>重试这条消息</button>}
                   {!historyOpen && message.id===activeReplyId && message.view==='term_deposit' && <TermDepositPanel scope={message.workspaceId??workspace?.id??'home'} initialRequest={depositRequestForMessages(messages.slice(0,messages.findIndex(m=>m.id===message.id)))??''}/>}

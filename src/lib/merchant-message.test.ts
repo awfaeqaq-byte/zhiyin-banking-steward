@@ -1,0 +1,26 @@
+import {afterEach,it,expect,vi} from 'vitest';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {createMerchantStore} from '../../server/merchant';
+import {createMessageService} from '../../server/message-service';
+import {validWorkspaces} from './workspaces';
+const dirs:string[]=[];afterEach(()=>dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true})));
+const scope='12345678-1234-4234-8234-123456789abc';
+it('商户分流从服务端本店账本分析，跨会话重载保留当时卡片，个人账单无需授权',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'zhiyin-merchant-message-'));dirs.push(dir);
+ const store=createMerchantStore(dir);let shop=store.change(scope,{type:'create-shop',name:'测试小馆',revision:0,requestId:crypto.randomUUID()});
+ const order=store.order(shop.shop!.publicToken,{table:'A1',items:[{menuItemId:shop.shop!.menu[0].id,quantity:2}],requestId:crypto.randomUUID()}).order;
+ shop=store.get(scope);shop=store.change(scope,{type:'record-payment',orderId:order.id,revision:shop.revision,requestId:crypto.randomUUID()});
+ const model=vi.fn(async()=>{throw new Error('不该请求模型或个人平台');}),service=createMessageService(dir,model),id=crypto.randomUUID(),owner=crypto.randomUUID();
+ service.submit(scope,{id,text:'我的小店今天收入多少',currentId:'',memoryRevision:0});await service.idle(scope);
+ let state=service.get(scope);expect(state.items[0].kind).toBe('merchant');expect(state.items[0].progress?.bill).toBeUndefined();
+ const job=state.runs![0].jobs[0];service.claim(scope,id,job.id,owner);
+ const answer=await service.reply(scope,{id,jobId:job.id,owner,request:{stewardName:'阿衡',subscriptions:[],messages:[]}});
+ expect(answer.merchantUI?.summary.netCollected).toBe(order.total);expect(model).not.toHaveBeenCalled();
+ store.change(scope,{type:'record-refund',orderId:order.id,revision:shop.revision,requestId:crypto.randomUUID()});
+ state=createMessageService(dir,model).get(scope);expect(validWorkspaces(state)).toBe(true);expect(state.conversation?.at(-1)?.merchantUI?.summary.netCollected).toBe(order.total);
+ const other='22345678-1234-4234-8234-123456789abc',otherId=crypto.randomUUID();
+ service.submit(other,{id:otherId,text:'我的小店今天收入多少',currentId:'',memoryRevision:0});await service.idle(other);const otherJob=service.get(other).runs![0].jobs[0];service.claim(other,otherId,otherJob.id,owner);
+ const empty=await service.reply(other,{id:otherId,jobId:otherJob.id,owner,request:{stewardName:'宁宁',subscriptions:[],messages:[]}});expect(empty.merchantUI).toBeUndefined();expect(empty.text).toContain('创建');
+});

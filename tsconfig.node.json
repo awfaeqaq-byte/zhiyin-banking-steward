@@ -69,6 +69,8 @@
     "src/lib/real-fund-examples.ts",
     "src/prompts/runtime.generated.ts",
     "src/lib/scene-context.ts",
-    "src/lib/scene-expenses.ts"
+    "src/lib/scene-expenses.ts",
+    "src/lib/merchant.ts",
+    "src/lib/merchant-assistant.ts"
   ]
 }

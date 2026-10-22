@@ -1,7 +1,8 @@
+import {validMerchantInsight,type MerchantInsight} from './merchant-assistant';
 import {changeWorkspaces,validateRoutes,type WorkspaceState,type WorkspaceRoute,type WorkspaceOperation} from './workspaces';
 import {advanceTaskProgress,clearBillIntent,type TaskProgress} from './task-progress';
 import {readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
-export type ConversationEntry={id:string;role:'user'|'assistant';content:string;messageId?:string;workspaceId?:string;sceneId?:string;retryPrompt?:string;retryRunId?:string;memoryRevision?:number};
+export type ConversationEntry={merchantUI?:MerchantInsight;id:string;role:'user'|'assistant';content:string;messageId?:string;workspaceId?:string;sceneId?:string;retryPrompt?:string;retryRunId?:string;memoryRevision?:number};
 export type MessageJob={id:string;taskId:string;text:string;replyId:string;status:'queued'|'claimed'|'completed'|'failed';owner?:string;leaseUntil?:number};
 export type MessageRun={id:string;prompt:string;displayText:string;currentId:string;knownTaskId?:string;sourcePrompt?:string;clarificationOf?:string;retryIds?:string[];memoryRevision:number;status:'routing'|'ready'|'processing'|'waiting_user'|'completed'|'failed'|'interrupted';jobs:MessageJob[];trace:Array<{stage:string;at:number;detail?:string}>;createdAt:number;updatedAt:number;error?:string;clarification?:string;decision?:string};
 export type MessageOperation=
@@ -12,11 +13,11 @@ export type MessageOperation=
  |{type:'message-retry';id:string;retryId:string;memoryRevision:number}
  |{type:'message-claim';id:string;jobId:string;owner:string}
  |{type:'message-stage';id:string;jobId:string;owner:string;stage:'gathering'|'replying'}
- |{type:'message-complete';id:string;jobId:string;owner:string;assistant:string;memoryRevision:number;failed:boolean;progress?:TaskProgress}
+ |{type:'message-complete';id:string;jobId:string;owner:string;assistant:string;memoryRevision:number;failed:boolean;progress?:TaskProgress;merchantUI?:MerchantInsight}
  |{type:'message-fail';id:string;error:string;stage:string;interrupted?:boolean;decision?:string;sourcePrompt?:string;clarificationOf?:string};
 const idOk=(x:unknown):x is string=>typeof x==='string'&&/^[\w-]{1,82}$/.test(x);
 const textOk=(x:unknown,max:number):x is string=>typeof x==='string'&&!!x.trim()&&x.length<=max;
-export function validConversationEntry(x:ConversationEntry):boolean{return !!x&&idOk(x.id)&&['user','assistant'].includes(x.role)&&textOk(x.content,12000)&&(x.messageId===undefined||idOk(x.messageId))&&(x.workspaceId===undefined||idOk(x.workspaceId))&&(x.sceneId===undefined||idOk(x.sceneId))&&(x.retryPrompt===undefined||textOk(x.retryPrompt,2000))&&(x.retryRunId===undefined||idOk(x.retryRunId))&&(x.memoryRevision===undefined||Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0);}
+export function validConversationEntry(x:ConversationEntry):boolean{return !!x&&(x.merchantUI===undefined||x.role==='assistant'&&validMerchantInsight(x.merchantUI))&&idOk(x.id)&&['user','assistant'].includes(x.role)&&textOk(x.content,12000)&&(x.messageId===undefined||idOk(x.messageId))&&(x.workspaceId===undefined||idOk(x.workspaceId))&&(x.sceneId===undefined||idOk(x.sceneId))&&(x.retryPrompt===undefined||textOk(x.retryPrompt,2000))&&(x.retryRunId===undefined||idOk(x.retryRunId))&&(x.memoryRevision===undefined||Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0);}
 export function validMessageRun(x:MessageRun):boolean{return !!x&&idOk(x.id)&&textOk(x.prompt,2000)&&textOk(x.displayText,2000)&&typeof x.currentId==='string'&&(!x.currentId||idOk(x.currentId))&&(x.knownTaskId===undefined||idOk(x.knownTaskId))&&(x.sourcePrompt===undefined||textOk(x.sourcePrompt,2000))&&(x.clarificationOf===undefined||idOk(x.clarificationOf))&&((x.sourcePrompt===undefined)===(x.clarificationOf===undefined))&&(x.retryIds===undefined||Array.isArray(x.retryIds)&&x.retryIds.length<=30&&x.retryIds.every(idOk)&&new Set(x.retryIds).size===x.retryIds.length)&&Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0&&['routing','ready','processing','waiting_user','completed','failed','interrupted'].includes(x.status)&&Number.isFinite(x.createdAt)&&Number.isFinite(x.updatedAt)&&Array.isArray(x.jobs)&&x.jobs.length<=4&&x.jobs.every(j=>j&&idOk(j.id)&&idOk(j.taskId)&&idOk(j.replyId)&&textOk(j.text,2000)&&['queued','claimed','completed','failed'].includes(j.status)&&(j.owner===undefined||idOk(j.owner))&&(j.leaseUntil===undefined||Number.isFinite(j.leaseUntil)))&&Array.isArray(x.trace)&&x.trace.length<=30&&x.trace.every(t=>t&&textOk(t.stage,80)&&Number.isFinite(t.at)&&(t.detail===undefined||typeof t.detail==='string'&&t.detail.length<=1000))&&(x.error===undefined||textOk(x.error,1000))&&(x.clarification===undefined||textOk(x.clarification,300))&&(x.decision===undefined||typeof x.decision==='string'&&x.decision.length<=6000);}
 /** User-message order is stable even when retries move runs to the queue tail. */
 export function messageClarification(state:WorkspaceState,run:MessageRun):MessageRun|undefined{
@@ -133,10 +134,11 @@ export function changeMessageState(state:WorkspaceState,operation:MessageOperati
  if(job.status==='completed'&&operation.type==='message-complete'){if(job.owner!==operation.owner)throw new Error('消息处理归属已变化');return next;}
  if(!idOk(operation.owner)||job.owner!==operation.owner||job.status!=='claimed'||run.status!=='processing')throw new Error('消息处理归属已变化');
  if(operation.type==='message-stage'){job.leaseUntil=now+120000;trace(operation.stage);return next;}
+ if(operation.merchantUI!==undefined&&!validMerchantInsight(operation.merchantUI))throw new Error('经营快照无效');
  if(!textOk(operation.assistant,12000)||!Number.isSafeInteger(operation.memoryRevision)||operation.memoryRevision!==run.memoryRevision||typeof operation.failed!=='boolean')throw new Error('消息结果或上下文版本无效');
  apply({type:'turn',id:job.taskId,user:job.text,assistant:operation.assistant,memoryRevision:operation.memoryRevision,token:job.id,...(operation.progress?{progress:operation.progress}:{})});
  job.status=operation.failed?'failed':'completed';
- append({id:job.replyId,role:'assistant',content:operation.failed&&!operation.assistant.startsWith('这条消息未完成')?`这条消息未完成：${operation.assistant}。可以重试。`:operation.assistant,workspaceId:job.taskId,messageId:run.id,memoryRevision:run.memoryRevision,...(operation.failed?{retryPrompt:run.prompt,retryRunId:run.id}:{})});
+ append({id:job.replyId,role:'assistant',...(operation.merchantUI?{merchantUI:operation.merchantUI}:{}),content:operation.failed&&!operation.assistant.startsWith('这条消息未完成')?`这条消息未完成：${operation.assistant}。可以重试。`:operation.assistant,workspaceId:job.taskId,messageId:run.id,memoryRevision:run.memoryRevision,...(operation.failed?{retryPrompt:run.prompt,retryRunId:run.id}:{})});
  run.status=operation.failed?'failed':run.jobs.every(j=>j.status==='completed')?'completed':'ready';
  if(operation.failed)clearPending();
  next.runs=next.runs!.map(r=>r.id===run.id?run:r);trace(operation.failed?'failed':run.status==='completed'?'completed':'queued');return next;

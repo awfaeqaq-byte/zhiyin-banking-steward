@@ -59,6 +59,7 @@ export function readTaskProgress(task:Workspace):TaskProgress {
   return progress;
 }
 export function advanceTaskProgress(task:Workspace,prompt:string):TaskProgress {
+  if(task.kind==='merchant')return {goal:task.title,stage:'collecting'};
   let progress=readTaskProgress(task);
   if(task.kind==='food')return {...progress,stage:'collecting',waitingFor:undefined,food:progress.food||{items:[],note:''}};
   if(progress.bill&&billPause.test(prompt.trim()))return {...progress,stage:'paused',waitingFor:undefined};

@@ -5,6 +5,7 @@ import {analyzeExpenseBreakdown} from './expense-breakdown';
 /** Conversation workspaces are not payment records or execution permissions. */
 export const workspaceKinds = [
   "general",
+  "merchant",
   "aa",
   "transfer",
   "subscriptions",
@@ -16,6 +17,7 @@ export const workspaceKinds = [
 export type WorkspaceKind = (typeof workspaceKinds)[number];
 export const workspaceLabels: Record<WorkspaceKind, string> = {
   general: "日常交代",
+  merchant: "小店经营",
   aa: "AA 记账",
   transfer: "转账安排",
   subscriptions: "订阅管理",
