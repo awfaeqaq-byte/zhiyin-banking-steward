@@ -8,7 +8,8 @@ const labels = [...new Set(bankRecipients.flatMap(person=>[person.name,person.ph
 const recipientAmount = new RegExp(`(?:给|向)\\s*(?:${labels.join('|')})\\s*(?:转账?|汇款?)?\\s*(${number})\\s*(?:元|块(?:钱)?)(?=[\\s，。！？!?]|吧|就行|即可|$)`);
 const verbAmount = new RegExp(`(?:转账|汇款|转|汇)(?:金额)?\\s*(?:是|为)?\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
 const amountField = new RegExp(`金额\\s*(?:是|为|改成|改为|[:：])?\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
-const amendment = new RegExp(`^(?:把)?(?:金额)?(?:改成|改为|改到|调整为)\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
+const amendment = new RegExp(`^(?:把)?(?:金额)?(?:改成|改为|改到|调整为|更正为|更正回|改)\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
+const amendedAmount=(text:string)=>text.split(/[，,；;]/).reverse().map(part=>amendment.exec(part.trim())?.[1]).find(value=>value!==undefined);
 const amountAnswer = new RegExp(`^(${number})\\s*(?:元|块(?:钱)?)?(?:吧|就行|即可)?[。！!\\s]*$`);
 const transferWords = /转账|汇款|转给|汇给|(?:给|向).{1,25}(?:转|汇)/;
 
@@ -24,7 +25,7 @@ function directAmount(text:string):string|undefined {
 
 /** Bind a prepared amount to the latest explicit amount, including a short correction. */
 export function explicitTransferCents(text:string):number|null {
- const raw=directAmount(text)||amendment.exec(text)?.[1]||amountAnswer.exec(text)?.[1];
+ const raw=amendedAmount(text)||directAmount(text)||amountAnswer.exec(text)?.[1];
  if(raw!==undefined)return cents(raw.replace(/[,，]/g,'').replace(/^\+/,''));
  const chinese=text.match(/(?:转账?|汇款?)\s*([零〇一二两三四五六七八九十百千万]+)\s*元/)?.[1];
  if(!chinese)return null;
@@ -39,7 +40,7 @@ export function explicitTransferCents(text:string):number|null {
 /** Validate only this turn's transfer amount, never replay an old amount or quoted share. */
 export function transferAmountError(messages:readonly Message[]):string|undefined {
   const users=messages.filter(message=>message.role==='user');
-  const latest=users.at(-1)?.content.trim()||'';
+  const latest=(users.at(-1)?.content.trim()||'').replace(/负\s*(?=\d)/g,'-');
   if(!latest || latest.startsWith(WECHAT_SHARE_PREFIX))return;
   let amount=directAmount(latest);
   if(amount===undefined) {
@@ -48,8 +49,9 @@ export function transferAmountError(messages:readonly Message[]):string|undefine
       if(/^(?:哦|好[的吧]?|那)?(?:算了|先别转了|不转了|不用转了|取消转账)[。！!\s]*$/.test(message.content.trim()))activeTransfer=false;
       else if(transferWords.test(message.content)||hasRecipientTransferAmount(message.content))activeTransfer=true;
     }
-    if(activeTransfer)amount=amendment.exec(latest)?.[1] || amountAnswer.exec(latest)?.[1];
+    if(activeTransfer)amount=amendedAmount(latest) || amountAnswer.exec(latest)?.[1];
   }
+  else amount=amendedAmount(latest)||amount;
   if(amount===undefined)return;
   // Accept correctly grouped thousands, but never round sub-cent amounts into a payment.
   if(/^[+−-]?\d{1,3}(?:[,，]\d{3})+(?:\.\d+)?$/.test(amount))amount=amount.replace(/[,，]/g,'');

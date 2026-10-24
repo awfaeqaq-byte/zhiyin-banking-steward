@@ -2,6 +2,7 @@ import {afterEach,it,expect,vi} from 'vitest';
 import {mkdtempSync,rmSync} from 'node:fs';import {join} from 'node:path';import {tmpdir} from 'node:os';
 import {createMessageService} from '../../server/message-service';
 import {createWorkspaceStore} from '../../server/workspace-store';
+import {createBankStore} from '../../server/bank-store';
 const dirs:string[]=[];afterEach(()=>dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true})));
 const scope='11111111-1111-4111-8111-111111111111';
 it('V2 新会话回复不读取其他事项的旧金额和附言，分流追问也不跨会话延续',async()=>{
@@ -22,6 +23,17 @@ it('V2 新会话回复不读取其他事项的旧金额和附言，分流追问�
  await service.reply(scope,{id,jobId:job.id,owner,request:{stewardName:'宁宁',subscriptions:[],messages:[]}});expect(call).toHaveBeenCalledOnce();
 });
 function fixture(){const dir=mkdtempSync(join(tmpdir(),'zhiyin-message-'));dirs.push(dir);return dir;}
+it('CR2-070 多份已保存筹备先澄清，选择后绑定原业务ID，不创建空副本',async()=>{
+ const dir=fixture(),bank=createBankStore(join(dir,'.zhiyin-bank.local.json'));
+ const draft={title:'专项CR2-066',recipient:'测试家人',budget:100000,prepareAt:Date.now()+10*86400000,deliverAt:Date.now()+12*86400000,address:'虚构测试地址',contact:'测试家人 13800000000',note:'低甜',productIds:['cake-light']};
+ bank.saveOccasion({id:'existing-066',revision:0,draft});bank.saveOccasion({id:'existing-071',revision:1,draft:{...draft,title:'专项CR2-071',deliverAt:draft.deliverAt+86400000}});
+ const model=vi.fn(async()=>{throw Error('不应用模型猜测已有计划ID');}),service=createMessageService(dir,model);
+ service.submit(scope,{id:'choose-plan',text:'有专项CR2-071和专项CR2-066，把那个生日计划预算改900元',currentId:'',memoryRevision:0});await service.idle(scope);
+ expect(service.get(scope).runs!.find(r=>r.id==='choose-plan')).toMatchObject({status:'waiting_user',jobs:[]});
+ service.submit(scope,{id:'selected-plan',text:'专项CR2-066，071不要动',currentId:'',memoryRevision:0});await service.idle(scope);
+ const state=service.get(scope),job=state.runs!.find(r=>r.id==='selected-plan')!.jobs[0];expect(job.taskId).toBe('existing-066');expect(state.items.find(t=>t.id==='existing-066')?.kind).toBe('occasion');expect(state.items.find(t=>t.id==='existing-066')?.messages.some(m=>m.role==='user'&&m.content.includes('预算改900元'))).toBe(true);
+ expect(bank.get().occasions).toHaveLength(2);expect(bank.get().occasions!.every(p=>p.budget===100000)).toBe(true);expect(model).not.toHaveBeenCalled();
+});
 it('S12 真实消息链中同名取消、微信选择及改为支付宝沿用同一任务，不调用模型或执行取消',async()=>{
  const model=vi.fn(async()=>{throw Error('该链路不应调用分类或回复模型');});const service=createMessageService(fixture(),model),owner=crypto.randomUUID();
  const subscriptions=[{key:'wechat_pay:wx-same',provider:'wechat_pay' as const,id:'wx-same',title:'测试云盘同名',providerName:'微信支付',amount:1800,cycle:'月',daysUntilCharge:null,reminderEnabled:true},{key:'alipay:ali-same',provider:'alipay' as const,id:'ali-same',title:'测试云盘同名',providerName:'支付宝',amount:2800,cycle:'月',daysUntilCharge:null,reminderEnabled:true}];

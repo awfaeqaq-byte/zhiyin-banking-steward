@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
+import {billClarification} from '../lib/bill-clarification';
 import {HomeReplyVisual} from './home-reply-visual';
 import {BillAnalysisCard} from './bill-analysis-card';
 import {TransferPlanCard,SubscriptionReviewCard,SceneProgressCard,type TransferQuote} from './chat-task-cards';
@@ -139,7 +140,7 @@ type Props = {
   onOpenOccasions?:(prompt?:string,planId?:string)=>void;
   occasionPlans?:OccasionPlan[];
   onPrepareTask?:(draft:ReminderDraft)=>void;
-  onOpenWealth?:()=>void;
+  onOpenWealth?:(entry?:import('../lib/operation-followup').WealthEntry)=>void;
   onOpenCards?:(instruction?:string)=>void;
   onOpenAutomations?:()=>void;
   automationAttention?:{count:number;summary:string;runId?:string;evidence?:AutomationEvidence};
@@ -222,6 +223,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
+  if(action.type==='open_wealth'||action.type==='open_cards')return undefined;
   if (action.type==='open_connections'||action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "prepare_add_card" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
@@ -618,7 +620,7 @@ export function StewardChatHome({
       if(expenseReply){outcome=expenseReply;const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;setMessages(current=>[...current.filter(m=>m.id!==id),{id,role:'assistant',content:expenseReply,workspaceId:workspace?.id}]);setActiveReplyId(id);return;}
       const coaching=!readonlyShare&&isFinancialCoachingQuestion(prompt);
       const depositQuestion=readonlyShare?null:depositRequestForMessages(requestMessages);
-      const wealthQuestion=!readonlyShare&&(Boolean(depositQuestion)||isWealthQuestion(prompt));
+      const wealthQuestion=!readonlyShare&&(Boolean(depositQuestion)||isWealthQuestion(prompt)||requestMessages.filter(m=>m.role==='user').slice(-6).some(m=>isWealthQuestion(m.content))&&!/转账|银行卡|限额|账单|订阅|生日|筹备/.test(prompt));
       const bankOnly=!readonlyShare&&(isBankOperation(prompt) || (!coaching&&!wealthQuestion&&isBankRequest(requestMessages) && billQuestionForMessages(requestMessages)===null));
       const subscriptionTurn=!readonlyShare&&isSubscriptionRouteIntent(prompt,workspace?.kind==='subscriptions');
       const activeConnections=getCurrentConnections?.()||liveConnections.current;
@@ -687,13 +689,13 @@ export function StewardChatHome({
         fundingForecast: buildFundingForecast(latestConnections, latestTime), messages: requestMessages };
       // Missing read-only scope/period is known state, not something the model must
       // rediscover (or claim is granted). Data analysis still belongs to the model.
-      const response:StewardReply = progress?.bill&&progress.stage==='paused'
+      const response:StewardReply = billClarification(request)??(progress?.bill&&progress.stage==='paused'
         ?{text:'好，这次查账先不继续。没有撤回已有授权，也没有改动账户。'}
         :progress?.bill&&billAnalysis?.needsClarification
         ?{text:'想看哪段时间的支出？最近一个月可以按近30天整理。\n[[choices:最近30天|最近7天|本月]]'}
         :progress?.bill&&billAnalysis&&!billAnalysis.sources.length
         ?{text:progress.bill.provider?'范围记下了，确认账单读取授权后，我接着分析。':'先选这次要看的账单来源，确认读取范围后我接着分析。',action:{type:'open_connections' as const,...(progress.bill.provider&&progress.bill.provider!=='all'?{provider:progress.bill.provider}:{})}}
-        :await reply(request);
+        :await reply(request));
       if(!readonlyShare&&/自动续费|订阅|签约/.test(prompt)&&(getCurrentConnections||liveConnections.current!==connections)&&subscriptionVersion!==subscriptionFingerprint(getCurrentConnections?.()||liveConnections.current)) {
         throw new Error('授权或订阅已变化，本次结果已作废，请重新查询。');
       }
@@ -1063,8 +1065,8 @@ export function StewardChatHome({
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}
                   {action?.type==='open_occasions'&&onOpenOccasions&&!historyOpen&&<button onClick={()=>onOpenOccasions(lastPrompt,workspace?.kind==='occasion'?workspace.id:undefined)}>核对生活筹备<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_task'&&onPrepareTask&&!historyOpen&&<button disabled={sending} onClick={()=>onPrepareTask({...action,workspaceId:message.workspaceId})}>{action.repeat==='yearly'?'核对并记录生日':'核对并保存提醒'}<ArrowRight size={16}/></button>}
-                  {!historyOpen && message.id===activeReplyId && message.view!=='wealth_compare' && onOpenWealth && /理财|投资|基金|风险测评|申购|赎回/.test(sourceText) && <button onClick={onOpenWealth}>进入理财方案与风险测评<ArrowRight size={16}/></button>}
-                  {!historyOpen && message.id===activeReplyId && onOpenCards && /卡片|银行卡|借记卡|卡种|办卡|申请.{0,8}卡|挂失|解挂|限额|境外交易/.test(sourceText) && <button onClick={()=>onOpenCards(sourceText)}>打开卡片管理并核对设置<ArrowRight size={16}/></button>}
+                  {!historyOpen && message.id===activeReplyId && message.view!=='wealth_compare' && onOpenWealth && (action?.type==='open_wealth'||/理财|投资|基金|风险测评|申购|赎回/.test(sourceText)) && <button onClick={()=>onOpenWealth(action?.type==='open_wealth'?action:undefined)}>进入理财方案与风险测评<ArrowRight size={16}/></button>}
+                  {!historyOpen && message.id===activeReplyId && onOpenCards && (action?.type==='open_cards'||/卡片|银行卡|借记卡|卡种|办卡|申请.{0,8}卡|挂失|解挂|限额|境外交易/.test(sourceText)) && <button onClick={()=>onOpenCards(action?.type==='open_cards'?action.instruction:sourceText)}>打开卡片管理并核对设置<ArrowRight size={16}/></button>}
                   {action?.type === "set_reminder" && related && !historyOpen && (
                     <span className="action-complete"><BellRing size={14} />{related.title}提醒已更新</span>
                   )}

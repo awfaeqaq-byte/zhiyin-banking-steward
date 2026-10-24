@@ -66,7 +66,7 @@ describe('V2 修复的业务回归',()=>{
    const reply=await requestStewardReplyWithModel(request(text),async()=>'准备核对。[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|2000]');
    expect(reply.action).toMatchObject({type:'prepare_transfer',recipientId:'mom',amount:10000});
    const bad=await requestStewardReplyWithModel(request('改成100元',{messages:[{role:'user',content:text},{role:'user',content:'改成100元'}]}),async()=>'准备核对。[ZHIYIN_ACTION:PREPARE_TRANSFER|mom|2000]');
-   expect(bad.action).toBeUndefined();expect(bad.text).toContain('金额与本轮要求不一致');
+   expect(bad.action).toMatchObject({type:'prepare_transfer',recipientId:'mom',amount:10000});
  });
  it('NN-V2-003 TR2-019 银行AA优先于被否定的微信群，分摊分位守恒',async()=>{
    const reply=await requestStewardReplyWithModel(request('不从微信群选择。这次用银行沙箱AA，参与人就是我、妈妈、爸爸，总额100元，先核对分摊。'),model());

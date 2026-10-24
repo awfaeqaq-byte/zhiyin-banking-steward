@@ -4,6 +4,7 @@ import type {IncomingMessage,ServerResponse} from 'node:http';
 import {createSceneService} from './scene-service';
 import {createWorkspaceStore} from './workspace-store';
 import {createMemoryStore} from './memory-store';
+import {createBankStore} from './bank-store';
 import {routeWorkspacePrompt} from '../src/lib/workspace-service';
 import {memoryContext} from '../src/lib/steward-memory';
 import {parseImpression} from '../src/lib/steward-profile';
@@ -45,7 +46,16 @@ export function createMessageService(directory:string,model:StewardModelCall){
      const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId&&t.status==='active'&&(t.kind==='bills'||t.kind==='general'&&readTaskProgress(t).bill)):undefined;
      if(run.knownTaskId&&!known)throw new Error('这份账单事项已变化，请重新选择范围');
      const fresh=tasks.some(t=>t.id===run.currentId&&t.kind==='general'&&!t.messages.length&&!t.progress);
-     const result=known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.prompt}]}:await routeWorkspacePrompt(run.prompt,fresh?tasks.filter(t=>t.id===run.currentId):tasks,run.currentId,clarification,fresh?[]:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}});
+     // A saved arrangement has a business ID, independent of a chat's title.
+     // Resolve against current records before a classifier can create an empty copy.
+     const plans=createBankStore(join(directory,'.zhiyin-bank.local.json')).get().occasions??[];
+     const mentioned=plans.filter(p=>run.prompt.includes(p.title)&&!run.prompt.includes(p.title+'不要动')&&!run.prompt.includes(p.title+'不动'));
+     let planRoute:Awaited<ReturnType<typeof routeWorkspacePrompt>>|undefined;
+     if((/计划|筹备|生日|预算/.test(run.prompt)||clarification&&/计划|筹备|生日|预算/.test(previous?.prompt||''))&&mentioned.length){
+      if(mentioned.length>1)planRoute={parts:[],clarification:`要修改哪一份安排：${mentioned.map(p=>p.title).join('、')}？已给的修改内容会保留，尚未修改任何计划。`};
+      else {const plan=mentioned[0],storage=store(scope);if(!tasks.some(t=>t.id===plan.id))storage.change({type:'create',id:plan.id,title:plan.title,kind:'occasion',revision:storage.get().revision,requestId:randomUUID()});if(clarification&&previous?.clarification)storage.change({type:'turn',id:plan.id,user:previous.prompt,assistant:previous.clarification,memoryRevision:run.memoryRevision,revision:storage.get().revision,requestId:randomUUID()});planRoute={parts:[{taskId:plan.id,kind:'occasion',title:plan.title,text:run.prompt}]};}
+     }
+     const result=planRoute??(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.prompt}]}:await routeWorkspacePrompt(run.prompt,fresh?tasks.filter(t=>t.id===run.currentId):tasks,run.currentId,clarification,fresh?[]:recentConversation((state.conversation||[]).filter(m=>m.messageId!==run.id&&(m.memoryRevision===run.memoryRevision||m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.memoryRevision===run.memoryRevision))),{model,onDecision:value=>{decision=value;}}));
      if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，请重新交代');
      apply(scope,{type:'message-routed',id:run.id,...result,decision});
     }catch(error){apply(scope,{type:'message-fail',id:run.id,error:error instanceof Error?error.message:'分类暂时不可用',stage:'routing',decision} as MessageOperation);}

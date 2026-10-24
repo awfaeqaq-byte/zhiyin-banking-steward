@@ -14,6 +14,7 @@ import {WECHAT_SHARE_PREFIX,readonlyWechatShare,sharedTextPreview} from './wecha
 import {conversationRoute,materializeRoutes,routingSegments} from './route-decision';
 import {transferAmountError} from './transfer-amount';
 import {isBankAACommand} from './bank-aa-command';
+import {businessContinuation,businessDomain} from './business-continuation';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -67,6 +68,7 @@ export async function routeWorkspacePrompt(
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
+  const business=businessContinuation(prompt,current);if(business)return business;
   if(isBankAACommand(prompt))return {parts:[{taskId:current?.kind==='transfer'?current.id:null,kind:'transfer' as const,title:'银行AA核对',text:prompt}]};
   // A transfer and its account/remark qualifiers are one indivisible instruction.
   // Never let semantic routing attach a trailing qualifier to a different payment.
@@ -92,6 +94,10 @@ export async function routeWorkspacePrompt(
   if(!shared&&clearBillIntent(prompt)) {
     const existing=current&&(current.kind==='bills'||current.kind==='general'&&readTaskProgress(current).bill)?current:undefined;
     return {parts:[{taskId:existing?.id||null,kind:existing?.kind||'bills' as const,title:existing?.title||'支出分析',text:prompt}]};
+  }
+  if(!shared&&!/(?:另外|然后|同时|再帮我).{0,30}(?:转账|分析|订阅|点餐)/.test(prompt)){
+    const kind=/生日|纪念日/.test(prompt)&&/准备|安排|筹备|预算|蛋糕|鲜花/.test(prompt)?'occasion' as const:/理财|申购|赎回|持仓|银行卡|支付限额|卡片/.test(prompt)?'general' as const:undefined;
+    if(kind){const domain=businessDomain(prompt),previous=current?.messages.filter(m=>m.role==='user').slice().reverse().map(m=>businessDomain(m.content)).find(Boolean);const existing=current?.kind===kind&&(!domain||!previous||domain===previous)?current:undefined;return {parts:[{taskId:existing?.id??null,kind,title:existing?.title??(kind==='occasion'?'生活筹备':'银行业务核对'),text:prompt}]};}
   }
   // A punctuation-only objection refers to the ongoing exchange, not a new task.
   if(current && /^[？?]+$/.test(prompt.trim()))return {parts:[{taskId:current.id,kind:current.kind,title:current.title,text:prompt}]};

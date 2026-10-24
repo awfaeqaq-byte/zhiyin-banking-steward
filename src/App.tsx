@@ -256,6 +256,7 @@ export default function App() {
   const [taskDraft,setTaskDraft]=useState<ReminderDraft|null>(null);
   const [taskDate,setTaskDate]=useState<number>();
   const [occasionEntry,setOccasionEntry]=useState<{prompt?:string;id?:string}>({});
+  const [wealthEntry,setWealthEntry]=useState<import('./lib/operation-followup').WealthEntry>();
   const [connectionEntry,setConnectionEntry]=useState<ExternalFinancialProvider>();
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
@@ -1025,7 +1026,7 @@ export default function App() {
                 <span><strong>大数据选基</strong><small>人气、业绩与热门板块榜单</small></span>
                 <ArrowRight size={18} aria-hidden="true" />
               </button>
-              <WealthOperationMvp amount="30000" term="12" availableBalance={bank.state?.balance} />
+              <WealthOperationMvp key={JSON.stringify(wealthEntry)} entry={wealthEntry} amount={wealthEntry?.amount===undefined?'30000':String(wealthEntry.amount/100)} term={String(wealthEntry?.term??12)} availableBalance={bank.state?.balance} />
             </>
           )}
           {page === "cards" && (
@@ -1383,7 +1384,7 @@ export default function App() {
               onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
               occasionPlans={bank.state?.occasions}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
-              onOpenWealth={() => go("risk")}
+              onOpenWealth={entry=>{setWealthEntry(entry);go('risk');}}
               onOpenCards={openCardIntent}
               onOpenAutomations={() => go("automations")}
               automationAttention={homeAutomationAttention}
