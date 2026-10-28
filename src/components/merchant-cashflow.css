@@ -1,0 +1,55 @@
+.merchant-cashflow {
+  --cashflow-teal: var(--teal, #007d7c);
+  --cashflow-ink: var(--ink, #133346);
+  --cashflow-muted: var(--muted, #506d7c);
+  margin-top: 20px;
+  padding: 18px 16px 4px;
+  min-width: 0;
+  border: 1px solid var(--line, #d5ebee);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--cashflow-ink);
+  font-variant-numeric: tabular-nums;
+}
+.merchant-cashflow *, .merchant-cashflow *::before, .merchant-cashflow *::after {box-sizing: border-box;}
+.merchant-cashflow-heading {display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap;}
+.merchant-cashflow-heading h3 {margin: 0; font-size: 16px; line-height: 1.5; font-weight: 650;}
+.merchant-cashflow-heading > span {font-size: 11px; color: var(--cashflow-muted);}
+.merchant-cashflow-legend {display: flex; align-items: center; gap: 14px; padding-top: 14px; font-size: 11px; color: var(--cashflow-muted);}
+.merchant-cashflow-legend > span {display: inline-flex; align-items: center; gap: 5px;}
+.merchant-cashflow-legend i {width: 8px; height: 8px; border-radius: 2px; background: var(--cashflow-teal);}
+.merchant-cashflow-legend > span:nth-child(2) i {background: #7895a7;}
+.merchant-cashflow-legend small {margin-left: auto; font-size: 11px;}
+.merchant-cashflow-plot {position: relative; min-width: 0;}
+.merchant-cashflow-plot > svg {width: 100%; height: auto; display: block; overflow: visible;}
+.merchant-cashflow-grid line {stroke: #e4edef; stroke-dasharray: 3 4; stroke-width: 1;}
+.merchant-cashflow-grid[data-zero="true"] line {stroke: #b7cdd2; stroke-dasharray: none;}
+.merchant-cashflow-grid text, .merchant-cashflow-date {fill: var(--cashflow-muted); font-size: 10px; font-family: inherit;}
+.merchant-cashflow-date[data-today="true"] {fill: var(--cashflow-teal); font-weight: 650;}
+.merchant-cashflow-net {fill: var(--cashflow-teal);}
+.merchant-cashflow-expense {fill: #7895a7;}
+.merchant-cashflow-bar {animation: merchant-cashflow-appear 220ms ease-out;}
+.merchant-cashflow-empty {position: absolute; inset: 16% 0 23% 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 5px;}
+.merchant-cashflow-empty strong {font-size: 13px; font-weight: 550;}
+.merchant-cashflow-empty span {font-size: 11px; line-height: 1.65; color: var(--cashflow-muted); max-width: 23ch;}
+.merchant-cashflow .merchant-cashflow-note {margin: 6px 0 0; color: var(--cashflow-muted); font-size: 11px; line-height: 1.7;}
+.merchant-cashflow-detail {margin-top: 8px; border-top: 1px solid #e4edef;}
+.merchant-cashflow-detail > summary {display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; list-style: none; color: var(--cashflow-teal); font-size: 12px;}
+.merchant-cashflow-detail > summary::-webkit-details-marker {display: none;}
+.merchant-cashflow-detail > summary::after {content: ''; width: 7px; height: 7px; border-right: 1.5px solid; border-bottom: 1.5px solid; transform: rotate(45deg); margin: -4px 3px 0 8px; transition: transform 160ms ease;}
+.merchant-cashflow-detail[open] > summary::after {transform: rotate(225deg); margin-top: 4px;}
+.merchant-cashflow-detail > summary:focus-visible {outline: 2px solid var(--cashflow-teal); outline-offset: 2px; border-radius: 5px;}
+.merchant-cashflow-detail table {width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; margin-bottom: 10px;}
+.merchant-cashflow-detail caption {position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;}
+.merchant-cashflow-detail th, .merchant-cashflow-detail td {text-align: right; border-top: 1px solid #edf3f3; padding: 8px 0 8px 6px; overflow-wrap: anywhere; font-weight: 450;}
+.merchant-cashflow-detail th:first-child {text-align: left; padding-left: 0; width: 29%;}
+.merchant-cashflow-detail thead th {color: var(--cashflow-muted); font-size: 11px;}
+@keyframes merchant-cashflow-appear {from {opacity: .3;} to {opacity: 1;}}
+@media (max-width: 360px) {
+  .merchant-cashflow {padding: 15px 12px 4px;}
+  .merchant-cashflow-heading h3 {font-size: 15px;}
+}
+@media (prefers-reduced-motion: reduce) {
+  .merchant-cashflow-bar {animation: none;}
+  .merchant-cashflow-detail > summary::after {transition: none;}
+}

@@ -50,6 +50,7 @@ it('待收款订单不会计入实收，确认记录之前不改变账本', asyn
 it('刷新保留未保存菜单，版本变化要求重新核对再保存', async () => {
  const request=setup();const user=userEvent.setup();render(<MerchantWorkspace stewardName="宁宁" onAsk={vi.fn()}/>);
  await user.click(await screen.findByRole('button',{name:'菜单'}));
+ await user.click(screen.getByLabelText('编辑菜品：番茄炒蛋'));
  const input=screen.getByRole('textbox',{name:'菜品1名称'});
  await user.clear(input);await user.type(input,'家常炒蛋');
  request.mockResolvedValue({...base,revision:3});
@@ -134,6 +135,7 @@ it('取消未付款订单也先核对，保留原订单记录', async () => {
 it('菜单保存冲突后保留草稿，能展开最新菜单后明确采用服务器版本', async () => {
  const request=setup();const user=userEvent.setup();render(<MerchantWorkspace stewardName="宁宁" onAsk={vi.fn()}/>);
  await user.click(await screen.findByRole('button',{name:'菜单'}));
+ await user.click(screen.getByLabelText('编辑菜品：番茄炒蛋'));
  const input=screen.getByRole('textbox',{name:'菜品1名称'});await user.clear(input);await user.type(input,'我的炒蛋');
  request.mockRejectedValueOnce(new Error('版本冲突，请重新读取'));
  await user.click(screen.getByRole('button',{name:'保存菜单'}));
@@ -167,4 +169,28 @@ it('失联后先核对同一笔记录，普通刷新不能解锁或重复提交�
  expect(recovery).toHaveBeenCalledOnce();expect(request).toHaveBeenCalledTimes(3);
  expect(screen.queryByRole('region',{name:'上次记录结果待核对'})).not.toBeInTheDocument();
  expect(screen.getByText('早市进货')).toBeInTheDocument();
+});
+
+it('菜单按需展开，隐藏的未填菜品会展开核对而不会提交', async () => {
+ const request=setup();const user=userEvent.setup();render(<MerchantWorkspace stewardName="宁宁" onAsk={vi.fn()}/>);
+ await user.click(await screen.findByRole('button',{name:'菜单'}));
+ expect(screen.getByLabelText('菜品1名称')).not.toBeVisible();
+ await user.click(screen.getByRole('button',{name:'添加菜品'}));
+ expect(screen.getByRole('textbox',{name:'菜品2名称'})).toBeVisible();
+ await user.click(screen.getByLabelText('编辑菜品：新菜品'));
+ expect(screen.getByLabelText('菜品2名称')).not.toBeVisible();
+ await user.click(screen.getByRole('button',{name:'保存菜单'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('请为每道菜填写');
+ expect(screen.getByRole('textbox',{name:'菜品2名称'})).toBeVisible();
+ expect(screen.getByRole('textbox',{name:'菜品2名称'})).toHaveFocus();
+ expect(request).toHaveBeenCalledTimes(1);
+});
+
+it('概览记支出入口定位填写处，筛选空态解释对应状态', async () => {
+ setup();const user=userEvent.setup();render(<MerchantWorkspace stewardName="宁宁" onAsk={vi.fn()}/>);
+ await user.click(await screen.findByRole('button',{name:'记支出'}));
+ expect(screen.getByRole('textbox',{name:'支出事项'})).toHaveFocus();
+ await user.click(screen.getByRole('button',{name:'订单'}));
+ await user.click(screen.getByRole('button',{name:'已退款'}));
+ expect(screen.getByText('登记已实际退回的款项后，会显示在这里。')).toBeInTheDocument();
 });
