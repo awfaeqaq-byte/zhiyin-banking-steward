@@ -19,7 +19,7 @@ function pendingAA():AADraft|null{
 function AAForm({initial,onCreated}:{initial?:AAIntent;onCreated:()=>void}){
  const [amount,setAmount]=useState(initial?String(initial.amount/100):'');
  const [ids,setIds]=useState<AAIntent['recipientIds']>(initial?.recipientIds??[]);
- const [includeSelf,setIncludeSelf]=useState(initial?.includeSelf??true),[title,setTitle]=useState('聚餐AA');
+ const [includeSelf,setIncludeSelf]=useState(initial?.includeSelf??true),[title,setTitle]=useState(initial?.title||'聚餐AA');
  const [draft,setDraft]=useState<AADraft|null>(pendingAA);
  const [error,setError]=useState(''),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(()=>!!pendingAA());
  const lock=useRef(false);

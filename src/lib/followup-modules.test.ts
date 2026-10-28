@@ -55,7 +55,7 @@ describe('新增理财和卡片失败的可重复回归',()=>{
   ['IN2-069',['从8888买灵活现金管理R1，100元，只核对','刚才金额说错，改为200元，产品和账户不变，重新核对'],20000],
   ['IN2-070',['从8888买稳健固收R2，1000元，12个月','不要R2，改为灵活现金管理R1，金额1000元不变'],100000],
  ])('%s 更正后输出可打开的最新申购参数',async(_id,turns,amount)=>{const r=await ask(turns,{wealthSnapshot:wealth});expect(r.action).toMatchObject({type:'open_wealth',productId:'cash-plus',amount});expect(r.text).toContain('尚未');});
- it('IN2-075 重复查询读取原赎回回执，不增加现金',async()=>{const r=await ask(['赎回灵活现金管理100元','刚才没看见，再核查同一编号是不是还没赎回'],{wealthSnapshot:{...wealth,redemptions:[{id:'redeemed100',holdingId:'h100',amount:10000,fee:0,completedAt:1,status:'redeemed'}]}});expect(r.text).toContain('redeemed100');expect(r.text).toContain('未再次');});
+ it('IN2-075 重复查询读取原赎回回执，不增加现金',async()=>{const r=await ask(['赎回灵活现金管理100元，持仓h100','刚才没看见，再核查同一编号是不是还没赎回'],{wealthSnapshot:{...wealth,redemptions:[{id:'redeemed100',holdingId:'h100',amount:10000,fee:0,completedAt:1,status:'redeemed'}]}});expect(r.text).toContain('redeemed100');expect(r.text).toContain('未再次');});
  it('IN2-076 目标名称来自保存数据，不能使用会话标题',async()=>{const r=await ask(['理财目标专项IN2-076已保存','我没看见保存结果，先核对，不要重新保存'],{wealthSnapshot:wealth,savedGoal:{name:'专项IN2-076',target:1000,current:0,months:10,savedAt:1}});expect(r.text).toContain('专项IN2-076');expect(r.text).toContain('未重复保存');});
  it('IN2-077 指定新持仓只绑定200元记录',async()=>{const r=await ask(['赎回R1那一笔','人民币100元，编号h100，只核对','编号说错，改赎200元这笔h200，100元保留'],{wealthSnapshot:wealth});expect(r.action).toMatchObject({type:'open_wealth',holdingId:'h200'});});
  it('CA2-061/073 补限额、拒绝负数，再改800恢复可操作入口',async()=>{

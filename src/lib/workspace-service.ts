@@ -15,6 +15,7 @@ import {conversationRoute,materializeRoutes,routingSegments} from './route-decis
 import {transferAmountError} from './transfer-amount';
 import {isBankAACommand} from './bank-aa-command';
 import {businessContinuation,businessDomain} from './business-continuation';
+import {isAssetOverviewQuestion} from './bank-assets';
 export async function workspaceRequest(
   operation?: WorkspaceOperation,
   revision?: number,
@@ -67,12 +68,13 @@ export async function routeWorkspacePrompt(
   options: {model?:(payload:{instructions:string;input:StewardChatMessage[]})=>Promise<string>;onDecision?:(text:string)=>void} = {},
 ) {
   const current=tasks.find(task=>task.id===currentId&&task.status==='active');
+  if(isAssetOverviewQuestion(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:'银行资产总览',text:prompt}]};
   if(readonlyWechatShare(prompt))return {parts:[{taskId:current?.kind==='general'?current.id:null,kind:'general' as const,title:current?.kind==='general'?current.title:'微信消息解读',text:prompt}]};
   const business=businessContinuation(prompt,current);if(business)return business;
   if(isBankAACommand(prompt))return {parts:[{taskId:current?.kind==='transfer'?current.id:null,kind:'transfer' as const,title:'银行AA核对',text:prompt}]};
   // A transfer and its account/remark qualifiers are one indivisible instruction.
   // Never let semantic routing attach a trailing qualifier to a different payment.
-  if(/(?:给|向).{1,25}(?:转|汇)|转账|汇款/.test(prompt)&&[...prompt.matchAll(/(?:给|向)[^，,；;。]{1,25}?(?:转|汇)/g)].length<=1&&!/账单|记录|历史|饮料|午餐|晚餐|(?:再|然后|同时|另外).{0,20}(?:提醒|订阅|转|汇|下单)|(?:另外|再给|然后给)|[，,；;].*(?:AA|收款)/.test(prompt)){
+  if(/(?:给|向).{1,25}(?:转|汇)|转账|汇款|从.{0,15}转\s*\d|转(?:一笔|一|笔)?(?:钱|款)/.test(prompt)&&[...prompt.matchAll(/(?:给|向)[^，,；;。]{1,25}?(?:转|汇)/g)].length<=1&&!/账单|记录|历史|饮料|午餐|晚餐|(?:再|然后|同时|另外).{0,20}(?:提醒|订阅|转|汇|下单)|(?:另外|再给|然后给)|[，,；;].*(?:AA|收款)/.test(prompt)){
     const existing=current?.kind==='transfer'?current:undefined;
     return {parts:[{taskId:existing?.id||null,kind:'transfer' as const,title:existing?.title||'银行转账核对',text:prompt}]};
   }
@@ -96,7 +98,7 @@ export async function routeWorkspacePrompt(
     return {parts:[{taskId:existing?.id||null,kind:existing?.kind||'bills' as const,title:existing?.title||'支出分析',text:prompt}]};
   }
   if(!shared&&!/(?:另外|然后|同时|再帮我).{0,30}(?:转账|分析|订阅|点餐)/.test(prompt)){
-    const kind=/生日|纪念日/.test(prompt)&&/准备|安排|筹备|预算|蛋糕|鲜花/.test(prompt)?'occasion' as const:/理财|申购|赎回|持仓|银行卡|支付限额|卡片/.test(prompt)?'general' as const:undefined;
+    const kind=/生日|纪念日/.test(prompt)&&/准备|安排|筹备|预算|蛋糕|鲜花/.test(prompt)?'occasion' as const:/理财|申购|赎回|持仓|银行卡|支付限额|单笔限额|卡片|我的卡|这张卡|买到|\d+元.{0,15}\d+天后.*用/.test(prompt)?'general' as const:undefined;
     if(kind){const domain=businessDomain(prompt),previous=current?.messages.filter(m=>m.role==='user').slice().reverse().map(m=>businessDomain(m.content)).find(Boolean);const existing=current?.kind===kind&&(!domain||!previous||domain===previous)?current:undefined;return {parts:[{taskId:existing?.id??null,kind,title:existing?.title??(kind==='occasion'?'生活筹备':'银行业务核对'),text:prompt}]};}
   }
   // A punctuation-only objection refers to the ongoing exchange, not a new task.

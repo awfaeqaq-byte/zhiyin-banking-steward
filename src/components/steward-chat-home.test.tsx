@@ -27,6 +27,25 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('转账核查回复保持回执正文可见，不被账单报告替换',async()=>{
+    const source={...alipay,scopes:['transactions'] as ConnectedFinancialSource['scopes'],syncedAt:'2026-10-22'};
+    render(<StewardChatHome fullSession stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onPrepareTransfer={vi.fn()} reply={async()=>({text:'当前事项已完成一次，回执receipt-current。未准备新的付款或授权。',action:{type:'open_transfer_records'}})}/>);
+    await userEvent.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'查询当前事项的状态及流水，不要再付款');await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByText(/当前事项已完成一次，回执receipt-current/)).toBeVisible();
+    expect(screen.getByRole('button',{name:'查看逐笔转账记录'})).toBeVisible();
+    expect(screen.queryByRole('region',{name:'账单工作区'})).not.toBeInTheDocument();expect(screen.queryByRole('region',{name:'账单分析'})).not.toBeInTheDocument();
+  });
+  it('账单范围冲突直接展示追问，确认前不显示混合报告',async()=>{
+    const source={...alipay,scopes:['transactions'] as ConnectedFinancialSource['scopes'],syncedAt:'2026-10-22',transactions:[{id:'meal',title:'演示午餐',amount:-1234,category:'餐饮',occurredAt:'2026-10-20'}]};
+    const user=userEvent.setup(),reply=vi.fn<StewardReplyFn>(async()=>({text:'已核对微信账单。'}));
+    render(<StewardChatHome fullSession stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source,wechat_pay:{...source,provider:'wechat_pay',displayName:'微信支付'}}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'分析2026年10月微信和支付宝合计，但只算微信');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByText(/“双平台”和“只看一个平台”范围不一致/)).toBeVisible();
+    expect(screen.queryByRole('region',{name:'账单工作区'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('region',{name:'账单分析'})).not.toBeInTheDocument();expect(reply).not.toHaveBeenCalled();
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'这次只算微信，不包括支付宝，净消费');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByRole('region',{name:'账单工作区'})).toHaveTextContent('¥12.34');
+  });
   it('NN-V2-015 选中会话同样展示可操作账单工作区，平台筛选不依赖首页模式',async()=>{
     const source={...alipay,scopes:['transactions'] as ConnectedFinancialSource['scopes'],syncedAt:'2026-10-22',transactions:[{id:'meal',title:'演示午餐',amount:-1234,category:'餐饮',occurredAt:'2026-10-20'}]};
     render(<StewardChatHome fullSession stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={async()=>({text:'已核对授权账单。',billUI:{sections:['overview','categories','transactions'],evidenceRefs:[]}})}/>);

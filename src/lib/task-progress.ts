@@ -32,12 +32,13 @@ function periodIn(prompt:string):string|undefined {
   return prompt.match(/(?:\d{4}年)?\d{1,2}月/)?.[0];
 }
 function mergeBill(progress:TaskProgress,prompt:string):TaskProgress {
+ if(progress.bill?.period&&/分类|归到|归为|只改|交易编号/.test(prompt))return {...progress,stage:'collecting',waitingFor:undefined};
   let period=periodIn(prompt);
   const start=progress.bill?.period?.match(/(?:从|起始|开始)(?:日期)?[：:\s]*((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/);
   const end=prompt.match(/(?:截止|截至|到|至)(?:日期)?\s*((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/)
     ||(start?prompt.match(/((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/):null);
   if(start&&end)period=`${start[1]}至${end[1]}`;
-  const provider=/剩余已授权|剩余.*授权账单|当前已授权平台/.test(prompt)?'all':billProvider(prompt)||(/全部平台|所有平台|两个平台|都看|都要/.test(prompt)||/微信/.test(prompt)&&/支付宝/.test(prompt)?'all':undefined);
+ const provider=/剩余已授权|剩余.*授权账单|当前已授权平台|全部平台|所有平台|两个平台|两平台|双平台|都看|都要/.test(prompt)?'all':billProvider(prompt)||(/微信/.test(prompt)&&/支付宝/.test(prompt)?'all':undefined);
   return {...progress,stage:'collecting',waitingFor:undefined,bill:{...progress.bill,...(period?{period}:{}),...(provider?{provider}:{})}};
 }
 export function readTaskProgress(task:Workspace):TaskProgress {

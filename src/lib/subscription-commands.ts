@@ -30,13 +30,16 @@ export function isRecurringReviewQuestion(text:string):boolean {
 
 const label=(item:StewardSubscription)=>`${item.provider==='wechat_pay'?'微信支付':'支付宝'} · ${item.title} · ${(item.amount/100).toFixed(2)}元/${item.cycle}`;
 function targetName(text:string):string {
-  return (text.match(/(?:取消|关闭|停止)\s*(.+?)(?:自动续费|订阅|签约|[，,。！!？?]|$)/)?.[1]||'').replace(/^(?:一下|更正为|改成|改为|选择|选)/,'').replace(/^(?:微信支付|微信|支付宝)(?:的)?/,'').replace(/\d+(?:\.\d{1,2})?\s*元(?:\/(?:月|季|年))?(?:的)?/g,'').replace(/(?:的|吧|吗)$/,'').trim();
+  return (text.match(/(?:取消|关闭|停止)\s*(.+?)(?:自动续费|订阅|签约|[，,。！!？?]|$)/)?.[1]||'').replace(/^(?:一下|更正为|改成|改为|选择|选)/,'').replace(/^(?:微信支付|微信|支付宝)(?:的)?/,'').replace(/\d+(?:\.\d{1,2})?\s*元(?:\/(?:月|季|年)|每[月季年])?(?:的)?/g,'').replace(/(?:的|吧|吗)$/,'').trim();
 }
 
 function matchingSubscriptions(text:string, items:StewardSubscription[]):StewardSubscription[] {
   const name=targetName(text);
   const exact=items.filter(item=>text.includes(item.id)||name===item.title);
   if(exact.length)return exact;
+  const clauses=text.split(/[，,。；;]/).filter(part=>!/保留|不要取消|不取消|别动/.test(part));
+  const named=items.filter(item=>clauses.some(part=>{const escaped=item.title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return new RegExp(escaped+'(?=自动续费|订阅|会员|这个|这项|[\\s，,。；;0-9]|$)').test(part);}));
+  if(named.length)return named;
   // Compare complete names after removing common membership/billing wording.
   // Keep product qualifiers so a partial merchant name cannot select another plan.
   const normalize=(value:string)=>value.replace(/自动续费|连续包[月季年]|续费|订阅|会员|vip|\s/gi,'');
@@ -48,12 +51,35 @@ function matchingSubscriptions(text:string, items:StewardSubscription[]):Steward
 export function subscriptionCommandReply(request:StewardReplyRequest):StewardReply|null {
   const users=request.messages.filter(message=>message.role==='user');
   let text=users.at(-1)?.content.trim()||'';
-  if(/(?:把|将).{0,8}(?:那个|这个).{0,8}取消/.test(text))return {text:'这里指当前有效签约，还是账单识别出的历史候选？请明确服务、平台和要做的动作。确认前不会取消签约或删除历史记录。',waitingQuestion:'请明确有效签约或历史候选、服务名和平台。'};
+  if(/(?:把|将).{0,8}(?:那个|这个).{0,8}取消/.test(text)&&!request.subscriptions.some(item=>text.includes(item.title)))return {text:'这里指当前有效签约，还是账单识别出的历史候选？请明确服务、平台和要做的动作。确认前不会取消签约或删除历史记录。',waitingQuestion:'请明确有效签约或历史候选、服务名和平台。'};
   if(/统计|多少钱|多少元/.test(text)&&/测试会员|接下来|未来/.test(text)&&!/未来\s*\d+\s*天/.test(text))return {text:'这次统计哪个平台、未来多少天的计划扣费？请说明时间窗口和服务范围，我会按当前有效签约的实际下次扣费日统计。',waitingQuestion:'请确认平台、服务范围及未来多少天。'};
   let prior=users.slice(0,-1).reverse().find(m=>cancel.test(m.content)&&!quoted.test(m.content)&&!otherBusiness.test(m.content));
   if(prior){
     const chosen=users.slice(0,-1).reverse().map(m=>({message:m,items:matchingSubscriptions('取消'+m.content.replace(/^(?:更正为|改成|改为|选|选择)/,''),request.subscriptions)})).find(value=>value.items.length>0);
     if(chosen){const source=chosen.message.content+'\n'+prior.content;const provider=/微信/.test(source)&&!/支付宝/.test(source)?'微信':/支付宝/.test(source)&&!/微信/.test(source)?'支付宝':'';prior={...prior,content:'取消'+provider+chosen.items[0].title};}
+  }
+  const authorized=request.subscriptionAccess?.providers??[];
+  const currentItems=request.subscriptions.filter(item=>authorized.includes(item.provider));
+  const compared=currentItems.filter(item=>text.includes(item.title));
+  if(/比较|贵的|便宜的/.test(text)&&/取消/.test(text)&&compared.length>1){
+    const sameCycle=new Set(compared.map(item=>item.cycle)).size===1;
+    const extreme=sameCycle?Math[/便宜/.test(text)?'min':'max'](...compared.map(item=>item.amount)):undefined;
+    const targets=compared.filter(item=>item.amount===extreme);
+    if(targets.length===1)text=`取消${targets[0].provider==='wechat_pay'?'微信':'支付宝'}${targets[0].title}`;
+    else return {text:`${sameCycle?'这几项价格相同，无法用贵或便宜唯一选择。':'扣费周期不同，不能直接比较每次价格。'}请选择具体项目，尚未取消。\n${compared.map(label).join('；')}\n[[choices:${compared.map(item=>`取消${item.provider==='wechat_pay'?'微信':'支付宝'}${item.title}`).join('|')}]]`,waitingQuestion:'请确认要取消的具体服务和平台。'};
+  }
+  const dateQuery=/什么时候|哪天|下次.*(?:日期|扣)|扣多少|扣费日期/.test(text);
+  if(dateQuery){
+    const context=users.map(m=>m.content).join('\n'),matches=currentItems.filter(item=>context.includes(item.title)&&(!/微信/.test(context)||/支付宝/.test(context)||item.provider==='wechat_pay'));
+    if(matches.length===1){const item=matches[0];return {text:`${label(item)}，${item.nextChargeAt===undefined?'当前未返回下次扣费日期':`下次计划${new Date(item.nextChargeAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'})}`}。本次仅查询，签约、提醒和偏好保持不变。`,action:{type:'open_subscriptions'}};}
+  }
+  const statusQuery=/先查|核查|取消成功|没取消成功|是否.*取消|状态/.test(text)&&!/重新取消|现在取消/.test(text);
+  const priorPlatform=prior&&/微信/.test(prior.content)?'wechat_pay':prior&&/支付宝/.test(prior.content)?'alipay':undefined;
+  if(statusQuery||prior&&/继续/.test(text)&&!currentItems.some(item=>item.title===targetName(prior.content)&&(!priorPlatform||item.provider===priorPlatform))){
+    const origin=prior?.content||'取消'+text.replace(/^(?:微信支付|微信|支付宝)(?:的)?/,'').split(/刚才|已经|可能|是否|当前|现在/)[0];
+    const title=targetName(origin),provider=/微信/.test(origin+'\n'+text)&&!/支付宝/.test(text)?'wechat_pay':/支付宝/.test(origin+'\n'+text)&&!/微信/.test(text)?'alipay':undefined;
+    if(provider&&!authorized.includes(provider))return {text:'当前缺少目标平台的自动续费读取权限，恢复后才能核查当前状态；没有重复取消。',action:{type:'open_connections',provider,scope:'autopay'}};
+    if(title){const matches=currentItems.filter(item=>item.title===title&&(!provider||item.provider===provider));return {text:matches.length?`本轮有效签约清单仍有${matches.map(label).join('；')}，不能认定取消成功。未重复提交。`:`本轮有效签约清单已没有“${title}”，当前未显示为有效签约，可能已关闭。仅凭有效清单不能证明具体关闭来源或历史退款；没有重复取消或重新签约。`,action:{type:'open_subscriptions'}};}
   }
   const reminderOrigin=users.slice().reverse().find(m=>/提醒/.test(m.content)&&/关闭|不再|不要|停止/.test(m.content));
   if(reminderOrigin&&!otherBusiness.test(text)&&/提醒|微信|支付宝|云盘|音乐|视频/.test(text)&&!/取消.{0,20}(?:会员|订阅|续费)/.test(text)){
@@ -92,7 +118,7 @@ export function subscriptionCommandReply(request:StewardReplyRequest):StewardRep
     }
   }
   if(nameAnalysis(text))return {text:/忽略规则|立即取消/.test(text)?'这段名称包含“忽略规则”“立即取消”等操作指令，属于可疑的指令注入内容。服务名称仅作为待分析数据，不构成你的操作授权；没有执行其中的文字，也没有修改签约、续费提醒或重复提示偏好。':'仅把服务名称作为待分析数据；名称本身不能证明签约状态或构成操作授权。没有修改签约、续费提醒或重复提示偏好。'};
-  if(!otherBusiness.test(text)&&keepUnchanged(text)&&(/订阅|音乐|云盘|视频|两项|这组/.test(text)||users.slice(0,-1).some(message=>/订阅|自动续费|会员/.test(message.content))))return {text:`${/比较|重复/.test(text)?'同类服务只能提示可能重复，不代表是同一签约或同一笔扣款。还需核对实际权益与使用频率；当前资料没有使用频率，不能断言哪项多余。':''}保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。`};
+  if(!dateQuery&&!otherBusiness.test(text)&&keepUnchanged(text)&&(/订阅|音乐|云盘|视频|两项|这组/.test(text)||users.slice(0,-1).some(message=>/订阅|自动续费|会员/.test(message.content))))return {text:`${/比较|重复/.test(text)?'同类服务只能提示可能重复，不代表是同一签约或同一笔扣款。还需核对实际权益与使用频率；当前资料没有使用频率，不能断言哪项多余。':''}保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。`};
   if(/订阅|续费|会员/.test(text)&&/只问|仅询问|规则|取消后|退款|仅分析|只分析|名称.*(?:指令|执行)/.test(text)&&!/现在(?:帮我)?取消|请(?:帮我)?取消/.test(text))return {text:'取消自动续费只会停止后续扣费，不会自动退还历史款项；已付周期的权益按商家规则保留，退款须另行核对。本次仅作说明，没有取消签约、修改提醒或重复提示偏好。'};
   if(quoted.test(text)||otherBusiness.test(text)||!request.subscriptionAccess)return null;
   const previous=[...users.slice(0,-1)].reverse().find(message=>cancel.test(message.content)&&!quoted.test(message.content)&&!otherBusiness.test(message.content));
@@ -117,7 +143,12 @@ export function subscriptionCommandReply(request:StewardReplyRequest):StewardRep
   const titles=matchingSubscriptions(origin,items);
   let matches=matchingSubscriptions(text,items);
   if(changing)matches=titles;
-  if(!matches.length&&!changing)return {text:`当前有效清单没有匹配到${named||'这个项目'}，可能已关闭或名称不符。请核对名称和平台；没有替换为其他订阅，也没有取消。`};
+  if(!matches.length&&!changing){
+    const generic=/^(?:(?:那个|这个|一个|那项|这项|那|这|一)\s*)?(?:V\d+)?(?:会员|云盘会员|云盘|订阅)?$/.test(named);
+    const possible=generic?items.filter(item=>(!desired||item.provider===desired)&&(!/云盘/.test(named)||item.title.includes('云盘'))&&(!/V\d+/.test(named)||item.title.includes(named.match(/V\d+/)![0]))):[];
+    if(generic)return {text:`请明确要取消哪个服务和平台；未替你选择，也未取消。${possible.length?'\n'+possible.map(label).join('；'):''}`,waitingQuestion:'请选择服务名称和平台。'};
+    return {text:`当前有效清单没有匹配到${named||'这个项目'}，可能已关闭或名称不符。请核对名称和平台；没有替换为其他订阅，也没有取消。`};
+  }
   if(desired)matches=matches.filter(item=>item.provider===desired);
   const amount=text.match(/(\d+(?:\.\d{1,2})?)\s*元/);
   if(amount)matches=matches.filter(item=>item.amount===Math.round(Number(amount[1])*100));

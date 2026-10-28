@@ -36,7 +36,8 @@ it('AA先核对再授权发起，在记录中展示待收而不是已到账',asy
   if(body.type==='create-aa'){const aa={...body,id:body.requestId,createdAt:1,status:'pending',shares:[{recipientId:'self',amount:3334},{recipientId:'mom',amount:3333},{recipientId:'dad',amount:3333}]};snapshot.aaRequests=[aa];return new Response(JSON.stringify(aa));}
   return new Response(JSON.stringify(snapshot));
  });
- render(<SmartTransfers initial={{kind:'aa',amount:10000,recipientIds:['mom','dad'],includeSelf:true}} onDone={vi.fn()}/>);
+ render(<SmartTransfers initial={{kind:'aa',title:'本轮AA核对',amount:10000,recipientIds:['mom','dad'],includeSelf:true}} onDone={vi.fn()}/>);
+ expect(screen.getByRole('textbox',{name:'收款说明'})).toHaveValue('本轮AA核对');
  await user.click(screen.getByRole('button',{name:'核对AA分摊'}));
  expect(calls.some(c=>c.type==='create-aa')).toBe(false);
  expect(screen.getByText('¥33.34')).toBeVisible();
@@ -44,6 +45,7 @@ it('AA先核对再授权发起，在记录中展示待收而不是已到账',asy
  const records=await screen.findByRole('region',{name:'转账与收款记录'});
  expect(within(records).getByText('0/2 人已付')).toBeVisible();
  expect(calls.filter(c=>c.type==='create-aa')).toHaveLength(1);
+ expect(calls.find(c=>c.type==='create-aa')).toMatchObject({title:'本轮AA核对'});
  expect(calls.filter(c=>c.type==='settle-aa')).toHaveLength(0);
 });
 it('手机号搜索要显式选择匹配账户，预约发送时间字段且不走即时确认',async()=>{

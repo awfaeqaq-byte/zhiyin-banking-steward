@@ -10,7 +10,7 @@ export function operationFollowup(request:StewardReplyRequest):StewardReply|null
  // convenient continuation must never bypass them by returning an early action.
  if(!matchesFundingCard(latest)||/完整卡号|卡密|安全码|验证码|支付密码/.test(latest)||/(?:直接|跳过|不要|不用|无需).{0,20}(?:风险测评|做题|测评)/.test(latest)&&!/不要(?:改|修改|改变)测评|不改测评/.test(latest))return null;
  if(/转账|给.{0,15}转|银行AA|消费分析|取消订阅|生日|筹备|存款/.test(latest))return null;
- const wealth=/理财|申购|赎回|持仓|基金|目标规划|灵活现金管理|稳健固收组合|均衡低波组合|R[123]/i.test(all);
+  const wealth=/理财|申购|赎回|持仓|基金|目标规划|灵活现金管理|稳健固收组合|均衡低波(?:组合)?|R[123]|\d+元.{0,15}7天后.*用/i.test(all)||Boolean(request.wealthSnapshot&&/买到|买成功|购买结果/.test(latest));
  if(wealth){
   if(/保证|保本|不会亏|净值|风险披露|只咨询|仅咨询/.test(latest))return null;
   if(/目标|规划/.test(all)&&/核查|核对|保存失败|重存|没保存|没看见|保存结果/.test(latest)){
@@ -18,16 +18,18 @@ export function operationFollowup(request:StewardReplyRequest):StewardReply|null
    return {text:goal?`当前保存的目标是“${goal.name}”，目标金额${goal.target}元、已备${goal.current}元、期限${goal.months}个月，保存时间${new Date(goal.savedAt).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}。未重复保存或改动目标。`:'当前没有读到已保存的目标，请进入目标规划核验，暂不重复保存。',action:{type:'open_wealth'}};
   }
   if(/7天|七天|一周/.test(latest)&&/6个月|六个月|半年/.test(latest)&&!/不能锁|不能接受锁|以7天.*为准/.test(latest))return ask('“7天后必须用钱”和“可以锁定6个月”有冲突。请确认以短期流动性为先，还是这笔资金可以持有满6个月？不会自动选择或申购。');
-  const redeem=/赎回|卖出/.test(all)&&!/申购|买入/.test(latest);
+  const statusQuery=/没看见|没看到|没到账|未到账|核查|先查|是否(?:已|还没|买|申购|赎回)|买到|买成功|有没有成功/.test(latest)&&!/先核对$|只核对$/.test(latest);
+  const redeem=/赎回|卖出|改赎/.test(all)&&!/申购|买入/.test(latest.replace(/(?:原)?申购回执/g,''));
   const named=(text:string)=>{const positive=text.replace(/(?:不要|不选|不买|放弃)\s*(?:R[123]|灵活现金管理|稳健固收组合|均衡低波组合)(?:了)?/gi,'');return wealthProducts.filter(p=>positive.includes(p.name)||new RegExp(`R${p.risk}(?!\\d)`,'i').test(positive));};
   let selected= named(latest);
   if(!selected.length){for(const t of turns.slice(0,-1).reverse()){const values=named(t);if(values.length){selected=values;break;}}}
   if(redeem){
    const snapshot=request.wealthSnapshot;
    if(!snapshot)return {text:'本轮未能读取理财账户，不能推断是否赎回成功。请核对原持仓和回执，暂不重复提交。',action:{type:'open_wealth'}};
-   if(/失败|没到账|未到账|成功|再赎回|重复|核查|核对|没看见|还没/.test(latest)&&snapshot.redemptions?.length){
-    const receipts=snapshot.redemptions.filter(r=>turns.some(t=>t.includes(r.id)||t.includes(r.holdingId))||snapshot.redemptions!.length===1);
+   if(statusQuery&&snapshot.redemptions?.length){
+    const receipts=snapshot.redemptions.filter(r=>turns.some(t=>t.includes(r.id)||t.includes(r.holdingId)));
     if(receipts.length===1){const r=receipts[0];return {text:`已查到原赎回回执${r.id}，对应持仓${r.holdingId}，赎回${money(r.amount)}元、费用${money(r.fee)}元，当前账户现金${snapshot.cashBalance===undefined?'待读取':money(snapshot.cashBalance)+'元'}。未再次赎回或重复入账。`,action:{type:'open_wealth'}};}
+    return {text:'本轮理财账户已读取，但还不能唯一确定你说的原赎回。请在持仓与赎回记录核对原编号或回执；不会选择历史其他回执，也不会再次兑付。',action:{type:'open_wealth'}};
    }
    if(/赎回.*\d+(?:\.\d+)?\s*(?:[，。]|$)/.test(latest)&&!/(?:人民币|元|份)/.test(latest))return ask('这里的数量指人民币金额还是份额？当前入口按指定持仓全额赎回，请确认单位和具体持仓。');
    if(selected.length!==1)return ask('请明确要赎回的产品与具体持仓；同一产品的不同购买记录不会合并或猜选。');
@@ -38,7 +40,14 @@ export function operationFollowup(request:StewardReplyRequest):StewardReply|null
    if(holdings.length!==1)return ask(`请选定一笔完整持仓：${holdings.length?holdings.map(h=>`${h.id}，本金${money(h.principal)}元`).join('；'):'本轮没有唯一匹配的有效持仓'}。不会用其他持仓代替。`);
    return {text:`仅准备核对${selected[0].name}的持仓${holdings[0].id}，全额${money(holdings[0].principal)}元。打开后仍须独立确认赎回，尚未入账。`,action:{type:'open_wealth',holdingId:holdings[0].id}};
   }
-  const purchase=!/不申购|不购买|暂不购买|只比较|仅比较|放弃R3/.test(latest)&&/申购|购买|买|办理|按刚说的办/.test(all);
+  if(statusQuery&&/买|申购|购买/.test(all)){
+   const snapshot=request.wealthSnapshot;
+   const amount=latest.match(/(\d+(?:\.\d{1,2})?)\s*元/)?.[1];
+   const holdings=snapshot?.holdings?.filter(h=>!h.redeemedAt&&(!amount||h.principal===Math.round(Number(amount)*100)))??[];
+   return {text:snapshot?`已读取当前理财账户，${amount?amount+'元的':''}有效持仓有${holdings.length}笔。请打开持仓核对原申购回执，不能只凭“没看到”认定失败；没有重复申购或扣款。`:'本轮未读到理财账户，请打开持仓与原回执核验；不会补买或声称已经查到。',action:{type:'open_wealth'}};
+  }
+  const purchaseTurn=turns.slice().reverse().find(t=>/申购|购买|买|办理|按刚说的办|只比较|仅比较|放弃R3/.test(t));
+  const purchase=Boolean(purchaseTurn&&!/不申购|不购买|暂不购买|不要(?:重复)?买|只比较|仅比较|放弃R3|不办理/.test(purchaseTurn));
   const amountTurn=turns.slice().reverse().find(t=>/\d+(?:\.\d+)?\s*元/.test(t));
   const amountValue=amountTurn?.match(/(?:人民币\s*)?(\d+(?:\.\d+)?)\s*元/)?.[1];
   const amount=amountValue?Number(amountValue):undefined;
@@ -46,6 +55,7 @@ export function operationFollowup(request:StewardReplyRequest):StewardReply|null
   const termValue=termTurn?.match(/(\d+)\s*个?月/)?.[1];const term=termTurn&&/7天|七天|一周|随时取/.test(termTurn)?0:termValue?Number(termValue):undefined;
   if(/(?:\d+|[一二两三四五六七八九十百千万]+)\s*份/.test(latest)&&!/人民币.*元/.test(latest))return ask('当前申购使用人民币金额，份额不能直接当成元。请给出本次投入的人民币金额；已指定的产品与付款卡会保留。');
   if(!purchase){
+   if(selected.length===1&&/只比较|仅比较|只看|放弃/.test(latest))return {text:`本轮只比较${selected[0].name}（R${selected[0].risk}）：${selected[0].liquidity}，起购${selected[0].minAmount}元。${selected[0].riskDisclosure}现有正式测评保持不变；尚未申购或扣款。`,view:'wealth_compare'};
    if(amount===undefined||term===undefined)return ask('计划投入多少元、多久会用到这笔钱，以及是否需要随时取用？明确需求后再比较产品。');
    const risk=request.wealthSnapshot?.assessment;const rank=risk?.risk==='low'?1:risk?.risk==='medium'?2:risk?.risk==='high'?3:0;
    const products=wealthProducts.filter(p=>p.risk<=rank&&p.minTerm<=term&&p.minAmount<=amount);
@@ -64,17 +74,19 @@ export function operationFollowup(request:StewardReplyRequest):StewardReply|null
   const fee=Math.round(amount*100*product.feeRate);
   return {text:`待核对${product.name}，申购${amount.toFixed(2)}元，费用${money(fee)}元，从常用卡8888付款。旧方案不再使用，请打开最新方案并独立确认；尚未申购或扣款。`,action:{type:'open_wealth',productId:product.id,amount:Math.round(amount*100),term:term??0}};
  }
- if(/银行卡|卡片|常用卡|这张卡|8888.*卡|支付限额|无卡支付|挂失|境外交易/.test(all)&&!/转账|汇款/.test(all)){
+ if(/银行卡|卡片|常用卡|这张卡|我的卡|8888.*卡|(?:单笔|支付)限额|无卡支付|挂失|境外交易/.test(all)&&!/转账|汇款/.test(all)){
   const target=turns.slice().reverse().find(t=>/(?:卡(?:片)?|尾号|末四位|后四位)\s*\d{4}|\d{4}\s*(?:的卡|卡)/.test(t));
   if(target&&!matchesFundingCard(target))return {text:'原请求的卡片不是可操作的常用卡8888，请先核对卡片对象；不会把其他尾号替换成8888，也没有修改任何设置。'};
   const bank=request.bank;if(!bank)return null;
   if(/支付.*关掉|恢复使用/.test(latest)&&!parseCardIntent(latest))return ask(`当前卡8888${bank.frozen?'已挂失':'状态正常'}。你要调整无卡支付、境外交易、夜间保护，还是挂失/解挂？请明确单一操作范围。`);
-  const limit=/限额/.test(all)&&(/\d+(?:\.\d+)?\s*元|负\s*\d+/.test(latest)||/限额/.test(latest));
+  const control=parseCardIntent(latest);if(control?.kind==='control')return {text:'已明确当前卡片的指定支付开关，请打开核对确认。其他设置保持原值，尚未保存。',action:{type:'open_cards',instruction:latest}};
+  const limit=/限额/.test(all)&&!/不要改限额|不改限额|限额不变/.test(latest);
   if(limit){
    const values=[...latest.matchAll(/(-?\d+(?:\.\d+)?)\s*元/g)];
    const raw=values.at(-1)?.[1];
    if(!raw)return ask(`当前支付限额${money(bank.limit)}元，想调整为多少元？其他开关保持原值。`);
-   const yuan=Number(raw)*(/负/.test(latest)?-1:1);
+   const delta=/(?:当前|现有|刚查到|原).{0,15}(?:加|提高|增加|减|减少)|(?:限额|基础)上(?:加|减)/.test(latest);
+   const yuan=delta?bank.limit/100+Number(raw)*(/减|减少/.test(latest)?-1:1):Number(raw)*(/负/.test(latest)?-1:1);
    if(!Number.isFinite(yuan)||yuan<100||yuan>50000||!Number.isSafeInteger(yuan*100))return ask('支付限额须在100至50000元之间，最多两位小数。请更正数值，原卡片设置尚未改变。');
    return {text:`准备把常用卡8888支付限额从${money(bank.limit)}元调整为${yuan.toFixed(2)}元，其他设置保持原值。请打开核对并本人确认，尚未保存。`,action:{type:'open_cards',instruction:`常用卡8888支付限额改为${yuan}元`}};
   }

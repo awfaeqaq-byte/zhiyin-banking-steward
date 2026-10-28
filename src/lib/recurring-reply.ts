@@ -7,6 +7,7 @@ export function recurringReviewReply(request:StewardReplyRequest):StewardReply|n
   const analysis=request.recurringAnalysis;
   if(!analysis.providers.length)return {text:'当前没有交易账单读取权限，不能核对周期扣费证据。请先选择并授权账单来源；不会从旧聊天补造历史。',action:{type:'open_connections'}};
   const candidates=request.recurringCandidates||[];
+  if(/不是订阅|标错|忽略候选|仅.*候选/.test(question)&&!/恢复候选|不要.*(?:标记|忽略)/.test(question))return {text:'这是历史账单候选，与平台有效签约分开。请在订阅页“账单中的周期扣费”找到你确认的候选，点击“不是订阅”完成判断。只会忽略候选，不删除历史流水，也不取消真正签约或修改续费提醒。',action:{type:'open_subscriptions'}};
   const named=candidates.filter(item=>question.includes(item.title));
   const shown=named.length?named:candidates;
   const rows=analysis.excluded.map(item=>`- ${item.title}（${item.provider==='wechat_pay'?'微信支付':'支付宝'}）：有效样本${item.sampleCount}笔；${item.reason}。实际证据${item.sampleCount>item.evidence.length?`（仅列最近${item.evidence.length}笔）`:''}：${item.evidence.map(record=>`${new Date(record.occurredAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'})}支出${(Math.abs(record.amount)/100).toFixed(2)}元`).join('、')}。`);
