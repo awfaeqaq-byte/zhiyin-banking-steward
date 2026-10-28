@@ -397,7 +397,8 @@ export function resetWechatChatsToInitial(): WechatChatResetResult {
   aiReplyQueue.clear();
 
   const currentState = useWechatStore.getState();
-  const initialChats = structuredClone(getWechatConfig().chats);
+  const config=getWechatConfig();
+  const initialChats=ensureNingningContact({contacts:structuredClone(config.contacts),chats:structuredClone(config.chats)},TimeService.now()).chats;
   const currentMessageCount = currentState.chats.reduce((sum, chat) => sum + chat.messages.length, 0);
   const restoredMessageCount = initialChats.reduce((sum, chat) => sum + chat.messages.length, 0);
 
@@ -406,6 +407,7 @@ export function resetWechatChatsToInitial(): WechatChatResetResult {
     _temp: {
       ...currentState._temp,
       aiReplyPendingByWxid: {},
+      ningningReplyFailed:false,
     },
   });
 

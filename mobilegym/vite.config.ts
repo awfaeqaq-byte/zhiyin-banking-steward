@@ -1471,6 +1471,12 @@ export default defineConfig(({ mode }) => {
     // demo 分支的 GitHub Pages 部署把模拟器放在 /sim/ 子路径，通过
     // VITE_BASE=/sim/ 覆盖，使打包出的资源 URL 自动带前缀。
     base: process.env.VITE_BASE || '/',
+    // This app generates its stylesheet with Tailwind CSS v4's CLI. The parent
+    // Zhiyin project uses Tailwind v3 in its PostCSS config; keep that config
+    // from being auto-discovered and reprocessing the generated v4 CSS.
+    css: {
+      postcss: { plugins: [] },
+    },
     server: {
       fs: { deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.sandbox-model.local.json*'] },
       port: 3000,

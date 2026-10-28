@@ -1,0 +1,173 @@
+2026-10-21T16:25:35.356Z
+[可见页面]
+财富管理
+大数据选基
+人气、业绩与热门板块榜单
+财富管理 · 演示账户
+理财方案
+
+先了解承受能力，再核对产品与资金。
+
+常用卡 8888 · 可用余额
+¥42,300.00
+申购从该账户扣款，赎回原路入账
+产品
+持仓 0
+风险测评
+我的风险测评
+当前风险等级：谨慎型
+有效至 2027/10/22
+调整风险偏好
+为你筛选
+可了解的演示产品
+依据风险等级、投入金额与持有期
+计划投入（元）
+计划持有（月）：
+12
+灵活现金管理
+R1 · 低风险
+
+重视流动性，适合作为短期备用资金。
+
+起购金额
+100 元
+最短持有
+灵活
+申购费率
+0.0%
+查看详情与风险 →
+展开对比分析与市场资料
+按目标规划这笔钱
+
+上述产品与交易均为演示；市场数据仅用于学习，不代表产品收益。理财非存款，产品有风险。
+
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 7, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 00:25
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		7 container 知银
+			8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				120 container root
+					121 container
+						122 button 返回
+							123 image
+						124 heading 财富管理, Value: 1
+							125 text 财富管理
+						126 button 大数据选基 人气、业绩与热门板块榜单
+							127 text 大数据选基
+							128 text 人气、业绩与热门板块榜单
+						129 container 理财方案
+							165 text 财富管理 · 演示账户
+							166 heading 理财方案, Value: 2, ID: wealth-mvp-title
+								167 text 理财方案
+							168 text 先了解承受能力，再核对产品与资金。
+							169 text 常用卡 8888 · 可用余额
+							170 text ¥42,300.00
+							171 text 申购从该账户扣款，赎回原路入账
+							172 container 理财页面
+								173 button 产品
+								174 button 持仓 0
+									175 text 持仓
+									176 text 0
+								177 button 风险测评
+							178 container
+								179 text 我的风险测评 当前风险等级： 谨慎型 有效至  2027/10/22
+								180 button 调整风险偏好
+							181 text 为你筛选
+							182 heading 可了解的演示产品, Value: 3
+								183 text 可了解的演示产品
+							184 text 依据风险等级、投入金额与持有期
+							185 container
+								186 text 计划投入（元）
+								187 stepper (settable, integer) Description: 试算投入金额, Value: 30000
+							188 container
+								189 text 计划持有（月）： 12
+								190 slider (settable, integer) Description: 试算持有期限, Value: 12
+							191 container 候选产品
+								192 button 灵活现金管理 R1 · 低风险 重视流动性，适合作为短期备用资金。 起购金额 100 元 最短持有 灵活 申购费率 0.0% 查看详情与风险 →
+									193 text 灵活现金管理
+									194 container
+										195 text R 1  ·  低风险
+									196 text 重视流动性，适合作为短期备用资金。
+									197 text 起购金额
+									198 text 100
+									199 text  元
+									200 text 最短持有
+									201 text 灵活
+									202 text 申购费率
+									203 text 0.0
+									204 text %
+									205 text 查看详情与风险 →
+							206 button (collapsed) 展开对比分析与市场资料, Secondary Actions: Expand
+								207 text 展开对比分析与市场资料
+							208 button (collapsed) 按目标规划这笔钱, Secondary Actions: Expand
+								209 text 按目标规划这笔钱
+							210 text 上述产品与交易均为演示；市场数据仅用于学习，不代表产品收益。理财非存款，产品有风险。
+					149 container 主导航
+						150 button 管家
+							151 image
+							152 text 管家
+						153 button 资产
+							154 image
+							155 text 资产
+						156 button 财富
+							157 image
+							158 text 财富
+						159 button 卡片
+							160 image
+							161 text 卡片
+						162 button 我的
+							163 image
+							164 text 我的
+		80 container
+			81 text 23:46
+			82 text 10月21日 周三
+			83 text 暂无通知消息
+			84 text 中国电信HD | 中国联通HD
+			85 text 10月21日 周三
+			86 image signal
+			87 image wifi
+			88 text 78 %
+			89 container battery
+			90 button Wi‑Fi
+				91 container Xiaomi_AX3
+					92 container
+						93 text Xiaomi_AX3 Xiaomi_AX3
+				94 text 已连接
+			95 button 移动数据
+				96 container 中国联通
+					97 text 中国联通
+				98 text 已开启
+			99 text 暂无播放
+			100 button 蓝牙
+			101 button 飞行模式
+			102 button 静音
+			103 button 手电筒
+			104 button 截屏
+			105 button 省电模式
+			106 button 投屏
+			107 button 旋转锁定
+			108 button 相册
+			109 button 设置
+			110 button 显示
+				111 text A
+			112 button NFC
+				113 text N
+			114 button 票证
+			115 button 护眼
+			116 button 定位
+			117 button 深色
+			118 button 编辑
+	119 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

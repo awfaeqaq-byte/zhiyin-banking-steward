@@ -270,6 +270,7 @@ function AppContent() {
   const [taskDraft,setTaskDraft]=useState<ReminderDraft|null>(null);
   const [taskDate,setTaskDate]=useState<number>();
   const [occasionEntry,setOccasionEntry]=useState<{prompt?:string;id?:string}>({});
+  const [wealthFollowup,setWealthFollowup]=useState<import('./lib/operation-followup').WealthEntry>();
   const [connectionEntry,setConnectionEntry]=useState<ExternalFinancialProvider>();
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
@@ -289,7 +290,7 @@ function AppContent() {
   const {
     connections, setConnections, refresh: refreshSubscriptions,
     refreshing: subscriptionsRefreshing, error: subscriptionRefreshError,
-    setError: setSubscriptionRefreshError,
+    setError: setSubscriptionRefreshError, getCurrentConnections,
   } = useSubscriptionSync(() => read("zhiyin-connections", {}));
   const [disabledSubscriptionReminders, setDisabledSubscriptionReminders] = useState<string[]>(
     () => read("zhiyin-disabled-subscription-reminders", []),
@@ -425,7 +426,7 @@ function AppContent() {
     const intent=instruction?parseCardIntent(instruction):null;
     const target=instruction?cardIntentTarget(instruction):null;
     go('cards');
-    if(target==='unknown'||target==='ambiguous'){setToast(target==='unknown'?'未找到这张卡，请从已登记银行卡中选择':'请先选择这次要管理的银行卡');return;}
+    if(target==='unknown'||target==='ambiguous'){setToast(target==='unknown'?'没有匹配到可操作的卡片，请从已登记银行卡中选择':'请先选择这次要管理的银行卡');return;}
     setCardEntry(target??'primary');
     if(target&&target!=='primary'){setToast(`已定位尾号 ${bankCards.find(card=>card.id===target)!.last4}，请核对本卡设置`);return;}
     if(!intent)return;
@@ -938,7 +939,7 @@ function AppContent() {
           )}
           {page === "risk" && (
             <>
-              <WealthOperationMvp onBack={goBack} availableBalance={bank.state?.balance} stewardName={steward.name} onOpenFund={openFunds} focusProductId={wealthFocusProductId} onFocusHandled={()=>setWealthFocusProductId(undefined)} initialScreen={wealthEntry} onInitialScreenConsumed={()=>setWealthEntry(undefined)}/>
+              <WealthOperationMvp entry={wealthFollowup} onEntryConsumed={()=>setWealthFollowup(undefined)} onBack={goBack} availableBalance={bank.state?.balance} stewardName={steward.name} onOpenFund={openFunds} focusProductId={wealthFocusProductId} onFocusHandled={()=>setWealthFocusProductId(undefined)} initialScreen={wealthEntry} onInitialScreenConsumed={()=>setWealthEntry(undefined)}/>
             </>
           )}
           {page === "cards" && <CardManagement onBack={goBack} initialCardId={cardEntry} onInitialCardConsumed={()=>setCardEntry(undefined)} onTransfer={cardId=>setCardTransfer({cardId,initial:{recipientId:'mom',amount:0}})} onAsk={prompt=>{if(mode==='native')setChatDraft(prompt);else setInput(prompt);go('home');}}/>}
@@ -1178,6 +1179,7 @@ function AppContent() {
               disabledReminders={disabledSubscriptionReminders}
               recurringReviews={recurringReviews}
               refreshSubscriptions={refreshSubscriptions}
+              getCurrentConnections={getCurrentConnections}
               refreshError={subscriptionRefreshError}
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}
@@ -1191,7 +1193,7 @@ function AppContent() {
               onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
               occasionPlans={bank.state?.occasions}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
-              onOpenWealth={() => go("risk")}
+              onOpenWealth={entry=>{setWealthEntry(undefined);setWealthFollowup(entry);go('risk');}}
               onOpenCards={openCardIntent}
               onOpenAutomations={() => go("automations")}
               automationAttention={homeAutomationAttention}

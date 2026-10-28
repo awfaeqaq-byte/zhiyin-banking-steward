@@ -104,7 +104,7 @@ it('切换账单平台不发消息或重算解读，刷新保留范围，下一�
  expect(reply).toHaveBeenCalledTimes(1);
  view.unmount();render(<StewardChatHome {...props}/>);
  expect(screen.getByRole('button',{name:'只看支付宝'})).toHaveAttribute('aria-pressed','true');
- expect(screen.getByRole('heading',{name:'交通交易'})).toBeVisible();
+ expect(screen.getByRole('heading',{name:'交通消费'})).toBeVisible();
  await user.type(screen.getByRole('textbox'),'有没有问题');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
  await waitFor(()=>expect(reply).toHaveBeenCalledTimes(2));
  expect(reply.mock.calls[1][0].billAnalysis?.sources).toEqual(['支付宝']);

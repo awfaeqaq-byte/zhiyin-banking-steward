@@ -31,6 +31,54 @@ it('一句总额加明细的AA说明只记20元并回复一次，个人可乐不
  expect(api.state().conversation?.filter(message=>message.role==='assistant')).toHaveLength(1);
  expect(document.querySelectorAll('.steward-message.assistant')).toHaveLength(1);
 });
+it('NN-V2-001 空会话追问在首页只显示一次，新事项不继承旧澄清',async()=>{
+ const api=server(),user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>().mockResolvedValueOnce({parts:[],clarification:'请补充收款人和金额。'}).mockImplementation(async text=>({parts:[{taskId:null,kind:'general',title:'新问题',text}]}));
+ render(<StewardWorkspaces {...props} route={route} reply={async()=>({text:'这是新事项的独立回复。'})}/>);
+ await user.click(await screen.findByRole('button',{name:'＋ 新对话'}));await say('从8888给家人转20元');
+ expect(await screen.findByText('请补充收款人和金额。')).toBeVisible();
+ expect(screen.getAllByText('请补充收款人和金额。')).toHaveLength(1);
+ const original=api.state().runs?.at(-1);
+ await user.click(screen.getByRole('button',{name:'＋ 新对话'}));await say('介绍一下杭州');
+ expect(await screen.findByText('这是新事项的独立回复。')).toBeVisible();
+ const next=api.state().runs?.at(-1);expect(next?.currentId).not.toBe(original?.currentId);
+ expect(next?.prompt).toBe('介绍一下杭州');expect(next?.sourcePrompt).toBeUndefined();
+ expect(api.state().runs?.find(run=>run.id===original?.id)?.status).toBe('waiting_user');
+});
+it('NN-V2-001 空会话分类错误显示在原消息，并允许继续输入',async()=>{
+ server();const user=userEvent.setup();
+ const route=vi.fn<typeof routeWorkspacePrompt>(async()=>{throw new Error('模型服务未返回有效内容');});
+ render(<StewardWorkspaces {...props} route={route}/>);
+ await user.click(await screen.findByRole('button',{name:'＋ 新对话'}));await say('查一个未说明范围的问题');
+ await waitFor(()=>expect(screen.getByRole('alert')).toHaveTextContent('模型服务未返回有效内容'));
+ expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBeEnabled();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'＋ 新对话'})).toBeEnabled());
+});
+it('NN-V2-015 BI2-042 服务端100条窗口不会被旧本地历史重复回写',async()=>{
+ const api=server();
+ const old=Array.from({length:100},(_,i)=>({id:`old-${i}`,role:'assistant' as const,content:`旧消息${i}`}));
+ localStorage.setItem('zhiyin-steward-conversation-v1',JSON.stringify(old));
+ const current=Array.from({length:100},(_,i)=>({id:`current-${i}`,role:'assistant' as const,content:`本轮消息${i}`}));
+ await fetch('/api/zhiyin/workspaces',{method:'POST',body:JSON.stringify({type:'conversation-import',id:crypto.randomUUID(),messages:current,revision:api.state().revision,requestId:crypto.randomUUID()})});
+ render(<StewardWorkspaces {...props}/>);
+ await screen.findByText('本轮消息99');
+ await waitFor(()=>expect(api.state().conversation?.map(m=>m.id)).toEqual(current.map(m=>m.id)));
+ expect(screen.queryByText('旧消息99')).not.toBeInTheDocument();
+ const appendCalls=()=>api.fetcher.mock.calls.filter(([,init])=>init?.body&&JSON.parse(String(init.body)).type==='append').length;
+ expect(appendCalls()).toBe(0);expect(screen.getByRole('button',{name:'＋ 新对话'})).toBeEnabled();
+});
+it('NN-V2-015 百条窗口继续收发后仍收敛，不循环回写或锁住操作',async()=>{
+ const api=server();
+ const history=Array.from({length:100},(_,i)=>({id:`history-${i}`,role:'assistant' as const,content:`历史记录${i}`}));
+ await fetch('/api/zhiyin/workspaces',{method:'POST',body:JSON.stringify({type:'conversation-import',id:crypto.randomUUID(),messages:history,revision:api.state().revision,requestId:crypto.randomUUID()})});
+ const initial=api.state().revision,reply=vi.fn(async()=>({text:'百条窗口后的本轮回复'}));
+ const route=vi.fn<typeof routeWorkspacePrompt>(async text=>({parts:[{taskId:null,kind:'general',title:'窗口回归',text}]}));
+ render(<StewardWorkspaces {...props} route={route} reply={reply}/>);
+ await screen.findByText('历史记录99');await say('你好');await screen.findByText('百条窗口后的本轮回复');
+ await waitFor(()=>expect(screen.getByRole('button',{name:'＋ 新对话'})).toBeEnabled());
+ expect(api.state().conversation).toHaveLength(100);expect(api.state().revision-initial).toBeLessThan(12);expect(reply).toHaveBeenCalledOnce();
+ expect(new Set(api.state().conversation?.map(m=>m.id)).size).toBe(100);
+});
 it('分流失败在用户消息旁给出说明和重试入口，重试成功才启动回复',async()=>{
  server();const user=userEvent.setup();
  const route=vi.fn<typeof routeWorkspacePrompt>().mockRejectedValueOnce(new Error('模型服务未返回有效内容')).mockImplementation(async text=>({parts:[{taskId:null,kind:'general',title:'闲聊',text}]}));

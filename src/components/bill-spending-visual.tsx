@@ -7,7 +7,7 @@ import './bill-spending-visual.css';
 
 type Props={
  bill:BillAnalysis;disabled?:boolean;selectedCategory?:string;onSelectCategory?:(category:string)=>void;
- onInspect?:(focus:BillFocus)=>void;stewardName?:string;showOverview?:boolean;showCategories?:boolean;showTrend?:boolean;
+ onInspect?:(focus:BillFocus)=>void;stewardName?:string;showOverview?:boolean;showCategories?:boolean;showTrend?:boolean;showCategoryDetails?:boolean;
 };
 
 const categoryColors:Record<string,string>={
@@ -27,7 +27,7 @@ function share(amount:number,total:number){
 }
 
 /** A view of the verified analysis, never a second ledger or model-generated chart. */
-export function BillSpendingVisual({bill,disabled=false,selectedCategory='',onSelectCategory,onInspect,stewardName='宁宁',showOverview=true,showCategories=true,showTrend=false}:Props){
+export function BillSpendingVisual({bill,disabled=false,selectedCategory='',onSelectCategory,onInspect,stewardName='宁宁',showOverview=true,showCategories=true,showTrend=false,showCategoryDetails=true}:Props){
  const scope=[bill.from,bill.to,...bill.sources].join(':');
  const [expansion,setExpansion]=useState({scope:'',open:false});
  const expanded=expansion.scope===scope&&expansion.open;
@@ -66,7 +66,7 @@ export function BillSpendingVisual({bill,disabled=false,selectedCategory='',onSe
     {categories.length>3&&<button type="button" className="bill-visual-expand" disabled={disabled} aria-controls={categoriesId} aria-expanded={expanded} onClick={()=>setExpansion({scope,open:!expanded})}>{expanded?'收起分类':`展开全部 ${categories.length} 类`}<ChevronDown size={15} aria-hidden="true"/></button>}
    </>:<p className="bill-visual-note">未返回消费类支出，暂不展示消费构成。</p>}
    <div id={detailId}>
-    {selected&&<section className="bill-visual-evidence" aria-label={`${selected.name}交易`}>
+    {selected&&showCategoryDetails&&<section className="bill-visual-evidence" aria-label={`${selected.name}交易`}>
      <div className="bill-visual-heading"><h3>{selected.name}交易</h3><span>{purchases.length} 笔{purchases.length>3?' · 最近 3 笔':''}</span></div>
      {purchases.length>0?<ul>{purchases.slice(0,3).map(row=><li key={`${row.providerKey}:${row.id}`}><button type="button" disabled={disabled||!onInspect} aria-label={`请${stewardName}解释${row.title} ${formatCny(-row.amount)}`} onClick={()=>onInspect?.({provider:row.providerKey,id:row.id})}>
       <ReceiptText size={16} aria-hidden="true"/><span><strong>{row.title}</strong><small>{row.occurredAt} · {row.providerName}</small></span><b>{formatCny(-row.amount)}</b><ChevronRight size={14} aria-hidden="true"/>

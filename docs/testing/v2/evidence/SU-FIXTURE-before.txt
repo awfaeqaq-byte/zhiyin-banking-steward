@@ -1,0 +1,243 @@
+2026-10-21T16:36:49.477Z
+[可见页面]
+订阅与续费
+
+跨平台识别、提前提醒，需要时再取消
+
+查看近期资金安排
+已为你整理
+已识别 4 项自动续费
+
+来自已授权的支付宝、微信支付账户
+
+14 天内续费
+2 项
+预计扣款
+¥25
+可能重复
+0 项
+续费提醒
+
+饿了么超级吃货卡 距离扣费还有 8 天，另有 1 项即将续费。
+
+全部自动续费
+
+提醒可单独关闭，不影响服务本身。
+
+支
+饿了么超级吃货卡
+
+饿了么 · 支付宝
+
+¥10
+/ 月
+8 天后扣费
+10月30日
+即将续费
+续费前提醒
+取消自动续费
+微
+黑胶VIP会员包月
+
+网易云音乐主站 · 微信支付
+
+¥15
+/ 月
+10 天后扣费
+11月1日
+即将续费
+续费前提醒
+取消自动续费
+微
+中国联通话费自动交费
+
+广东联通 · 微信支付
+
+¥100
+/ 月
+31 天后扣费
+11月22日
+已排期
+续费前提醒
+取消自动续费
+支
+优酷VIP会员连续包月
+
+优酷 · 支付宝
+
+¥25
+/ 月
+31 天后扣费
+11月22日
+已排期
+续费前提醒
+取消自动续费
+
+识别结果来自你授权的自动扣费数据。知银不会在未经确认时修改任何签约。
+
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 8, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 00:36
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		133 container 知银
+			134 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				374 container root
+					375 container
+						376 button 返回
+							377 image
+						378 heading 订阅与续费, Value: 1
+							379 text 订阅与续费
+						380 text 跨平台识别、提前提醒，需要时再取消
+						381 button 查看近期资金安排
+						382 container 自动续费概览
+							383 text 已为你整理
+							384 heading 已识别 4 项自动续费, Value: 2
+								385 text 已识别  4  项自动续费
+							386 container
+								387 text 来自已授权的 支付宝、微信支付 账户
+							388 text 14  天内续费
+							389 container
+								390 text 2  项
+							391 text 预计扣款
+							392 text ¥25
+							393 text 可能重复
+							394 container
+								395 text 0  项
+						396 container 续费提醒
+							397 heading 续费提醒, Value: 2, ID: renewal-reminder-title
+								398 text 续费提醒
+							399 container
+								400 text 饿了么超级吃货卡  距离扣费还有 8 天 ，另有 1 项即将续费。
+						401 heading 全部自动续费, Value: 2
+							402 text 全部自动续费
+						403 text 提醒可单独关闭，不影响服务本身。
+						404 heading 饿了么超级吃货卡, Value: 3
+							405 text 饿了么超级吃货卡
+						406 container
+							407 text 饿了么  ·  支付宝
+						408 text ¥10
+						409 text /  月
+						410 text 8 天后扣费
+						411 text 10月30日 即将续费
+						412 container
+							413 image
+							414 text 续费前提醒
+							415 switch Description: 饿了么超级吃货卡续费提醒, Value: 1
+						416 button 取消饿了么超级吃货卡自动续费
+							417 text 取消自动续费
+							418 image
+						419 heading 黑胶VIP会员包月, Value: 3
+							420 text 黑胶VIP会员包月
+						421 container
+							422 text 网易云音乐主站  ·  微信支付
+						423 text ¥15
+						424 text /  月
+						425 text 10 天后扣费
+						426 text 11月1日 即将续费
+						427 container
+							428 image
+							429 text 续费前提醒
+							430 switch Description: 黑胶VIP会员包月续费提醒, Value: 1
+						431 button 取消黑胶VIP会员包月自动续费
+							432 text 取消自动续费
+							433 image
+						434 heading 中国联通话费自动交费, Value: 3
+							435 text 中国联通话费自动交费
+						436 container
+							437 text 广东联通  ·  微信支付
+						438 text ¥100
+						439 text /  月
+						440 text 31 天后扣费
+						441 text 11月22日 已排期
+						442 container
+							443 image
+							444 text 续费前提醒
+							445 switch Description: 中国联通话费自动交费续费提醒, Value: 1
+						446 button 取消中国联通话费自动交费自动续费
+							447 text 取消自动续费
+							448 image
+						449 heading 优酷VIP会员连续包月, Value: 3
+							450 text 优酷VIP会员连续包月
+						451 container
+							452 text 优酷  ·  支付宝
+						453 text ¥25
+						454 text /  月
+						455 text 31 天后扣费
+						456 text 11月22日 已排期
+						457 container
+							458 image
+							459 text 续费前提醒
+							460 switch Description: 优酷VIP会员连续包月续费提醒, Value: 1
+						461 button 取消优酷VIP会员连续包月自动续费
+							462 text 取消自动续费
+							463 image
+						464 image
+						465 text 识别结果来自你授权的自动扣费数据。知银不会在未经确认时修改任何签约。
+					466 container 主导航
+						467 button 管家
+							468 image
+							469 text 管家
+						470 button 资产
+							471 image
+							472 text 资产
+						473 button 财富
+							474 image
+							475 text 财富
+						476 button 卡片
+							477 image
+							478 text 卡片
+						479 button 我的
+							480 image
+							481 text 我的
+		93 container
+			94 text 0:30
+			95 text 10月22日 周四
+			96 text 暂无通知消息
+			97 text 中国电信HD | 中国联通HD
+			98 text 10月22日 周四
+			99 image signal
+			100 image wifi
+			101 text 78 %
+			102 container battery
+			256 button Wi‑Fi
+				257 container Xiaomi_AX3
+					258 container
+						259 text Xiaomi_AX3 Xiaomi_AX3
+				260 text 已连接
+			261 button 移动数据
+				262 container 中国联通
+					263 text 中国联通
+				264 text 已开启
+			112 text 暂无播放
+			113 button 蓝牙
+			114 button 飞行模式
+			115 button 静音
+			116 button 手电筒
+			117 button 截屏
+			118 button 省电模式
+			119 button 投屏
+			120 button 旋转锁定
+			121 button 相册
+			122 button 设置
+			123 button 显示
+				124 text A
+			125 button NFC
+				126 text N
+			127 button 票证
+			128 button 护眼
+			129 button 定位
+			130 button 深色
+			131 button 编辑
+	373 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 134 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

@@ -1,6 +1,7 @@
 import {useId,useState,type ReactNode} from 'react';
 import {ArrowRight,ChevronRight,ReceiptText,MessageCircle} from 'lucide-react';
 import type {BillAnalysis} from '../lib/bill-analysis';
+import {monthlyBillExpenses} from '../lib/bill-reply-grounding';
 import {formatCny} from '../lib/financial-connections';
 import type {BillFocus} from '../lib/steward-ui';
 import {Button} from './ui/button';
@@ -23,6 +24,7 @@ export function BillAnalysisCard({bill,stewardName='宁宁',loading=false,error=
  const category=onCategoryChange?(selectedCategory||''):(localCategory.scope===scope?localCategory.name:'');
  const panelId=useId();
  const ready=!error&&!loading&&!bill.needsClarification&&bill.sources.length>0&&bill.count>0;
+ const monthly=bill.from.slice(0,7)!==bill.to.slice(0,7)?monthlyBillExpenses(bill):[];
  const largest=bill.largest[0];
  const frozen=disabled||loading||Boolean(error);
  function selectCategory(name:string){setLocalCategory({scope,name});onCategoryChange?.(name);}
@@ -37,6 +39,7 @@ export function BillAnalysisCard({bill,stewardName='宁宁',loading=false,error=
   <div id={panelId} className="bill-card-view">
    {ready&&currentView==='overview'&&<>
     {bill.coverageIncomplete&&<p className="bill-card-limitation">{bill.coverage}</p>}
+   {monthly.length>0&&<section className="bill-card-structure" aria-label="逐月消费小计"><h3>逐月消费小计</h3><ul>{monthly.map(({month,amount})=><li key={month}><span>{month}</span><strong>{formatCny(amount)}</strong></li>)}</ul><p className="task-card-note">仅按已返回记录计算；未列出月份不代表零消费，各月小计不代表完整月账单。退款、转账不抵扣消费。</p></section>}
     <BillSpendingVisual bill={bill} disabled={frozen} selectedCategory={category} onSelectCategory={selectCategory} onInspect={onInspect} stewardName={stewardName}/>
     {!category&&largest&&<div className="bill-card-largest"><h3>最大一笔消费</h3><button disabled={frozen} aria-label={`请${stewardName}解释${largest.title} ${formatCny(-largest.amount)}`} onClick={()=>onInspect({provider:largest.providerKey,id:largest.id})}><span className="bill-card-receipt"><ReceiptText size={18} aria-hidden="true"/></span><span><strong>{largest.title}</strong><small>{largest.occurredAt.slice(5)} · {largest.providerName}</small></span><strong>{formatCny(-largest.amount)}</strong><ChevronRight size={16} aria-hidden="true"/></button></div>}
     <details className="bill-card-disclosure bill-card-trend"><summary>查看前期对照{!bill.coverageIncomplete&&bill.diagnosis.trend?` · ${bill.diagnosis.trend.changePercent===0?'持平':`${bill.diagnosis.trend.changePercent>0?'增加':'减少'} ${Math.abs(bill.diagnosis.trend.changePercent)}%`}`:' · 暂无可比数据'}</summary><BillSpendingVisual bill={bill} showOverview={false} showCategories={false} showTrend/></details>

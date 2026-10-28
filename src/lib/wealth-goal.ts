@@ -20,7 +20,7 @@ export function readSavedWealthGoal(storage:Pick<Storage,'getItem'>=localStorage
     if(!numeric(value.target)||!numeric(value.current)||!numeric(value.months))return null;
     const target=Number(value.target),current=Number(value.current),months=Number(value.months);
     if(typeof value.name!=='string'||!value.name.trim()||value.name.length>20||!buildWealthGoalPlan(target,current,months)||typeof value.savedAt!=='number'||!Number.isFinite(value.savedAt)||value.savedAt<0)return null;
-    return {name:value.name,target,current,months:Math.round(months),savedAt:value.savedAt};
+    return {name:value.name,target,current,months,savedAt:value.savedAt};
   }catch{return null;}
 }
 
@@ -31,8 +31,8 @@ const assumptions=[
 ] as const;
 
 export function buildWealthGoalPlan(target:number,current:number,months:number):WealthGoalPlan|null{
-  if(!Number.isFinite(target)||!Number.isFinite(current)||!Number.isFinite(months)||target<=0||current<0||months<1||months>360)return null;
-  const cleanMonths=Math.round(months);
+  if(!Number.isFinite(target)||!Number.isFinite(current)||!Number.isInteger(months)||target<=0||current<0||months<1||months>360)return null;
+  const cleanMonths=months;
   return {target,current,months:cleanMonths,gap:Math.max(0,target-current),scenarios:assumptions.map(item=>{
     const monthlyRate=item.annualRate/12;
     const growth=(1+monthlyRate)**cleanMonths;

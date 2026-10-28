@@ -29,6 +29,33 @@ async function answer(user:ReturnType<typeof userEvent.setup>,choice='0'){
 }
 
 describe('理财操作页面端到端沙箱场景',()=>{
+ it('首页续聊带来的产品、金额和期限覆盖旧试算，生成方案后仍需本人确认',async()=>{
+  const store=mockServer(),user=userEvent.setup(),consumed=vi.fn();
+  store.assess({experience:0,loss:0,term:0,liquidity:0,income:0});
+  const entry={productId:'cash-plus',amount:10000,term:0};
+  render(<WealthConversationProvider initialPlan={{amountYuan:30000,termMonths:12}}><WealthOperationMvp entry={entry} onEntryConsumed={consumed}/></WealthConversationProvider>);
+  const prepare=await screen.findByRole('button',{name:'生成待确认申购方案'});
+  await vi.waitFor(()=>expect(prepare).toBeEnabled());
+  await user.click(prepare);
+  const dialog=await screen.findByRole('dialog',{name:'请核对并确认申购'});
+  expect(within(dialog).getByText('灵活现金管理')).toBeVisible();
+  expect(within(dialog).getByText('¥100.00')).toBeVisible();
+  expect(store.get().cashBalance).toBe(4230000);expect(store.get().holdings).toHaveLength(0);
+  expect(consumed).toHaveBeenCalledOnce();
+ });
+ it('首页指定持仓只准备原编号的赎回，取消核对和刷新不会换成另一笔或自动执行',async()=>{
+  const store=mockServer(),user=userEvent.setup(),consumed=vi.fn();
+  store.assess({experience:0,loss:0,term:0,liquidity:0,income:0});
+  store.confirm(store.prepare({productId:'cash-plus',amount:10000,term:0}).id);
+  const target=store.confirm(store.prepare({productId:'cash-plus',amount:20000,term:0}).id);
+  render(<WealthOperationMvp entry={{holdingId:target.id}} onEntryConsumed={consumed}/>);
+  const dialog=await screen.findByRole('dialog',{name:'请核对并确认赎回'});
+  expect(dialog).toHaveTextContent('全额赎回 ¥200.00');
+  await user.click(within(dialog).getByRole('button',{name:'取消'}));
+  act(()=>window.dispatchEvent(new Event('zhiyin-wealth-updated')));
+  expect(store.get().holdings?.every(item=>!item.redeemedAt)).toBe(true);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(consumed).toHaveBeenCalledOnce();
+ });
  it('外部风险测评入口读取原记录后直达问卷，只消费一次，不覆盖手动返回',async()=>{
   const store=mockServer(),user=userEvent.setup(),consumed=vi.fn();
   store.assess({experience:2,loss:2,term:2,liquidity:2,income:2});

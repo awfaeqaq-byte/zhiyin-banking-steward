@@ -62,6 +62,28 @@ function adviceDate(value:unknown):number {
  throw new Error('建议日期无法核对，请明确日期和时间后重试');
 }
 export async function requestOccasionAdvice(prompt:string,draft:Partial<OccasionDraft>,memory:string,history:Array<{role:'user'|'assistant';content:string}>=[],sceneContext?:SceneContext):Promise<OccasionAdvice>{
+ if(/取消/.test(prompt)&&/退回|退款/.test(prompt)&&/仅咨询|只问|不执行|是否|吗/.test(prompt))return {text:'取消筹备只释放尚未使用的预留资金。已支付订单不会随取消自动退款，需另外核对订单并申请退款，到账以退款回执为准。本次仅咨询，未取消、退款或修改草案。',patch:{}};
+ const ask=(text:string):OccasionAdvice=>({text,patch:{},questions:[text]});
+ if(/农历|阴历/.test(prompt)&&!/公历\s*\d{4}/.test(prompt))return ask('当前方案只接受公历日期。请核对历法并提供具体公历年月日和送达时刻，我不会自行把农历日期当成公历。');
+ if(/提前[两二2]天(?:安排好|安排|准备好)/.test(prompt)&&!/筹备|送达|送到/.test(prompt))return ask('“提前两天”指开始筹备，还是提前送达？请分别确认筹备时刻和生日当天送达时刻。');
+ if(/(?:两|二|[2-9])(?:份|个|束).{0,12}(?:蛋糕|花)|(?:蛋糕|花束).{0,5}(?:两|二|[2-9])(?:份|个|束)/.test(prompt))return ask('当前目录每种商品只支持一件，不能把两份静默改成一份。是否接受一份蛋糕和一束花，或重新选择不同商品？');
+ if(/(?:电话|手机|号码).{0,8}(?:尾|后)(?:四|4)位/.test(prompt)&&!/(?<!\d)1\d{10}(?!\d)/.test(prompt))return ask('电话尾号不足以配送，请提供完整的虚构收件手机号码；不会自行补齐前七位。');
+ const onlyProducts=/(?:只|仅)(?:要|留|保留|选择|改|调整|修改|移除|删除|去掉)|不要(?:蛋糕|鲜花|花束)/.test(prompt)&&/花束|玫瑰|鲜花|蛋糕|商品/.test(prompt)&&!/(?:改|调整).{0,8}(?:日期|时间|地址|电话)|预算|金额/.test(prompt);
+ if(onlyProducts){
+  let ids=[...(draft.productIds??[])];
+  const positive=prompt.split(/[，,；;]/).find(part=>/只(?:要|留|保留)/.test(part))??prompt;
+  if(/只(?:要|留|保留).{0,8}(?:轻甜|鲜果|蛋糕)/.test(positive))ids=[/巧克力/.test(positive)?'cake-chocolate':'cake-light'];
+  else if(/只(?:要|留|保留).{0,8}(?:粉玫瑰|玫瑰|花束|鲜花)/.test(positive))ids=[/时令/.test(positive)?'flowers-seasonal':'flowers-roses'];
+  else if(/(?:不要|去掉|移除|删除).{0,5}(?:蛋糕)/.test(prompt))ids=ids.filter(id=>!id.startsWith('cake-'));
+  else if(/(?:不要|去掉|移除|删除).{0,5}(?:鲜花|花束|玫瑰)/.test(prompt))ids=ids.filter(id=>!id.startsWith('flowers-'));
+  else if(/一份.*蛋糕.*一束.*花/.test(prompt))ids=['cake-light','flowers-roses'];
+  if(ids.length)return {text:`本次只更新商品，含配送合计${(occasionQuote({productIds:ids})/100).toFixed(2)}元；预算、对象、日期和收件信息保持原值。尚未保存、预留或付款。`,patch:{productIds:ids}};
+ }
+ const phone=prompt.match(/(?<!\d)1\d{10}(?!\d)/)?.[0];
+ if(phone&&/电话|手机|号码/.test(prompt)&&!/日期|预算|送达|筹备时间|地址/.test(prompt)){
+  const name=draft.contact?.replace(/1\d{10}|(?:尾|后)(?:四|4)位\s*\d{4}/g,'').trim()||prompt.match(/收件人(?:仍|是|为)?\s*([^，。；\d]{1,20})/)?.[1]?.trim()||'';
+  return {text:'完整收件号码已填入当前草案，准备对象和其他字段保持原值。请核对后保存，尚未保存或预留资金。',patch:{contact:`${name} ${phone}`.trim()}};
+ }
  const now=Date.now();
  const context=JSON.stringify({now:new Date(now+8*3600000).toISOString().slice(0,19)+'+08:00',timeZone:'Asia/Shanghai',draft,products:occasionProducts,memory:memory.slice(0,1500)});
  const shared=formatSceneContext(sceneContext,3500);
@@ -77,9 +99,35 @@ export async function requestOccasionAdvice(prompt:string,draft:Partial<Occasion
  while(new TextEncoder().encode(body).byteLength>31*1024&&recent.length){recent.shift();request.input=[...contextMessages,...sharedMessages,...recent,{role:'user',content:prompt.slice(0,2000)}];body=JSON.stringify(request);}
  if(new TextEncoder().encode(body).byteLength>31*1024)throw new Error('筹备资料过长，请精简补充说明后重试；当前方案已保留');
  const response=await fetch('/api/zhiyin/steward-reply',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(45000),body});const data=await response.json();if(!response.ok||typeof data.output_text!=='string')throw new Error(data.error||'暂时无法整理，请保留输入后重试');
- const result=JSON.parse(data.output_text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'')) as OccasionAdvice;
+ let result:OccasionAdvice;
+ try{result=JSON.parse(data.output_text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'')) as OccasionAdvice;}
+ catch{return {text:'暂时未能整理成可核对的草案，当前草案未变更。请重试或在表单中编辑；没有预留、下单或付款。',patch:{}};}
  if(!result||typeof result.text!=='string'||result.text.length>3000)throw new Error('建议格式无法核对，请重试');
- const patch=result.patch;
+ const patch=result.patch?{...result.patch}:{};
+ if(phone&&/电话|手机|号码/.test(prompt)){
+  const contactName=prompt.match(/(?:收件人|收货人|联系人)(?:仍|是|为|[:：])?\s*([^，,；;。\d]{1,20})/)?.[1]?.trim()||draft.contact?.replace(/1\d{10}/g,'').trim()||'';
+  patch.contact=`${contactName} ${phone}`.trim();
+ }
+ for(const key of ['prepareAt','deliverAt'] as const)if(patch[key]!==undefined){const value=adviceDate(patch[key]);if(key==='deliverAt'&&(value<=now||value>now+366*86400000))throw new Error('请核对建议日期：送达须在未来一年内');}
+ if(patch.prepareAt!==undefined&&patch.deliverAt!==undefined&&adviceDate(patch.prepareAt)>adviceDate(patch.deliverAt))throw new Error('请核对建议日期：筹备不能晚于送达');
+ // A product-only change cannot import dates, budgets or addresses from old turns.
+ const productOnly=onlyProducts;
+ if(productOnly)for(const key of Object.keys(patch))if(key!=='productIds')delete patch[key as keyof OccasionDraft];
+ // A patch must be limited to the fields requested THIS turn. Existing values
+ // are authoritative; model restatements are not permission to rewrite them.
+ if(!/日期|时间|筹备|送达|送到|配送|后一天|提前|生日|\d{1,2}月|\d{4}-\d{2}/.test(prompt)||/时间不变|日期不变/.test(prompt)){delete patch.prepareAt;delete patch.deliverAt;}
+ if(draft.recipient&&!/为谁|准备对象|改.{0,5}对象|对象(?:是|为)|为.{1,15}(?:准备|安排)/.test(prompt))delete patch.recipient;
+ if(draft.budget&&!/预算|金额|(?:改|调整|更正).{0,8}\d+(?:\.\d+)?\s*(?:元|块)?/.test(prompt))delete patch.budget;
+ if(draft.address&&!/地址|送到|收货/.test(prompt))delete patch.address;
+ if(draft.contact&&!/电话|手机|号码|联系人|收件人/.test(prompt))delete patch.contact;
+ // Explicit current-turn dates are authoritative even when the model only mentions
+ // them in prose. Parse local date strings here, never model-calculated timestamps.
+ if(!productOnly)for(const match of prompt.matchAll(/(\d{4})年(\d{1,2})月(\d{1,2})日\s*(\d{1,2})(?:点|时|:)(?:(\d{1,2})分?)?/g)){
+   const after=prompt.slice(match.index!+match[0].length,match.index!+match[0].length+10);
+   const before=prompt.slice(Math.max(0,match.index!-8),match.index);
+   const key=/送达/.test(after)?'deliverAt':/准备|筹备/.test(after)?'prepareAt':/送达/.test(before)?'deliverAt':/准备|筹备/.test(before)?'prepareAt':undefined;
+   if(key)patch[key]=adviceDate(`${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}T${match[4].padStart(2,'0')}:${(match[5]||'00').padStart(2,'0')}`);
+ }
  if(patch){if(typeof patch!=='object'||Array.isArray(patch))throw new Error('方案格式无效');for(const key of Object.keys(patch))if(!['title','recipient','budget','prepareAt','deliverAt','address','contact','note','productIds'].includes(key))throw new Error('方案含不支持字段');
   if(patch.budget!==undefined&&(!Number.isSafeInteger(patch.budget)||patch.budget<=0))throw new Error('金额无效');
   for(const key of ['prepareAt','deliverAt'] as const)if(patch[key]!==undefined)patch[key]=adviceDate(patch[key]);
@@ -88,5 +136,7 @@ export async function requestOccasionAdvice(prompt:string,draft:Partial<Occasion
   for(const key of ['title','recipient','address','contact','note'] as const)if(patch[key]!==undefined&&(typeof patch[key]!=='string'||patch[key]!.length>500))throw new Error('方案文字过长');
   if(patch.productIds!==undefined){if(!Array.isArray(patch.productIds)||patch.productIds.length>4||new Set(patch.productIds).size!==patch.productIds.length)throw new Error('商品建议无效');selectedOccasionProducts({productIds:patch.productIds});}
  }
- return {text:result.text,...(patch?{patch}:{}),questions:Array.isArray(result.questions)?result.questions.filter(q=>typeof q==='string'&&q.length<=80).slice(0,3):[]};
+ const actualDates=patch.prepareAt!==undefined||patch.deliverAt!==undefined?`\n草案已核对：${patch.prepareAt!==undefined?`筹备${new Date(patch.prepareAt+8*3600000).toISOString().slice(0,16).replace('T',' ')}`:''}${patch.deliverAt!==undefined?`；送达${new Date(patch.deliverAt+8*3600000).toISOString().slice(0,16).replace('T',' ')}`:''}（北京时间）。`:'';
+ const productText=productOnly?`本次只更新商品：${selectedOccasionProducts({productIds:patch.productIds??draft.productIds??[]}).map(p=>p.name).join('、')}，含配送估算${(occasionQuote({productIds:patch.productIds??draft.productIds??[]})/100).toFixed(2)}元。其他草案字段保持原值，尚未保存、预留或付款。`:result.text;
+ return {text:productText.replace(/已(?:经)?(?:保存|预留|下单|付款|支付)(?:成功)?/g,'尚未执行保存、预留、下单或付款')+actualDates,patch,questions:Array.isArray(result.questions)?result.questions.filter(q=>typeof q==='string'&&q.length<=80).slice(0,3):[]};
 }

@@ -13,8 +13,16 @@ always empty when loaded. An empty key preserves the existing key; changing the
 provider origin requires a replacement key. Keys are never returned by GET or
 POST responses and are not written to browser storage.
 
-The server writes `.sandbox-model.local.json` atomically with owner-only `0600`
-permissions. This ignored private file overrides the existing
+The server writes `.sandbox-model.local.json` atomically. On POSIX systems, new
+files use owner-only `0600` permissions. On Windows, the temporary file is created
+with a protected ACL granting FullControl only to the current user, then written
+through the same unshared handle before replacement. Windows PowerShell is
+required for this operation; if it is unavailable or permission setup fails,
+saving fails and the previous configuration remains unchanged. Existing files
+receive these permissions when next saved. Keys are passed to the Windows helper
+through stdin, never through command arguments or environment variables.
+
+This ignored private file overrides the existing
 `WECHAT_CONTACT_CHAT_*` environment defaults. It must not be committed or copied
 to public assets. Vite's filesystem deny rules block both the private file and
 its temporary files. Corrupt private configuration fails closed.

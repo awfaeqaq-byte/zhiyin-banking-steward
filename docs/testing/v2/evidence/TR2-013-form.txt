@@ -1,0 +1,120 @@
+Browser tab: 7, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 00:14
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		142 container 知银
+			143 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				144 container
+					145 container 管家处理现场
+						146 container 与宁宁对话
+							147 container steward-records
+								148 text 你
+								149 text 从8888给妈妈转10元，转账附言写十月房租。
+								150 text 宁宁
+								151 text AI
+								152 text 宁宁
+								153 text 从常用卡 8888 转出后，按当前余额测算还剩 ¥42,290。目前没有查到给这位收款人的同路径转账。已记录备注“十月房租”；打开核对后仍需独立确认，尚未付款。
+								154 text 你
+								155 text 接受核对
+								156 text 宁宁
+								157 text AI
+								158 text 宁宁
+								159 text 已打开转账核对。请再选择付款账户、填写或跳过备注，核对转后余额和上次同路径记录；最终确认前不会扣款。
+					160 container 智能转账, ID: radix-:r18:
+						161 heading 智能转账, Value: 2, ID: radix-:r19:
+							162 text 智能转账
+						163 text 转账、预约和AA收款 · 常用卡8888 · 沙箱资金
+						164 button 关闭
+						165 container 转账功能
+							166 checkbox 转账, Value: 1
+							167 checkbox AA收款, Value: 0
+							168 checkbox 记录, Value: 0
+						169 container 转账安排
+							170 container
+								171 text 从哪个账户转出
+								172 pop up button (collapsed, settable) 从哪个账户转出, Value: 银行沙箱常用卡 · 8888, Secondary Actions: Expand
+									173 menu
+										174 请选择付款账户
+										175 (selected) 银行沙箱常用卡 · 8888
+							176 container
+								177 text 查找收款人
+								178 text field (settable) 查找收款人
+							179 container
+								180 text 收款人
+								181 pop up button (collapsed, settable) 收款人, Value: 妈妈 · 尾号 6621 · 母亲 家人, Secondary Actions: Expand
+									182 menu
+										183 (disabled) 请选择匹配的账户
+										184 (selected) 妈妈 · 尾号 6621 · 母亲 家人
+										185 爸爸 · 尾号 7316 · 父亲 家人
+										186 张三 · 尾号 8000 · 同事 产品经理
+										187 李四 · 尾号 1111 · 同事
+										188 王五 · 尾号 5678 · 朋友
+							189 container
+								190 text 转账金额（元）
+								191 text field (settable) 转账金额（元）, Value: 10
+							192 container
+								193 text 转账原因或备注（选填）
+								194 text field (settable) 转账原因或备注（选填）, Value: 十月房租
+							195 button (collapsed) 给妈妈的历史转账（0笔）, Secondary Actions: Expand
+								196 text 给
+								197 text 妈妈
+								198 text 的历史转账（
+								199 text 0
+								200 text 笔）
+							201 container
+								202 text 转账后至少保留（元）
+								203 text field (settable) 转账后至少保留（元）
+							204 container
+								205 text 执行方式
+								206 pop up button (collapsed, settable) 执行方式, Value: 立即转账, Secondary Actions: Expand
+									207 menu
+										208 (selected) 立即转账
+										209 定时转账
+							210 text 从常用卡 8888 转出，仅支持已登记收款账户。联系人手机号不等于银行账号。
+							211 button 核对即时转账
+		93 container
+			94 text 23:46
+			95 text 10月21日 周三
+			96 text 暂无通知消息
+			97 text 中国电信HD | 中国联通HD
+			98 text 10月21日 周三
+			99 image signal
+			100 image wifi
+			101 text 78 %
+			102 container battery
+			133 button Wi‑Fi
+				134 container Xiaomi_AX3
+					135 container
+						136 text Xiaomi_AX3 Xiaomi_AX3
+				137 text 已连接
+			138 button 移动数据
+				139 container 中国联通
+					140 text 中国联通
+				141 text 已开启
+			112 text 暂无播放
+			113 button 蓝牙
+			114 button 飞行模式
+			115 button 静音
+			116 button 手电筒
+			117 button 截屏
+			118 button 省电模式
+			119 button 投屏
+			120 button 旋转锁定
+			121 button 相册
+			122 button 设置
+			123 button 显示
+				124 text A
+			125 button NFC
+				126 text N
+			127 button 票证
+			128 button 护眼
+			129 button 定位
+			130 button 深色
+			131 button 编辑
+	132 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 164 button 关闭

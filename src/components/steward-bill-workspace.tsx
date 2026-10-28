@@ -73,6 +73,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
   const [category,setCategory]=useState(selectedCategory||'');
   const [focus,setFocus]=useState<BillFocus|undefined>(selectedFocus);
   const [expanded,setExpanded]=useState(false);
+  const [recordsOpened,setRecordsOpened]=useState(Boolean(selectedCategory));
   useEffect(()=>{setProvider(billProvider(question));},[question]);
   useEffect(()=>{setCategory(selectedCategory||'');setExpanded(false);},[question,selectedCategory]);
   useEffect(()=>{setFocus(selectedFocus);},[question,selectedFocus]);
@@ -82,7 +83,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
   const frozen=disabled||unavailable;
   const sections=ui?.sections||['overview','categories'];
   const purchases=bill.transactions.filter(t=>t.amount<0&&t.kind!=='transfer');
-  const filtered=compact&&category?purchases.filter(t=>t.category===category):bill.transactions;
+  const filtered=category?purchases.filter(t=>t.category===category):bill.transactions;
   const selected=bill.transactions.find(t=>t.id===focus?.id&&t.providerKey===focus.provider);
   const rows=filtered.slice(0,expanded?100:4);
   function switchSource(id?:ExternalFinancialProvider) {
@@ -90,6 +91,7 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
     onViewChange?.({question:billScopeQuestion(question,id),...(id?{provider:id}:{})});
   }
   function selectCategory(next:string) {
+    setRecordsOpened(true);
     setCategory(next);setFocus(undefined);setExpanded(false);
     onViewChange?.({question:scopedQuestion,provider,...(next?{category:next}:{})});
   }
@@ -100,8 +102,8 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
   }
   function transactions() {
     return <div className="bill-scene-transactions">
-      <div className="bill-scene-list-heading"><h3>{compact&&category?`${category}消费`:'全部交易'}</h3><span>{filtered.length} 笔</span></div>
-      {compact&&category&&<button disabled={frozen} className="bill-scene-link" onClick={()=>selectCategory('')}>查看全部记录</button>}
+      <div className="bill-scene-list-heading"><h3>{category?`${category}消费`:'全部交易'}</h3><span>{filtered.length} 笔</span></div>
+      {category&&<button disabled={frozen} className="bill-scene-link" onClick={()=>selectCategory('')}>查看全部记录</button>}
       <ul>{rows.map(row=>{
         const incoming=row.amount>0;
         const kind=row.kind==='transfer'?(incoming?'转入':'转出'):row.kind==='refund'&&incoming?'退款':incoming?'入账':row.amount<0?'消费':'其他收支';
@@ -126,8 +128,8 @@ export function StewardBillWorkspace({question,connections,ui,onInteract,onViewC
       {providers.map(p=><button key={p.id} aria-label={`只看${p.name}`} aria-pressed={provider===p.id} disabled={frozen} onClick={()=>switchSource(p.id)}>{p.name}</button>)}
     </div>
     {error?<p className="bill-ui-error" role="alert">{error}。金额待核对，暂不使用旧记录继续分析。</p>:loading?<p className="bill-ui-note" role="status"><LoaderCircle size={16} className="spin"/>正在核对账单数据…</p>:bill.needsClarification?<p className="bill-ui-note">需要先确认准确的月份或日期范围。</p>:!bill.sources.length?<div className="bill-scene-empty"><p>需要账单读取授权，才能继续分析这个范围。</p>{onRequestConnection&&<Button onClick={()=>onRequestConnection(provider)} disabled={disabled}>核对读取范围</Button>}</div>:!bill.count?<p className="bill-ui-note">这段时间未返回交易记录，不代表没有消费。可以换个平台或告诉我另一段时间。</p>:<>
-      {!compact&&<BillSpendingVisual bill={bill} disabled={frozen} selectedCategory={category} onSelectCategory={selectCategory} onInspect={inspectTransaction} stewardName={stewardName} showOverview={sections.includes('overview')} showCategories={sections.includes('categories')} showTrend={sections.includes('trend')}/>}
-      {(compact||sections.includes('transactions'))&&transactions()}
+      {!compact&&<BillSpendingVisual showCategoryDetails={false} bill={bill} disabled={frozen} selectedCategory={category} onSelectCategory={selectCategory} onInspect={inspectTransaction} stewardName={stewardName} showOverview={sections.includes('overview')} showCategories={sections.includes('categories')} showTrend={sections.includes('trend')}/>}
+      {(compact||recordsOpened||sections.includes('transactions'))&&transactions()}
       {interpretationChanged&&<p className="bill-ui-note" role="status">查看范围已切换，上面的解读仍对应原范围。</p>}
       {!compact&&<button className="bill-scene-link" disabled={frozen} onClick={()=>onInteract({question:scopedQuestion,provider,...(category?{category}:{})})}>请{stewardName}分析当前账单<ArrowRight size={15} aria-hidden="true"/></button>}
       {selected&&<p className="bill-scene-selection" role="status"><Check size={15} aria-hidden="true"/>已选中「{selected.title}」，可以直接补充。</p>}

@@ -31,7 +31,7 @@ it('自然语言建议填入可编辑方案；保存、手动改预算和商品�
   render(<OccasionPlanner stewardName="宁宁" getMemoryContext={memory} onOpenCalendar={calendar}/>);
   fireEvent.click(await screen.findByRole('button',{name:'准备一个生日'}));
   fireEvent.change(screen.getByLabelText('交给宁宁整理'),{target:{value:'爱人生日，预算1000'}});fireEvent.click(screen.getByRole('button',{name:'整理筹备需求'}));
-  await screen.findByText('低甜蛋糕已整理，地址请核对。');expect(memory).toHaveBeenCalled();
+  await screen.findByText(/低甜蛋糕已整理，地址请核对。/);expect(memory).toHaveBeenCalled();
   expect(screen.queryByRole('button',{name:'换成巧克力'})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'保存筹备方案'}));await screen.findByText('尚未预留资金');
   fireEvent.click(screen.getByText('手动编辑'));fireEvent.click(screen.getByRole('button',{name:'调整商品'}));

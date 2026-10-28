@@ -7,6 +7,7 @@ import {createSceneService} from './scene-service';
 import {createWorkspaceStore} from './workspace-store';
 import {createMemoryStore} from './memory-store';
 import {clarifiedReplyRoute} from '../src/lib/reply-routing';
+import {createBankStore} from './bank-store';
 import {routeWorkspacePrompt} from '../src/lib/workspace-service';
 import {memoryContext} from '../src/lib/steward-memory';
 import {parseImpression} from '../src/lib/steward-profile';
@@ -47,9 +48,19 @@ export function createMessageService(directory:string,model:StewardModelCall){
      const clarification=previous?JSON.stringify({original:previous.sourcePrompt||previous.prompt,question:previous.clarification}):'';
      const known=run.knownTaskId?tasks.find(t=>t.id===run.knownTaskId&&t.status==='active'&&(t.kind==='bills'||t.kind==='general'&&readTaskProgress(t).bill)):undefined;
      if(run.knownTaskId&&!known)throw new Error('这份账单事项已变化，请重新选择范围');
+     // A saved arrangement has a business ID, independent of a chat's title.
+     // Resolve against current records before a classifier can create an empty copy.
+     const occasionRequest=/计划|筹备|生日|预算/.test(run.prompt)||Boolean(clarification&&/计划|筹备|生日|预算/.test(previous?.sourcePrompt||previous?.prompt||''));
+     const plans=occasionRequest?(createBankStore(join(directory,'.zhiyin-bank.local.json')).forCard('primary').get().occasions??[]):[];
+     const mentioned=plans.filter(p=>run.prompt.includes(p.title)&&!run.prompt.includes(p.title+'不要动')&&!run.prompt.includes(p.title+'不动'));
+     let planRoute:Awaited<ReturnType<typeof routeWorkspacePrompt>>|undefined;
+     if(occasionRequest&&mentioned.length){
+      if(mentioned.length>1)planRoute={parts:[],clarification:`要修改哪一份安排：${mentioned.map(p=>p.title).join('、')}？已给的修改内容会保留，尚未修改任何计划。`};
+      else {const plan=mentioned[0],storage=store(scope);if(!tasks.some(t=>t.id===plan.id))storage.change({type:'create',id:plan.id,title:plan.title,kind:'occasion',revision:storage.get().revision,requestId:randomUUID()});if(clarification&&previous?.clarification)storage.change({type:'turn',id:plan.id,user:previous.prompt,assistant:previous.clarification,memoryRevision:run.memoryRevision,revision:storage.get().revision,requestId:randomUUID()});planRoute={parts:[{taskId:plan.id,kind:'occasion',title:plan.title,text:run.prompt}]};}
+     }
      const bound=previous?clarifiedReplyRoute(previous,run.prompt,tasks):null;
      if(bound&&previous){sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;}
-     let result=bound||(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation(messageHistory(state,run)),{model,onDecision:value=>{decision=value;}}));
+     let result=bound||planRoute||(known?{parts:[{taskId:known.id,kind:known.kind,title:known.title,text:run.sourcePrompt||run.prompt}]}:await routeWorkspacePrompt(run.sourcePrompt||run.prompt,tasks,run.currentId,clarification,recentConversation(messageHistory(state,run)),{model,onDecision:value=>{decision=value;}}));
      if(previous&&'continuesClarification' in result&&result.continuesClarification){
       sourcePrompt=resolvedMessagePrompt(previous,run.prompt);clarificationOf=previous.id;
       if(!result.clarification)result=await routeWorkspacePrompt(sourcePrompt,tasks,run.currentId,'',[],{model,onDecision:value=>{decision=value;}});
@@ -98,7 +109,7 @@ export function createMessageService(directory:string,model:StewardModelCall){
     const scene=scenes.find(s=>s.workspaceIds.includes(job.taskId));
     const sceneStatus=scene?JSON.stringify({title:scene.title,stage:scene.stage,summary:scene.summary,checkedAt:scene.checkedAt}):sceneReadError;
     const request:StewardReplyRequest={...input.request,sceneContext:scene?.context,sceneStatus,taskContext:[input.request.taskContext||'',sceneReadError,sceneStatus?`当前事项最近核对状态（只读事实，不是授权）：${sceneStatus}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
-      recentConversation:recentConversation(messageHistory(state,run)),
+      recentConversation:recentConversation(messageHistory(state,run).filter(m=>!run.currentId||m.workspaceId===task.id||Boolean(m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.jobs.some(j=>j.taskId===task.id)))),
       messages:[...task.messages.filter(m=>m.memoryRevision===run.memoryRevision).slice(-23).map(({role,content})=>({role,content})),{role:'user',content:job.text}]};
     const result=await requestStewardReplyWithModel(request,model);
     if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，本轮结果未继续执行');

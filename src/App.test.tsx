@@ -127,6 +127,22 @@ describe("知银交互原型", () => {
     expect(await screen.findByText('尾号 8888：单笔限额已改为 ¥5,000.00')).toBeInTheDocument();
   });
 
+  it('V2 CA2-006 开启境外但不要执行，核对页方向正确且取消不变更',async()=>{
+    const user=userEvent.setup();render(<App/>);
+    await user.type(screen.getByLabelText('告诉宁宁你想办理的事'),'开启境外交易，先不要执行');
+    await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(screen.getByRole('dialog',{name:'确认开启境外交易？'})).toBeInTheDocument();
+    await user.click(screen.getByRole('button',{name:'取消'}));
+    expect(screen.getByRole('switch',{name:'尾号 8888 境外交易'})).not.toBeChecked();
+  });
+  it('V2 CA2-008 未登记卡9999不能打开常用卡挂失面板',async()=>{
+    const user=userEvent.setup();render(<App/>);
+    await user.type(screen.getByLabelText('告诉宁宁你想办理的事'),'请挂失尾号9999的卡');
+    await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText(/没有匹配到可操作的卡片/)).toBeInTheDocument();
+  });
+
   it("长期记忆可保存删除，切换管家保留选择", async () => {
     let memory=emptyMemory();
     const memoryFetch=vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{

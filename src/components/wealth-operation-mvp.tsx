@@ -22,15 +22,15 @@ const questions:[keyof RiskAnswers,string,string[]][]=[
 ];
 const riskName={low:'谨慎型',medium:'稳健型',high:'成长型'};
 
-type WealthOperationProps={initialScreen?:'assessment'|'holdings';onInitialScreenConsumed?:()=>void;amount?:string;term?:string;availableBalance?:number;stewardName?:string;onOpenFund?:(id?:string)=>void;focusProductId?:string;onFocusHandled?:()=>void;onBack?:()=>void};
+type WealthOperationProps={entry?:import('../lib/operation-followup').WealthEntry;onEntryConsumed?:()=>void;initialScreen?:'assessment'|'holdings';onInitialScreenConsumed?:()=>void;amount?:string;term?:string;availableBalance?:number;stewardName?:string;onOpenFund?:(id?:string)=>void;focusProductId?:string;onFocusHandled?:()=>void;onBack?:()=>void};
 export function WealthOperationMvp(props:WealthOperationProps){
-  const initialPlan={...(props.amount?{amountYuan:Number(props.amount)}:{}),...(props.term?{termMonths:Number(props.term)}:{})};
+  const initialPlan={...(props.entry?.amount!==undefined?{amountYuan:props.entry.amount/100}:{}),...(props.entry?.term!==undefined?{termMonths:props.entry.term}:{}),...(props.amount?{amountYuan:Number(props.amount)}:{}),...(props.term?{termMonths:Number(props.term)}:{})};
   return <WealthConversationProvider initialPlan={initialPlan}><WealthOperationContent {...props}/></WealthConversationProvider>;
 }
-function WealthOperationContent({initialScreen,onInitialScreenConsumed,availableBalance,stewardName='宁宁',onOpenFund,focusProductId,onFocusHandled,onBack}:WealthOperationProps){
-  const {plan}=useWealthConversation();
+function WealthOperationContent({entry,onEntryConsumed,initialScreen,onInitialScreenConsumed,availableBalance,stewardName='宁宁',onOpenFund,focusProductId,onFocusHandled,onBack}:WealthOperationProps){
+  const {plan,setPlan}=useWealthConversation();
   const [localFocus,setLocalFocus]=useState<string>();
-  const [screen,setScreen]=useState<'products'|'assessment'|'detail'|'holdings'>(()=>initialScreen==='holdings'?'holdings':'products');
+  const [screen,setScreen]=useState<'products'|'assessment'|'detail'|'holdings'>(()=>entry?.holdingId||initialScreen==='holdings'?'holdings':entry?.productId?'detail':'products');
   const consumedScreen=useRef<typeof initialScreen>();
   const [questionIndex,setQuestionIndex]=useState(0);
   const [snapshot,setSnapshot]=useState<WealthSnapshot|null>(null);
@@ -39,7 +39,7 @@ function WealthOperationContent({initialScreen,onInitialScreenConsumed,available
   const [snapshotError,setSnapshotError]=useState('');
   const readGeneration=useRef({value:0}).current;
   const [answers,setAnswers]=useState<Partial<RiskAnswers>>({});
-  const [selected,setSelected]=useState('');
+  const [selected,setSelected]=useState(entry?.productId??'');
   const [draft,setDraft]=useState<WealthDraft|null>(null);
   const [redemptionDraft,setRedemptionDraft]=useState<RedemptionDraft|null>(null);
   const [receipt,setReceipt]=useState<WealthReceipt|null>(null);
@@ -52,6 +52,7 @@ function WealthOperationContent({initialScreen,onInitialScreenConsumed,available
   const [editingRisk,setEditingRisk]=useState(false);
   const numericAmount=plan.amountYuan??NaN,numericTerm=plan.termMonths??NaN;
   const hasPlan=Number.isFinite(numericAmount)&&numericAmount>0&&Number.isInteger(numericTerm)&&numericTerm>=0;
+  const entryConsumed=useRef<typeof entry>();
   const assessment=snapshot?.assessment&&snapshot.assessment.expiresAt>Date.now()?snapshot.assessment:null;
   const canCompare=Boolean(assessment)&&!editingRisk;
   const products=useMemo(()=>canCompare&&assessment?(hasPlan?suitableWealthProducts(numericAmount,numericTerm,assessment.risk):wealthProducts.filter(product=>product.open&&product.risk<=({low:1,medium:2,high:3}[assessment.risk]))):[],[numericAmount,numericTerm,assessment,canCompare,hasPlan]);
@@ -81,6 +82,22 @@ function WealthOperationContent({initialScreen,onInitialScreenConsumed,available
   async function prepare(){if(!selected||!hasPlan||!snapshotReady)return;setBusy(true);setError('');setReceipt(null);try{setDraft(await wealthRequest<WealthDraft>({type:'prepare',productId:selected,amount:Math.round(numericAmount*100),term:numericTerm}));}catch(value){setError(value instanceof Error?value.message:'方案核对失败');}finally{setBusy(false);}}
   async function confirm(){if(!draft)return;setBusy(true);setError('');try{const result=await wealthRequest<WealthReceipt>({type:'confirm',draftId:draft.id,authorized:true});window.dispatchEvent(new Event('zhiyin-bank-updated'));const state=await reload();if(!state.holdings?.some(item=>item.id===result.id)||state.cashBalance!==result.balanceAfter)throw new Error('申购回执已生成，持仓复查未完成，请刷新核对');setReceipt(result);setDraft(null);setScreen('holdings');}catch(value){setError(value instanceof Error?value.message:'申购结果待核实，请保留方案编号');}finally{setBusy(false);}}
   async function prepareRedemption(holdingId:string){setBusy(true);setError('');setRedemptionReceipt(null);try{setRedemptionDraft(await wealthRequest<RedemptionDraft>({type:'prepare-redemption',holdingId}));}catch(value){setError(value instanceof Error?value.message:'赎回核对失败');}finally{setBusy(false);}}
+  useEffect(()=>{
+    if(!entry||entryConsumed.current===entry||entry.holdingId&&!snapshotReady)return;
+    entryConsumed.current=entry;
+    setPlan({...(entry.amount!==undefined?{amountYuan:entry.amount/100}:{}),...(entry.term!==undefined?{termMonths:entry.term}:{})});
+    if(entry.productId){
+      if(wealthProducts.some(product=>product.id===entry.productId)){setSelected(entry.productId);setScreen('detail');}
+      else setError('指定产品已变化，请重新选择；没有改选其他产品。');
+    }
+    if(entry.holdingId){
+      setScreen('holdings');
+      const target=snapshot?.holdings?.find(h=>h.id===entry.holdingId&&!h.redeemedAt);
+      if(!target)setError('指定持仓已变化，请核对原回执；没有改选其他持仓。');
+      else void prepareRedemption(target.id);
+    }
+    onEntryConsumed?.();
+  },[entry,snapshotReady,snapshot,setPlan,onEntryConsumed]);
   async function confirmRedemption(){if(!redemptionDraft)return;setBusy(true);setError('');try{const result=await wealthRequest<RedemptionReceipt>({type:'confirm-redemption',draftId:redemptionDraft.id,authorized:true});window.dispatchEvent(new Event('zhiyin-bank-updated'));const state=await reload();if(!state.holdings?.some(item=>item.id===result.holdingId&&item.redeemedAt))throw new Error('赎回回执已生成，持仓复查未完成，请刷新核对');setRedemptionReceipt(result);setRedemptionDraft(null);}catch(value){setError(value instanceof Error?value.message:'赎回结果待核实');}finally{setBusy(false);}}
   const chosen=wealthProducts.find(item=>item.id===(draft?.productId||selected));
   const holding=snapshot?.holdings?.find(item=>item.id===redemptionDraft?.holdingId);

@@ -28,6 +28,7 @@ export function clearBillIntent(prompt:string) {
   return clauses.length>0&&clauses.every(part=>isBillQuestion(part)||billPeriodAnswer(part)||billProviderAnswer(part));
 }
 function periodIn(prompt:string):string|undefined {
+  const annual=prompt.match(/\d{4}年(?:度|全年)/);if(annual)return annual[0];
   // Preserve unsupported/ambiguous ranges rather than silently falling back to this month.
   if(/下个?月|去年|前年|季度|半年|今年|本周|上周|前天|明天|未来|接下来|至(?!今)|月.*到.*月|\d{4}-\d{2}|\d+日|\d+号|\d+\/\d+/.test(prompt))return prompt.slice(0,80);
   if(/(?:就?近|最近)\s*(?:一|1|个)?个?月/.test(prompt))return '最近30天';
@@ -43,8 +44,12 @@ function periodIn(prompt:string):string|undefined {
   return prompt.match(/(?:\d{4}年)?\d{1,2}月/)?.[0];
 }
 function mergeBill(progress:TaskProgress,prompt:string):TaskProgress {
-  const period=periodIn(prompt);
-  const provider=/全部平台|所有平台|两个平台|都看|都要/.test(prompt)?'all':billProvider(prompt);
+  let period=periodIn(prompt);
+  const start=progress.bill?.period?.match(/(?:从|起始|开始)(?:日期)?[：:\s]*((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/);
+  const end=prompt.match(/(?:截止|截至|到|至)(?:日期)?\s*((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/)
+    ||(start?prompt.match(/((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/):null);
+  if(start&&end)period=`${start[1]}至${end[1]}`;
+  const provider=/剩余已授权|剩余.*授权账单|当前已授权平台/.test(prompt)?'all':billProvider(prompt)||(/全部平台|所有平台|两个平台|都看|都要/.test(prompt)||/微信/.test(prompt)&&/支付宝/.test(prompt)?'all':undefined);
   return {...progress,stage:'collecting',waitingFor:undefined,bill:{...progress.bill,...(period?{period}:{}),...(provider?{provider}:{})}};
 }
 export function readTaskProgress(task:Workspace):TaskProgress {

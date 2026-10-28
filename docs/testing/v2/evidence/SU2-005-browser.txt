@@ -1,0 +1,161 @@
+2026-10-21T16:32:16.641Z
+[可见页面]
+知银
+更懂你的财富伙伴
+日程
+订阅
+我的
+宁宁
+AI
+你的个人银行管家
+一起，把生活安排好
+我的总资产（元）
+42,300.00
+银行沙箱账本
+查看资产
+☰ 会话 37
+自动续费查询
+＋ 新对话
+今天
+沙箱演示数据
+你
+
+只是问规则，不实际取消：取消自动续费后，会立即退钱并失去当前会员权益吗？
+
+宁宁
+AI
+宁宁
+
+取消自动续费只会停止后续扣费，不会自动退还历史款项；已付周期的权益按商家规则保留，退款须另行核对。本次仅作说明，没有取消签约、修改提醒或重复提示偏好。
+
+和宁宁说点什么
+涉及资金的操作仍需你确认
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 8, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 00:32
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		142 container 知银
+			143 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				144 container
+					145 text 知银
+					146 text 更懂你的财富伙伴
+					147 container 首页导航
+						148 button 任务日历
+							149 image
+							150 text 日程
+						151 button 订阅
+							152 image
+							153 text 订阅
+						154 button 个人中心
+							155 image
+							156 text 我的
+					157 button 选择私人管家
+						158 text 宁宁
+						159 text AI
+						160 image
+						161 text 你的个人银行管家
+					162 text 一起，把生活安排好
+					163 container 首页资产快照
+						164 text 我的总资产 （元）
+						165 button 隐藏首页资产金额
+							166 image
+						167 button (collapsed) Description: 展开资产明细, Secondary Actions: Expand
+							168 image
+						169 text 42,300.00
+						170 text 银行沙箱账本
+						171 button 查看资产
+							172 text 查看资产
+							173 image
+					174 container 管家处理现场
+						175 container
+							176 button 打开会话列表
+								177 text ☰ 会话
+								178 text 37
+							179 text 自动续费查询
+							180 button ＋ 新对话
+							215 container 与宁宁对话
+								216 container 演示环境
+									217 text 今天
+									218 image
+									219 text 沙箱演示数据
+								220 container steward-records
+									221 text 你
+									222 text 只是问规则，不实际取消：取消自动续费后，会立即退钱并失去当前会员权益吗？
+									232 text 宁宁
+									233 text AI
+									234 text 宁宁
+									235 text 取消自动续费只会停止后续扣费，不会自动退还历史款项；已付周期的权益按商家规则保留，退款须另行核对。本次仅作说明，没有取消签约、修改提醒或重复提示偏好。
+								226 container
+									227 text 和 宁宁 说点什么
+									228 text field (settable) Description: 和宁宁说点什么, ID: steward-chat-input
+									229 button (disabled) 发送给宁宁
+										236 image
+									231 text 涉及资金的操作仍需你确认
+					199 container 主导航
+						200 button 管家
+							201 image
+							202 text 管家
+						203 button 资产
+							204 image
+							205 text 资产
+						206 button 财富
+							207 image
+							208 text 财富
+						209 button 卡片
+							210 image
+							211 text 卡片
+						212 button 我的
+							213 image
+							214 text 我的
+		93 container
+			94 text 0:30
+			95 text 10月22日 周四
+			96 text 暂无通知消息
+			97 text 中国电信HD | 中国联通HD
+			98 text 10月22日 周四
+			99 image signal
+			100 image wifi
+			101 text 78 %
+			102 container battery
+			133 button Wi‑Fi
+				134 container Xiaomi_AX3
+					135 container
+						136 text Xiaomi_AX3 Xiaomi_AX3
+				137 text 已连接
+			138 button 移动数据
+				139 container 中国联通
+					140 text 中国联通
+				141 text 已开启
+			112 text 暂无播放
+			113 button 蓝牙
+			114 button 飞行模式
+			115 button 静音
+			116 button 手电筒
+			117 button 截屏
+			118 button 省电模式
+			119 button 投屏
+			120 button 旋转锁定
+			121 button 相册
+			122 button 设置
+			123 button 显示
+				124 text A
+			125 button NFC
+				126 text N
+			127 button 票证
+			128 button 护眼
+			129 button 定位
+			130 button 深色
+			131 button 编辑
+	132 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 143 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

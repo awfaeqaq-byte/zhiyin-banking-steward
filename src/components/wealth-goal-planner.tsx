@@ -28,7 +28,7 @@ export function WealthGoalPlanner(){
       <label><span>已经准备</span><input aria-label="已经准备" inputMode="decimal" value={current} onChange={event=>setCurrent(event.target.value)}/></label>
       <label><span>计划月数</span><input aria-label="计划月数" inputMode="numeric" value={months} onChange={event=>setMonths(event.target.value)}/></label>
     </div>
-    {!plan?<p className="form-error" role="alert">请填写有效金额和 1–360 个月的计划周期。</p>:<>
+    {!plan?<p className="form-error" role="alert">请填写有效金额，计划周期须为 1–360 的整数月数。</p>:<>
       <div className="wealth-goal-summary"><Flag size={20}/><div><span>{name.trim()||'未命名目标'}还差</span><strong>{cny(plan.gap)}</strong><small>{plan.months} 个月后达到 {cny(plan.target)}</small></div></div>
       <div className="wealth-scenarios">{plan.scenarios.map(scenario=><article key={scenario.id} data-scenario={scenario.id}><header><strong>{scenario.label}</strong><span>年化假设 {(scenario.annualRate*100).toFixed(1)}%</span></header><p>每月需准备 <b>{cny(scenario.monthlyContribution)}</b></p><small>{scenario.note}</small></article>)}</div>
       <p className="wealth-goal-note"><Info size={15}/>三档收益率只是压力测试假设，不来自模型预测；实际规划还需结合风险测评、紧急备用金和产品期限。</p>

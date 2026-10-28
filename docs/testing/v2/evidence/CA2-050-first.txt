@@ -1,0 +1,206 @@
+2026-10-21T16:32:04.610Z
+[可见页面]
+常用卡 · 8888
+
+每一项权限，都由你掌握
+
+知银 · 演示账户
+储蓄卡
+••••   ••••   ••••   8888
+叶先生
+常用账户
+卡片状态正常，安全保护已开启
+可用余额
+刷新账户
+¥42,300
+智能转账与AA收款
+银行转账账单
+
+尚无银行沙箱转账记录。
+
+用卡小贴士
+
+不常使用的交易方式可以随时关闭。若发现卡片遗失，请立即挂失，并核对近期交易。
+
+单笔支付限额
+¥20,000
+境外交易
+已关闭
+无卡支付
+已开启
+夜间保护
+23:00 — 06:00
+境外交易渠道验证
+
+向境外演示商户支付 ¥1.00（人民币沙箱金额），可验证境外开关、挂失、夜间保护、无卡支付、限额和余额的服务端拦截。
+
+测试境外付款
+挂失这张卡
+
+设置保存到银行沙箱。挂失、单笔限额、夜间保护和无卡支付会拦截相应付款；境外交易开关会拦截上方的境外沙箱渠道。不影响真实银行账户。
+
+卡申请
+
+对比演示卡种，提交后仅生成沙箱申请，不代表真实银行审批或发卡。
+
+标准借记卡
+年费 ¥0 · 日常转账与支付申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+安心借记卡
+年费 ¥0 · 默认开启夜间保护申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+
+沙箱申请已提交 · 编号 b3127c67-9c2b-4844-a1a8-1287873cd6d5
+
+查看申请进度（1）
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 8, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 00:32
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		142 container 知银
+			143 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				144 container root
+					145 container
+						146 button 返回
+							147 image
+						148 heading 常用卡 · 8888, Value: 1
+							149 text 常用卡 · 8888
+						150 text 每一项权限，都由你掌握
+						151 button 查看常用卡 8888
+							152 container
+								153 image
+								154 text 知银 · 演示账户 储蓄卡
+							155 text ••••   ••••   ••••   8888
+							156 container
+								157 text 叶先生 常用账户
+						158 image
+						159 text 卡片状态正常，安全保护已开启
+						160 container 银行卡余额与流水
+							161 heading 可用余额, Value: 3
+								162 text 可用余额
+							163 button 刷新账户
+							164 text ¥42,300
+							165 button 智能转账与AA收款
+							166 heading 银行转账账单, Value: 3
+								167 text 银行转账账单
+							168 text 尚无银行沙箱转账记录。
+						169 heading 用卡小贴士, Value: 3
+							170 text 用卡小贴士
+						171 text 不常使用的交易方式可以随时关闭。若发现卡片遗失，请立即挂失，并核对近期交易。
+						172 button 单笔支付限额 ¥20,000
+							173 text 单笔支付限额
+							174 text ¥20,000
+						175 container
+							176 text 境外交易 已关闭
+							177 switch Description: 境外交易, Value: 0
+						178 container
+							179 text 无卡支付 已开启
+							180 switch Description: 无卡支付, Value: 1
+						181 container
+							182 text 夜间保护 23:00 — 06:00
+							183 switch Description: 夜间保护, Value: 1
+						184 container 境外交易渠道验证
+							185 heading 境外交易渠道验证, Value: 3
+								186 text 境外交易渠道验证
+							187 text 向境外演示商户支付 ¥1.00（人民币沙箱金额），可验证境外开关、挂失、夜间保护、无卡支付、限额和余额的服务端拦截。
+							188 button 测试境外付款
+						189 button 挂失这张卡
+							190 image
+							191 text 挂失这张卡
+						192 text 设置保存到银行沙箱。挂失、单笔限额、夜间保护和无卡支付会拦截相应付款；境外交易开关会拦截上方的境外沙箱渠道。不影响真实银行账户。
+						193 container 卡申请
+							194 heading 卡申请, Value: 3
+								195 text 卡申请
+							196 text 对比演示卡种，提交后仅生成沙箱申请，不代表真实银行审批或发卡。
+							197 button 标准借记卡 年费 ¥0 · 日常转账与支付申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+								198 text 标准借记卡
+								199 text 年费 ¥
+								200 text 0
+								201 text  ·
+								202 text 日常转账与支付
+								203 text 申请条件：
+								204 text 持有演示沙箱账户
+								205 text  · 模拟资料：
+								206 text 无需提交真实身份资料
+							207 button 安心借记卡 年费 ¥0 · 默认开启夜间保护申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+								208 text 安心借记卡
+								209 text 年费 ¥
+								210 text 0
+								211 text  ·
+								212 text 默认开启夜间保护
+								213 text 申请条件：
+								214 text 持有演示沙箱账户
+								215 text  · 模拟资料：
+								216 text 无需提交真实身份资料
+							217 container
+								218 text 沙箱申请已提交 · 编号  b3127c67-9c2b-4844-a1a8-1287873cd6d5
+							219 button (collapsed) 查看申请进度（1）, Secondary Actions: Expand
+								220 text 查看申请进度（
+								221 text 1
+								222 text ）
+					223 container 主导航
+						224 button 管家
+							225 image
+							226 text 管家
+						227 button 资产
+							228 image
+							229 text 资产
+						230 button 财富
+							231 image
+							232 text 财富
+						233 button 卡片
+							234 image
+							235 text 卡片
+						236 button 我的
+							237 image
+							238 text 我的
+		93 container
+			94 text 0:30
+			95 text 10月22日 周四
+			96 text 暂无通知消息
+			97 text 中国电信HD | 中国联通HD
+			98 text 10月22日 周四
+			99 image signal
+			100 image wifi
+			101 text 78 %
+			102 container battery
+			133 button Wi‑Fi
+				134 container Xiaomi_AX3
+					135 container
+						136 text Xiaomi_AX3 Xiaomi_AX3
+				137 text 已连接
+			138 button 移动数据
+				139 container 中国联通
+					140 text 中国联通
+				141 text 已开启
+			112 text 暂无播放
+			113 button 蓝牙
+			114 button 飞行模式
+			115 button 静音
+			116 button 手电筒
+			117 button 截屏
+			118 button 省电模式
+			119 button 投屏
+			120 button 旋转锁定
+			121 button 相册
+			122 button 设置
+			123 button 显示
+				124 text A
+			125 button NFC
+				126 text N
+			127 button 票证
+			128 button 护眼
+			129 button 定位
+			130 button 深色
+			131 button 编辑
+	132 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 143 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

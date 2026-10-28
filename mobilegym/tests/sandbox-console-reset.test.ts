@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../os/TimeService',async importOriginal=>({...await importOriginal<object>(),now:()=>123}));
 
 function createLocalStorageMock() {
   const store = new Map<string, string>();
@@ -19,6 +20,7 @@ function createLocalStorageMock() {
 }
 
 describe('sandbox console WeChat reset', () => {
+  afterEach(()=>vi.restoreAllMocks());
   beforeEach(() => {
     vi.resetModules();
     Object.defineProperty(globalThis, 'localStorage', {
@@ -31,7 +33,9 @@ describe('sandbox console WeChat reset', () => {
     const { useWechatStore } = await import('../apps/Wechat/state');
     const { getWechatConfig } = await import('../apps/Wechat/data');
     const { resetWechatChats } = await import('../sandbox/actions');
-    const initialChats = structuredClone(getWechatConfig().chats);
+    const {ensureNingningContact}=await import('../apps/Wechat/chat-ai/zhiyin');
+    const config=getWechatConfig();
+    const initialChats=ensureNingningContact({contacts:structuredClone(config.contacts),chats:structuredClone(config.chats)},123).chats;
     const walletBefore = structuredClone(useWechatStore.getState().wallet);
     const mutatedChats = structuredClone(initialChats);
     mutatedChats[0].messages.push({
@@ -62,14 +66,14 @@ describe('sandbox console WeChat reset', () => {
   });
 
   it('is idempotent when chats are already at their initial state', async () => {
-    const { getWechatConfig } = await import('../apps/Wechat/data');
     const { resetWechatChats } = await import('../sandbox/actions');
 
     const result = resetWechatChats();
 
     expect(result.removedMessages).toBe(0);
-    expect(result.restoredMessages).toBe(
-      getWechatConfig().chats.reduce((sum, chat) => sum + chat.messages.length, 0),
-    );
+    const {useWechatStore}=await import('../apps/Wechat/state');
+    expect(result.restoredMessages).toBe(useWechatStore.getState().chats.reduce((sum,chat)=>sum+chat.messages.length,0));
+    expect(useWechatStore.getState().chats.some(chat=>chat.id==='zhiyin_ningning')).toBe(true);
+    expect(resetWechatChats().removedMessages).toBe(0);
   });
 });
