@@ -20,6 +20,14 @@ it('日常点餐与旧的general外卖任务续聊复用，AA消费不能误归�
  const progress=advanceTaskProgress({...old,kind:'food',progress:{goal:'点奶茶',stage:'ready',food:{items:[{productId:'tea',quantity:1}],note:'',orderId:'order1'}}},'继续付款');
  expect(progress.food?.orderId).toBe('order1');
 });
+it.each(['帮我点外卖，明天提醒我开会','帮我点外卖。解释一下复利','好的，明天提醒我开会','好的，换个话题','明天天气怎么样','推荐一下杭州景点'])('点餐快捷路径不吞掉新事项：%s',prompt=>{
+ const current:Workspace={id:'food',kind:'food',title:'晚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute(prompt,[current],current.id)).toBeNull();
+});
+it.each(['好的','可以','就默认地址','换成少冰','这个味道怎么样','推荐一杯奶茶'])('保留明确点餐补充的快捷路径：%s',prompt=>{
+ const current:Workspace={id:'food',kind:'food',title:'晚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute(prompt,[current],current.id)?.parts[0].taskId).toBe(current.id);
+});
 it('模型只提出菜单方案，不得捏造商品、执行授权或覆盖订单编号',()=>{
  expect(parseFoodAdvice(JSON.stringify({text:'推荐奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''},choices:[]}),catalog).draft?.items[0].productId).toBe('tea');
  for(const draft of [{items:[{productId:'fake',quantity:1}],note:''},{items:[{productId:'tea',quantity:1}],note:'',orderId:'fake'}])expect(()=>parseFoodAdvice(JSON.stringify({text:'已下单',draft}),catalog)).toThrow();

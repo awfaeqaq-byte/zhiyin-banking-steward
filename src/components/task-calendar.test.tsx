@@ -5,6 +5,18 @@ import {TaskCalendar} from './task-calendar';
 import {updateTasks,dayKey,type TaskState} from '../lib/task-calendar';
 const props={schedules:[],sources:[],onDraftConsumed:vi.fn(),onOpenTransfers:vi.fn(),onOpenSubscription:vi.fn()};
 afterEach(()=>vi.unstubAllGlobals());
+it('不同卡片同编号的预约分别展示，管理入口携带该卡编号',async()=>{
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response(JSON.stringify({revision:0,tasks:[]}))));
+ const user=userEvent.setup(),onOpenTransfers=vi.fn(),dueAt=Date.now()+86400000;
+ const schedule={id:'same-id',recipientId:'mom' as const,amount:10000,createdAt:1,executeAt:dueAt,status:'pending' as const};
+ render(<TaskCalendar {...props} initialDate={dueAt} onOpenTransfers={onOpenTransfers} schedules={[{...schedule,cardId:'primary'},{...schedule,cardId:'living'}]}/>);
+ const events=await screen.findAllByRole('button',{name:/转账给妈妈/});
+ expect(events).toHaveLength(2);
+ await user.click(screen.getByRole('button',{name:/转账给妈妈.*6216/}));
+ expect(screen.getByText(/生活备用卡 · 尾号 6216/)).toBeVisible();
+ await user.click(screen.getByRole('button',{name:'管理预约转账'}));
+ expect(onOpenTransfers).toHaveBeenCalledWith('living');
+});
 it('日历选择、新增、修改、完成和取消均更新后端数据',async()=>{
  let state:TaskState={revision:0,tasks:[]};
  vi.stubGlobal('fetch',vi.fn(async(_url,init)=>{if(init?.body)state=updateTasks(state,JSON.parse(init.body));return new Response(JSON.stringify(state));}));
@@ -24,7 +36,7 @@ it('模型草稿不自动写入；显示后端错误并保留表单',async()=>{
  const fetcher=vi.fn(async(_url,init)=>init?.body?new Response(JSON.stringify({error:'日程已变化，请重试'}),{status:409}):new Response(JSON.stringify({revision:0,tasks:[]})));vi.stubGlobal('fetch',fetcher);
  const user=userEvent.setup();render(<TaskCalendar {...props} draft={{title:'明天查账',dueAt:Date.now()+86400000}}/>);
  await waitFor(()=>expect(screen.getByRole('button',{name:'确认保存提醒'})).toBeEnabled());expect(fetcher.mock.calls.every(([,init])=>!init?.body)).toBe(true);
- await user.click(screen.getByRole('button',{name:'确认保存提醒'}));expect(await screen.findByRole('alert')).toHaveTextContent('日程已变化');expect(screen.getByLabelText('要做什么')).toHaveValue('明天查账');
+ await user.click(screen.getByRole('button',{name:'确认保存提醒'}));expect(await screen.findByRole('alert')).toHaveTextContent('日程已变化');expect(screen.getByLabelText('要做什么')).toHaveValue('明天查账');expect(screen.queryByRole('button',{name:'重新加载'})).not.toBeInTheDocument();expect(screen.queryByText('当前未返回待处理安排')).not.toBeInTheDocument();
 });
 it('来源任务打开对应管理，关闭草稿不保存，刷新失败可重试',async()=>{
  const user=userEvent.setup();const onOpenTransfers=vi.fn(),onOpenSubscription=vi.fn();let fails=true;

@@ -3,6 +3,7 @@ import { buildBillAnalysis, billReferenceTime } from "../lib/bill-analysis";
 import type { ConnectedFinancialSource, ExternalFinancialProvider } from "../lib/financial-connections";
 import { formatCny } from "../lib/financial-connections";
 import { fundingReferenceTime } from "../lib/funding-forecast";
+import "./funding-insights.css";
 
 type Props = {
   stewardName: string;
@@ -22,59 +23,54 @@ export function FundingInsights({
   const referenceTime = fundingReferenceTime(connections);
   const billTime = billReferenceTime(connections, referenceTime);
   const current = buildBillAnalysis(connections, "分析本月支出", billTime);
-  const previous = buildBillAnalysis(connections, "分析上个月支出", billTime);
-  const reference = new Date(billTime);
-  const elapsed = Math.max(1, reference.getDate());
-  const daysInMonth = new Date(reference.getFullYear(), reference.getMonth() + 1, 0).getDate();
-  const projectedExpense = Math.round((current.expense * daysInMonth) / elapsed);
-  const projectedSurplus = current.income - projectedExpense;
-  const previousCategories = new Map(previous.categories.map((item) => [item.name, item.amount]));
-  const category = current.categories
-    .map((item) => ({ ...item, increase: item.amount - (previousCategories.get(item.name) || 0) }))
-    .sort((a, b) => b.increase - a.increase)[0] || current.categories[0];
+  const category = current.categories[0];
   const change = category
-    ? category.increase > 0
-      ? `${category.name}支出较上月增加 ${formatCny(category.increase)}`
-      : `${category.name}是本月主要支出，已记录 ${formatCny(category.amount)}`
+    ? `已返回记录中，${category.name}消费最多：${formatCny(category.amount)}`
     : current.sources.length
-      ? "本月暂时没有可归类的消费记录"
-      : "连接账单后，我会在这里解释资金变化";
+      ? "当前范围暂无已返回的消费记录"
+      : "连接账单后，查看消费去向";
+  const hasRecords = current.count > 0;
 
   return (
-    <section className="funding-insights" aria-labelledby="funding-insights-title">
+    <section className="funding-insights funding-insights-facts" aria-labelledby="funding-insights-title">
       <header>
         <div>
-          <span>{stewardName}为你整理</span>
           <h2 id="funding-insights-title">资金观察</h2>
+          <p>{current.from}—{current.to} · 已返回账单</p>
         </div>
-        <small>{current.sources.length ? `依据：${current.sources.join("、")}` : "等待账单数据"}</small>
+        <small>{current.sources.length ? current.sources.join("、") : "尚未连接账单"}</small>
       </header>
+      {hasRecords ? <dl className="funding-observed-totals" aria-label="已返回账单小计">
+        <div><dt>已记录收入</dt><dd>{formatCny(current.income)}</dd></div>
+        <div><dt>已记录消费</dt><dd>{formatCny(current.expense)}</dd></div>
+      </dl> : <p className="funding-insights-empty">{current.sources.length ? "当前范围尚无可汇总的账单记录，可让管家帮你核对读取范围。" : "先让管家帮你连接账单，再了解收支。"}</p>}
+      <p className="funding-insights-scope">{current.coverageIncomplete ? current.coverage : "仅汇总已授权平台返回的记录；转账、退款单列。"}这是收支记录，不是可支配余额，也不据此预测月末结余。</p>
       <div className="funding-insight-grid">
         <button type="button" onClick={() => onAsk("详细解释一下最近支出的变化")}>
-          <span><PieChart size={18} /></span>
-          <small>消费变化</small>
+          <span><PieChart size={18} aria-hidden="true" /></span>
+          <small>消费去向</small>
           <strong>{change}</strong>
-          <em>问{stewardName}为什么 <ArrowRight size={14} /></em>
+          <em>查看账单依据 <ArrowRight size={14} aria-hidden="true" /></em>
         </button>
-        <button type="button" onClick={() => onAsk("按我现在的收支，帮我计算每月能存多少钱")}>
-          <span><Wallet size={18} /></span>
-          <small>结余估算</small>
-          <strong>{current.income ? `本月预计可结余 ${formatCny(projectedSurplus)}` : "收入数据齐全后可预测结余"}</strong>
-          <em>继续做资金规划 <ArrowRight size={14} /></em>
+        <button type="button" onClick={() => onAsk("我想做储蓄计划，请先和我核对稳定收入、固定支出和需要预留的钱")}>
+          <span><Wallet size={18} aria-hidden="true" /></span>
+          <small>储蓄安排</small>
+          <strong>先核对收入、固定支出和预留，再决定存多少</strong>
+          <em>和{stewardName}一起规划 <ArrowRight size={14} aria-hidden="true" /></em>
         </button>
         {automationAttention ? (
           <button type="button" className="needs-confirmation" onClick={onOpenAutomations}>
-            <span><CircleAlert size={18} /></span>
+            <span><CircleAlert size={18} aria-hidden="true" /></span>
             <small>需要你确认</small>
             <strong>{automationAttention.count} 条账单线索等待核对</strong>
-            <em>查看任务结果 <ArrowRight size={14} /></em>
+            <em>核对账单线索 <ArrowRight size={14} aria-hidden="true" /></em>
           </button>
         ) : (
           <button type="button" onClick={() => onAsk("结合我的账单，告诉我当前最值得关注的资金问题")}>
-            <span><Sparkles size={18} /></span>
-            <small>管家建议</small>
-            <strong>{current.sources.length ? `${stewardName}会结合账单变化持续更新建议` : "接入账单后生成个性化资金建议"}</strong>
-            <em>和{stewardName}聊一聊 <ArrowRight size={14} /></em>
+            <span><Sparkles size={18} aria-hidden="true" /></span>
+            <small>一起核对</small>
+            <strong>最近的收支，有什么需要留意</strong>
+            <em>问问{stewardName} <ArrowRight size={14} aria-hidden="true" /></em>
           </button>
         )}
       </div>

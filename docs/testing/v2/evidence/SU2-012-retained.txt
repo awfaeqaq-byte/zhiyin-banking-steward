@@ -1,0 +1,303 @@
+2026-10-22T03:39:50.462Z
+[可见页面]
+订阅与续费
+
+跨平台识别、提前提醒，需要时再取消
+
+查看近期资金安排
+已为你整理
+已识别 6 项自动续费
+
+来自已授权的微信支付、支付宝账户
+
+14 天内续费
+4 项
+预计扣款
+¥75
+可能重复
+3 项
+续费提醒
+
+测试视频甲会员 距离扣费还有 1 天，另有 3 项即将续费。
+
+全部自动续费
+
+提醒可单独关闭，不影响服务本身。
+
+微
+测试视频甲会员
+可能重复
+
+沙箱测试商户 · 微信支付
+
+¥25
+/ 月
+1 天后扣费
+10月23日
+近期扣费
+续费前提醒
+取消自动续费
+支
+测试视频乙会员
+可能重复
+
+沙箱测试商户 · 支付宝
+
+¥25
+/ 月
+2 天后扣费
+10月24日
+近期扣费
+续费前提醒
+取消自动续费
+支
+饿了么超级吃货卡
+
+饿了么 · 支付宝
+
+¥10
+/ 月
+8 天后扣费
+10月30日
+即将续费
+续费前提醒
+取消自动续费
+微
+黑胶VIP会员包月
+
+网易云音乐主站 · 微信支付
+
+¥15
+/ 月
+10 天后扣费
+11月1日
+即将续费
+续费前提醒
+取消自动续费
+微
+中国联通话费自动交费
+
+广东联通 · 微信支付
+
+¥100
+/ 月
+31 天后扣费
+11月22日
+已排期
+续费前提醒
+取消自动续费
+支
+优酷VIP会员连续包月
+可能重复
+
+优酷 · 支付宝
+
+¥25
+/ 月
+31 天后扣费
+11月22日
+已排期
+续费前提醒
+取消自动续费
+
+识别结果来自你授权的自动扣费数据。知银不会在未经确认时修改任何签约。
+
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 8, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 11:39
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		7 container 知银
+			8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				120 container root
+					121 container
+						122 button 返回
+							123 image
+						124 heading 订阅与续费, Value: 1
+							125 text 订阅与续费
+						126 text 跨平台识别、提前提醒，需要时再取消
+						127 button 查看近期资金安排
+						128 container 自动续费概览
+							129 text 已为你整理
+							130 heading 已识别 6 项自动续费, Value: 2
+								131 text 已识别  6  项自动续费
+							132 container
+								133 text 来自已授权的 微信支付、支付宝 账户
+							134 text 14  天内续费
+							135 container
+								136 text 4  项
+							137 text 预计扣款
+							138 text ¥75
+							139 text 可能重复
+							140 container
+								141 text 3  项
+						142 container 续费提醒
+							143 heading 续费提醒, Value: 2, ID: renewal-reminder-title
+								144 text 续费提醒
+							145 container
+								146 text 测试视频甲会员  距离扣费还有 1 天 ，另有 3 项即将续费。
+						147 heading 全部自动续费, Value: 2
+							148 text 全部自动续费
+						149 text 提醒可单独关闭，不影响服务本身。
+						150 heading 测试视频甲会员, Value: 3
+							151 text 测试视频甲会员
+						152 text 可能重复
+						153 container
+							154 text 沙箱测试商户  ·  微信支付
+						155 text ¥25
+						156 text /  月
+						157 text 1 天后扣费
+						158 text 10月23日 近期扣费
+						159 container
+							160 image
+							161 text 续费前提醒
+							162 switch Description: 测试视频甲会员续费提醒, Value: 1
+						163 button 取消测试视频甲会员自动续费
+							164 text 取消自动续费
+							165 image
+						166 heading 测试视频乙会员, Value: 3
+							167 text 测试视频乙会员
+						168 text 可能重复
+						169 container
+							170 text 沙箱测试商户  ·  支付宝
+						171 text ¥25
+						172 text /  月
+						173 text 2 天后扣费
+						174 text 10月24日 近期扣费
+						175 container
+							176 image
+							177 text 续费前提醒
+							178 switch Description: 测试视频乙会员续费提醒, Value: 1
+						179 button 取消测试视频乙会员自动续费
+							180 text 取消自动续费
+							181 image
+						182 heading 饿了么超级吃货卡, Value: 3
+							183 text 饿了么超级吃货卡
+						184 container
+							185 text 饿了么  ·  支付宝
+						186 text ¥10
+						187 text /  月
+						188 text 8 天后扣费
+						189 text 10月30日 即将续费
+						190 container
+							191 image
+							192 text 续费前提醒
+							193 switch Description: 饿了么超级吃货卡续费提醒, Value: 1
+						194 button 取消饿了么超级吃货卡自动续费
+							195 text 取消自动续费
+							196 image
+						197 heading 黑胶VIP会员包月, Value: 3
+							198 text 黑胶VIP会员包月
+						199 container
+							200 text 网易云音乐主站  ·  微信支付
+						201 text ¥15
+						202 text /  月
+						203 text 10 天后扣费
+						204 text 11月1日 即将续费
+						205 container
+							206 image
+							207 text 续费前提醒
+							208 switch Description: 黑胶VIP会员包月续费提醒, Value: 1
+						209 button 取消黑胶VIP会员包月自动续费
+							210 text 取消自动续费
+							211 image
+						212 heading 中国联通话费自动交费, Value: 3
+							213 text 中国联通话费自动交费
+						214 container
+							215 text 广东联通  ·  微信支付
+						216 text ¥100
+						217 text /  月
+						218 text 31 天后扣费
+						219 text 11月22日 已排期
+						220 container
+							221 image
+							222 text 续费前提醒
+							223 switch Description: 中国联通话费自动交费续费提醒, Value: 1
+						224 button 取消中国联通话费自动交费自动续费
+							225 text 取消自动续费
+							226 image
+						227 heading 优酷VIP会员连续包月, Value: 3
+							228 text 优酷VIP会员连续包月
+						229 text 可能重复
+						230 container
+							231 text 优酷  ·  支付宝
+						232 text ¥25
+						233 text /  月
+						234 text 31 天后扣费
+						235 text 11月22日 已排期
+						236 container
+							237 image
+							238 text 续费前提醒
+							239 switch Description: 优酷VIP会员连续包月续费提醒, Value: 1
+						240 button 取消优酷VIP会员连续包月自动续费
+							241 text 取消自动续费
+							242 image
+						243 image
+						244 text 识别结果来自你授权的自动扣费数据。知银不会在未经确认时修改任何签约。
+					245 container 主导航
+						246 button 管家
+							247 image
+							248 text 管家
+						249 button 资产
+							250 image
+							251 text 资产
+						252 button 财富
+							253 image
+							254 text 财富
+						255 button 卡片
+							256 image
+							257 text 卡片
+						258 button 我的
+							259 image
+							260 text 我的
+		80 container
+			81 text 0:30
+			82 text 10月22日 周四
+			83 text 暂无通知消息
+			84 text 中国电信HD | 中国联通HD
+			85 text 10月22日 周四
+			86 image signal
+			87 image wifi
+			88 text 78 %
+			89 container battery
+			90 button Wi‑Fi
+				91 container Xiaomi_AX3
+					92 container
+						93 text Xiaomi_AX3 Xiaomi_AX3
+				94 text 已连接
+			95 button 移动数据
+				96 container 中国联通
+					97 text 中国联通
+				98 text 已开启
+			99 text 暂无播放
+			100 button 蓝牙
+			101 button 飞行模式
+			102 button 静音
+			103 button 手电筒
+			104 button 截屏
+			105 button 省电模式
+			106 button 投屏
+			107 button 旋转锁定
+			108 button 相册
+			109 button 设置
+			110 button 显示
+				111 text A
+			112 button NFC
+				113 text N
+			114 button 票证
+			115 button 护眼
+			116 button 定位
+			117 button 深色
+			118 button 编辑
+	119 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

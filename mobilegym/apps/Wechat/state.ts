@@ -3,6 +3,8 @@ import { getWechatConfig } from './data';
 import * as TimeService from '../../os/TimeService';
 import { buildContactChatMessages, getWechatContactChatBackend } from './chat-ai/backend';
 import type { ContactChatReplyRequest } from './chat-ai/backend';
+import {ensureNingningContact,requestNingningReply,NINGNING_WXID} from './chat-ai/zhiyin';
+import {netJson} from '../../os/NetworkService';
 import { createContactReplyQueue } from './chat-ai/reply-queue';
 import { SmsGateway } from '../../os/SmsGateway';
 import { getEffectiveBuildInfo } from '../../os/managers/registry';
@@ -268,13 +270,18 @@ const triggerAIReply = async (
   try {
     const chat = currentChats.find(c => c.id === targetWxid);
     const maxMessages = aiConfig.maxContextMessages || 15;
-    const history = buildContactChatMessages(chat?.messages || [], myWxid, maxMessages);
+    const messages = chat?.messages || [];
+    const history = buildContactChatMessages(
+      targetWxid === NINGNING_WXID ? messages.filter(message => message.type === 'text') : messages,
+      myWxid,
+      maxMessages,
+    );
 
     const basePrompt = buildRealisticSystemPrompt(contact, currentUser);
     const customPersonality = aiConfig.systemPrompt ? `\n\n## 性格特点\n${aiConfig.systemPrompt}` : '';
     const systemPrompt = basePrompt + customPersonality;
 
-    const reply = await getWechatContactChatBackend().reply({
+    const reply = targetWxid===NINGNING_WXID ? await requestNingningReply(history,netJson) : await getWechatContactChatBackend().reply({
       contact,
       currentUserName: currentUser.name,
       systemPrompt,
@@ -283,7 +290,7 @@ const triggerAIReply = async (
     });
     if (scheduledEpoch !== chatStateEpoch) return;
     if (reply.text) addAIMessage(targetWxid, reply.text);
-    if (reply.incomingTransfer) {
+    if (targetWxid !== NINGNING_WXID && reply.incomingTransfer) {
       const { getWechatWalletBackend } = await import('./wallet/backend');
       await getWechatWalletBackend().createIncomingTransfer({
         peerWxid: contact.wxid,
@@ -294,6 +301,7 @@ const triggerAIReply = async (
     }
   } catch (error) {
     console.error('AI reply failed:', error);
+    if(targetWxid===NINGNING_WXID&&scheduledEpoch===chatStateEpoch)storeAccessors.set(state=>({_temp:{...state._temp,ningningReplyFailed:true}}));
   } finally {
     if (scheduledEpoch !== chatStateEpoch) return;
     const { set, get } = storeAccessors;
@@ -372,6 +380,7 @@ function scheduleAIReply(
     _temp: {
       ...state._temp,
       aiReplyPendingByWxid: { ...state._temp.aiReplyPendingByWxid, [targetWxid]: true },
+      ...(targetWxid===NINGNING_WXID?{ningningReplyFailed:false}:{}),
     },
   }));
   void triggerAIReply(targetWxid, contact, currentChats, currentUser.wxid, currentUser, receiptEvent);
@@ -388,7 +397,8 @@ export function resetWechatChatsToInitial(): WechatChatResetResult {
   aiReplyQueue.clear();
 
   const currentState = useWechatStore.getState();
-  const initialChats = structuredClone(getWechatConfig().chats);
+  const config=getWechatConfig();
+  const initialChats=ensureNingningContact({contacts:structuredClone(config.contacts),chats:structuredClone(config.chats)},TimeService.now()).chats;
   const currentMessageCount = currentState.chats.reduce((sum, chat) => sum + chat.messages.length, 0);
   const restoredMessageCount = initialChats.reduce((sum, chat) => sum + chat.messages.length, 0);
 
@@ -397,6 +407,7 @@ export function resetWechatChatsToInitial(): WechatChatResetResult {
     _temp: {
       ...currentState._temp,
       aiReplyPendingByWxid: {},
+      ningningReplyFailed:false,
     },
   });
 
@@ -413,6 +424,7 @@ interface WechatState extends AppData {
   _temp: {
     rightAction: RightAction | null;
     aiReplyPendingByWxid: Record<string, boolean>;
+    ningningReplyFailed?:boolean;
   };
 }
 
@@ -421,6 +433,7 @@ interface WechatActions {
   updateSettings: (settings: UserSettings) => void;
   addAddress: (address: Address) => void;
   addInvoice: (invoice: Invoice) => void;
+  retryNingningReply:()=>void;
   sendMessage: (targetWxid: string, content: string) => void;
   sendImages: (targetWxid: string, imagePaths: string[]) => void;
   sendFiles: (targetWxid: string, files: { path: string; name: string; size: number; mimeType?: string }[]) => void;
@@ -456,13 +469,13 @@ interface WechatActions {
 
 function createInitialWechatState(): WechatState {
   const config = getWechatConfig() as any;
-  return {
+  return ensureNingningContact({
     ...config,
     settings: config.settings,
     auth: config.auth ?? EMPTY_AUTH_STATE,
     subscriptions: config.subscriptions ?? [],
     _temp: { rightAction: null, aiReplyPendingByWxid: {} },
-  };
+  },TimeService.now());
 }
 
 const initialState: WechatState = createInitialWechatState();
@@ -497,8 +510,14 @@ export const useWechatStore = createAppStoreWithActions<WechatState, WechatActio
         set({ user: { ...prev.user, invoices: [...prev.user.invoices, invoice] } });
       },
 
+      retryNingningReply(){
+        const state=get(),contact=state.contacts.find(c=>c.wxid===NINGNING_WXID);
+        const last=state.chats.find(c=>c.id===NINGNING_WXID)?.messages.filter(m=>m.type==='text').at(-1);
+        if(contact&&last?.senderId===state.user.wxid&&!state._temp.aiReplyPendingByWxid[NINGNING_WXID])scheduleAIReply(NINGNING_WXID,contact,state.chats,state.user);
+      },
       sendMessage(targetWxid: string, content: string) {
         const prev = get();
+        if(targetWxid===NINGNING_WXID&&(prev._temp.aiReplyPendingByWxid[targetWxid]||!content.trim()||content.length>2000))return;
         const now = TimeService.now();
         const updatedChats = upsertChatMessages(prev, targetWxid, now, [
           {
@@ -1043,6 +1062,9 @@ export const useWechatStore = createAppStoreWithActions<WechatState, WechatActio
     },
   },
 );
+
+const ensureNingning=()=>{const state=useWechatStore.getState(),next=ensureNingningContact(state,TimeService.now());if(next!==state)useWechatStore.setState({contacts:next.contacts,chats:next.chats});};
+if(useWechatStore.persist.hasHydrated())ensureNingning();else useWechatStore.persist.onFinishHydration(ensureNingning);
 
 // --- Memoized selectors ---
 

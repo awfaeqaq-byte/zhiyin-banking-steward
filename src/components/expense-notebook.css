@@ -1,9 +1,15 @@
 .expense-notebook {
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
   margin: 8px 0 14px;
+}
+.expense-notebook-active {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper, #fff);
 }
 .expense-notebook fieldset {
   border: 0;
@@ -45,7 +51,7 @@
   font: inherit;
   max-width: 100%;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px;
   background: var(--white, #fff);
   color: var(--ink);
@@ -67,7 +73,6 @@
   justify-content: flex-start;
   padding: 12px 0;
   border-radius: 0;
-  border-bottom: 1px solid var(--line);
   text-align: left;
 }
 .expense-heading > span {
@@ -77,6 +82,7 @@
 .expense-heading strong {
   display: block;
   font-size: 14px;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 .expense-notebook small {
@@ -185,6 +191,7 @@
 .expense-confirm {
   padding: 8px;
   background: var(--pale);
+  border-radius: 10px;
 }
 .expense-notebook [role="alert"] {
   color: var(--danger, #a32b32);
@@ -193,3 +200,26 @@
   background: var(--pale);
   color: var(--teal-dark);
 }
+
+.expense-source-review { margin: 12px 0; padding: 12px 0; border-top: 1px solid var(--line); }
+.expense-source-review > p { margin: 7px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.expense-source-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; }
+.expense-source-row span { min-width: 0; }
+.expense-source-row strong, .expense-source-row small { display: block; }
+.expense-source-row small { color: var(--muted); margin-top: 4px; font-size: 12px; }
+.expense-source-row b { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.expense-source-amount { flex-shrink: 0; text-align: right; }
+.expense-source-warning { color: var(--warning, #865416); font-size: 14px; line-height: 1.6; }
+.expense-source-id { overflow-wrap: anywhere; font-size: 12px; }
+
+.expense-notebook .task-card-header { margin-bottom: 4px; }
+.expense-notebook .task-card-meta { margin: 0; }
+.expense-heading[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.expense-heading > svg { flex: none; }
+.expense-tools { color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+.expense-tools button { font-size: 14px; }
+@media (max-width: 380px) { .expense-notebook-active { padding: 12px; } .expense-source-row { align-items: flex-start; } }
+
+.expense-authorization {margin-block: 12px; padding: 14px; background: #fff5dc; border-radius: 10px;}
+.expense-authorization > strong {display: block; font-size: 14px;}
+.expense-authorization > p {margin-block: 6px 10px; font-size: 13px;}

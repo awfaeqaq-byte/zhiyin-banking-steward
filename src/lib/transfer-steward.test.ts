@@ -18,7 +18,7 @@ it('保留金额进入真实草稿和回执；不足时不能办理而非口头�
 });
 it('考虑其他待执行预约，避免重复使用同一笔可安排资金',()=>{
  const bank=setup();
- const a=bank.prepare({recipientId:'dad',amount:2000000,executeAt:now+60000},now);bank.schedule(a.id,now+1);
+ const a=bank.prepare({recipientId:'dad',amount:2000000,executeAt:now+60000},now);bank.schedule(a.id,now+1,a.review?.token);
  expect(()=>bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:1000000},now+2)).toThrow(/保留|预约/);
  bank.cancelSchedule(a.id);
  expect(()=>bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:1000000},now+3)).not.toThrow();
@@ -26,7 +26,7 @@ it('考虑其他待执行预约，避免重复使用同一笔可安排资金',()
 it('预约到期重新检查保留金额，其他消费后资金不足就不扣款',()=>{
  const bank=setup();
  const a=bank.prepare({recipientId:'mom',amount:2000000,executeAt:now+60000,protectedAmount:2000000},now);
- bank.schedule(a.id,now+1);
+ bank.schedule(a.id,now+1,a.review?.token);
  bank.pay({id:'expense',channel:'wechat',merchant:'测试消费',amount:300000},now+2);
  const before=bank.get().balance;bank.runDue(now+60000);
  expect(bank.get().schedules?.[0]).toMatchObject({status:'failed',protectedAmount:2000000});

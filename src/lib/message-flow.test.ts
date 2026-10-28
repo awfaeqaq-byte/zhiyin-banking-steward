@@ -3,6 +3,15 @@ import {changeWorkspaces,emptyWorkspaces,type WorkspaceCommand} from './workspac
 import type {MessageOperation} from './message-flow';
 const uuid=()=>crypto.randomUUID();
 function fixture(){let state=emptyWorkspaces();return {get:()=>state,apply:(op:MessageOperation)=>state=changeWorkspaces(state,{...op,revision:state.revision,requestId:uuid()} as WorkspaceCommand)};}
+it('AA总额与分配细节只排一个业务任务，一次完成仅产生一条回复',()=>{
+ const f=fixture(),id=uuid(),owner=uuid(),prompt='饮料20，我可乐4块，然后买了4瓶啤酒16aa';
+ f.apply({type:'message-submit',id,text:prompt,currentId:'',memoryRevision:0});
+ f.apply({type:'message-routed',id,parts:['饮料20','我可乐4块','然后买了4瓶啤酒16aa'].map(text=>({taskId:null,kind:'aa',title:'聚餐饮料',text}))});
+ const run=f.get().runs![0];expect(run.jobs).toHaveLength(1);expect(run.jobs[0].text).toBe(prompt);
+ f.apply({type:'message-claim',id,jobId:run.jobs[0].id,owner});
+ f.apply({type:'message-complete',id,jobId:run.jobs[0].id,owner,assistant:'饮料共20元：可乐4元由你承担，啤酒16元按本次参与人平分。',memoryRevision:0,failed:false});
+ expect(f.get().runs![0].status).toBe('completed');expect(f.get().conversation?.filter(m=>m.role==='assistant')).toHaveLength(1);
+});
 describe('服务端消息状态与串行任务',()=>{
  it('原消息先持久化，同ID重试不会复制用户消息或替换原文',()=>{
   const f=fixture(),id=uuid();f.apply({type:'message-submit',id,text:'你好',currentId:'',memoryRevision:0});
@@ -32,4 +41,58 @@ describe('服务端消息状态与串行任务',()=>{
   expect(f.get().conversation?.at(-1)?.retryPrompt).toBe('给妈妈转500');
   expect(()=>f.apply({type:'message-complete',id,jobId:uuid(),owner,assistant:'已付款',memoryRevision:0,failed:false})).toThrow();
  });
+});
+
+it('部分失败清理所有未完成令牌；重试只重新入队失败项并拒绝迟到的旧结果',()=>{
+ const f=fixture(),id=uuid(),owner=uuid();f.apply({type:'message-submit',id,text:'饮料18，给妈妈转500',currentId:'',memoryRevision:0});
+ f.apply({type:'message-routed',id,parts:[{taskId:null,kind:'aa',title:'聚餐',text:'饮料18'},{taskId:null,kind:'transfer',title:'生活费',text:'给妈妈转500'}]});
+ const [one,two]=f.get().runs![0].jobs;
+ f.apply({type:'message-claim',id,jobId:one.id,owner});f.apply({type:'message-complete',id,jobId:one.id,owner,assistant:'饮料已记好。',memoryRevision:0,failed:false});
+ f.apply({type:'message-claim',id,jobId:two.id,owner});f.apply({type:'message-complete',id,jobId:two.id,owner,assistant:'模型暂时不可用',memoryRevision:0,failed:true});
+ expect(f.get().items.flatMap(task=>task.pending||[])).toHaveLength(0);
+ expect(f.get().conversation?.at(-1)).toMatchObject({retryRunId:id});
+ const retry={type:'message-retry',id,retryId:uuid(),memoryRevision:0} as MessageOperation;
+ f.apply(retry);const jobs=f.get().runs![0].jobs;
+ expect(jobs[0]).toEqual({...one,status:'completed',owner,leaseUntil:expect.any(Number)});expect(jobs[1]).toMatchObject({taskId:two.taskId,text:two.text,status:'queued'});expect(jobs[1].id).not.toBe(two.id);
+ expect(f.get().items.flatMap(task=>task.pending||[])).toEqual([{token:jobs[1].id,text:two.text}]);
+ expect(()=>f.apply({type:'message-complete',id,jobId:two.id,owner,assistant:'迟到结果',memoryRevision:0,failed:false})).toThrow();
+ f.apply(retry);expect(f.get().runs![0].jobs).toEqual(jobs);
+ f.apply({type:'message-claim',id,jobId:jobs[1].id,owner});f.apply({type:'message-complete',id,jobId:jobs[1].id,owner,assistant:'已整理转账方案，待确认。',memoryRevision:0,failed:false});
+ f.apply(retry);expect(f.get().runs![0].status).toBe('completed');expect(f.get().conversation?.filter(m=>m.content==='饮料已记好。')).toHaveLength(1);
+ const state=f.get();expect(()=>changeWorkspaces(state,{type:'status',id:two.taskId,status:'archived',revision:state.revision,requestId:uuid()})).not.toThrow();
+});
+it('中断清理未完成令牌，重试排在正在处理的消息之后且旧重试请求不会再次执行',()=>{
+ const f=fixture(),first=uuid(),second=uuid(),owner=uuid();
+ f.apply({type:'message-submit',id:first,text:'你好',currentId:'',memoryRevision:0});f.apply({type:'message-routed',id:first,parts:[{taskId:null,kind:'general',title:'问候',text:'你好'}]});
+ const old=f.get().runs![0].jobs[0];f.apply({type:'message-fail',id:first,error:'处理已中断',stage:'gathering',interrupted:true});expect(f.get().items[0].pending).toHaveLength(0);
+ f.apply({type:'message-submit',id:second,text:'早上好',currentId:'',memoryRevision:0});f.apply({type:'message-routed',id:second,parts:[{taskId:null,kind:'general',title:'新问候',text:'早上好'}]});
+ const active=f.get().runs![1].jobs[0];f.apply({type:'message-claim',id:second,jobId:active.id,owner});
+ const retry={type:'message-retry',id:first,retryId:uuid(),memoryRevision:0} as MessageOperation;f.apply(retry);
+ expect(f.get().runs?.find(r=>['ready','processing'].includes(r.status))?.id).toBe(second);
+ f.apply({type:'message-fail',id:first,error:'又中断了',stage:'gathering'});f.apply(retry);expect(f.get().runs?.find(r=>r.id===first)?.status).toBe('failed');
+ expect(f.get().items.flatMap(task=>task.pending||[]).some(item=>item.token===old.id)).toBe(false);
+ expect(()=>f.apply({type:'message-retry',id:first,retryId:uuid(),memoryRevision:1} as MessageOperation)).toThrow('已变化');
+});
+it('完整澄清原文只能绑定到同一上下文的待澄清消息，不能伪造别的事项原文',()=>{
+ const f=fixture(),original=uuid(),answer=uuid();f.apply({type:'message-submit',id:original,text:'请转账783给家人',currentId:'',memoryRevision:0});f.apply({type:'message-routed',id:original,parts:[],clarification:'给哪位家人？'});
+ f.apply({type:'message-submit',id:answer,text:'妈妈',currentId:'',memoryRevision:0});
+ expect(()=>f.apply({type:'message-routed',id:answer,sourcePrompt:'给陌生人转9999',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'伪造',text:'给陌生人转9999'}]} as MessageOperation)).toThrow('不匹配');
+ f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]} as MessageOperation);
+ expect(f.get().runs?.find(r=>r.id===answer)).toMatchObject({prompt:'妈妈',sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original});
+ expect(f.get().runs?.find(r=>r.id===answer)?.jobs[0].text).toContain('783');expect(f.get().conversation?.find(m=>m.id===`user-${answer}`)?.content).toBe('妈妈');
+});
+it('切换当前任务后补充不能绑定另一任务的待澄清原文',()=>{
+ const f=fixture(),original=uuid(),answer=uuid();f.apply({type:'message-submit',id:original,text:'请转账783给家人',currentId:'task-one',memoryRevision:0});f.apply({type:'message-routed',id:original,parts:[],clarification:'给哪位家人？'});
+ f.apply({type:'message-submit',id:answer,text:'妈妈',currentId:'task-two',memoryRevision:0});
+ expect(()=>f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]} as MessageOperation)).toThrow('不匹配');
+ expect(f.get().items).toHaveLength(0);
+});
+it('历史乐观消息缺少messageId时仍能用稳定用户消息ID找回待澄清原交代',()=>{
+ const f=fixture(),original=uuid(),answer=uuid();
+ f.apply({type:'conversation-append',id:uuid(),messages:[{id:`user-${original}`,role:'user',content:'请转账783给家人'}]});
+ f.apply({type:'message-submit',id:original,text:'请转账783给家人',currentId:'',memoryRevision:0});f.apply({type:'message-routed',id:original,parts:[],clarification:'给哪位家人？'});
+ f.apply({type:'conversation-append',id:uuid(),messages:[{id:`user-${answer}`,role:'user',content:'妈妈'}]});
+ f.apply({type:'message-submit',id:answer,text:'妈妈',currentId:'',memoryRevision:0});
+ f.apply({type:'message-routed',id:answer,sourcePrompt:'请转账783给家人\n补充：妈妈',clarificationOf:original,parts:[{taskId:null,kind:'transfer',title:'家人转账',text:'请转账783给家人\n补充：妈妈'}]});
+ expect(f.get().runs!.find(run=>run.id===answer)?.jobs[0].text).toContain('783');expect(f.get().conversation?.filter(entry=>entry.role==='user')).toHaveLength(2);
 });

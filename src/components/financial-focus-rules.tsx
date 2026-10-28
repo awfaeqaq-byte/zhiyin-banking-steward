@@ -47,7 +47,7 @@ export function FinancialFocusRules({ stewardName }: Props) {
       <header>
         <div>
           <span>你定义的管家规则</span>
-          <h2 id="focus-rules-title">我的关注</h2>
+          <h2 id="focus-rules-title">关注规则</h2>
           <p>对{stewardName}说一次，之后会按这条规则定期检查。</p>
         </div>
         <small>{rules.length ? `正在关注 ${rules.length} 件事` : "还没有设置"}</small>

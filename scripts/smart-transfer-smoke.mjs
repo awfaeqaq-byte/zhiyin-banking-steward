@@ -53,7 +53,7 @@ try{
  assert.equal(bank.get().balance,4223333);assert.equal(bank.get().collections.length,1);
  await page.screenshot({path:join(dir,'aa-mobile.png'),fullPage:true});
  const time=Date.now(),draft=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2000000,executeAt:time+60000},time);
- bank.schedule(draft.id,time+1);
+ bank.schedule(draft.id,time+1,draft.review?.token);
  bank.pay({id:'smoke:unexpected',channel:'wechat',amount:300000,merchant:'测试消费'},time+2);
  bank.runDue(time+60000);
  assert.equal(bank.get().schedules[0].status,'failed');

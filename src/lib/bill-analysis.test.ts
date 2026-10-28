@@ -37,7 +37,8 @@ describe('账单分析',()=>{
     expect(buildBillAnalysis({wechat_pay:{...source,transactions:rows}},'账单',now).transferIn).toBe(2000);
     expect(buildBillAnalysis({},'今天账单',now).from).toBe('2026-09-24');
     expect(buildBillAnalysis({},'最近30天账单',now).from).toBe('2026-08-26');
-    for(const q of ['最近15天账单','2026年13月账单','2027年1月账单','历史账单','8月1日至8月20日账单']) expect(buildBillAnalysis({},q,now).needsClarification).toBe(true);
+    for(const q of ['最近15天账单','2026年13月账单','2027年1月账单','历史账单']) expect(buildBillAnalysis({},q,now).needsClarification).toBe(true);
+    expect(buildBillAnalysis({},'8月1日至8月20日账单',now)).toMatchObject({from:'2026-08-01',to:'2026-08-20',needsClarification:false});
     expect(billInstructions('宁宁')).toContain('null');
   });
   it('按分计算本月消费、收入、退款、转账并保留来源',()=>{
@@ -73,5 +74,15 @@ describe('账单分析',()=>{
     expect(isBillQuestion('我的钱花在哪了')).toBe(true);
     expect(isBillQuestion('帮我取消自动续费')).toBe(false);
     expect(buildBillAnalysis({},'去年第三季度账单',now).needsClarification).toBe(true);
+  });
+  it.each(['流水是什么意思','不要查账单，只解释什么叫流水','解释一下收入和支出的区别','不要查账单','不需要读取我的流水'])('账单概念或拒绝读取不生成查账请求：%s',prompt=>{
+    expect(isBillQuestion(prompt)).toBe(false);
+    expect(billQuestionForMessages([{role:'user',content:'本月账单'},{role:'user',content:prompt}])).toBeNull();
+  });
+  it.each(['帮我看看本月账单','解释一下我上个月为什么花了这么多','这笔退款是怎么回事','不要只看餐饮，分析本月全部支出','账单'])('真实查账与解释记录仍可触发分析：%s',prompt=>{
+    expect(isBillQuestion(prompt)).toBe(true);
+  });
+  it('旧账单上下文不吞掉“那流水是什么意思”的纯概念追问',()=>{
+    expect(billQuestionForMessages([{role:'user',content:'本月账单'},{role:'user',content:'那流水是什么意思'}])).toBeNull();
   });
 });

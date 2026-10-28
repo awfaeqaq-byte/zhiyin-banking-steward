@@ -62,6 +62,7 @@ function ZhiyinFrame() {
 
   useEffect(() => {
     if (isForeground && status === 'ready') session.current?.foreground();
+    if(!isForeground)frame.current?.contentWindow?.postMessage({type:'zhiyin-voice-stop'},window.location.origin);
   }, [isForeground, status]);
   useEffect(()=>{
     if(!isForeground)return;
@@ -82,6 +83,7 @@ function ZhiyinFrame() {
           ref={frame} src={FRAME_URL} title={s.app_name}
           className="zhiyin-phone-frame" tabIndex={status === 'ready' ? 0 : -1}
           sandbox="allow-scripts allow-same-origin allow-forms"
+          allow="microphone; autoplay"
           onLoad={() => session.current?.ping()}
         />
         {status !== 'ready' && (

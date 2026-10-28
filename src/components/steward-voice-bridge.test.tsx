@@ -1,0 +1,30 @@
+import {act,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,expect,it,vi} from 'vitest';
+import {StewardWorkspaces} from './steward-workspaces';
+import {changeWorkspaces,emptyWorkspaces} from '../lib/workspaces';
+import type {VoiceBusiness} from '../lib/realtime-voice';
+import type {VoiceTurn,VoiceContextLoader} from '../lib/voice-conversation';
+const voice=vi.hoisted(()=>({request:null as VoiceBusiness|null,onTurn:undefined as ((turn:VoiceTurn)=>void)|undefined,getContext:undefined as VoiceContextLoader|undefined}));
+vi.mock('./steward-voice',()=>({StewardVoice:({onRequest,disabled,onTurn,getContext}:{onRequest:VoiceBusiness;disabled:boolean;onTurn?:(turn:VoiceTurn)=>void;getContext?:VoiceContextLoader})=>{voice.request=onRequest;voice.onTurn=onTurn;voice.getContext=getContext;return <button disabled={disabled}>语音测试入口</button>;}}));
+afterEach(()=>vi.restoreAllMocks());
+it('语音原文进入同一个后台消息流程，回执就地出现，重复调用不创建第二个任务或自动授权',async()=>{
+ let state=emptyWorkspaces();vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{if(String(url).includes('workspaces')){if(init?.body)state=changeWorkspaces(state,JSON.parse(String(init.body)));return new Response(JSON.stringify(state));}return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));});
+ const route=vi.fn(async(text:string)=>({parts:[{taskId:null,kind:'transfer' as const,title:'给妈妈生活费',text}]}));
+ const authorize=vi.fn(),reply=vi.fn(async()=>({text:'给妈妈转2000的方案已整理，仍需你核对。'}));
+ render(<StewardWorkspaces stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onPrepareTransfer={authorize} route={route} reply={reply}/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'语音测试入口'})).toBeEnabled());
+ let result:Awaited<ReturnType<VoiceBusiness>>|undefined;
+ let pending:ReturnType<VoiceBusiness>|undefined;
+ act(()=>{pending=voice.request!('给妈妈转2000','voice-test-1',new AbortController().signal);});
+ await screen.findByText('给妈妈转2000的方案已整理，仍需你核对。');await act(async()=>{result=await pending;});
+ expect(result?.text).toContain('仍需你核对');expect(state.items).toHaveLength(1);expect(state.conversation?.filter(m=>m.role==='user')).toHaveLength(1);expect(authorize).not.toHaveBeenCalled();
+ await voice.request!('给妈妈转2000','voice-test-1',new AbortController().signal);expect(route).toHaveBeenCalledOnce();
+});
+it('普通语音聊天保留首页历史且不分流任务，下一次通话带上同一段对话',async()=>{
+ let state=emptyWorkspaces();vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{if(String(url).includes('workspaces')){if(init?.body)state=changeWorkspaces(state,JSON.parse(String(init.body)));return new Response(JSON.stringify(state));}return new Response(JSON.stringify({}));});
+ const route=vi.fn(async(text:string)=>({parts:[{taskId:null,kind:'general' as const,title:'聊天',text}]}));
+ render(<StewardWorkspaces stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} route={route}/>);
+ await waitFor(()=>expect(state.conversation).toBeDefined());act(()=>voice.onTurn?.({id:'voice-casual-1',user:'今天有点累',assistant:'那我们慢慢来。'}));await screen.findByText('那我们慢慢来。');
+ expect(route).not.toHaveBeenCalled();expect(state.items).toHaveLength(0);expect(state.runs||[]).toHaveLength(0);
+ const context=await voice.getContext!();expect(context.recent).toEqual([{role:'user',content:'今天有点累'},{role:'assistant',content:'那我们慢慢来。'}]);
+});

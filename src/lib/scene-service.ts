@@ -1,3 +1,4 @@
+import {isGroupAAAuthorizationRequired,groupAAAuthorizationMessage} from './group-aa-authorization';
 import {validWorkspaces,type WorkspaceState} from './workspaces';
 import {validSceneOrder,type SceneOrderObservation} from './scene-flow';
 import {foodOrderRequest} from './food-order-bridge';
@@ -29,22 +30,26 @@ export async function reconcileExpenseBook(bookId:string){
  }
 }
 type Dependencies={request:typeof sceneRequest;food:typeof foodOrderRequest;occasion:typeof occasionFoodRequest;expenses:(bookId:string)=>Promise<void>};
-export async function reconcileSceneSources(dependencies:Dependencies={request:sceneRequest,food:foodOrderRequest,occasion:occasionFoodRequest,expenses:reconcileExpenseBook}):Promise<WorkspaceState>{
+export async function reconcileSceneSources(dependencies:Dependencies={request:sceneRequest,food:foodOrderRequest,occasion:occasionFoodRequest,expenses:reconcileExpenseBook},options:{retryExpenseBookIds?:string[]}={}):Promise<WorkspaceState>{
  const state=await dependencies.request(),orders:SceneOrderObservation[]=[],errors:Observations['errors']=[];
  const links=state.scenes?.flatMap(s=>s.links)||[],groups=new Map<string,typeof links>();
  for(const link of links.filter(l=>l.kind==='food_order'||l.kind==='expense_book')){const key=link.kind==='expense_book'?`book:${link.id}`:`${link.channel}:${link.workspaceId}`;groups.set(key,[...(groups.get(key)||[]),link]);}
  await Promise.all([...groups.values()].map(async(group)=>{
   const link=group[0],checkedAt=Date.now();
   try{
-   if(link.kind==='expense_book'){await dependencies.expenses(link.id);return;}
+   if(link.kind==='expense_book'){
+    const paused=state.scenes?.some(scene=>scene.links.some(item=>item.kind==='expense_book'&&item.id===link.id)&&isGroupAAAuthorizationRequired(scene.error));
+    if(paused&&!options.retryExpenseBookIds?.includes(link.id)){errors.push({workspaceId:link.workspaceId,message:groupAAAuthorizationMessage});return;}
+    await dependencies.expenses(link.id);return;
+   }
    const result=link.channel==='occasion'?await dependencies.occasion('records',{planId:link.workspaceId}):await dependencies.food('records',{taskId:link.workspaceId});
    if(!Array.isArray(result.orders))throw new Error('原订单记录暂不可读');
    const observed:SceneOrderObservation[]=[];
    for(const owned of group){const receipt=result.orders.find(r=>r.id===owned.id);if(!receipt)throw new Error('原订单记录暂不可读');
     if(link.channel==='occasion'? !('occasionId' in receipt)||receipt.occasionId!==link.workspaceId:!('taskId' in receipt)||receipt.taskId!==link.workspaceId)throw new Error('订单归属无法核对');
-    const observation={taskId:link.workspaceId,id:receipt.id,status:receipt.status,checkedAt};if(!validSceneOrder(observation))throw new Error('平台订单状态无法核对');observed.push(observation);
+    const observation={taskId:link.workspaceId,id:receipt.id,status:receipt.status,checkedAt,...('payment' in receipt&&receipt.payment?{payment:receipt.payment}:{})};if(!validSceneOrder(observation))throw new Error('平台订单状态无法核对');observed.push(observation);
    }orders.push(...observed);
-  }catch(cause){errors.push({workspaceId:link.workspaceId,message:(cause instanceof Error?cause.message:'平台结果暂不可读').slice(0,300)});}
+  }catch(cause){errors.push({workspaceId:link.workspaceId,message:(isGroupAAAuthorizationRequired(cause)?groupAAAuthorizationMessage:cause instanceof Error?cause.message:'平台结果暂不可读').slice(0,300)});}
  }));
  return dependencies.request({orders,errors});
 }

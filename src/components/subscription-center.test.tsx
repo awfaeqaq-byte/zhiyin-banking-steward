@@ -106,3 +106,43 @@ describe("SubscriptionCenter", () => {
     expect(onRefresh).toHaveBeenCalledOnce();
   });
 });
+
+it("从日程查看订阅只定位详情，不进入取消流程", async () => {
+  const onCancel = vi.fn(), onFocusConsumed = vi.fn();
+  render(<SubscriptionCenter connections={{ wechat_pay: wechat }} now={now} disabledReminders={[]}
+    onToggleReminder={vi.fn()} onCancel={onCancel} onConnect={vi.fn()}
+    focusKey="wechat_pay:wx-music" onFocusConsumed={onFocusConsumed} />);
+  const item = screen.getByRole("article", { name: "黑胶VIP会员包月订阅详情" });
+  await waitFor(() => expect(item).toHaveFocus());
+  expect(screen.getByText("日程中的这项续费")).toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(onCancel).not.toHaveBeenCalled();
+  expect(onFocusConsumed).toHaveBeenCalledOnce();
+});
+
+it("读取失败、未授权和空清单是不同状态", () => {
+  const common = { now, disabledReminders: [], onToggleReminder: vi.fn(), onCancel: vi.fn(), onConnect: vi.fn(), onRefresh: vi.fn() };
+  const view = render(<SubscriptionCenter {...common} connections={{}} refreshError="平台暂时无法连接" />);
+  expect(screen.getByRole("heading", { name: "暂时无法读取自动续费" })).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("读取失败不代表没有订阅");
+  fireEvent.click(screen.getByRole("button", { name: "重新同步" }));
+  expect(common.onRefresh).toHaveBeenCalledOnce();
+  view.rerender(<SubscriptionCenter {...common} connections={{ wechat_pay: { ...wechat, scopes: ["transactions"], autopays: [] } }} />);
+  expect(screen.getByRole("heading", { name: "还需要自动续费读取授权" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "管理读取授权" }));
+  expect(common.onConnect).toHaveBeenCalledOnce();
+  view.rerender(<SubscriptionCenter {...common} connections={{ wechat_pay: { ...wechat, autopays: [] } }} />);
+  expect(screen.getByRole("heading", { name: "暂无已签约自动续费" })).toBeInTheDocument();
+  expect(screen.queryByText("已连接的账户里暂未发现正在自动续费的服务。")).not.toBeInTheDocument();
+});
+
+it("未知扣费日期不显示已排期，已到期不冒充今天将扣费", () => {
+  render(<SubscriptionCenter connections={{ wechat_pay: { ...wechat, autopays: [
+    { ...wechat.autopays[0], nextChargeAt: undefined },
+    { ...wechat.autopays[0], id: "overdue", title: "过期记录", nextChargeAt: now - 86400000 },
+  ] } }} now={now} disabledReminders={[]} onToggleReminder={vi.fn()} onCancel={vi.fn()} onConnect={vi.fn()} />);
+  expect(screen.getByText("日期待核对")).toBeInTheDocument();
+  expect(screen.getByText("结果待核对")).toBeInTheDocument();
+  expect(screen.queryByText("已排期")).not.toBeInTheDocument();
+  expect(screen.queryByText("预计今天扣费", { selector: ".subscription-schedule strong" })).not.toBeInTheDocument();
+});

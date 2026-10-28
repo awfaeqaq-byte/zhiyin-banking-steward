@@ -16,6 +16,7 @@ import {
   type ExpenseState,
   type ExpenseCommand,
 } from "../src/lib/expense-notebook";
+import {importSceneExpenses,syncSceneExpenses,type SceneExpenseSource} from '../src/lib/scene-expenses';
 export function createExpenseStore(file: string) {
   const get = (): ExpenseState => {
     if (!existsSync(file)) return emptyExpenseState();
@@ -23,9 +24,7 @@ export function createExpenseStore(file: string) {
     if (!validExpenseState(data)) throw new Error("账本文件损坏，原文件已保留");
     return data;
   };
-  return {
-    get,
-    change(command: ExpenseCommand) {
+  function mutate(update:(state:ExpenseState)=>ExpenseState) {
       let lock: number;
       try {
         lock = openSync(file + ".lock", "wx", 0o600);
@@ -33,7 +32,9 @@ export function createExpenseStore(file: string) {
         throw new Error("记录正在保存，请重试");
       }
       try {
-        const next = changeExpenses(get(), command);
+        const state=get(),next = update(state);
+        if(next===state)return state;
+        if(!validExpenseState(next))throw new Error('账本更新无法核对，原记录已保留');
         writeFileSync(file + ".tmp", JSON.stringify(next), { mode: 0o600 });
         renameSync(file + ".tmp", file);
         return next;
@@ -41,6 +42,22 @@ export function createExpenseStore(file: string) {
         closeSync(lock);
         unlinkSync(file + ".lock");
       }
+  }
+  return {
+    get,
+    change(command:ExpenseCommand){return mutate(state=>changeExpenses(state,command));},
+    syncSources(sources:SceneExpenseSource[]){return mutate(state=>syncSceneExpenses(state,sources));},
+    importSources(bookId:string,sources:SceneExpenseSource[],input:{revision:number;requestId:string;references:unknown}){
+      return mutate(state=>{
+        if(typeof input.requestId!=='string'||!/^[\w-]{1,100}$/.test(input.requestId))throw new Error('请求标识无效');
+        const body=JSON.stringify({type:'import-verified-sources',bookId,references:input.references,revision:input.revision}),seen=state.applied.find(a=>a.id===input.requestId);
+        if(seen){if(seen.body!==body)throw new Error('同一请求标识不能用于不同操作');return syncSceneExpenses(state,sources);}
+        if(input.revision!==state.revision)throw new Error('记录已变化，请刷新后重试');
+        const next=structuredClone(importSceneExpenses(state,bookId,sources));
+        next.applied=[...next.applied,{id:input.requestId,body}].slice(-500);
+        if(next.revision===state.revision)next.revision++;
+        return next;
+      });
     },
   };
 }

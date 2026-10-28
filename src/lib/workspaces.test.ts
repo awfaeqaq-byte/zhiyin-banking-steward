@@ -8,6 +8,75 @@ import {
   type WorkspaceCommand,
 } from "./workspaces";
 describe("独立任务工作区", () => {
+  it('会话可新增、读取、重命名、归档恢复和删除；待处理任务不能删除',()=>{
+    let state=emptyWorkspaces();
+    const apply=(operation:object)=>{state=changeWorkspaces(state,{...operation,revision:state.revision,requestId:crypto.randomUUID()} as WorkspaceCommand);};
+    apply({type:'create',id:'chat-1',title:'新对话',kind:'general'});
+    expect(state.items[0].title).toBe('新对话');
+    apply({type:'rename',id:'chat-1',title:'生日安排'});
+    apply({type:'status',id:'chat-1',status:'archived'});
+    expect(state.items[0]).toMatchObject({title:'生日安排',status:'archived'});
+    apply({type:'status',id:'chat-1',status:'active'});
+    apply({type:'enqueue',id:'chat-1',token:'pending',text:'继续处理'});
+    expect(()=>apply({type:'delete',id:'chat-1'})).toThrow(/待处理/);
+    apply({type:'discard',id:'chat-1',token:'pending'});
+    apply({type:'delete',id:'chat-1'});
+    expect(state.items).toHaveLength(0);
+    expect(validWorkspaces(state)).toBe(true);
+  });
+  it('待处理交代不能归档，完成后可归档并恢复原会话',()=>{
+    let state=emptyWorkspaces();
+    const apply=(operation:object)=>{state=changeWorkspaces(state,{...operation,revision:state.revision,requestId:crypto.randomUUID()} as WorkspaceCommand);};
+    apply({type:'create',id:'chat',title:'读书计划',kind:'general'});
+    apply({type:'enqueue',id:'chat',token:'pending',text:'推荐一本书'});
+    const before=structuredClone(state);
+    expect(()=>apply({type:'status',id:'chat',status:'archived'})).toThrow(/待处理.*归档/);
+    expect(state).toEqual(before);
+    apply({type:'turn',id:'chat',token:'pending',user:'推荐一本书',assistant:'先从这一本开始。',memoryRevision:0});
+    apply({type:'status',id:'chat',status:'archived'});
+    expect(state.items[0].status).toBe('archived');
+    apply({type:'status',id:'chat',status:'active'});
+    expect(state.items[0]).toMatchObject({status:'active',pending:[],messages:[{content:'推荐一本书'},{content:'先从这一本开始。'}]});
+  });
+  it.each(['routing','ready','processing'] as const)('%s 的关联会话拒绝归档，原消息完成后可以归档恢复',phase=>{
+    let state=emptyWorkspaces();
+    const apply=(operation:object)=>{state=changeWorkspaces(state,{...operation,revision:state.revision,requestId:crypto.randomUUID()} as WorkspaceCommand);};
+    apply({type:'create',id:'chat',title:'出行清单',kind:'general'});
+    apply({type:'create',id:'other',title:'其他事项',kind:'general'});
+    apply({type:'message-submit',id:'message',text:'整理杭州出行清单',currentId:phase==='routing'?'chat':'other',memoryRevision:0});
+    const route=()=>apply({type:'message-routed',id:'message',parts:[{taskId:'chat',kind:'general',title:'出行清单',text:'整理杭州出行清单'}]});
+    if(phase!=='routing')route();
+    let job=state.runs?.[0].jobs[0];
+    if(phase==='processing')apply({type:'message-claim',id:'message',jobId:job!.id,owner:'browser'});
+    // Even a separately cleared pending entry must not archive a live job's workspace.
+    if(job)apply({type:'discard',id:'chat',token:job.id});
+    const before=structuredClone(state);
+    expect(()=>apply({type:'status',id:'chat',status:'archived'})).toThrow(/处理消息.*归档/);
+    expect(state).toEqual(before);
+    expect(state.items.find(item=>item.id==='chat')?.status).toBe('active');
+    if(phase==='routing')route();
+    job=state.runs![0].jobs[0];
+    if(phase!=='processing')apply({type:'message-claim',id:'message',jobId:job.id,owner:'browser'});
+    apply({type:'message-complete',id:'message',jobId:job.id,owner:'browser',assistant:'出行清单已整理。',memoryRevision:0,failed:false});
+    expect(state.runs![0].status).toBe('completed');
+    apply({type:'status',id:'chat',status:'archived'});
+    expect(state.items.find(item=>item.id==='chat')?.status).toBe('archived');
+    apply({type:'status',id:'chat',status:'active'});
+    expect(state.items.find(item=>item.id==='chat')?.messages.at(-1)?.content).toBe('出行清单已整理。');
+  });
+  it('只等待用户补充、没有执行或排队的会话仍可归档恢复',()=>{
+    let state=emptyWorkspaces();
+    const apply=(operation:object)=>{state=changeWorkspaces(state,{...operation,revision:state.revision,requestId:crypto.randomUUID()} as WorkspaceCommand);};
+    apply({type:'create',id:'chat',title:'出行安排',kind:'general'});
+    apply({type:'message-submit',id:'message',text:'改一下时间',currentId:'chat',memoryRevision:0});
+    apply({type:'message-routed',id:'message',parts:[],clarification:'你想改哪次出行？'});
+    expect(state.runs![0].status).toBe('waiting_user');
+    apply({type:'status',id:'chat',status:'archived'});
+    expect(state.items[0].status).toBe('archived');
+    apply({type:'status',id:'chat',status:'active'});
+    expect(state.items[0].status).toBe('active');
+    expect(state.conversation?.at(-1)?.content).toBe('你想改哪次出行？');
+  });
   it('任务现场落盘并修复旧查账分类，不允许伪造授权或改成金融执行类型',()=>{
     let s=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'b',title:'看支出',kind:'general',revision:0,requestId:'create'});
     s=changeWorkspaces(s,{type:'progress',id:'b',kind:'bills',progress:{goal:'看本月支出',stage:'waiting_authorization',bill:{period:'本月',provider:'alipay'},waitingFor:{field:'authorization',question:'需要平台确认账单读取范围'}},memoryRevision:0,revision:s.revision,requestId:'plan'} as WorkspaceCommand);

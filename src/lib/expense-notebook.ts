@@ -6,6 +6,7 @@ import {
   type AACollection,
 } from "./group-aa";
 import {collectionProgress} from './expense-follow-up';
+import {validSceneExpenseSource,sourceExpenseIssue,sourceExpenseNet,reconcileUnbatchedSource,type SceneExpenseSource} from './scene-expenses';
 export type ExpenseInput = {
   title: string;
   amount: number;
@@ -17,6 +18,7 @@ export type ExpenseEntry = ExpenseInput & {
   id: string;
   at: number;
   batchId?: string;
+  source?: SceneExpenseSource;
 };
 export type ExpenseBatch = {
   id: string;
@@ -26,6 +28,7 @@ export type ExpenseBatch = {
   collectionId?: string;
   receipt?: AACollection;
   at: number;
+  sourceChanged?: boolean;
 };
 export type ExpenseBook = {
   id: string;
@@ -126,7 +129,7 @@ export function validExpenseState(value: unknown): value is ExpenseState {
           b.entries.length <= 300 &&
           b.entries.every((e) => {
             entryAllocations(b.group, e);
-            return typeof e.id === "string" && Number.isFinite(e.at);
+            return typeof e.id === "string" && Number.isFinite(e.at) && (e.source===undefined||validSceneExpenseSource(e.source));
           }) &&
           Array.isArray(b.batches) &&
           b.batches.every((batch) => {
@@ -135,7 +138,7 @@ export function validExpenseState(value: unknown): value is ExpenseState {
             return (
               typeof batch.id === "string" &&
               ["prepared", "published"].includes(batch.status) &&
-              Array.isArray(batch.entryIds)
+              Array.isArray(batch.entryIds) && (batch.sourceChanged===undefined||typeof batch.sourceChanged==='boolean')
             );
           }),
       ) &&
@@ -232,6 +235,7 @@ export function settlementPlan(book: ExpenseBook, entryIds: string[]): AAPlan {
   const entries = entryIds.map((id) => {
     const e = book.entries.find((x) => x.id === id);
     assert(e && !e.batchId, "消费不存在或已进入结算");
+    assert(!sourceExpenseIssue(e),sourceExpenseIssue(e)||'请核对退款后的分摊');
     return e;
   });
   assert(
@@ -321,8 +325,10 @@ export function changeExpenses(
           i >= 0 && !book.entries[i].batchId,
           "记录不存在或已进入结算，不能修改",
         );
-      if (command.type === "delete") book.entries.splice(i, 1);
+      if (command.type === "delete") {assert(!book.entries[i].source,'订单来源记录需保留，请在结算中排除本笔');book.entries.splice(i, 1);}
       else {
+        const source=i>=0?book.entries[i].source:undefined;
+        if(source)assert(command.entry.amount===sourceExpenseNet(source),'实付金额以订单回执为准，只能调整分摊规则');
         entryAllocations(book.group, command.entry);
         const { title, amount, payerId, fixed, shares } = command.entry;
         const entry = {
@@ -333,6 +339,7 @@ export function changeExpenses(
           shares,
           id: command.entryId,
           at: i >= 0 ? book.entries[i].at : at,
+          ...(source?{source}:{}),
         };
         if (i < 0) book.entries.push(entry);
         else book.entries[i] = entry;
@@ -359,7 +366,7 @@ export function changeExpenses(
       assert(batch && batch.status === "prepared", "结算不存在或已发布");
       if (command.type === "release") {
         book.entries.forEach((e) => {
-          if (e.batchId === batch.id) delete e.batchId;
+          if (e.batchId === batch.id) {delete e.batchId;reconcileUnbatchedSource(e,book.group);}
         });
         book.batches = book.batches.filter((b) => b.id !== batch.id);
       } else {

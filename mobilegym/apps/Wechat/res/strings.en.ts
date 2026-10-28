@@ -5,6 +5,7 @@
 import type { StringKey } from './strings';
 
 export const stringsEn: Partial<Record<StringKey, string>> = {
+  ningning_identity:'Zhiyin AI steward',ningning_channel_hint:'Discuss here; review plans and authorize in Zhiyin.',ningning_continue:'Continue in Zhiyin',ningning_retry:'Retry reply',ningning_failed:'Ningning could not reply. Your message is saved.',ningning_unfinished:'No reply yet. You can retry.',ningning_select_hint:'Select messages to carry over, then describe what you want done.',ningning_input:'Chat with Ningning, up to 2000 characters',
   zhiyin_share_title:'Share with Zhiyin',zhiyin_share_select:'Select message',zhiyin_share_selection:'Selected messages',zhiyin_share_selected:'{count} selected',
   zhiyin_share_unknown_sender:'Unknown sender',
   zhiyin_share_note:'What should your steward help with? (optional)',zhiyin_share_note_hint:'For example: prepare a birthday, budget 500',zhiyin_share_back:'Back to selection',zhiyin_share_open:'Share and open Zhiyin',

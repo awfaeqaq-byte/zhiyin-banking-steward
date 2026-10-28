@@ -16,7 +16,9 @@ it('后台月报每次执行重新拉取上月账单，撤销授权后记录失�
  const source=():ConnectedFinancialSource=>({provider:'wechat_pay',displayName:'微信支付',accountMasked:'演示',scopes:['transactions'],syncedAt:new Date(clock).toISOString(),autopays:[],transactions:[{id:'one',title:'餐饮',amount,category:'餐饮',kind:'payment',occurredAt:'2026-09-20'}],transactionCoverage:{total:complete?1:2,returned:1,invalid:complete?0:1,complete}});
  const bills=createBillSourceService({grantFile:join(dir,'grants.json'),fetchSource:()=>source()});
  bills.grant('wechat_pay',true);
- const service=createAgentAutomationService({stateFile:join(dir,'state.json'),databaseUrl:`file:${join(dir,'scheduler.db')}`,now:()=>clock,refreshBills:bills.refresh});
+ // This test checks refreshed reports and grants, not database persistence.
+ // An in-memory workflow store avoids open SQLite handles during Windows cleanup.
+ const service=createAgentAutomationService({stateFile:join(dir,'state.json'),databaseUrl:'file::memory:',now:()=>clock,refreshBills:bills.refresh});
  const oldContext:AutomationContext={capturedAt:clock-86400000,bill:{sourceCount:1,recordCount:99,expense:999999,coverage:'旧浏览器摘要',findings:[]},wealth:{market:null}};
  let snapshot=await service.runNow('monthly_bill_review',oldContext);
  expect(snapshot.runs[0]).toMatchObject({status:'completed',reportMonth:'2026-09',sourceRefreshedAt:clock});

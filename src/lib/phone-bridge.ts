@@ -199,6 +199,7 @@ export function connectPhoneBridge(host: Window, peer: Window) {
       }
     }
     if (data.type === "foreground") host.dispatchEvent(new Event("zhiyin-phone-foreground"));
+    if (data.type === "bank-updated") host.dispatchEvent(new Event("zhiyin-bank-updated"));
     if (
       data.type === "contacts-result" && typeof data.requestId === "string" &&
       data.requestId === `contacts-${contactsSequence}` && activeContactRequest &&

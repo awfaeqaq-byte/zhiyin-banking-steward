@@ -55,13 +55,15 @@ describe('筹备任务与真实预留预算',()=>{
   expect(()=>bank.saveOccasion({id:'bad',revision:0,draft:{...draft,productIds:['made-up']}},now)).toThrow(/商品/);
   bank.saveOccasion({id:'one',revision:0,draft},now);
   expect(()=>bank.reserveOccasion('one',0,now)).toThrow(/变化/);
-  const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2200000,executeAt:now+10000},now);bank.schedule(scheduled.id,now);
+  const scheduled=bank.prepare({recipientId:'mom',amount:2000000,protectedAmount:2200000,executeAt:now+10000},now);bank.schedule(scheduled.id,now,scheduled.review?.token);
   expect(()=>bank.reserveOccasion('one',bank.get().revision,now)).toThrow(/预约|不足/);
   bank.cancelSchedule(scheduled.id);bank.reserveOccasion('one',bank.get().revision,now);
   bank.prepareOccasionOrder('one','cake-light',bank.get().revision,now);
   expect(()=>bank.saveOccasion({id:'one',revision:bank.get().revision,draft:{...draft,budget:120000}},now)).toThrow(/订单/);
  });
  it('HTTP必须明确确认才能预留，读取可用资金和任务，过大或跨站输入被拒绝',async()=>{
+  // Keep this authorization test independent of the real night-protection window.
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(now);
   const {bank}=fixture();const server=createServer(bankMiddleware(bank));await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
   const post=(data:object,origin?:string)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Zhiyin-Bank':'1',...(origin?{Origin:origin}:{})},body:JSON.stringify(data)});
   try{

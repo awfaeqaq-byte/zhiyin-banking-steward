@@ -1,22 +1,42 @@
-.smart-transfers{display:grid;gap:18px;min-width:0}
-.smart-tabs{display:flex;gap:4px;background:var(--surface,#edf5f5);padding:4px;border-radius:12px}
-.smart-tabs button{flex:1;border:0;border-radius:9px;padding:10px 6px;font:inherit;color:var(--muted);background:transparent}
-.smart-tabs button[aria-pressed=true]{background:var(--paper,#fff);color:var(--ink);box-shadow:0 1px 5px #183a4010}
-.smart-tabs button:focus-visible,.smart-person:focus-within{outline:2px solid #277888;outline-offset:2px}
-.smart-people{border:1px solid var(--line);border-radius:12px;padding:8px 12px}
-.smart-people legend{padding:0 5px;color:var(--muted)}
-.smart-person{display:flex;align-items:center;gap:12px;padding:10px 0;cursor:pointer}
-.smart-person input{accent-color:#277888;width:18px;height:18px;flex:none}
-.smart-person span{display:grid;gap:2px}.smart-person small{color:var(--muted);font-size:12px}
-.smart-preview,.smart-confirm{display:grid;gap:10px;padding:16px;background:#edf7f8;border-radius:12px;color:var(--ink)}
-.smart-preview span{font-size:13px;color:var(--muted)}
-.smart-records{display:grid;gap:14px}.smart-records h3{margin:0;font-size:16px}
-.smart-record{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;min-width:0}
-.smart-record p{margin:0;font-size:13px;color:var(--muted)}
-.smart-record-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.smart-record-heading span{font-size:12px;flex-shrink:0;color:var(--muted)}
-.smart-record-heading button{background:none;border:0;color:#277888;font:inherit;padding:8px}
-.smart-record progress{width:100%;height:5px;accent-color:#277888;border:0}
-.smart-simulation{padding:10px;background:var(--surface,#f5f8f8);border-radius:8px;font-size:13px}
-.smart-simulation summary{cursor:pointer}.smart-simulation button{margin-top:10px;width:100%}
-.smart-record .bank-transfer-facts{font-size:13px}.smart-transfers input[type=datetime-local]{max-width:100%;min-width:0}
+.smart-transfers { display: grid; gap: 12px; min-width: 0; min-height: 0; color: var(--ink, #133346); font-size: 14px; line-height: 1.65; }
+.smart-tabs { display: flex; gap: 4px; flex: none; background: var(--pale, #eaf8f7); padding: 4px; border-radius: 10px; }
+.smart-tabs button { flex: 1; min-height: 44px; border: 0; border-radius: 10px; padding: 8px 6px; font: inherit; color: var(--muted, #506d7c); background: transparent; cursor: pointer; }
+.smart-tabs button[aria-pressed=true] { background: var(--paper, #fff); color: var(--ink, #133346); font-weight: 600; }
+.smart-tabs button:hover:not(:disabled) { color: var(--teal-label, #007d7c); }
+.smart-tabs button:disabled { opacity: .5; cursor: default; }
+.smart-transfers :is(button, summary, input, select):focus-visible, .smart-person:focus-within { outline: 2px solid var(--teal, #008a87); outline-offset: 2px; }
+.smart-people { min-width: 0; border: 1px solid var(--line, #d5ebee); border-radius: 14px; padding: 6px 12px; }
+.smart-people legend { padding: 0 5px; color: var(--muted, #506d7c); font-size: 12px; }
+.smart-person { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 0; cursor: pointer; }
+.smart-person input { accent-color: var(--teal, #008a87); width: 18px; height: 18px; flex: none; }
+.smart-person span { display: grid; gap: 2px; }
+.smart-person small { color: var(--muted, #506d7c); font-size: 12px; }
+.smart-preview, .smart-confirm { display: grid; gap: 8px; padding: 12px; background: var(--pale, #eaf8f7); border-radius: 14px; color: var(--ink, #133346); }
+.smart-preview span { font-size: 12px; color: var(--muted, #506d7c); }
+.smart-records { display: grid; gap: 12px; }
+.smart-records h3 { margin: 0; font-size: 16px; }
+.smart-record { border: 1px solid var(--line, #d5ebee); border-radius: 14px; padding: 14px; display: grid; gap: 8px; min-width: 0; background: var(--paper, #fff); }
+.smart-record p { margin: 0; font-size: 14px; color: var(--muted, #506d7c); }
+.smart-record-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.smart-record-heading span { font-size: 12px; flex-shrink: 0; color: var(--muted, #506d7c); }
+.smart-record-heading button { min-height: 44px; background: none; border: 0; border-radius: 10px; color: var(--teal-label, #007d7c); font: inherit; padding: 8px; }
+.smart-record progress { width: 100%; height: 5px; accent-color: var(--teal, #008a87); border: 0; }
+.smart-simulation { padding: 0 10px; background: var(--pale, #eaf8f7); border-radius: 10px; font-size: 14px; }
+.smart-simulation summary { min-height: 44px; align-content: center; cursor: pointer; }
+.smart-simulation button { margin-block: 8px; width: 100%; }
+.smart-record .bank-transfer-facts { font-size: 14px; }
+.smart-transfers input[type=datetime-local] { max-width: 100%; min-width: 0; }
+.smart-transfers .field { margin-bottom: 0; color: var(--muted, #506d7c); }
+.smart-transfers .button-base { min-height: 44px; border-radius: 10px; font-size: 14px; }
+.smart-transfers ::selection { color: var(--ink, #133346); background: #dff2f8; }
+/* The active form owns scrolling; its review and authorization actions remain reachable. */
+.dialog-content:has(.smart-transfers) { display: flex; flex-direction: column; max-height: 90dvh; overflow: hidden; background: var(--paper, #fff); padding: 18px; }
+.dialog-content:has(.smart-transfers) > .dialog-heading { flex: none; margin-bottom: 12px; }
+.dialog-content:has(.smart-transfers) .smart-transfers { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.dialog-content:has(.smart-transfers) .smart-transfers > div:not([hidden]) { display: flex; flex-direction: column; min-height: 0; overflow: auto; }
+.dialog-content:has(.smart-transfers) .bank-transfer-panel { flex: 1; overflow: hidden; }
+.dialog-content:has(.smart-transfers) .smart-records { min-height: 0; overflow: auto; padding: 2px; scrollbar-width: thin; }
+@media (max-width: 640px) {
+  .dialog-content:has(.smart-transfers) { padding: 18px 18px max(12px, env(safe-area-inset-bottom)); max-height: 91dvh; }
+  .dialog-content:has(.smart-transfers)::before { flex: none; margin: -7px auto 12px; }
+}

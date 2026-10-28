@@ -1,0 +1,65 @@
+.bill-spending-visual { min-width: 0; color: var(--ink, #133346); }
+.bill-spending-visual button { font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.bill-spending-visual button:focus-visible { outline: 2px solid var(--teal, #007d7c); outline-offset: 3px; }
+.bill-spending-visual button:disabled { cursor: default; opacity: .55; }
+.bill-spending-visual .bill-visual-overview { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: end; gap: 12px; margin: 8px 0 22px; }
+.bill-spending-visual .bill-visual-overview > div { min-width: 0; }
+.bill-spending-visual .bill-visual-overview > div:last-child { padding-left: 14px; border-left: 1px solid var(--line, #d5ebee); }
+.bill-spending-visual .bill-visual-overview dt { color: var(--muted, #506d7c); font-size: 12px; line-height: 1.6; }
+.bill-spending-visual .bill-visual-overview dd { margin: 5px 0 0; color: #126c65; font-size: clamp(25px, 6.2vw, 31px); line-height: 1.2; font-weight: 650; letter-spacing: -.025em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bill-spending-visual .bill-visual-overview > div:last-child dd { font-size: 18px; font-weight: 550; color: var(--ink, #133346); letter-spacing: -.015em; }
+.bill-spending-visual .bill-visual-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.bill-spending-visual .bill-visual-heading h3 { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.bill-spending-visual .bill-visual-heading > span { color: var(--muted, #506d7c); font-size: 11px; line-height: 1.5; }
+.bill-spending-visual .bill-visual-stack { display: flex; overflow: hidden; gap: 3px; height: 22px; margin: 12px 0 7px; border-radius: 5px; }
+.bill-spending-visual .bill-visual-stack > span { min-width: 0; flex-shrink: 1; transition: opacity 180ms ease-out; }
+.bill-spending-visual .bill-visual-stack > span[data-selected="false"] { opacity: .25; }
+.bill-spending-visual .bill-visual-category-list { display: grid; }
+.bill-spending-visual .bill-visual-category { display: flex; width: 100%; min-height: 48px; align-items: center; gap: 8px; padding: 8px 5px; border: 0; border-bottom: 1px solid #e8f0f1; background: transparent; color: var(--ink, #133346); text-align: left; font-weight: 450; border-radius: 0; transition: background-color 160ms ease-out; }
+.bill-spending-visual .bill-visual-category[aria-pressed="true"] { background: #eaf8f7; border-radius: 6px; border-bottom-color: transparent; }
+.bill-spending-visual .bill-visual-category:not(:disabled):hover { background: #f0f8f8; }
+.bill-spending-visual .bill-visual-category > svg { flex-shrink: 0; color: var(--muted, #506d7c); }
+.bill-spending-visual .bill-visual-category[aria-pressed="true"] > svg { color: var(--teal, #007d7c); transform: rotate(90deg); }
+.bill-spending-visual .bill-visual-category-name { display: flex; flex: 1; align-items: center; gap: 9px; min-width: 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.bill-spending-visual .bill-visual-category-name i { flex-shrink: 0; width: 8px; height: 8px; border-radius: 2px; background: var(--bill-category-color); }
+.bill-spending-visual .bill-visual-category-value { display: flex; flex-shrink: 0; align-items: baseline; justify-content: flex-end; gap: 10px; font-variant-numeric: tabular-nums; }
+.bill-spending-visual .bill-visual-category-value strong { font-size: 14px; line-height: 1.5; font-weight: 600; }
+.bill-spending-visual .bill-visual-category-value small { min-width: 38px; color: var(--muted, #506d7c); font-size: 11px; text-align: right; }
+.bill-spending-visual .bill-visual-expand { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; width: 100%; margin-top: 2px; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: var(--teal-dark, #006665); font-size: 12px; font-weight: 500; }
+.bill-spending-visual .bill-visual-expand[aria-expanded="true"] svg { transform: rotate(180deg); }
+.bill-spending-visual .bill-visual-expand:not(:disabled):hover { background: #edf7f7; }
+.bill-spending-visual .bill-visual-evidence { padding-top: 17px; animation: bill-evidence-reveal 200ms cubic-bezier(.16, 1, .3, 1); }
+.bill-spending-visual .bill-visual-evidence ul { list-style: none; padding: 0; margin: 8px 0 0; }
+.bill-spending-visual .bill-visual-evidence li { margin: 0; }
+.bill-spending-visual .bill-visual-evidence li + li { border-top: 1px solid #e8f0f1; }
+.bill-spending-visual .bill-visual-evidence li button { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 58px; padding: 9px 2px; border: 0; border-radius: 6px; background: transparent; color: var(--ink, #133346); text-align: left; font-weight: 400; }
+.bill-spending-visual .bill-visual-evidence li button > svg { color: #557b79; flex-shrink: 0; }
+.bill-spending-visual .bill-visual-evidence li button > span { display: grid; flex: 1; min-width: 0; gap: 4px; }
+.bill-spending-visual .bill-visual-evidence li strong { font-size: 13px; font-weight: 550; line-height: 1.5; overflow-wrap: anywhere; }
+.bill-spending-visual .bill-visual-evidence li small { color: var(--muted, #506d7c); font-size: 11px; line-height: 1.5; }
+.bill-spending-visual .bill-visual-evidence li b { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bill-spending-visual .bill-visual-evidence li button:not(:disabled):hover strong { color: var(--teal-dark, #006665); }
+.bill-spending-visual .bill-visual-note { margin: 9px 0 0; color: var(--muted, #506d7c); font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+.bill-spending-visual .bill-visual-comparison { border-top: 1px solid var(--line, #d5ebee); margin-top: 17px; padding-top: 14px; }
+.bill-spending-visual .bill-visual-comparison > .bill-visual-note:first-child { margin-top: 0; }
+.bill-spending-visual .bill-visual-heading > .bill-visual-change { display: inline-flex; align-items: center; gap: 3px; color: var(--ink, #133346); }
+.bill-spending-visual .bill-visual-comparison-rows { display: grid; gap: 9px; margin-top: 12px; }
+.bill-spending-visual .bill-visual-comparison-rows > div { display: grid; grid-template-columns: 28px minmax(30px, 1fr) minmax(65px, auto); align-items: center; gap: 10px; font-size: 11px; color: var(--muted, #506d7c); }
+.bill-spending-visual .bill-visual-comparison-rows strong { color: var(--ink, #133346); font-weight: 550; font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.bill-spending-visual .bill-visual-comparison-bar { height: 7px; overflow: hidden; border-radius: 2px; }
+.bill-spending-visual .bill-visual-comparison-bar i { display: block; height: 100%; border-radius: inherit; background: #a0b8b1; }
+.bill-spending-visual .bill-visual-comparison-rows > div:last-child i { background: #087f78; }
+@keyframes bill-evidence-reveal { from { opacity: .65; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 359px) {
+ .bill-spending-visual .bill-visual-overview { gap: 9px; }
+ .bill-spending-visual .bill-visual-overview > div:last-child { padding-left: 10px; }
+ .bill-spending-visual .bill-visual-overview > div:last-child dd { font-size: 16px; }
+ .bill-spending-visual .bill-visual-category-value { flex-direction: column; gap: 0; align-items: flex-end; }
+ .bill-spending-visual .bill-visual-category-value small { min-width: 0; }
+ .bill-spending-visual .bill-visual-evidence li button { gap: 6px; }
+ .bill-spending-visual .bill-visual-evidence li button > svg:first-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .bill-spending-visual .bill-visual-stack > span, .bill-spending-visual .bill-visual-category { transition: none; }
+ .bill-spending-visual .bill-visual-evidence { animation: none; }
+}

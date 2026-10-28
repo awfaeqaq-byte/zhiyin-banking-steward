@@ -1,9 +1,35 @@
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { WechatContactChatProxyConfig } from './wechatContactChatProxy';
 
 type Config = WechatContactChatProxyConfig;
+
+function writeWindowsPrivateConfig(file: string, content: string) {
+  // Create with a protected ACL, then write through the same unshared handle.
+  // The key travels only over stdin, never in a command, environment or output.
+  const script = `
+$ErrorActionPreference = 'Stop'
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = New-Object System.Security.AccessControl.FileSecurity
+$acl.SetAccessRuleProtection($true, $false)
+$acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new($identity, 'FullControl', 'Allow'))
+$stream = [System.IO.FileStream]::new($env:ZHIYIN_PRIVATE_CONFIG_PATH, [System.IO.FileMode]::CreateNew, [System.Security.AccessControl.FileSystemRights]::Write, [System.IO.FileShare]::None, 4096, [System.IO.FileOptions]::None, $acl)
+try {
+  $data = $utf8.GetBytes([Console]::In.ReadToEnd())
+  $stream.Write($data, 0, $data.Length)
+  $stream.Flush($true)
+} finally { $stream.Dispose() }
+`;
+  execFileSync(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    ['-NoProfile', '-NonInteractive', '-Command', script],
+    {env:{...process.env, ZHIYIN_PRIVATE_CONFIG_PATH:file}, input:content, windowsHide:true, stdio:'pipe', timeout:10000});
+}
+
 function validate(input: unknown, previous: Config): Config {
   if (!input || typeof input !== 'object') throw new Error('配置格式无效');
   const data = input as Record<string, unknown>;
@@ -41,7 +67,9 @@ export function createModelConfigStore(file: string, fallback: Config) {
       const next = validate(input, current);
       const temp = `${file}.${randomUUID()}.tmp`;
       try {
-        writeFileSync(temp, JSON.stringify(next, null, 2), {mode:0o600, flag:'wx'});
+        const content = JSON.stringify(next, null, 2);
+        if (process.platform === 'win32') writeWindowsPrivateConfig(temp, content);
+        else writeFileSync(temp, content, {mode:0o600, flag:'wx'});
         renameSync(temp, file);
       } catch {
         if (existsSync(temp)) unlinkSync(temp);

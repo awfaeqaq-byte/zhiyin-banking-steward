@@ -1,0 +1,11 @@
+{
+  "contact": {
+    "wxid": "zhiyin_ningning",
+    "name": "宁宁 · 知银AI",
+    "category": "N",
+    "signature": "知银AI管家，陪你把生活安排好",
+    "alias": "ningning",
+    "aiConfig": { "enabled": true, "maxContextMessages": 12 }
+  },
+  "welcome": "你好，我是宁宁，知银的AI管家。可以在这里聊账单、AA、转账安排和日程；要办理时，点「交给知银继续」选择相关消息，我会带着这些信息在知银接着处理。付款仍需你单独核对授权。"
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BellRing,
   CalendarClock,
@@ -28,6 +28,7 @@ import { Dialog } from "./ui/dialog";
 import { Switch } from "./ui/switch";
 import { buildRecurringCandidates } from "../lib/recurring-payments";
 import { RecurringSubscriptionReview, type RecurringReviews, type RecurringReviewStatus } from "./recurring-subscription-review";
+import "./subscription-center.css";
 
 type Props = {
   connections: Partial<Record<ExternalFinancialProvider, ConnectedFinancialSource>>;
@@ -43,6 +44,8 @@ type Props = {
   onRefresh?: () => void;
   selectedKey?: string | null;
   onSelectionConsumed?: () => void;
+  focusKey?: string | null;
+  onFocusConsumed?: () => void;
   recurringReviews?: RecurringReviews;
   onReviewRecurring?: (key: string, status: RecurringReviewStatus) => void;
 };
@@ -54,7 +57,7 @@ const providerTone: Record<ExternalFinancialProvider, string> = {
 
 function dateLabel(timestamp?: number) {
   if (typeof timestamp !== "number") return "暂未提供下次扣费日";
-  return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" }).format(timestamp);
+  return new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", month: "long", day: "numeric" }).format(timestamp);
 }
 
 export function SubscriptionCenter({
@@ -70,6 +73,8 @@ export function SubscriptionCenter({
   onRefresh,
   selectedKey = null,
   onSelectionConsumed,
+  focusKey = null,
+  onFocusConsumed,
   recurringReviews = {},
   onReviewRecurring = () => undefined,
 }: Props) {
@@ -82,7 +87,11 @@ export function SubscriptionCenter({
   const recurringSection = <RecurringSubscriptionReview candidates={recurring} reviews={recurringReviews} onReview={onReviewRecurring} />;
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
+  const [lookupError, setLookupError] = useState("");
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const subscriptionItems = useRef(new Map<string, HTMLElement>());
   const connectedCount = Object.keys(connections).length;
+  const hasAutopayAccess = Object.values(connections).some(source => source?.scopes.includes("autopay"));
   const enabledUpcoming = insights.upcoming.filter(
     item => !disabledReminders.includes(item.key),
   );
@@ -99,6 +108,21 @@ export function SubscriptionCenter({
     }
     onSelectionConsumed?.();
   }, [insights.items, onSelectionConsumed, selectedKey]);
+
+  useEffect(() => {
+    if (!focusKey) return;
+    const item = subscriptionItems.current.get(focusKey);
+    if (item) {
+      setLookupError("");
+      setFocusedKey(focusKey);
+      item.scrollIntoView?.({ block: "center", behavior: "auto" });
+      item.focus({ preventScroll: true });
+      onFocusConsumed?.();
+    } else if (!refreshing) {
+      setLookupError("这项续费暂未出现在当前记录中，请同步后重试或到签约平台核对。");
+      onFocusConsumed?.();
+    }
+  }, [focusKey, insights.items, onFocusConsumed, refreshing]);
 
   const confirmCancellation = async () => {
     if (!selected) return;
@@ -126,16 +150,19 @@ export function SubscriptionCenter({
     }
     return (<>
       <section className="subscription-empty" aria-labelledby="subscription-empty-title">
-        <span aria-hidden="true"><Link2 size={27} /></span>
-        <h2 id="subscription-empty-title">{recurring.length ? "暂无已签约自动续费" : "还没有可识别的订阅"}</h2>
-        <p>{refreshError
-          ? refreshError
-          : connectedCount
-            ? "已连接的账户里暂未发现正在自动续费的服务。"
+        <span aria-hidden="true">{refreshError ? <CircleAlert size={27} /> : <Link2 size={27} />}</span>
+        <h2 id="subscription-empty-title">{refreshError ? "暂时无法读取自动续费" : connectedCount && !hasAutopayAccess ? "还需要自动续费读取授权" : hasAutopayAccess ? "暂无已签约自动续费" : "还没有可识别的订阅"}</h2>
+        <p role={refreshError ? "alert" : undefined}>{refreshError
+          ? `${refreshError} 读取失败不代表没有订阅。`
+          : connectedCount && !hasAutopayAccess
+            ? "目前的账单授权不能读取自动续费签约。可补充授权；账单中的周期扣费线索仍可单独核对。"
+          : hasAutopayAccess
+            ? "已授权的账户暂未返回有效续费签约。其他平台或尚未授权的签约不会显示在这里。"
           : "连接微信支付和支付宝后，知银会自动整理各平台的续费项。"}</p>
-        <Button onClick={refreshError && onRefresh ? onRefresh : onConnect}>
-          {refreshError && onRefresh ? "重新同步" : "连接微信支付或支付宝"}
+        <Button onClick={(refreshError || hasAutopayAccess) && onRefresh ? onRefresh : onConnect}>
+          {(refreshError || hasAutopayAccess) && onRefresh ? "重新同步" : connectedCount ? "管理读取授权" : "连接微信支付或支付宝"}
         </Button>
+        {lookupError && <p role="alert">{lookupError}</p>}
       </section>
       {recurringSection}
     </>);
@@ -143,6 +170,7 @@ export function SubscriptionCenter({
 
   return (
     <div className="subscription-center">
+      {lookupError && <div className="subscription-sync-warning" role="alert"><CircleAlert size={19} aria-hidden="true" /><div><strong>未找到这项续费</strong><span>{lookupError}</span></div>{onRefresh && <button disabled={refreshing} onClick={() => { setLookupError(""); onRefresh(); }}>{refreshing ? "同步中…" : "重新同步"}</button>}</div>}
       {onDuplicatePreference && subscriptionGroups(insights.items).filter(group => duplicatePreferences[duplicateGroupKey(group)]?.decision === 'keep').map(group => (
         <section className="duplicate-choice" key={duplicateGroupKey(group)} aria-label="已保留的同类订阅">
           <p>{group.map(item => item.title).join('、')} · 已按你的选择全部保留</p>
@@ -192,8 +220,9 @@ export function SubscriptionCenter({
             <h2 id="renewal-reminder-title">续费提醒</h2>
             <p>
               {enabledUpcoming[0].title}
-              {enabledUpcoming[0].daysUntilCharge === 0
-                ? " 预计今天扣费"
+              {enabledUpcoming[0].nextChargeAt! < now
+                ? " 已到预计扣费时间，请核对平台结果"
+                : enabledUpcoming[0].daysUntilCharge === 0 ? " 预计今天扣费"
                 : ` 距离扣费还有 ${enabledUpcoming[0].daysUntilCharge} 天`}
               {enabledUpcoming.length > 1 ? `，另有 ${enabledUpcoming.length - 1} 项即将续费。` : "。"}
             </p>
@@ -202,7 +231,7 @@ export function SubscriptionCenter({
       )}
 
       <div className="subscription-section-heading">
-        <div><h2>全部自动续费</h2><p>提醒可单独关闭，不影响服务本身。</p></div>
+        <div><h2>全部自动续费</h2><p>关闭提醒只停止知银内的提示；停止扣费请取消自动续费。</p></div>
         <span><ShieldCheck size={15} />取消需你确认</span>
       </div>
 
@@ -210,7 +239,8 @@ export function SubscriptionCenter({
         {insights.items.map(item => {
           const reminderEnabled = !disabledReminders.includes(item.key);
           return (
-            <article className="subscription-item" key={item.key}>
+            <article className={`subscription-item${focusedKey === item.key ? " subscription-item-located" : ""}`} key={item.key} tabIndex={-1} aria-label={`${item.title}订阅详情`} ref={element => { if (element) subscriptionItems.current.set(item.key, element); else subscriptionItems.current.delete(item.key); }}>
+              {focusedKey === item.key && <p className="subscription-located-note"><CalendarClock size={15} aria-hidden="true" />日程中的这项续费</p>}
               <div className="subscription-item-main">
                 <span className={`subscription-provider ${providerTone[item.provider]}`} aria-hidden="true">
                   {item.provider === "wechat_pay" ? "微" : "支"}
@@ -230,11 +260,11 @@ export function SubscriptionCenter({
               <div className="subscription-schedule">
                 <CalendarClock size={17} aria-hidden="true" />
                 <div>
-                  <strong>{renewalTimingLabel(item)}</strong>
+                  <strong>{item.nextChargeAt !== undefined && item.nextChargeAt < now ? "已到预计扣费时间" : renewalTimingLabel(item)}</strong>
                   <span>{dateLabel(item.nextChargeAt)}</span>
                 </div>
                 <span className={`renewal-urgency ${item.urgency}`}>
-                  {item.urgency === "urgent" ? "近期扣费" : item.urgency === "upcoming" ? "即将续费" : "已排期"}
+                  {item.daysUntilCharge === null ? "日期待核对" : item.nextChargeAt! < now ? "结果待核对" : item.urgency === "urgent" ? "近期扣费" : item.urgency === "upcoming" ? "即将续费" : "已排期"}
                 </span>
               </div>
               <div className="subscription-actions">

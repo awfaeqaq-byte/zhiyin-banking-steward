@@ -1,0 +1,244 @@
+2026-10-22T03:39:02.439Z
+[可见页面]
+知银
+更懂你的财富伙伴
+日程
+订阅
+我的
+宁宁
+AI
+你的个人银行管家
+一起，把生活安排好
+我的总资产（元）
+42,300.00
+银行沙箱账本
+查看资产
+☰ 会话 38
+新对话
+＋ 新对话
+今天
+沙箱演示数据
+你
+
+先不取消，微信的测试视频甲会员和支付宝的测试视频乙会员都保留，提醒也不改。
+
+宁宁
+AI
+宁宁
+
+保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。
+
+和宁宁说点什么
+涉及资金的操作仍需你确认
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 8, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 11:39
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		133 container 知银
+			134 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				374 container
+					375 text 知银
+					376 text 更懂你的财富伙伴
+					377 container 首页导航
+						378 button 任务日历
+							379 image
+							380 text 日程
+						381 button 订阅
+							382 image
+							383 text 订阅
+						384 button 个人中心
+							385 image
+							386 text 我的
+					387 button 选择私人管家
+						388 text 宁宁
+						389 text AI
+						390 image
+						391 text 你的个人银行管家
+					392 text 一起，把生活安排好
+					393 container 首页资产快照
+						394 text 我的总资产 （元）
+						395 button 隐藏首页资产金额
+							396 image
+						397 button (collapsed) Description: 展开资产明细, Secondary Actions: Expand
+							398 image
+						399 text 42,300.00
+						400 text 银行沙箱账本
+						401 button 查看资产
+							402 text 查看资产
+							403 image
+					404 container 管家处理现场
+						405 container
+							406 button 打开会话列表
+								407 text ☰ 会话
+								408 text 38
+							409 text 新对话
+							410 button ＋ 新对话
+							445 container 与宁宁对话
+								446 container 演示环境
+									447 text 今天
+									448 image
+									449 text 沙箱演示数据
+								466 container steward-records
+									467 text 你
+									468 text 先不取消，微信的测试视频甲会员和支付宝的测试视频乙会员都保留，提醒也不改。
+									469 text 宁宁
+									470 text AI
+									471 text 宁宁
+									472 text 保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。
+								460 container
+									461 text 和 宁宁 说点什么
+									462 text field (settable) Description: 和宁宁说点什么, ID: steward-chat-input
+									463 button (disabled) 发送给宁宁
+										473 image
+									465 text 涉及资金的操作仍需你确认
+					429 container 主导航
+						430 button 管家
+							431 image
+							432 text 管家
+						433 button 资产
+							434 image
+							435 text 资产
+						436 button 财富
+							437 image
+							438 text 财富
+						439 button 卡片
+							440 image
+							441 text 卡片
+						442 button 我的
+							443 image
+							444 text 我的
+		93 container
+			94 text 0:30
+			95 text 10月22日 周四
+			96 text 暂无通知消息
+			97 text 中国电信HD | 中国联通HD
+			98 text 10月22日 周四
+			99 image signal
+			100 image wifi
+			101 text 78 %
+			102 container battery
+			256 button Wi‑Fi
+				257 container Xiaomi_AX3
+					258 container
+						259 text Xiaomi_AX3 Xiaomi_AX3
+				260 text 已连接
+			261 button 移动数据
+				262 container 中国联通
+					263 text 中国联通
+				264 text 已开启
+			112 text 暂无播放
+			113 button 蓝牙
+			114 button 飞行模式
+			115 button 静音
+			116 button 手电筒
+			117 button 截屏
+			118 button 省电模式
+			119 button 投屏
+			120 button 旋转锁定
+			121 button 相册
+			122 button 设置
+			123 button 显示
+				124 text A
+			125 button NFC
+				126 text N
+			127 button 票证
+			128 button 护眼
+			129 button 定位
+			130 button 深色
+			131 button 编辑
+	474 container sandbox-console-root
+		475 button (expanded) Description: 打开沙箱控制台, Secondary Actions: Collapse
+		476 container 沙箱控制台
+			477 container
+				478 heading 沙箱控制台, Value: 1
+					479 text 沙箱控制台
+				480 text 本地环境 准备和复位演示数据，不改变手机内的产品界面。
+				481 button 关闭沙箱控制台
+			482 container
+				483 button (collapsed) 模型配置 服务地址、模型与密钥, Secondary Actions: Expand
+					484 text 模型配置
+					485 text 服务地址、模型与密钥
+				486 button (expanded) 财务测试 场景、余额、时间与扣费, Secondary Actions: Collapse
+					487 text 财务测试
+					488 text 场景、余额、时间与扣费
+				489 container 当前测试数据
+					490 heading 当前测试数据, Value: 2, ID: sandbox-finance-current
+						491 text 当前测试数据
+					492 text 微信零钱
+					493 text ¥228.60
+					494 container
+						495 text 3 项有效续费
+					496 text 支付宝余额
+					497 text ¥99,998.46
+					498 container
+						499 text 3 项有效续费
+					500 text 不会自动授予知银权限。先在知银连接平台并完成双方授权，再回到知银查看订阅或向宁宁提问。
+					555 container
+						556 text 跨平台重复订阅 测试数据已更新
+				501 container
+					502 container 测试场景
+						503 heading 测试场景, Value: 2, ID: sandbox-finance-scenarios
+							504 text 测试场景
+						505 container
+							506 text 选择测试场景
+							507 pop up button (collapsed, settable) 选择测试场景, Value: 跨平台重复订阅, Secondary Actions: Expand
+								508 menu
+									509 临近续费提醒
+									510 单平台余额不足
+									511 (selected) 跨平台重复订阅
+									512 账单中的疑似订阅
+						513 text 微信新增“测试视频甲会员”、支付宝新增“测试视频乙会员”，各 25 元／月，分别明天、后天到期。余额保持不变。
+						514 button 准备这个场景
+						515 heading 建议这样测试, Value: 3
+							516 text 建议这样测试
+						517 container
+							518 text “ 帮我检查重复订阅，哪些值得保留？ ”
+						519 text 知银应指出同类视频服务可能重复，而不是直接取消。取消仍需你的确认。
+					520 button (collapsed) 修改测试余额, Secondary Actions: Expand
+						521 text 修改测试余额
+					522 container 推进时间与扣费
+						523 heading 推进时间与扣费, Value: 2, ID: sandbox-finance-time
+							524 text 推进时间与扣费
+						525 text 10/22 11:39
+						526 text 运行中
+						527 container
+							528 text 推进天数
+							529 pop up button (collapsed, settable) 推进天数, Value: 1 天, Secondary Actions: Expand
+								530 menu
+									531 (selected) 1 天
+									532 3 天
+									533 7 天
+									534 30 天
+						535 button 推进并结算
+						536 button 执行当前到期扣费
+						537 text 影响整台沙箱手机。推进后时钟暂停在目标时间，刷新页面会回到启动时钟；已产生的扣费和账单保留。每项签约最多结算一次，不补扣跳过的多期。
+					538 button 撤销上次设置
+					539 text 只撤销最近一次余额或场景设置；如果之后发生支付、扣费或订阅变更，会阻止撤销，避免覆盖新数据。刷新后撤销记录不保留。
+				540 button (collapsed) 操作记录 · 1, Secondary Actions: Expand
+					541 text 操作记录
+					557 text  · 1
+				542 container 本地 Excel 账单回放
+					543 text 本地 Excel 账单回放
+					544 text 默认使用现有沙箱账单。需要历史样本时，在这里手动切换。
+					545 text 未配置：在仓库根目录 .zhiyin-bill-source.local.json 指定 sourcePath 和 expectedSha256。
+					546 button (disabled) 回放本地账单
+					547 button (disabled) 恢复原账单
+				548 button (collapsed) 知银管家 对话、任务上下文与记忆, Secondary Actions: Expand
+					549 text 知银管家
+					550 text 对话、任务上下文与记忆
+				551 button (collapsed) 聊天与数据 恢复微信初始聊天, Secondary Actions: Expand
+					552 text 聊天与数据
+					553 text 恢复微信初始聊天
+				554 text 数据保存在此浏览器的沙箱中；刷新仍保留应用数据，不涉及真实资金。
+
+The focused UI element is 514 button 准备这个场景

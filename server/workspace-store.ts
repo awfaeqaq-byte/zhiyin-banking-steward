@@ -2,7 +2,6 @@ import {
   existsSync,
   readFileSync,
   writeFileSync,
-  renameSync,
   openSync,
   closeSync,
   unlinkSync,
@@ -15,6 +14,7 @@ import {
   changeWorkspaces,
   type WorkspaceCommand,
 } from "../src/lib/workspaces";
+import {atomicReplace} from './atomic-replace';
 export function createWorkspaceStore(file: string) {
   const get = () => {
     if (!existsSync(file)) return emptyWorkspaces();
@@ -34,7 +34,7 @@ export function createWorkspaceStore(file: string) {
       try {
         const next = changeWorkspaces(get(), command);
         writeFileSync(file + ".tmp", JSON.stringify(next), { mode: 0o600 });
-        renameSync(file + ".tmp", file);
+        atomicReplace(file + ".tmp", file);
         return next;
       } finally {
         closeSync(lock);

@@ -1,12 +1,15 @@
+import {usePageMotion} from './lib/use-interface-motion';
+import {AnimatedBottomNav} from './components/animated-bottom-nav';
+import {StatusToast} from './components/status-toast';
+import {StewardGuide} from './components/steward-guide';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type FormEvent } from "react";
 import {useStewardMemory} from './lib/use-steward-memory';
 import {MemoryManager} from './components/memory-manager';
 import {useBankAccount} from './lib/use-bank-account';
 import {SmartTransfers,type SmartIntent} from './components/smart-transfers';
-import {bankRecipients,type BankReceipt} from './lib/bank-transfer';
+import {bankCards,type BankCardId,type BankReceipt} from './lib/bank-transfer';
 import {assetMoney} from './lib/bank-assets';
 import {TermDepositPanel} from './components/term-deposit-panel';
-import {money as bankMoney} from './lib/native-banking';
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,7 +18,6 @@ import {
   BellRing,
   Check,
   CheckCheck,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   CircleHelp,
@@ -28,22 +30,18 @@ import {
   Landmark,
   Leaf,
   Link2,
-  LockKeyhole,
   MessageCircle,
   Mic,
-  Moon,
   PieChart,
-  Plane,
   Plus,
   Send,
   Settings2,
   ShieldCheck,
   Sparkles,
-  Target,
   TrendingUp,
   UserRound,
-  Users,
   Wallet,
+  Users,
   X,
   CalendarDays,
   CircleAlert,
@@ -57,13 +55,18 @@ import { DataConnections } from "./components/data-connections";
 import { PhoneContactPicker } from "./components/phone-contact-picker";
 import { SubscriptionCenter } from "./components/subscription-center";
 import {HomePreviewHeader} from './components/home-preview-header';
+import {ElderHome} from './components/elder-home';
+import './components/elder-mode.css';
 import { StewardWorkspaces } from "./components/steward-workspaces";
 import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
 import { BillReports } from "./components/bill-reports";
-import { CardApplicationPanel } from "./components/card-application";
-import {OverseasPaymentDemo} from './components/overseas-payment-demo';
-import {parseCardIntent} from './lib/card-intent';
+import { CardManagement } from "./components/card-management";
+import {AssetDashboard} from './components/asset-dashboard';
+import {AssetSchedule} from './components/asset-schedule';
+import {WealthConversationProvider} from './components/wealth-conversation';
+import {parseCardIntent,cardIntentTarget} from './lib/card-intent';
+import {AuthorizationCenter} from './components/authorization-center';
 import { AgentAutomationCenter } from "./components/agent-automation-center";
 import { FinancialFocusRules } from "./components/financial-focus-rules";
 import { FundingInsights } from "./components/funding-insights";
@@ -71,10 +74,12 @@ import {automationServerRequest,automationTemplates,type AutomationRun,type Auto
 import { type DuplicatePreferences, type DuplicateDecision } from "./lib/subscription-insights";
 import { fundingReferenceTime } from "./lib/funding-forecast";
 import { FundingPlan } from "./components/funding-plan";
+import { FundDiscovery } from "./components/fund-discovery";
 import {TaskCalendar} from './components/task-calendar';
 import {GroupAA} from './components/group-aa';
+import {MerchantWorkspace} from './components/merchant-workspace';
+import {AAHistory} from './components/aa-history';
 import {OccasionPlanner} from './components/occasion-planner';
-import {availableBankFunds,heldOccasionBudget} from './lib/occasion-plans';
 import {memoryContext} from './lib/steward-memory';
 import type {ReminderDraft} from './lib/task-calendar';
 import { useSubscriptionSync } from "./lib/use-subscription-sync";
@@ -110,9 +115,13 @@ type Page =
   | "profile"
   | "settings"
   | "connections"
+  | "authorization"
   | "funding"
+  | "funds"
   | "tasks"
   | "group-aa"
+  | "aa-history"
+  | "merchant"
   | "occasions"
   | "subscriptions"
   | "automations";
@@ -151,6 +160,8 @@ type StewardId = keyof typeof stewards;
 const nav: { page: Page; label: string; icon: LucideIcon }[] = [
   { page: "home", label: "管家", icon: MessageCircle },
   { page: "assets", label: "资产", icon: PieChart },
+  { page: "risk", label: "财富", icon: TrendingUp },
+  { page: "cards", label: "卡片", icon: CreditCard },
   { page: "profile", label: "我的", icon: UserRound },
 ];
 function read<T>(key: string, fallback: T): T {
@@ -205,7 +216,7 @@ function Row({
         <strong>{title}</strong>
         {subtitle && <span>{subtitle}</span>}
       </span>
-      {end || <ChevronRight size={18} aria-hidden="true" />}
+      {end || (onClick ? <ChevronRight size={18} aria-hidden="true" /> : null)}
     </>
   );
   return onClick ? (
@@ -218,12 +229,33 @@ function Row({
 }
 
 export default function App() {
-  const [mode, setMode] = useState<"classic" | "native">(() =>
+  return <WealthConversationProvider><AppContent/></WealthConversationProvider>;
+}
+function AppContent() {
+  const [standardMode, setMode] = useState<"classic" | "native">(() =>
     read<string>("zhiyin-mode", "classic") === "native" ? "native" : "classic",
   );
+  const [elderMode, setElderMode] = useState(() => read<unknown>('zhiyin-elder-mode', false) === true);
+  const [elderChatOpen, setElderChatOpen] = useState(false);
+  const mode = elderMode ? 'native' : standardMode;
+  useEffect(() => {
+    save('zhiyin-elder-mode', elderMode);
+    document.body.dataset.zhiyinAppearance = elderMode ? 'elder' : 'standard';
+    return () => { delete document.body.dataset.zhiyinAppearance; };
+  }, [elderMode]);
   const stewardWorkerStarted=useRef(mode==='native');
   if(mode==='native')stewardWorkerStarted.current=true;
   const [page, setPage] = useState<Page>("home");
+  const navigationIntent = useRef<'forward' | 'back'>('forward');
+  const pageSurface = usePageMotion(page, navigationIntent.current);
+  useEffect(()=>{
+    if(!elderMode||!pageSurface.current)return;
+    pageSurface.current.scrollTop=elderChatOpen?pageSurface.current.scrollHeight:0;
+  },[elderMode,elderChatOpen,pageSurface]);
+  const [fundDetailId,setFundDetailId]=useState<string>();
+  const [wealthFocusProductId,setWealthFocusProductId]=useState<string>();
+  const [wealthEntry,setWealthEntry]=useState<'assessment'|'holdings'>();
+  function openFunds(id?:string){setFundDetailId(id);go("funds");}
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [stewardId, setStewardId] = useState<StewardId>(() => {
     const saved = read<string>("zhiyin-steward", "ningning");
@@ -236,6 +268,8 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [message, setMessage] = useState("");
   const [chatDraft,setChatDraft]=useState('');
+  const [conversationListOpen,setConversationListOpen]=useState(false);
+  const [conversationRequest,setConversationRequest]=useState<{id:string;token:string}>();
   const [automationSnapshot,setAutomationSnapshot]=useState<AutomationServerSnapshot>(emptyAutomationSnapshot);
   const [transferStep, setTransferStep] = useState(0);
   const [amount, setAmount] = useState("2000");
@@ -243,7 +277,6 @@ export default function App() {
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [transferDate, setTransferDate] = useState("2026-09-18");
   const [transferError, setTransferError] = useState("");
-  const [savedPlan, setSavedPlan] = useState(false);
   const [readNotifications, setReadNotifications] = useState(false);
   const bank=useBankAccount();
   const frozen=bank.state?.frozen ?? false;
@@ -252,32 +285,33 @@ export default function App() {
   const [taskDraft,setTaskDraft]=useState<ReminderDraft|null>(null);
   const [taskDate,setTaskDate]=useState<number>();
   const [occasionEntry,setOccasionEntry]=useState<{prompt?:string;id?:string}>({});
+  const [wealthFollowup,setWealthFollowup]=useState<import('./lib/operation-followup').WealthEntry>();
   const [connectionEntry,setConnectionEntry]=useState<ExternalFinancialProvider>();
   const [bankReceipt,setBankReceipt]=useState<BankReceipt|null>(null);
   const memory=useStewardMemory();
   const limit=String((bank.state?.limit ?? 2000000)/100);
   const [draftLimit, setDraftLimit] = useState(limit);
   const [pendingControl,setPendingControl]=useState<{key:'overseas'|'contactless'|'night';title:string;enabled:boolean}|null>(null);
-  const [lastCardAction,setLastCardAction]=useState<string>(()=>read('zhiyin-last-card-action',''));
-  function recordCardAction(text:string){const value=`${text} · ${new Date().toLocaleString('zh-CN')}`;setLastCardAction(value);save('zhiyin-last-card-action',value);}
-  const [investment, setInvestment] = useState("30000");
-  const [term, setTerm] = useState("12");
-  const [detailPlan, setDetailPlan] = useState(false);
+  function recordCardAction(text:string){save('zhiyin-last-card-action',`${text} · ${new Date().toLocaleString('zh-CN')}`);setToast(text);}
+  const [cardEntry,setCardEntry]=useState<BankCardId>();
+  const [cardTransfer,setCardTransfer]=useState<{cardId:BankCardId;initial:SmartIntent}|null>(null);
   const [speak, setSpeak] = useState<StewardId | null>(null);
   const [attachment, setAttachment] = useState("");
   const [privacy, setPrivacy] = useState({
-    notifications: true,
-    analytics: false,
+    notifications: read('zhiyin-privacy', {notifications:true,analytics:false}).notifications,
+    analytics: read('zhiyin-privacy', {notifications:true,analytics:false}).analytics,
   });
+  useEffect(()=>save('zhiyin-privacy',privacy),[privacy]);
   const {
     connections, setConnections, refresh: refreshSubscriptions,
     refreshing: subscriptionsRefreshing, error: subscriptionRefreshError,
-    setError: setSubscriptionRefreshError,
+    setError: setSubscriptionRefreshError, getCurrentConnections,
   } = useSubscriptionSync(() => read("zhiyin-connections", {}));
   const [disabledSubscriptionReminders, setDisabledSubscriptionReminders] = useState<string[]>(
     () => read("zhiyin-disabled-subscription-reminders", []),
   );
   const [subscriptionActionTarget, setSubscriptionActionTarget] = useState<string | null>(null);
+  const [subscriptionFocusTarget, setSubscriptionFocusTarget] = useState<string | null>(null);
   const [recurringReviews, setRecurringReviews] = useState<RecurringReviews>(() => read("zhiyin-recurring-reviews-v1", {}));
   const [duplicatePreferences, setDuplicatePreferences] = useState<DuplicatePreferences>(() => read("zhiyin-duplicate-preferences-v1", {}));
   useEffect(() => save("zhiyin-duplicate-preferences-v1", duplicatePreferences), [duplicatePreferences]);
@@ -311,8 +345,8 @@ export default function App() {
   }, [controls]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
   useEffect(() => {
-    save("zhiyin-mode", mode);
-  }, [mode]);
+    save("zhiyin-mode", standardMode);
+  }, [standardMode]);
   useEffect(() => {
     save("zhiyin-connections", connections);
   }, [connections]);
@@ -387,6 +421,8 @@ export default function App() {
     setToast(decision==='confirmed'?'已继续关注这笔支出':'已标记为正常消费');
   }
   function go(next: Page) {
+    navigationIntent.current = 'forward';
+    setConversationListOpen(false);
     if (next !== page) setPageHistory((history) => [...history, page]);
     setPage(next);
     setModal(null);
@@ -394,15 +430,25 @@ export default function App() {
     window.scrollTo({ top: 0 });
   }
   function goBack() {
+    navigationIntent.current = 'back';
     setPage(pageHistory.at(-1) || "home");
     setPageHistory((history) => history.slice(0, -1));
     setModal(null);
     window.scrollTo({ top: 0 });
     document.querySelector(".workspace")?.scrollTo({ top: 0 });
   }
+  function askSteward(prompt: string, useNative=mode==='native') {
+    if(useNative){setChatDraft(prompt);if(elderMode)setElderChatOpen(true);}
+    else setInput(prompt);
+    go('home');
+  }
   function openCardIntent(instruction?:string){
     const intent=instruction?parseCardIntent(instruction):null;
+    const target=instruction?cardIntentTarget(instruction):null;
     go('cards');
+    if(target==='unknown'||target==='ambiguous'){setToast(target==='unknown'?'没有匹配到可操作的卡片，请从已登记银行卡中选择':'请先选择这次要管理的银行卡');return;}
+    setCardEntry(target??'primary');
+    if(target&&target!=='primary'){setToast(`已定位尾号 ${bankCards.find(card=>card.id===target)!.last4}，请核对本卡设置`);return;}
     if(!intent)return;
     if(intent.kind==='limit'){setDraftLimit(String(intent.yuan));setModal('limit');}
     else if(intent.kind==='freeze')setModal('freeze');
@@ -421,10 +467,14 @@ export default function App() {
       goBack();
       return true;
     }
+    if (elderMode && elderChatOpen) {
+      setElderChatOpen(false);
+      return true;
+    }
     return false;
   });
   usePhoneBridge();
-  const wechatShare=useWechatShare(()=>{setMode('native');setPage('home');setModal(null);setPageHistory([]);});
+  const wechatShare=useWechatShare(()=>{setMode('native');setElderChatOpen(true);setPage('home');setModal(null);setPageHistory([]);});
   useEffect(() => {
     if (connections.wechat_pay) return;
     let cancelled = false;
@@ -496,12 +546,16 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   }
   const activeNav =
-    page === "profile" || page === "settings" || page === "connections" || page === "subscriptions" || page === "cards"
+    elderMode ? (page === 'home' ? 'home' : ['assets', 'deposits', 'funding'].includes(page) ? 'assets' : 'profile')
+      : page === "cards" ? "cards"
+      : page === "risk" || page === "plan" || page === "funds" ? "risk"
+      : page === "profile" || page === "settings" || page === "connections"
       ? "profile"
-      : ["assets", "funding", "deposits"].includes(page)
+      : ["assets", "funding", "deposits", "spending"].includes(page)
         ? "assets"
         : "home";
-  const balance = hidden ? "¥ •••,•••.••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.total) : "待读取";
+  const otherCardBalance=bank.state?.cards?.filter(card=>!card.isPrimary).reduce((sum,card)=>sum+card.balance,0)??0;
+  const balance = hidden ? "¥ •••,•••.••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.total+otherCardBalance) : "待读取";
   const num = (value: number) =>
     `¥${value.toLocaleString("zh-CN", { maximumFractionDigits: 2 })}`;
   const subscriptionInsights = useMemo(
@@ -541,20 +595,6 @@ export default function App() {
       </span>
     );
   }
-  function Note({ children }: { children: ReactNode }) {
-    return (
-      <div className="steward-note">
-        <Avatar size="small" />
-        <div>
-          <strong>
-            {steward.name}
-            <span>的贴心提示</span>
-          </strong>
-          <p>{children}</p>
-        </div>
-      </div>
-    );
-  }
   function Heading({ title, subtitle }: { title: string; subtitle?: string }) {
     return (
       <div className="page-heading">
@@ -572,44 +612,9 @@ export default function App() {
       </div>
     );
   }
-  function BankCard() {
-    return (
-      <button
-        className={`bank-card ${frozen ? "frozen" : ""}`}
-        onClick={() => go("cards")}
-        aria-label="查看常用卡 8888"
-      >
-        <div className="bank-card-top">
-          <span>
-            <Landmark size={23} />
-            知银 · 演示账户
-          </span>
-          <span>储蓄卡</span>
-        </div>
-        <div className="card-chip">
-          <span />
-          <span />
-        </div>
-        <div className="card-number">
-          •••• &nbsp; •••• &nbsp; •••• &nbsp; 8888
-        </div>
-        <div className="bank-card-bottom">
-          <span>叶先生</span>
-          <span>
-            {frozen ? "已挂失" : "常用账户"} <ArrowUpRightIcon />
-          </span>
-        </div>
-        <div className="card-rings" aria-hidden="true" />
-      </button>
-    );
-  }
-  function ArrowUpRightIcon() {
-    return (
-      <ArrowRight size={15} className="diagonal-arrow" aria-hidden="true" />
-    );
-  }
+
   return (
-    <div className={`app-shell mode-${mode} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
+    <div className={`app-shell mode-${mode} ${elderMode ? 'elder-mode' : ''} ${elderMode && !elderChatOpen ? 'elder-home-view' : ''} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
       <aside className="sidebar" hidden={mode === "native"}>
         <a
           className="brand"
@@ -646,7 +651,11 @@ export default function App() {
         </button>
         <button className="sidebar-link" onClick={() => go("automations")}>
           <CalendarDays size={19} />
-          自动任务
+          我的关注
+        </button>
+        <button className="sidebar-link" onClick={() => openFunds()}>
+          <TrendingUp size={19} />
+          大数据选基
         </button>
         <div className="sidebar-bottom">
           <div className="sidebar-assistant">
@@ -660,12 +669,22 @@ export default function App() {
           </button>
           <div className="demo-tag">
             <span />
-            交互演示 · 虚拟账户
+            你的个人银行管家
           </div>
         </div>
       </aside>
       <div className="workspace">
-        {page === "home" && mode === 'native' && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} bank={bank.state} bankError={bank.error} hidden={hidden} onHiddenChange={setHidden} onRefresh={bank.refresh} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onAssets={()=>go('assets')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')}/>}
+        {(elderMode||mode==='classic')&&<div className="appearance-toolbar" role="group" aria-label="界面版本">
+          <span>{elderMode ? '长辈版' : '普通版'}</span>
+          <button type="button" className="appearance-toggle" aria-label={elderMode ? '切换到普通版' : '切换到长辈版'} onClick={() => setElderMode(value => !value)}>
+            {elderMode ? '切换普通版' : '切换长辈版'}
+          </button>
+        </div>}
+        {page === 'home' && elderMode && elderChatOpen && <header className="elder-chat-heading fixed-chat-header">
+          <button type="button" aria-label="返回长辈版首页" onClick={() => setElderChatOpen(false)}><ArrowLeft aria-hidden="true" size={24}/>返回首页</button>
+          <strong>和{steward.name}聊聊</strong>
+        </header>}
+        {page === "home" && mode === 'native' && !elderMode && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')} onConversations={()=>setConversationListOpen(true)} conversationsOpen={conversationListOpen} onToggleElder={()=>setElderMode(true)} onHelp={()=>setModal('help')}/>}
         {page === "home" && mode === 'classic' && (
           <header className="topbar">
             <button
@@ -708,12 +727,6 @@ export default function App() {
                     <span>订阅</span>
                   </button>
                   <button
-                    className="native-header-link"
-                    onClick={() => go("assets")}
-                  >
-                    资产
-                  </button>
-                  <button
                     className="native-header-link native-header-secondary"
                     onClick={() => go("plan")}
                   >
@@ -738,8 +751,17 @@ export default function App() {
           </header>
         )}
         <main
+          ref={pageSurface}
           className={`main-content page-${page} ${page === "home" ? "home-content" : "is-detail-page"}`}
         >
+          {page === 'home' && elderMode && !elderChatOpen && <ElderHome
+            stewardName={steward.name} stewardImage={steward.image}
+            bank={bank.state} bankError={bank.error} hidden={hidden}
+            onToggleHidden={() => setHidden(value => !value)} onRefresh={() => { void bank.refresh(); }}
+            onAssets={() => go('assets')} onTransfer={() => setBankIntent({recipientId:'mom',amount:0})}
+            onBills={() => go('spending')} onSubscriptions={() => go('subscriptions')}
+            onChat={() => setElderChatOpen(true)} onHelp={() => setModal('help')}
+          />}
           {page === "home" && mode === "classic" && (
             <>
               <div className="home-title">
@@ -783,31 +805,31 @@ export default function App() {
                   </section>
                   <section className="quick-section">
                     <h2>
-                      从一件小事开始<span>你可以这样问</span>
+                      常用服务<span>选择一项业务继续</span>
                     </h2>
                     <div className="quick-actions">
                       <Row
                         icon={ArrowRightLeft}
-                        title="给妈妈转 2000 元，下周五到账"
-                        subtitle="转账与付款"
+                        title="转账汇款"
+                        subtitle="给妈妈转 2000 元，下周五到账"
                         onClick={() => openTransfer()}
                       />
                       <Row
                         icon={PieChart}
-                        title="分析这个月的钱花在哪"
-                        subtitle="消费分析"
+                        title="收支分析"
+                        subtitle="分析这个月的钱花在哪"
                         onClick={() => go("spending")}
                       />
                       <Row
                         icon={TrendingUp}
-                        title="帮我选一个稳妥的理财方案"
-                        subtitle="个性化规划"
-                        onClick={() => go("plan")}
+                        title="财富管理"
+                        subtitle="帮我选一个稳妥的理财方案"
+                        onClick={() => go("risk")}
                       />
                       <Row
                         icon={CalendarDays}
-                        title="定时分析账单与理财情况"
-                        subtitle="定时任务"
+                        title="我的关注"
+                        subtitle="定时分析账单与理财情况"
                         onClick={() => go("automations")}
                       />
                     </div>
@@ -919,92 +941,26 @@ export default function App() {
           )}
           {page === "assets" && (
             <>
-              <Heading title="我的资产" subtitle="银行沙箱账户 · 按账面现金与持仓本金汇总" />
-              {bank.error&&<div className="operation-error" role="alert"><p>资产暂未能更新。{bank.state?'以下保留上次成功读取的快照，不代表当前可用资金。':'请重试读取后再安排资金。'}</p><button type="button" className="text-link" onClick={()=>void bank.refresh()}>重新读取资产</button></div>}
-              <div className="detail-grid assets-layout">
-                <div>
-                  <section className="account-summary asset-overview" aria-label="演示账户资产概览">
-                    <div className="section-line">
-                      <span>总资产（元）<span className="asset-demo-label">演示账户</span></span>
-                      <button
-                        className="icon-control"
-                        aria-label={hidden ? "显示资产金额" : "隐藏资产金额"}
-                        onClick={() => setHidden(!hidden)}
-                      >
-                        {hidden ? <EyeOff size={19} /> : <Eye size={19} />}
-                      </button>
-                    </div>
-                    <div className="balance">{balance}</div>
-                    <div className="account-foot">
-                      <span>
-                        <span className="status-dot" />
-                        后端账本汇总
-                      </span>
-                      <span>不含微信、支付宝钱包余额</span>
-                    </div>
-                  </section>
-                  <button className="asset-funding-entry" onClick={() => go("funding")}>
-                    <CalendarDays size={20} aria-hidden="true" />
-                    <span><strong>近期资金安排</strong><small>微信、支付宝余额能否覆盖续费？</small></span>
-                    <ArrowRight size={18} aria-hidden="true" />
-                  </button>
-                  <h2 className="section-title">资产分布</h2>
-                  <div className="surface asset-distribution" role="region" aria-label="资产分布">
-                    <Row
-                      icon={Wallet}
-                      title="活期与现金"
-                      subtitle={hidden?'常用卡 · 8888':bank.state?.assetSummary?bank.state.assetSummary.reservedCash>0?`常用卡 · 8888，扣除预留后可用 ${assetMoney(bank.state.assetSummary.availableCash)}`:'常用卡 · 8888，账面余额':'常用卡 · 8888，资金状态待读取'}
-                      end={<strong>{hidden ? "••••" : bank.state ? assetMoney(bank.state.balance) : "待读取"}</strong>}
-                    />
-                    <Row
-                      icon={TrendingUp}
-                      title="理财资产"
-                      subtitle={bank.state?.assetSummary?`${bank.state.assetSummary.holdingCount} 项未赎回持仓 · 持仓本金`:'持仓待读取'}
-                      onClick={() => go("risk")}
-                      end={<strong>{hidden ? "••••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.wealth) : "待读取"}</strong>}
-                    />
-                    <Row
-                      icon={LockKeyhole}
-                      title="定期存款"
-                      onClick={() => go("deposits")}
-                      subtitle={bank.state?.assetSummary?`${bank.state.assetSummary.depositCount} 笔未支取定存`:'定存待读取'}
-                      end={<strong>{hidden ? "••••" : bank.state?.assetSummary ? assetMoney(bank.state.assetSummary.deposits) : "待读取"}</strong>}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <h2 className="section-title">分析与规划</h2>
-                  <div className="surface">
-                    <Row
-                      icon={PieChart}
-                      title="授权账单报告"
-                      subtitle="查看月度、年度收支与分类"
-                      onClick={() => go("spending")}
-                    />
-                    <Row
-                      icon={ShieldCheck}
-                      title="理财风险测评与持仓"
-                      subtitle="核对适当性、产品和沙箱持仓"
-                      onClick={() => go("risk")}
-                    />
-                    <Row
-                      icon={CalendarDays}
-                      title="自动任务"
-                      subtitle="账单月报 · 理财周检 · 异常复核"
-                      onClick={() => go("automations")}
-                    />
-                  </div>
-                </div>
-              </div>
+              <Heading title="我的资产" />
+              <AssetDashboard snapshot={bank.state} error={bank.error} hidden={hidden} onToggleHidden={()=>setHidden(value=>!value)} onRefresh={()=>void bank.refresh()}
+                stewardName={steward.name} stewardImage={steward.image} onAsk={askSteward}
+                onOpenCards={id=>{setCardEntry(id);go('cards');}} onOpenHoldings={()=>{setWealthEntry('holdings');go('risk');}}
+                onOpenDeposits={()=>go('deposits')} onOpenBills={()=>go('spending')} onOpenRisk={()=>go('risk')} onOpenFunds={()=>openFunds()} onOpenFocus={()=>go('automations')}
+                schedule={<AssetSchedule snapshot={bank.state} hidden={hidden} loading={!bank.state&&!bank.error} error={bank.error} subscriptions={subscriptionInsights.upcoming}
+                  subscriptionError={subscriptionRefreshError} now={bank.state?.asOf??Date.now()} onRetry={()=>void bank.refresh()}
+                  onOpenSchedule={()=>go('tasks')} onOpenFunding={()=>go('funding')} onOpenDeposits={()=>go('deposits')}
+                  onOpenTransfer={cardId=>cardId!=='primary'?setCardTransfer({cardId,initial:{kind:'records'}}):setBankIntent({kind:'records'})}
+                  onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(null);setSubscriptionFocusTarget(`${source}:${id}`);go('subscriptions');}}/>}/>
             </>
           )}
           {page === "spending" && (
             <>
               <Heading title="我的账单" subtitle="按授权账单生成月度与年度报告" />
-              <BillReports connections={connections} onConnect={() => go("connections")} />
+              <BillReports connections={connections} onConnect={() => go("authorization")} />
             </>
           )}
           {page === "deposits" && <><Heading title="存款" subtitle="同一银行账本，先核对资金影响再由你确认"/>{hidden?<button type="button" className="primary-button" onClick={()=>setHidden(false)}>显示金额，继续办理</button>:<TermDepositPanel/>}</>}
+          {page === "funds" && <FundDiscovery stewardName={steward.name} initialFundId={fundDetailId} onOpenRisk={() => {setWealthEntry('assessment');go("risk");}} onBack={goBack} onAskNingning={id=>{setWealthFocusProductId(id);go("risk");}}/>}
           {page === "plan" && (
             <>
               <Heading
@@ -1016,235 +972,20 @@ export default function App() {
                 connections={connections}
                 automationAttention={homeAutomationAttention}
                 onOpenAutomations={() => go("automations")}
-                onAsk={(prompt) => { setChatDraft(prompt); go("home"); }}
+                onAsk={askSteward}
               />
-              <div className="detail-grid">
-                <div>
-                  <div className="plan-inputs">
-                    <label>
-                      计划投入（元）
-                      <input
-                        type="number"
-                        min="1000"
-                        max="1000000"
-                        value={investment}
-                        onChange={(e) => setInvestment(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      计划持有
-                      <select
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                        aria-label="计划持有时间"
-                      >
-                        <option value="6">6 个月</option>
-                        <option value="12">12 个月</option>
-                        <option value="24">24 个月</option>
-                      </select>
-                    </label>
-                  </div>
-                  <h2 className="section-title">资产配置建议</h2>
-                  <div className="surface allocation-panel">
-                    <div className="allocation-bar">
-                      <span style={{ flex: 30 }} />
-                      <span style={{ flex: 50 }} />
-                      <span className="neutral-segment" style={{ flex: 20 }} />
-                    </div>
-                    <div className="legend three">
-                      {["现金管理", "固收理财", "低波动基金"].map((c, i) => (
-                        <div key={c}>
-                          <span>
-                            <i className={`dot-${i === 2 ? 3 : i}`} />
-                            {c}
-                          </span>
-                          <strong>{[30, 50, 20][i]}%</strong>
-                          <small>
-                            {num(
-                              Math.max(0, Number(investment)) *
-                                [0.3, 0.5, 0.2][i],
-                            )}
-                          </small>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="fine-print">
-                      资产配置为演示方案，不代表收益承诺。
-                    </p>
-                  </div>
-                  <Note>
-                    {stewardId === "ningning"
-                      ? "这份演示方案先保留一部分灵活资金；若有大额支出计划，还需增加留存。"
-                      : "这套演示配置保留了 30% 的流动性，尚未使用未经确认的个人偏好。"}
-                    {term === "6"
-                      ? "持有时间较短，优先确认产品赎回规则。"
-                      : "稳健的规划，也要给生活留一点余地。"}
-                  </Note>
-                </div>
-                <div className="surface plan-reasons">
-                  <Row
-                    icon={ShieldCheck}
-                    title="风险等级"
-                    end={<span className="pill">待本次确认</span>}
-                  />
-                  <Row
-                    icon={Target}
-                    title="你的目标"
-                    end={<strong>稳健增值</strong>}
-                  />
-                  <div className="reason-content">
-                    <h3>为什么这样安排</h3>
-                    <ol>
-                      <li>投入金额和持有期限以你上方填写的条件为准。</li>
-                      <li>大额支出计划尚未确认，暂优先保留流动性。</li>
-                      <li>风险承受范围由你在下方本次主动选择。</li>
-                    </ol>
-                    {detailPlan && (
-                      <div className="expanded-plan">
-                        <h3>执行前还需要确认</h3>
-                        <p>
-                          核对产品风险揭示、持有期限和赎回规则。实际申购前，仍需完成风险测评和本人授权。
-                        </p>
-                        <p>
-                          建议每月复盘一次；大额支出计划变化时，重新评估配置。
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    className="full-width"
-                    onClick={() => setDetailPlan(!detailPlan)}
-                  >
-                    {detailPlan ? "收起方案详情" : "查看完整方案"}
-                    <ChevronDown size={17} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="full-width"
-                    onClick={() => {
-                      setSavedPlan(true);
-                      setToast("方案已收藏，可在“我的”中查看");
-                    }}
-                  >
-                    {savedPlan ? "已收藏这份方案" : "收藏这份方案"}
-                  </Button>
-                  <WealthOperationMvp amount={investment} term={term} availableBalance={bank.state?.balance} />
-                </div>
+              <div className="surface" aria-label="继续安排资金">
+                <Row icon={CalendarDays} title="近期资金安排" subtitle="按账户核对接下来的续费" onClick={()=>go('funding')}/>
+                <Row icon={TrendingUp} title="理财与基金" subtitle="到财富页聊目标、筛产品和查看持仓" onClick={()=>go('risk')}/>
               </div>
             </>
           )}
           {page === "risk" && (
             <>
-              <Heading title="理财风险测评与持仓" subtitle="根据本人答题与沙箱状态核对产品和操作" />
-              <WealthOperationMvp amount={investment} term={term} availableBalance={bank.state?.balance} />
+              <WealthOperationMvp entry={wealthFollowup} onEntryConsumed={()=>setWealthFollowup(undefined)} onBack={goBack} availableBalance={bank.state?.balance} stewardName={steward.name} onOpenFund={openFunds} focusProductId={wealthFocusProductId} onFocusHandled={()=>setWealthFocusProductId(undefined)} initialScreen={wealthEntry} onInitialScreenConsumed={()=>setWealthEntry(undefined)}/>
             </>
           )}
-          {page === "cards" && (
-            <>
-              <Heading
-                title="常用卡 · 8888"
-                subtitle="每一项权限，都由你掌握"
-              />
-              <div className="detail-grid">
-                <div>
-                  <BankCard />
-                  <div className="card-status">
-                    <ShieldCheck size={19} />
-                    <span>
-                      {!bank.state?'账户状态待读取':frozen
-                        ? "此演示卡已挂失，支付功能已关闭"
-                        : "卡片状态正常，安全保护已开启"}
-                    </span>
-                  </div>
-                  <section className="surface bank-ledger" aria-label="银行卡余额与流水">
-                    <div className="section-line"><h3>可用余额</h3><button className="text-link" onClick={()=>void bank.refresh()}>刷新账户</button></div>
-                    <strong>{bank.state?bankMoney(availableBankFunds(bank.state)):'等待读取账户'}</strong>
-                    {bank.state&&heldOccasionBudget(bank.state)>0&&<p>账户余额 {bankMoney(bank.state.balance)} · 生活筹备预留 {bankMoney(heldOccasionBudget(bank.state))}</p>}
-                    <Button disabled={!bank.state || bank.busy} onClick={()=>setBankIntent({recipientId:'mom',amount:0})}>智能转账与AA收款</Button>
-                    {bank.error&&<p role="alert">{bank.error}</p>}
-                    <h3>银行转账账单</h3>
-                    {!!bank.state?.collections?.length&&<div className="bank-ledger-list">{[...bank.state.collections].reverse().map(c=><details key={c.id}><summary><span>AA收款 · {bankRecipients.find(r=>r.id===c.recipientId)?.name}<small>{new Date(c.completedAt).toLocaleString('zh-CN')}</small></span><strong>+{bankMoney(c.amount)}</strong></summary><p>已到账 · 常用卡8888 · 入账后余额 {bankMoney(c.balanceAfter)}</p><small>回执 {c.id}</small></details>)}</div>}
-                    {bank.state?.transactions.length?<div className="bank-ledger-list">{[...bank.state.transactions].reverse().map(t=><details key={t.id}><summary><span>转给{bankRecipients.find(r=>r.id===t.recipientId)?.name}<small>{new Date(t.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(t.amount)}</strong></summary><p>已完成 · 付款卡8888 · 收款尾号{bankRecipients.find(r=>r.id===t.recipientId)?.accountLast4}</p><p>交易后余额 {bankMoney(t.balanceAfter)}</p><small>回执 {t.id}</small></details>)}</div>:<p className="fine-print left">尚无银行沙箱转账记录。</p>}
-                    {!!bank.state?.payments?.length&&<div className="bank-ledger-list">{[...bank.state.payments].reverse().map(p=><details key={p.id}><summary><span>{p.merchant}<small>{p.channel==='wechat'?'微信支付':p.channel==='alipay'?'支付宝':'境外沙箱支付'} · {new Date(p.completedAt).toLocaleString('zh-CN')}</small></span><strong>−{bankMoney(p.amount)}</strong></summary><p>付款卡8888 · 交易后余额 {bankMoney(p.balanceAfter)}</p>{p.refundedAt!==undefined&&<p>已原路退款 +{bankMoney(p.amount)} · {new Date(p.refundedAt).toLocaleString('zh-CN')}</p>}<small>{p.channel==='overseas'?'沙箱交易回执':'关联订单'} {p.id}</small></details>)}</div>}
-                  </section>
-                  <div className="explanation">
-                    <h3>用卡小贴士</h3>
-                    <p>
-                      不常使用的交易方式可以随时关闭。若发现卡片遗失，请立即挂失，并核对近期交易。
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <section className="surface card-settings">
-                    <Row
-                      icon={CreditCard}
-                      title="单笔支付限额"
-                      subtitle={num(Number(limit))}
-                      onClick={() => {
-                        setDraftLimit(limit);
-                        setModal("limit");
-                      }}
-                    />
-                    {(
-                      [
-                        { key: "overseas", title: "境外交易", icon: Plane },
-                        { key: "contactless", title: "无卡支付", icon: Wallet },
-                        { key: "night", title: "夜间保护", icon: Moon },
-                      ] as const
-                    ).map((item) => (
-                      <Row
-                        key={item.key}
-                        icon={item.icon}
-                        title={item.title}
-                        subtitle={
-                          item.key === "night" && controls.night
-                            ? "23:00 — 06:00"
-                            : controls[item.key]
-                              ? "已开启"
-                              : "已关闭"
-                        }
-                        end={
-                          <Switch
-                            label={item.title}
-                            checked={controls[item.key]}
-                            disabled={!bank.state || bank.busy}
-                            onCheckedChange={async(value) => {
-                              setPendingControl({key:item.key,title:item.title,enabled:value});setModal('cardControl');
-                            }}
-                          />
-                        }
-                      />
-                    ))}
-                  </section>
-                  <OverseasPaymentDemo bank={bank.state} onRefresh={bank.refresh}/>
-                  <Button
-                    variant="danger"
-                    className="full-width spaced"
-                    disabled={frozen || !bank.state || bank.busy}
-                    onClick={() => setModal("freeze")}
-                  >
-                    <CircleAlert size={19} />
-                    {frozen ? "此卡已挂失" : "挂失这张卡"}
-                  </Button>
-                  {frozen && (
-                    <Button
-                      variant="secondary"
-                      className="full-width spaced"
-                      disabled={bank.busy}
-                      onClick={() => setModal("unfreeze")}
-                    >
-                      恢复演示卡（仅用于重新体验）
-                    </Button>
-                  )}
-                  <p className="fine-print">
-                    设置保存到银行沙箱。挂失、单笔限额、夜间保护和无卡支付会拦截相应付款；境外交易开关会拦截上方的境外沙箱渠道。不影响真实银行账户。
-                  </p>
-                  {lastCardAction&&<div className="card-action-receipt" role="status"><CheckCircle2 size={18}/><span><strong>最近卡片变更</strong><small>{lastCardAction}</small></span></div>}
-                  <CardApplicationPanel bank={bank.state} onRefresh={bank.refresh}/>
-                </div>
-              </div>
-            </>
-          )}
+          {page === "cards" && <CardManagement onBack={goBack} initialCardId={cardEntry} onInitialCardConsumed={()=>setCardEntry(undefined)} onTransfer={cardId=>setCardTransfer({cardId,initial:{recipientId:'mom',amount:0}})} onAsk={askSteward}/>}
           {page === "profile" && (
             <>
               <Heading title="我的" subtitle="熟悉你的习惯，也尊重你的边界" />
@@ -1253,7 +994,7 @@ export default function App() {
                   <div className="profile-person">
                     <span className="user-avatar"><UserRound size={28} aria-hidden="true" /></span>
                     <div><h2>叶先生</h2><p>手机 138 **** 6688</p></div>
-                    <span className="pill">演示用户</span>
+
                   </div>
                   <div className="profile-steward">
                     <Avatar />
@@ -1265,35 +1006,25 @@ export default function App() {
                 </section>
 
                 <section className="profile-services" aria-labelledby="profile-services-title">
-                  <h2 id="profile-services-title" className="section-title">由你来管理</h2>
-                  <div className="surface">
-                    <Row icon={CreditCard} title="银行卡与安全"
-                      subtitle={!bank.state?'账户状态待读取':frozen?'常用卡 8888 · 已挂失':'常用卡 8888 · 状态正常'}
-                      onClick={() => go("cards")} />
-                    <Row icon={FileText} title="我的账单"
-                      subtitle="全部流水 · 分类 · 商户与时间"
-                      onClick={() => go("spending")} />
-                    <Row icon={Link2} title="数据连接"
-                      subtitle={Object.keys(connections).length
-                        ? `已连接 ${Object.keys(connections).length} 个支付账户`
-                        : "连接微信支付、支付宝"}
-                      onClick={() => go("connections")} />
-                    <Row icon={CalendarDays} title="订阅与续费"
-                      subtitle={subscriptionInsights.items.length
-                        ? `已识别 ${subscriptionInsights.items.length} 项自动续费`
-                        : "自动识别、提醒与取消"}
-                      onClick={() => go("subscriptions")} />
-                    <Row icon={CalendarDays} title="任务日历" subtitle="提醒、预约转账与续费安排" onClick={()=>go('tasks')}/>
-                    <Row icon={Users} title="微信群智能AA" subtitle="选择群成员，按费用灵活分摊" onClick={()=>go('group-aa')}/>
+                  <h2 id="profile-services-title" className="section-title">常用服务</h2>
+                  <div className="profile-service-group"><h3>账户与资金</h3><div className="surface">
+                    <Row icon={CreditCard} title="银行卡与安全" subtitle={!bank.state?'账户状态待读取':frozen?'常用卡 8888 · 已挂失':'常用卡 8888 · 状态正常'} onClick={()=>go('cards')}/>
+                    <Row icon={FileText} title="我的账单" subtitle="已授权平台的收支与交易明细" onClick={()=>go('spending')}/>
+                    <Row icon={PieChart} title="资金规划" subtitle="了解收支，再安排续费与理财" onClick={()=>go('plan')}/>
+                  </div></div>
+                  <div className="profile-service-group"><h3>日常安排</h3><div className="surface">
+                    <Row icon={BellRing} title="订阅与续费" subtitle="查看签约、续费提醒与取消方案" onClick={()=>go('subscriptions')}/>
+                    <Row icon={CalendarDays} title="日程" subtitle="提醒、生日与已建立的预约安排" onClick={()=>go('tasks')}/>
+                    <Row icon={Users} title="微信群智能AA" subtitle="记录消费，核对分摊后再收款" onClick={()=>go('group-aa')}/>
+                    <Row icon={FileText} title="我的小店" subtitle="点餐码、菜品收入与经营账本" onClick={()=>go('merchant')}/>
+                    <Row icon={FileText} title="历史 AA 账本" subtitle="查看每次消费、分摊与收款进度" onClick={()=>go('aa-history')}/>
                     <Row icon={CalendarDays} title="生活筹备" subtitle="重要日子、预算与外卖订单" onClick={()=>{setOccasionEntry({});go('occasions');}}/>
-                    <Row icon={PieChart} title="资金规划" subtitle="风险测评、产品比较与持仓" onClick={()=>go('plan')}/>
-                    <Row icon={CalendarDays} title="定时任务"
-                      subtitle="月报 · 周检 · 异常复核"
-                      onClick={() => go("automations")} />
-                    <Row icon={Settings2} title="设置"
-                      subtitle={`使用模式 · ${mode === "classic" ? "经典款" : "AI 原生"}`}
-                      onClick={() => go("settings")} />
-                  </div>
+                    <Row icon={CalendarDays} title="我的关注" subtitle="持续检查账单、理财与异常线索" onClick={()=>go('automations')}/>
+                  </div></div>
+                  <div className="profile-service-group"><h3>连接与设置</h3><div className="surface">
+                    <Row icon={Link2} title="数据连接" subtitle={Object.keys(connections).length?`已连接 ${Object.keys(connections).length} 个支付账户`:'连接微信支付、支付宝'} onClick={()=>go('authorization')}/>
+                    <Row icon={Settings2} title="设置" subtitle={elderMode?'长辈版 · 大字显示':`使用模式 · ${standardMode==='classic'?'经典款':'AI 原生'}`} onClick={()=>go('settings')}/>
+                  </div></div>
                 </section>
 
                 <section className="profile-preferences" aria-labelledby="profile-preferences-title">
@@ -1312,10 +1043,8 @@ export default function App() {
                   <div className="surface">
                     <Row icon={Settings2} title="管理记忆" subtitle="对我的了解 · 确认、纠正或忘记"
                       onClick={() => setModal("memory")} />
-                    <Row icon={ShieldCheck} title="隐私与授权" subtitle="你始终拥有数据的控制权"
-                      onClick={() => setModal("privacy")} />
-                    <Row icon={FileText} title="我的收藏方案" subtitle={savedPlan ? "1 份方案" : "暂未收藏"}
-                      onClick={() => savedPlan ? go("plan") : setToast("还没有收藏，先去看看为你准备的理财方案吧")} />
+                    <Row icon={ShieldCheck} title="授权与批准中心" subtitle="集中管理读取范围、卡片安全和提醒"
+                      onClick={() => go('authorization')} />
                     <Row icon={CircleHelp} title="帮助与使用指南" onClick={() => setModal("help")} />
                   </div>
                 </section>
@@ -1324,7 +1053,7 @@ export default function App() {
                 <Landmark size={22} aria-hidden="true" />
                 <strong>知银</strong>
                 <span>知你所需，认真对待每一笔。</span>
-                <small>交互原型 v0.1 · 所有账户数据均为演示</small>
+                <small>知银 v0.1 · 当前使用本地账户账本</small>
               </div>
             </>
           )}
@@ -1332,6 +1061,13 @@ export default function App() {
             <>
               <Heading title="设置" subtitle="选择适合你的使用方式" />
               <div className="settings-content">
+                <fieldset className="mode-preferences">
+                  <legend>界面显示</legend>
+                  <label className={`mode-option ${elderMode ? 'selected' : ''}`}>
+                    <input type="checkbox" checked={elderMode} onChange={event => setElderMode(event.target.checked)}/>
+                    <span><strong>长辈版</strong><small>大字、大按钮，常用功能更好找。随时可以切回普通版。</small></span>
+                  </label>
+                </fieldset>
                 <fieldset className="mode-preferences">
                   <legend>使用模式</legend>
                   <p id="mode-help">
@@ -1353,24 +1089,24 @@ export default function App() {
                   ).map(([value, title, description]) => (
                     <label
                       key={value}
-                      className={`mode-option ${mode === value ? "selected" : ""}`}
+                      className={`mode-option ${standardMode === value ? "selected" : ""}`}
                     >
                       <input
                         type="radio"
                         name="usage-mode"
                         value={value}
-                        checked={mode === value}
+                        checked={standardMode === value}
                         aria-describedby="mode-help"
                         onChange={() => {
                           setMode(value);
-                          setToast(`已切换为${title}，返回首页即可体验`);
+                          setToast(elderMode ? `普通版已设为${title}，切回普通版即可体验` : `已切换为${title}，返回首页即可体验`);
                         }}
                       />
                       <span>
                         <strong>{title}</strong>
                         <small>{description}</small>
                       </span>
-                      {mode === value && <Check size={19} aria-hidden="true" />}
+                      {standardMode === value && <Check size={19} aria-hidden="true" />}
                     </label>
                   ))}
                 </fieldset>
@@ -1392,13 +1128,14 @@ export default function App() {
                           ? `微信支付、支付宝 · 已连接 ${Object.keys(connections).length} 个`
                           : "微信支付、支付宝 · 尚未连接"
                       }
-                      onClick={() => go("connections")}
+                      onClick={() => go("authorization")}
                     />
                   </div>
                 </section>
               </div>
             </>
           )}
+          {page === "authorization" && <><Heading title="授权与批准中心" subtitle="每一项变更都先展示风险，再由你接受或拒绝"/><AuthorizationCenter bank={bank.state} bankBusy={bank.busy} bankError={bank.error} onBankChange={bank.change} onRefresh={bank.refresh} connections={connections} initialProvider={connectionEntry} onEntryConsumed={()=>setConnectionEntry(undefined)} onConnect={async(provider,scopes)=>{await connectFinancialSource(provider,scopes);}} onDisconnect={disconnectFinancialSource} privacy={privacy} onPrivacyChange={setPrivacy}/></>}
           {page === "connections" && (
             <>
               <Heading
@@ -1436,41 +1173,51 @@ export default function App() {
                 disabledReminders={disabledSubscriptionReminders}
                 onToggleReminder={toggleSubscriptionReminder}
                 onCancel={cancelSubscription}
-                onConnect={() => go("connections")}
+                onConnect={() => go("authorization")}
+                focusKey={subscriptionFocusTarget}
+                onFocusConsumed={() => setSubscriptionFocusTarget(null)}
                 selectedKey={subscriptionActionTarget}
                 onSelectionConsumed={() => setSubscriptionActionTarget(null)}
               />
             </>
           )}
-          {page === 'tasks' && <><Heading title="任务日历"/><TaskCalendar initialDate={taskDate} schedules={bank.state?.schedules??[]} occasions={bank.state?.occasions??[]} onOpenOccasion={id=>{setOccasionEntry({id});go('occasions');}} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={()=>setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(`${source}:${id}`);go('subscriptions');}}/></>}
-          {page === 'group-aa' && <><Heading title="微信群智能AA"/><GroupAA/></>}
+          {page === 'tasks' && <><Heading title="日程"/><TaskCalendar stewardName={steward.name} onDiscuss={mode==='native'?askSteward:undefined} initialDate={taskDate} schedules={bank.state?.allSchedules??bank.state?.schedules??[]} occasions={bank.state?.occasions??[]} onOpenOccasion={id=>{setOccasionEntry({id});go('occasions');}} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={cardId=>cardId&&cardId!=='primary'?setCardTransfer({cardId,initial:{kind:'records'}}):setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(null);setSubscriptionFocusTarget(`${source}:${id}`);go('subscriptions');}}/></>}
+          {page === 'group-aa' && <><Heading title="微信群智能AA"/><GroupAA onOpenHistory={()=>go('aa-history')}/></>}
+          {page === 'merchant' && <><Heading title="我的小店"/><MerchantWorkspace stewardName={steward.name} onAsk={prompt=>{setMode('native');askSteward(prompt,true);}}/></>}
+          {page === 'aa-history' && <><Heading title="历史 AA 账本"/><AAHistory stewardName={steward.name} onStartBook={()=>{setMode('native');askSteward('帮我记下这次聚餐的消费，最后一起 AA',true);}} onOpenGroupAA={()=>go('group-aa')} onOpenConversation={id=>{setMode('native');setConversationRequest({id,token:crypto.randomUUID()});if(elderMode)setElderChatOpen(true);go('home');}}/></>}
           {page === 'occasions' && <><Heading title="生活筹备"/><OccasionPlanner stewardName={steward.name} initialPrompt={occasionEntry.prompt} initialPlanId={occasionEntry.id} getMemoryContext={async prompt=>{const current=await memory.refresh();return current?memoryContext(current,prompt):'';}} onOpenCalendar={date=>{setTaskDate(date);go('tasks');}}/></>}
           {page === "funding" && (
             <>
               <Heading title="近期资金安排" subtitle="分开核对每个账户，留足接下来的续费" />
               <FundingPlan connections={connections} refreshing={subscriptionsRefreshing}
                 refreshError={subscriptionRefreshError} onRefresh={refreshSubscriptions}
-                onConnect={() => go("connections")} onOpenSubscriptions={() => go("subscriptions")} />
+                onConnect={() => go("authorization")} onOpenSubscriptions={() => go("subscriptions")} />
             </>
           )}
           {page === "automations" && (
             <>
-              <Heading title="定时任务" subtitle={`由${steward.name}按时检查，发现变化后再请你决定`} />
+              <Heading title="我的关注" subtitle={`由${steward.name}按时检查，发现变化后再请你决定`} />
               <FinancialFocusRules stewardName={steward.name} />
               <AgentAutomationCenter stewardName={steward.name} connections={connections} availableBalance={bank.state?.balance}
-                onOpenBills={() => go("spending")} onOpenWealth={() => go("plan")} onOpenCards={() => go("cards")}
+                onOpenBills={() => go("spending")} onOpenWealth={() => go("risk")} onOpenCards={() => go("cards")}
                 onSnapshotChange={setAutomationSnapshot}
                 onDiscussRun={(run:AutomationRun)=>{
-                  setChatDraft(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
-                  go('home');
+                  askSteward(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
                 }} />
             </>
           )}
           {stewardWorkerStarted.current && (
-            <div hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
+            <div data-page-persistent hidden={mode !== "native" || page !== "home" || (elderMode && !elderChatOpen)} style={mode !== "native" || page !== "home" || (elderMode && !elderChatOpen)?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
+              conversationRequest={conversationRequest}
+              onConversationRequestConsumed={()=>setConversationRequest(undefined)}
+              conversationListOpen={conversationListOpen}
+              onConversationListOpenChange={setConversationListOpen}
+              voiceEnabled={mode==='native'&&page==='home'&&(!elderMode||elderChatOpen)&&!['steward','privacy','memory'].includes(modal||'')}
+              voiceReviewing={!!bankIntent||!!cardTransfer||!!modal}
               homePreview
+              elderMode={elderMode}
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
               memory={memory}
@@ -1482,19 +1229,21 @@ export default function App() {
               disabledReminders={disabledSubscriptionReminders}
               recurringReviews={recurringReviews}
               refreshSubscriptions={refreshSubscriptions}
+              getCurrentConnections={getCurrentConnections}
               refreshError={subscriptionRefreshError}
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}
               onOpenSubscriptions={() => go("subscriptions")}
-              onOpenConnections={provider=>{setConnectionEntry(provider);go('connections');}}
+              onOpenConnections={provider=>{setConnectionEntry(provider);go('authorization');}}
               onConnectSource={connectFinancialSource}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
+              onOpenMerchant={()=>go('merchant')}
               onOpenGroupAA={()=>go('group-aa')}
               onOpenOccasions={(prompt,id)=>{setOccasionEntry({prompt,id});go('occasions');}}
               occasionPlans={bank.state?.occasions}
               onPrepareTask={draft=>{setTaskDraft(draft);go('tasks');}}
-              onOpenWealth={() => go("plan")}
+              onOpenWealth={entry=>{setWealthEntry(undefined);setWealthFollowup(entry);go('risk');}}
               onOpenCards={openCardIntent}
               onOpenAutomations={() => go("automations")}
               automationAttention={homeAutomationAttention}
@@ -1552,43 +1301,17 @@ export default function App() {
             <span className="composer-hint">
               {attachment
                 ? `已选择：${attachment}`
-                : "账户与操作均为演示，你可以放心体验"}
+                : "涉及资金的操作仍需你确认"}
             </span>
           </div>
         )}
-        <nav
-          className="bottom-nav"
-          aria-label="主导航"
-          hidden={mode === "native"}
-        >
-          {nav.map(({ page: p, label, icon: Icon }) => (
-            <button
-              aria-current={activeNav === p ? "page" : undefined}
-              key={p}
-              className={activeNav === p ? "active" : ""}
-              onClick={() => go(p)}
-            >
-              <span>
-                <Icon size={23} />
-              </span>
-              {label}
-            </button>
-          ))}
-        </nav>
+        <AnimatedBottomNav items={elderMode?[
+          {page:'home' as const,label:'首页',icon:MessageCircle},
+          {page:'assets' as const,label:'我的账户',icon:Wallet},
+          {page:'profile' as const,label:'更多服务',icon:UserRound},
+        ]:nav} activePage={activeNav} onNavigate={next=>{if(elderMode&&next==='home')setElderChatOpen(false);go(next);}}/>
       </div>
-      {toast && (
-        <div className="toast" role="status">
-          <Check size={18} />
-          {toast}
-          <button
-            className="icon-control"
-            aria-label="关闭提示"
-            onClick={() => setToast("")}
-          >
-            <X size={15} />
-          </button>
-        </div>
-      )}
+      <StatusToast message={toast} onDismiss={() => setToast('')}/>
       <Dialog
         open={modal === "steward"}
         onOpenChange={(open) => !open && setModal(null)}
@@ -1650,7 +1373,7 @@ export default function App() {
         }
         description={
           transferStep === 2
-            ? "演示流程已完成，未发生真实扣款。"
+            ? "本地流程已完成，未发生银行扣款。"
             : "尚未执行，需要你本人确认"
         }
       >
@@ -1676,7 +1399,7 @@ export default function App() {
                 className="full-width"
                 onClick={() => {
                   setModal(null);
-                  setToast("预约已撤销（演示）");
+                  setToast("预约已撤销");
                 }}
               >
                 撤销这笔预约
@@ -1740,7 +1463,7 @@ export default function App() {
               <p className="fine-print left">
                 {transferStep === 0
                   ? "日期表示计划发起时间，实际到账以银行处理为准。"
-                  : "确认后仅更新本地演示状态，不会连接银行。"}
+                  : "确认后更新本地账户状态。"}
               </p>
               <Button
                 className="full-width"
@@ -1757,7 +1480,7 @@ export default function App() {
                   ) {
                     setTransferError(
                       frozen
-                        ? "演示卡已挂失，请先在银行卡页面恢复。"
+                        ? "卡片已挂失，请先在卡片页面恢复。"
                         : `请填写收款人、日期，金额保留两位以内小数且不超过 ${num(Math.min(Number(limit), 42300))}。`,
                     );
                     return;
@@ -1792,7 +1515,7 @@ export default function App() {
         onSelect={(nextRecipient) => {
           setRecipient(nextRecipient);
           setTransferError("");
-          setToast(`已匹配${nextRecipient}的演示收款账户`);
+          setToast(`已匹配${nextRecipient}的收款账户`);
         }}
       />
       <Dialog
@@ -1855,7 +1578,7 @@ export default function App() {
             }
             onClick={() => {
               setModal(null);
-              go("connections");
+              go("authorization");
             }}
           />
           <Row
@@ -1908,13 +1631,13 @@ export default function App() {
             onChange={(e) => setDraftLimit(e.target.value)}
           />
         </label>
-        <p className="fine-print left">演示可选范围：¥100 — ¥50,000</p>
+        <p className="fine-print left">可设置范围：¥100 — ¥50,000</p>
         {bank.error&&<p role="alert">{bank.error}</p>}
         <Button
           className="full-width"
           disabled={!bank.state || bank.busy || Number(draftLimit) < 100 || Number(draftLimit) > 50000}
           onClick={async() => {
-            if(await bank.change({limit:Math.round(Number(draftLimit)*100)})){setModal(null);setToast("单笔限额已更新（银行沙箱）");recordCardAction(`单笔限额已调整为 ${num(Number(draftLimit))}`);}
+            if(await bank.change({limit:Math.round(Number(draftLimit)*100)})){setModal(null);setToast("单笔限额已更新");recordCardAction(`单笔限额已调整为 ${num(Number(draftLimit))}`);}
           }}
         >
           确认调整
@@ -1939,7 +1662,7 @@ export default function App() {
             variant="danger"
             disabled={bank.busy || !bank.state}
             onClick={async() => {
-              if(await bank.change({frozen:true})){setModal(null);setToast("演示卡已挂失");recordCardAction('演示卡已挂失');}
+              if(await bank.change({frozen:true})){setModal(null);setToast("卡片已挂失");recordCardAction('卡片已挂失');}
             }}
           >
             确认模拟挂失
@@ -1950,10 +1673,10 @@ export default function App() {
         open={modal === "unfreeze"}
         onOpenChange={(open) => !open && setModal(null)}
         title="确认恢复这张卡？"
-        description="恢复后沙箱支付与转账能力将重新开启"
+        description="恢复后支付与转账能力将重新开启"
       >
         <div className="warning-box"><CircleAlert size={22}/><p>请确认卡片已找回且近期交易无异常。</p></div>
-        <div className="form-grid"><Button variant="secondary" onClick={()=>setModal(null)}>暂不恢复</Button><Button disabled={bank.busy} onClick={async()=>{if(await bank.change({frozen:false})){setModal(null);setToast("沙箱卡已恢复，可以重新体验转账流程");recordCardAction('演示卡已恢复');}}}>确认恢复演示卡</Button></div>
+        <div className="form-grid"><Button variant="secondary" onClick={()=>setModal(null)}>暂不恢复</Button><Button disabled={bank.busy} onClick={async()=>{if(await bank.change({frozen:false})){setModal(null);setToast("卡片已恢复");recordCardAction('卡片已恢复');}}}>确认恢复卡片</Button></div>
       </Dialog>
       <Dialog
         open={modal === "cardControl"}
@@ -1961,63 +1684,38 @@ export default function App() {
         title={`确认${pendingControl?.enabled?'开启':'关闭'}${pendingControl?.title||'支付功能'}？`}
         description="请核对变更前后状态和支付影响"
       >
-        <div className="warning-box"><ShieldCheck size={22}/><p>{pendingControl?.title}：当前{pendingControl&&controls[pendingControl.key]?'开启':'关闭'} → 拟{pendingControl?.enabled?'开启':'关闭'}。夜间保护与无卡支付会影响沙箱付款；境外交易目前仅保存偏好。</p></div>
-        <div className="form-grid"><Button variant="secondary" onClick={()=>{setModal(null);setPendingControl(null);}}>取消</Button><Button disabled={bank.busy||!pendingControl} onClick={async()=>{if(!pendingControl)return;const {title,key,enabled}=pendingControl;if(await bank.change({controls:{...controls,[key]:enabled}})){setModal(null);setPendingControl(null);const text=`${title}已${enabled?'开启':'关闭'}（银行沙箱）`;setToast(text);recordCardAction(text);}}}>确认{pendingControl?.enabled?'开启':'关闭'}</Button></div>
+        <div className="warning-box"><ShieldCheck size={22}/><p>{pendingControl?.title}：当前{pendingControl&&controls[pendingControl.key]?'开启':'关闭'} → 拟{pendingControl?.enabled?'开启':'关闭'}。关闭境外交易将拦截境外渠道付款；夜间保护与无卡支付也会按设置限制付款。</p></div>
+        <div className="form-grid"><Button variant="secondary" onClick={()=>{setModal(null);setPendingControl(null);}}>取消</Button><Button disabled={bank.busy||!pendingControl} onClick={async()=>{if(!pendingControl)return;const {title,key,enabled}=pendingControl;if(await bank.change({controls:{...controls,[key]:enabled}})){setModal(null);setPendingControl(null);const text=`${title}已${enabled?'开启':'关闭'}`;setToast(text);recordCardAction(text);}}}>确认{pendingControl?.enabled?'开启':'关闭'}</Button></div>
       </Dialog>
       <Dialog
         open={modal === "help"}
         onOpenChange={(open) => !open && setModal(null)}
-        title="认识你的个人银行管家"
+        title="可以帮你做什么"
         description="不用找菜单，先告诉我你想做什么。"
       >
-        <div className="guide-steps">
-          <Row
-            icon={MessageCircle}
-            title="说出需求"
-            subtitle="像聊天一样，描述转账、查账或规划需求。"
-            end={<span>1</span>}
-          />
-          <Row
-            icon={FileText}
-            title="核对方案"
-            subtitle="我整理信息，你可以修改金额、日期与收款人。"
-            end={<span>2</span>}
-          />
-          <Row
-            icon={ShieldCheck}
-            title="由你确认"
-            subtitle="需要资金操作时，始终等待你最后授权。"
-            end={<span>3</span>}
-          />
-        </div>
-        <Button
-          className="full-width spaced"
-          onClick={() => {
-            setModal(null);
-            go("home");
-          }}
-        >
-          开始体验
-          <ArrowRight size={18} />
-        </Button>
+        <StewardGuide stewardName={steward.name} onChoose={prompt=>{
+          if(mode==='native'){setChatDraft(prompt);if(elderMode)setElderChatOpen(true);}
+          else setInput(current=>current.trim()?`${current}；${prompt}`:prompt);
+          go('home');
+        }}/>
       </Dialog>
       <Dialog
         open={modal === "voice"}
         onOpenChange={(open) => !open && setModal(null)}
-        title="试试用一句话办理"
-        description="语音输入界面演示，当前不会开启麦克风。"
+        title={`和${steward.name}语音对话`}
+        description="连续语音在 AI 原生模式可用。模式选择仍在设置中，方案与核对入口留在同一首页。"
       >
         <div className="voice-demo">
           <Mic size={32} />
-          <p>“给妈妈转 2000 元，下周五到账”</p>
+          <p>在设置中选择 AI 原生模式，回到首页点输入框旁的麦克风。开启前会说明录音与处理方式。</p>
           <Button
             className="full-width"
             onClick={() => {
-              setInput("给妈妈转 2000 元，下周五到账");
               setModal(null);
+              go('settings');
             }}
           >
-            使用这句示例
+            打开设置
           </Button>
         </div>
       </Dialog>
@@ -2045,7 +1743,10 @@ export default function App() {
           />
         </label>
       </Dialog>
-      <Dialog open={!!bankIntent} onOpenChange={open=>{if(!open)setBankIntent(null);}} title="智能转账" description="转账、预约和AA收款 · 常用卡8888 · 沙箱资金">
+      <Dialog open={!!cardTransfer} onOpenChange={open=>{if(!open)setCardTransfer(null);}} title="智能转账" description={`${bankCards.find(card=>card.id===cardTransfer?.cardId)?.name??''} · 尾号 ${bankCards.find(card=>card.id===cardTransfer?.cardId)?.last4??''}`}>
+        {cardTransfer&&<SmartTransfers key={cardTransfer.cardId} cardId={cardTransfer.cardId} initial={cardTransfer.initial} onDone={()=>{void bank.refresh();}}/>}
+      </Dialog>
+      <Dialog open={!!bankIntent} onOpenChange={open=>{if(!open)setBankIntent(null);}} title="智能转账" description="转账、预约和AA收款 · 常用卡8888">
         {bankIntent&&<SmartTransfers initial={bankIntent} onDone={setBankReceipt}/>}
       </Dialog>
     </div>

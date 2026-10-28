@@ -16,6 +16,18 @@ const group = {
   ],
 };
 afterEach(() => vi.unstubAllGlobals());
+it('半价按相对份数落地，模型反向权重和错误文字不能进入方案',async()=>{
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({output_text:JSON.stringify({message:'你55元，李娜110元，小王55元',plan:{title:'夜宵',items:[{id:'supper',title:'夜宵',amount:22000,shares:[{memberId:'self',weight:1},{memberId:'li',weight:2},{memberId:'wang',weight:1}]}]}})})}));
+  const result=await requestGroupAAPlan(group,{title:'夜宵',items:[]},'夜宵220元，女生半价，其他人通a',[],['self','li','wang']);
+  expect(calculateGroupAA(group,result.plan!).members.map(m=>m.amount)).toEqual([8800,4400,8800]);
+  expect(result.message).not.toContain('110');expect(result.message).toContain('李娜');
+});
+it('多项目时不把局部半份规则套到整个账单',async()=>{
+  const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+  const shares=[{memberId:'self',weight:1},{memberId:'li',weight:1},{memberId:'wang',weight:1}];
+  const result=await requestGroupAAPlan(group,{title:'聚餐',items:[{id:'dinner',title:'晚饭',amount:20000,shares},{id:'supper',title:'夜宵',amount:22000,shares}]},'女生半价');
+  expect(result.plan).toBeUndefined();expect(result.message).toContain('哪');expect(fetcher).not.toHaveBeenCalled();
+});
 it("clarifies missing gender only for participating members before a model can guess", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);

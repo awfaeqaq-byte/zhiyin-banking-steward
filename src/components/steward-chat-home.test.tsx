@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { StewardChatHome } from "./steward-chat-home";
 import type { ConnectedFinancialSource } from "../lib/financial-connections";
 import type { StewardReplyFn } from "../lib/steward-chat";
+import {requestStewardReplyWithModel} from '../lib/steward-chat';
 import { duplicateGroupKey } from '../lib/subscription-insights';
 import {emptyMemory,updateMemory} from '../lib/steward-memory';
 import type {StewardMemoryController} from '../lib/use-steward-memory';
@@ -26,6 +27,80 @@ const alipay: ConnectedFinancialSource = {
 };
 
 describe("宁宁真实对话首页", () => {
+  it('NN-V2-015 选中会话同样展示可操作账单工作区，平台筛选不依赖首页模式',async()=>{
+    const source={...alipay,scopes:['transactions'] as ConnectedFinancialSource['scopes'],syncedAt:'2026-10-22',transactions:[{id:'meal',title:'演示午餐',amount:-1234,category:'餐饮',occurredAt:'2026-10-20'}]};
+    render(<StewardChatHome fullSession stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={async()=>({text:'已核对授权账单。',billUI:{sections:['overview','categories','transactions'],evidenceRefs:[]}})}/>);
+    await userEvent.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'展示2026年10月支付宝账单明细');await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    const view=await screen.findByRole('region',{name:'账单工作区'});
+    expect(within(view).getByRole('button',{name:'查看全部平台'})).toBeEnabled();
+    expect(within(view).getByRole('button',{name:'请宁宁解释演示午餐 ¥12.34'})).toBeEnabled();
+  });
+  it('输入框接受或拒绝对话加卡；只有接受才提交脱敏档案',async()=>{
+    const user=userEvent.setup();let saved=0;
+    vi.spyOn(globalThis,'fetch').mockImplementation(async(_url,options)=>{const body=JSON.parse(String(options?.body||'{}'));if(body.type==='add-managed-card'){saved++;return new Response(JSON.stringify({id:body.id,label:body.label,last4:body.last4,createdAt:1,status:'demo-only'}));}return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));});
+    const reply=vi.fn<StewardReplyFn>(async()=>({text:'准备登记演示卡片，风险是昵称和末四位会保存。请接受或拒绝。',action:{type:'prepare_add_card',label:'工资卡',last4:'1234'}}));
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'添加卡，昵称工资卡，尾号1234');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByRole('group',{name:'卡片档案授权'});
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'拒绝添加');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByText(/已拒绝这项申请/)).toBeInTheDocument();expect(saved).toBe(0);
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'添加卡，昵称工资卡，尾号1234');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByRole('group',{name:'卡片档案授权'});
+    await user.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'接受添加');await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(await screen.findByText(/已保存演示卡片档案/)).toBeInTheDocument();expect(saved).toBe(1);expect(reply).toHaveBeenCalledTimes(2);
+  });
+  it('S09 指定取消在第6项的项目时只显示该目标核对，不用前4项概览代替',async()=>{
+    const open=vi.fn(),model=vi.fn(async()=>{throw new Error('不应依赖模型准备准确目标');});
+    const source={...alipay,autopays:[...Array.from({length:5},(_,index)=>({id:`normal-${index}`,title:`普通项目${index}`,amount:1000,cycle:'月'})),{id:'last-target',title:'末尾测试云盘',amount:1800,cycle:'月'}]};
+    render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]}
+      onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={open} reply={request=>requestStewardReplyWithModel(request,model)}/>);
+    await userEvent.type(screen.getByRole('textbox'),'取消支付宝末尾测试云盘自动续费');await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    const card=await screen.findByRole('region',{name:'订阅安排'});
+    expect(card).toHaveTextContent('末尾测试云盘');expect(card).not.toHaveTextContent('普通项目0');expect(open).not.toHaveBeenCalled();
+    await userEvent.click(within(card).getByRole('button',{name:/末尾测试云盘.*管理订阅/}));
+    await userEvent.click(within(card).getByRole('button',{name:'核对并取消末尾测试云盘'}));expect(open).toHaveBeenCalledWith('alipay','last-target');expect(model).not.toHaveBeenCalled();
+  });
+  it('S08 音乐订阅稍后再说只更新对应组合偏好，不关闭续费提醒',async()=>{
+    const change=vi.fn(),toggle=vi.fn(),cancel=vi.fn();
+    const source={...alipay,autopays:[{id:'music-a',title:'音乐甲',amount:1500,cycle:'月'},{id:'music-b',title:'音乐乙',amount:2000,cycle:'月'}]};
+    render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png" connections={{alipay:source}} disabledReminders={[]}
+      onToggleReminder={toggle} onDuplicatePreference={change} onOpenSubscriptions={vi.fn()} onPrepareCancel={cancel} reply={request=>requestStewardReplyWithModel(request,async()=>{throw Error('不应调用模型');})}/>);
+    await userEvent.type(screen.getByRole('textbox'),'这组音乐订阅稍后再说');await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await waitFor(()=>expect(change).toHaveBeenCalledWith(duplicateGroupKey([{key:'alipay:music-a'},{key:'alipay:music-b'}]),'later'));
+    expect(toggle).not.toHaveBeenCalled();expect(cancel).not.toHaveBeenCalled();
+  });
+  it('缺少自动续费权限时不刷新账单或调用模型，入口打开授权中心而不是账单授权',async()=>{
+    const model=vi.fn(async()=>{throw new Error('HTTP429');});
+    const refresh=vi.fn(async()=>{throw new Error('平台HTTP429');});
+    const open=vi.fn(),connect=vi.fn();
+    render(<StewardChatHome seamless stewardName="宁宁" stewardImage="/n.png"
+      connections={{alipay:{...alipay,scopes:['transactions']}}} disabledReminders={[]}
+      onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}
+      onOpenConnections={open} onConnectSource={connect} refreshSubscriptions={refresh}
+      reply={request=>requestStewardReplyWithModel(request,model)}/>);
+    await userEvent.type(screen.getByRole('textbox'),'我有哪些自动续费？');
+    await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    const button=await screen.findByRole('button',{name:'核对账户授权'});
+    expect(screen.getByText(/当前没有可读取自动续费的有效授权/)).toBeInTheDocument();
+    await userEvent.click(button);expect(open).toHaveBeenCalledOnce();
+    expect(refresh).not.toHaveBeenCalled();expect(connect).not.toHaveBeenCalled();expect(model).not.toHaveBeenCalled();
+  });
+  it('查询尚未返回时断开授权，迟到的旧清单不会显示为本轮答复',async()=>{
+    let finish!:(value:{text:string})=>void;
+    const reply=vi.fn<StewardReplyFn>(()=>new Promise<{text:string}>(resolve=>{finish=resolve;}));
+    let current:Partial<Record<'alipay',ConnectedFinancialSource>>={alipay};
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={current}
+      getCurrentConnections={()=>current} disabledReminders={[]} onToggleReminder={vi.fn()}
+      onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+    await userEvent.type(screen.getByRole('textbox'),'我有哪些自动续费？');
+    await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await waitFor(()=>expect(reply).toHaveBeenCalledOnce());
+    expect(reply.mock.calls[0]?.[0]).toMatchObject({subscriptionAccess:{providers:['alipay']}});
+    current={};
+    await act(async()=>finish({text:'迟到的旧支付宝清单'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('授权或订阅已变化');
+    expect(screen.queryByText('迟到的旧支付宝清单')).not.toBeInTheDocument();
+  });
   it('进入具体任务后不再挤入首页订阅信息',()=>{
     render(<StewardChatHome workspace={{id:'dinner',kind:'aa',title:'今晚聚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0}} stewardName="宁宁" stewardImage="/n.png" connections={{alipay}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()}/>);
     expect(screen.getByRole('heading',{name:'今晚聚餐'})).toBeInTheDocument();
@@ -299,7 +374,7 @@ describe("宁宁真实对话首页", () => {
     expect(screen.queryByText(/已检查/)).not.toBeInTheDocument();
     expect(screen.queryByText("优酷VIP会员连续包月")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看全部订阅" })).toBeInTheDocument();
-    expect(screen.getByText("沙箱演示数据")).toBeInTheDocument();
+    expect(screen.queryByText("沙箱演示数据")).not.toBeInTheDocument();
     expect(screen.queryByText("转账与资金安排")).not.toBeInTheDocument();
     expect(screen.queryByText("直接告诉宁宁你想处理什么")).not.toBeInTheDocument();
   });
@@ -551,6 +626,21 @@ describe("宁宁真实对话首页", () => {
     expect(screen.getByText(/订阅本身不受影响/)).toBeInTheDocument();
   });
 
+  it('V2 IN2-006 只提产品名称和谨慎型时也读取实际测评，不误报未测评',async()=>{
+    const assessment={version:1,risk:'low',answers:{experience:0,loss:0,term:0,liquidity:0,income:0},assessedAt:Date.now(),expiresAt:Date.now()+86400000};
+    vi.spyOn(globalThis,'fetch').mockImplementation(async input=>{
+      const url=String(input);
+      if(url.includes('/api/zhiyin/wealth'))return new Response(JSON.stringify({version:1,receipts:[],assessment}));
+      if(url.includes('/api/zhiyin/bank'))return new Response(JSON.stringify({revision:0,balance:4230000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}));
+      return new Response('{}');
+    });
+    const reply=vi.fn<StewardReplyFn>(request=>requestStewardReplyWithModel(request,async()=>{throw Error('无需模型猜测风险等级');}));
+    render(<StewardChatHome stewardName="宁宁" stewardImage="/n.png" connections={{}} disabledReminders={[]} onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} reply={reply}/>);
+    await userEvent.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'我是当前谨慎型，想买1000元均衡低波组合。请先核对是否适配，不要下单。');
+    await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    await screen.findByText(/当前风险测评与该产品不匹配/);
+    expect(reply.mock.calls[0][0].wealthSnapshot?.assessment?.risk).toBe('low');
+  });
   it("理财问题读取银行与持仓快照，并展示可进入的比较工具", async () => {
     const reply=vi.fn<StewardReplyFn>(async()=>({text:'先看风险和流动性。',view:'wealth_compare'}));
     vi.spyOn(globalThis,'fetch').mockImplementation(async input=>{
@@ -564,9 +654,13 @@ describe("宁宁真实对话首页", () => {
       onToggleReminder={vi.fn()} onOpenSubscriptions={vi.fn()} onPrepareCancel={vi.fn()} onOpenWealth={open} reply={reply}/>);
     await userEvent.type(screen.getByRole('textbox',{name:'和宁宁说点什么'}),'帮我比较理财产品');
     await userEvent.click(screen.getByRole('button',{name:'发送给宁宁'}));
-    await screen.findByText('先看风险和流动性。');
+    await screen.findByRole('button',{name:'开始风险测评'});
     expect(reply.mock.calls[0][0]).toMatchObject({bank:{balance:4230000},wealthSnapshot:{cashBalance:4230000}});
-    expect(screen.getByRole('button',{name:'进入理财方案与风险测评'})).toBeInTheDocument();
+    expect(screen.queryByText('先看风险和流动性。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:/灵活现金管理/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'进入理财方案与风险测评'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:'开始风险测评'}));
+    expect(open).toHaveBeenCalledOnce();
   });
 
   it("首页可展开自动检查交易并记录人工判断", async () => {

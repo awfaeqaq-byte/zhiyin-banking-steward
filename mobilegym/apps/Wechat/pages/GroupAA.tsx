@@ -113,8 +113,9 @@ export function GroupAAPage() {
         {choosing ? (
           <>
             <h2>{t.aa_consent_title}</h2>
+            {typeof request?.groupId==='string'&&!group&&<p role="alert">{t.aa_stale}</p>}
             <p className="wx-aa-muted">{t.aa_consent_description}</p>
-            {state.groups.map((g) => (
+            {state.groups.filter(g=>typeof request?.groupId!=='string'||g.id===request.groupId).map((g) => (
               <section key={g.id}>
                 <h3>{g.name}</h3>
                 <p>{g.members.map((m) => m.name).join("、")}</p>

@@ -8,6 +8,7 @@ import { ChatSession } from '../types';
 import * as TimeService from '../../../os/TimeService';
 import { useWechatGestures } from '../hooks/useWechatGestures';
 import { useWechatStrings } from '../hooks/useWechatStrings';
+import {NINGNING_WXID,ningningPlainText} from '../chat-ai/zhiyin';
 import {GroupAAChatRows} from './GroupAA';
 
 const ChatList: React.FC = () => {
@@ -45,7 +46,7 @@ const ChatList: React.FC = () => {
     if (lastMsg.type === 'image') return t.chat_image_placeholder;
     if (lastMsg.type === 'file') return t.chat_file_placeholder;
 
-    return lastMsg.content;
+    return lastMsg.senderId===NINGNING_WXID ? ningningPlainText(lastMsg.content) : lastMsg.content;
   };
 
   const getChatTime = (chat: ChatSession) => {

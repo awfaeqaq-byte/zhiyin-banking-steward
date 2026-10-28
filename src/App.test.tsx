@@ -1,29 +1,43 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi,beforeEach,afterEach } from "vitest";
 import {emptyMemory,updateMemory,type MemoryCommand} from './lib/steward-memory';
+import {bankCards,type BankCardId,type BankSnapshot} from './lib/bank-transfer';
 import App from "./App";
 beforeEach(()=>{
- let bank={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],assetSummary:{cash:4230000,availableCash:4230000,reservedCash:0,wealth:0,deposits:0,total:4230000,holdingCount:0,depositCount:0}};
+ const initial={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[],assetSummary:{cash:4230000,availableCash:4230000,reservedCash:0,wealth:0,deposits:0,total:4230000,holdingCount:0,depositCount:0}};
+ const accounts:Record<BankCardId,BankSnapshot>={
+  primary:{...initial,cardId:'primary'},
+  living:{...initial,cardId:'living',balance:0,assetSummary:undefined},
+  reserve:{...initial,cardId:'reserve',balance:0,assetSummary:undefined},
+ };
  vi.spyOn(globalThis,'fetch').mockImplementation(async(url,options)=>{
-  if(String(url).includes('/api/zhiyin/bank')){if(options?.method==='POST'){const body=JSON.parse(String(options.body));bank={...bank,...body,revision:bank.revision+1};}return new Response(JSON.stringify(bank));}
+  if(String(url).includes('/api/zhiyin/bank')){
+   const request=new URL(String(url),'http://localhost');
+   if(request.searchParams.get('view')==='cards')return new Response(JSON.stringify(bankCards.map(card=>({...card,...accounts[card.id]}))));
+   const body=options?.method==='POST'?JSON.parse(String(options.body)):null;
+   const cardId=(body?.cardId??request.searchParams.get('cardId')??'primary') as BankCardId;
+   if(body)accounts[cardId]={...accounts[cardId],...body,revision:accounts[cardId].revision+1};
+   return new Response(JSON.stringify(accounts[cardId]));
+  }
+  if(String(url).includes('/api/zhiyin/wealth'))return new Response(JSON.stringify({version:1,receipts:[],holdings:[],cashBalance:accounts.primary.balance}));
   return new Response(JSON.stringify(emptyMemory()));
  });
 });
 afterEach(()=>vi.restoreAllMocks());
 
 describe("知银交互原型", () => {
-  it("转账结果保留分，挂失后可通过演示入口恢复", async () => {
+  it("转账结果保留分，挂失后可核对尾号再恢复", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "个人中心" }));
     await user.click(screen.getByRole("button", { name: /银行卡与安全/ }));
-    await user.click(screen.getByRole("button", { name: "挂失这张卡" }));
-    await user.click(screen.getByRole("button", { name: "确认模拟挂失" }));
+    await user.click(await screen.findByRole("button", { name: "挂失这张卡" }));
+    await user.click(screen.getByRole("button", { name: "确认挂失尾号 8888" }));
     await user.click(
-      screen.getByRole("button", { name: "恢复演示卡（仅用于重新体验）" }),
+      await screen.findByRole("button", { name: "恢复这张卡" }),
     );
-    await user.click(screen.getByRole("button", { name: "确认恢复演示卡" }));
+    await user.click(screen.getByRole("button", { name: "确认恢复尾号 8888" }));
     await user.click(
       within(screen.getByRole("navigation", { name: "主导航" })).getByRole(
         "button",
@@ -56,18 +70,20 @@ describe("知银交互原型", () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认模拟预约" }));
     expect(
-      screen.getByText("演示流程已完成，未发生真实扣款。"),
+      screen.getByText("本地流程已完成，未发生银行扣款。"),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "撤销这笔预约" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("收藏演示方案不会产生申购回执", async () => {
+  it("资金规划先进行风险测评，不展示固定资产配置", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: /帮我选一个稳妥/ }));
-    await user.click(screen.getByRole("button", { name: "收藏这份方案" }));
-    expect(screen.getByRole("button", { name: "已收藏这份方案" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "财富" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "开始风险测评" })).toBeInTheDocument();
+    expect(screen.queryByText("资产配置建议")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "生成待确认申购方案" })).not.toBeInTheDocument();
     expect(screen.queryByText(/沙箱申购已完成/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "返回" }));
     expect(screen.getByRole("heading", { name: "今天想办理什么？" })).toBeInTheDocument();
@@ -78,23 +94,21 @@ describe("知银交互原型", () => {
     render(<App />);
     await user.click(screen.getByRole("button", { name: "个人中心" }));
     await user.click(screen.getByRole("button", { name: /银行卡与安全/ }));
-    const overseas = screen.getByRole("switch", { name: "境外交易" });
+    const overseas = await screen.findByRole("switch", { name: "尾号 8888 境外交易" });
     expect(overseas).not.toBeChecked();
     await user.click(overseas);
-    expect(screen.getByRole('dialog',{name:'确认开启境外交易？'})).toBeInTheDocument();
-    await user.click(screen.getByRole('button',{name:'确认开启'}));
-    expect(overseas).toBeChecked();
-    expect(JSON.parse(localStorage.getItem("zhiyin-controls")!).overseas).toBe(
-      true,
-    );
+    expect(screen.getByRole('dialog',{name:'确认开启境外交易'})).toHaveTextContent('日常支付卡 · 尾号 8888');
+    await user.click(screen.getByRole('button',{name:'确认修改尾号 8888'}));
+    await waitFor(()=>expect(overseas).toBeChecked());
+    await waitFor(()=>expect(JSON.parse(localStorage.getItem("zhiyin-controls")!).overseas).toBe(true));
     await user.click(screen.getByRole("button", { name: "挂失这张卡" }));
-    await user.click(screen.getByRole("button", { name: "暂不挂失" }));
+    await user.click(screen.getByRole("button", { name: "返回核对" }));
     expect(
       screen.getByRole("button", { name: "挂失这张卡" }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "挂失这张卡" }));
-    await user.click(screen.getByRole("button", { name: "确认模拟挂失" }));
-    expect(screen.getByText("已挂失")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "确认挂失尾号 8888" }));
+    expect(await within(screen.getByLabelText('尾号 8888 的卡片详情')).findByText('此卡已挂失，付款已暂停；核实卡片安全后可恢复。')).toBeInTheDocument();
   });
 
   it("自然语言调额只预填独立核对页，取消不变更，确认后更新", async () => {
@@ -105,12 +119,28 @@ describe("知银交互原型", () => {
     expect(screen.getByLabelText("单笔限额（元）")).toHaveValue(5000);
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog",{name:"调整单笔支付限额"})).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button",{name:/单笔支付限额/}));
-    expect(screen.getByLabelText("单笔限额（元）")).toHaveValue(20000);
-    await user.clear(screen.getByLabelText("单笔限额（元）"));
-    await user.type(screen.getByLabelText("单笔限额（元）"),"5000");
-    await user.click(screen.getByRole("button",{name:"确认调整"}));
-    expect(screen.getByText(/单笔限额已调整为/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button",{name:/单笔支付限额/}));
+    expect(screen.getByLabelText("新的单笔限额（元）")).toHaveValue('20000');
+    await user.clear(screen.getByLabelText("新的单笔限额（元）"));
+    await user.type(screen.getByLabelText("新的单笔限额（元）"),"5000");
+    await user.click(screen.getByRole("button",{name:"确认修改尾号 8888"}));
+    expect(await screen.findByText('尾号 8888：单笔限额已改为 ¥5,000.00')).toBeInTheDocument();
+  });
+
+  it('V2 CA2-006 开启境外但不要执行，核对页方向正确且取消不变更',async()=>{
+    const user=userEvent.setup();render(<App/>);
+    await user.type(screen.getByLabelText('告诉宁宁你想办理的事'),'开启境外交易，先不要执行');
+    await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(screen.getByRole('dialog',{name:'确认开启境外交易？'})).toBeInTheDocument();
+    await user.click(screen.getByRole('button',{name:'取消'}));
+    expect(screen.getByRole('switch',{name:'尾号 8888 境外交易'})).not.toBeChecked();
+  });
+  it('V2 CA2-008 未登记卡9999不能打开常用卡挂失面板',async()=>{
+    const user=userEvent.setup();render(<App/>);
+    await user.type(screen.getByLabelText('告诉宁宁你想办理的事'),'请挂失尾号9999的卡');
+    await user.click(screen.getByRole('button',{name:'发送给宁宁'}));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText(/没有匹配到可操作的卡片/)).toBeInTheDocument();
   });
 
   it("长期记忆可保存删除，切换管家保留选择", async () => {
@@ -217,8 +247,8 @@ describe("知银交互原型", () => {
     render(<App />);
     await user.click(within(screen.getByRole("navigation",{name:"主导航"})).getByRole("button",{name:"资产"}));
     await user.click(screen.getByRole("button",{name:/理财风险测评与持仓/}));
-    expect(screen.getByRole("heading",{name:"理财风险测评与持仓"})).toBeInTheDocument();
-    expect(screen.getByRole("combobox",{name:"可承受亏损"})).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:"财富"})).toBeInTheDocument();
+    expect(await screen.findByRole("button",{name:"开始风险测评"})).toBeInTheDocument();
     expect(screen.queryByText("当前建议仓位")).not.toBeInTheDocument();
   });
 });

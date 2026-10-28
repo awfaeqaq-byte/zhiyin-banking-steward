@@ -12,6 +12,19 @@ import {
 afterEach(() => vi.useRealTimers());
 
 describe("phone navigation bridge", () => {
+  it('仅可信沙箱通知触发银行刷新，不执行付款', () => {
+    const peer = {postMessage:vi.fn()} as unknown as Window;
+    const disconnect=connectPhoneBridge(window,peer),refresh=vi.fn();
+    window.addEventListener('zhiyin-bank-updated',refresh);
+    const data={channel:'zhiyin-phone',version:1,type:'bank-updated'};
+    for(const [origin,source] of [['https://wrong.example',peer],[window.location.origin,window]] as const){
+      window.dispatchEvent(new MessageEvent('message',{data,origin,source}));
+    }
+    expect(refresh).not.toHaveBeenCalled();
+    window.dispatchEvent(new MessageEvent('message',{data,origin:window.location.origin,source:peer}));
+    expect(refresh).toHaveBeenCalledOnce();
+    window.removeEventListener('zhiyin-bank-updated',refresh);disconnect();
+  });
   it('微信分享只从可信父窗口接收，保存后确认，重复投递不重复展示',()=>{
     localStorage.clear();const peer={postMessage:vi.fn()} as unknown as Window;
     const stop=connectPhoneBridge(window,peer);const notification=vi.fn();window.addEventListener('zhiyin-wechat-share',notification);

@@ -11,10 +11,96 @@ import * as aa from "../lib/group-aa";
 import * as tasks from '../lib/task-calendar';
 import {
   changeExpenses,
+  entryAllocations,
   emptyExpenseState,
   type ExpenseCommand,
 } from "../lib/expense-notebook";
 afterEach(() => vi.restoreAllMocks());
+it('首页收起 AA 账本后仍保留原活动和待核对的消费选择',async()=>{
+  const group:aa.AAGroup={id:'collapse-group',name:'饭搭子',revision:1,members:[
+    {id:'me',name:'我',self:true},{id:'li',name:'李娜'},
+  ]};
+  let state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'collapse-book',title:'周末聚餐',group,participants:['me','li'],defaultPayerId:'me',revision:0,requestId:'create'});
+  for(const [id,title,amount] of [['dinner','晚饭',10000],['drink','饮料',2000]] as const){
+    state=changeExpenses(state,{type:'add',bookId:'collapse-book',entryId:id,entry:{title,amount,payerId:'me',fixed:[],shares:[{memberId:'me',weight:1},{memberId:'li',weight:1}]},revision:state.revision,requestId:`add-${id}`});
+  }
+  localStorage.setItem('zhiyin-expense-active','collapse-book');
+  const persistence=vi.spyOn(service,'expenseRequest').mockResolvedValue(state);
+  const bridge=vi.spyOn(aa,'groupAARequest').mockResolvedValue({collections:[]});
+  const model=vi.spyOn(service,'requestExpenseReply').mockResolvedValue({action:'clarify',message:'这笔怎么分？'});
+  const onBookSelected=vi.fn<(id:string)=>Promise<void>>().mockResolvedValue(undefined);
+  const ref=createRef<ExpenseNotebookHandle>();
+  render(<ExpenseNotebook ref={ref} conversation initialBookId="collapse-book" initialHistory={[{role:'user',content:'这次饭钱我先垫'}]} onBookSelected={onBookSelected} onPrompt={vi.fn()}/>);
+  await userEvent.click(await screen.findByRole('button',{name:'核对并结算'}));
+  await userEvent.click(screen.getByRole('checkbox',{name:'结算饮料'}));
+  await userEvent.click(screen.getByRole('button',{name:'收起活动'}));
+
+  expect(screen.getByRole('button',{name:'周末聚餐 · 展开账本'})).toHaveAttribute('aria-expanded','false');
+  expect(localStorage.getItem('zhiyin-expense-active')).toBe('collapse-book');
+  expect(onBookSelected).not.toHaveBeenCalled();
+  expect(bridge).not.toHaveBeenCalled();
+  expect(persistence.mock.calls.every(([operation])=>!operation)).toBe(true);
+  await userEvent.click(screen.getByRole('button',{name:'继续核对分摊'}));
+  expect(screen.getByRole('checkbox',{name:'结算晚饭'})).toBeChecked();
+  expect(screen.getByRole('checkbox',{name:'结算饮料'})).not.toBeChecked();
+
+  await act(async()=>{await ref.current!.handle('刚才这笔怎么分？');});
+  expect(model.mock.calls[0][0].id).toBe('collapse-book');
+  expect(model.mock.calls[0][2]).toEqual([{role:'user',content:'这次饭钱我先垫'}]);
+});
+it('女生半价不能按总额一半固定分配，真实解析后只回传一次正确分摊',async()=>{
+  const prompt='夜宵220元，女生半价，其他人通a';
+  const group:aa.AAGroup={id:'half-price-group',name:'夜宵搭子',revision:1,members:[
+    {id:'self',name:'我',self:true,gender:'male'},
+    {id:'group-li',name:'李娜',gender:'female'},
+    {id:'group-wang',name:'小王',gender:'male'},
+  ]};
+  let state=emptyExpenseState();
+  const persistence=vi.spyOn(service,'expenseRequest').mockImplementation(async(operation,revision)=>{
+    if(operation)state=changeExpenses(state,{...operation,revision,requestId:crypto.randomUUID()} as ExpenseCommand);
+    return state;
+  });
+  const bridge=vi.spyOn(aa,'groupAARequest').mockResolvedValue({group});
+  const modelMessage='记下了：你55元，李娜110元，小王55元。';
+  const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async(input)=>{
+    const url=String(input);
+    if(url.startsWith('/api/zhiyin/scene-expenses'))return new Response(JSON.stringify({sources:[],state}));
+    if(url==='/api/zhiyin/steward-reply')return new Response(JSON.stringify({output_text:JSON.stringify({
+      action:'add',message:modelMessage,entry:{title:'夜宵',amount:22000,payerId:'self',
+        fixed:[{memberId:'group-li',amount:11000}],
+        shares:[{memberId:'self',weight:1},{memberId:'group-wang',weight:1}]},
+    })}));
+    throw new Error(`此集成测试不允许访问其他接口：${url}`);
+  });
+  const parser=vi.spyOn(service,'requestExpenseReply');
+  const onRecorded=vi.fn<(prompt:string,text:string)=>Promise<void>>().mockResolvedValue(undefined);
+  const ref=createRef<ExpenseNotebookHandle>();
+  render(<ExpenseNotebook ref={ref} conversation activityKey="half-price-regression" activityTitle="夜宵 AA" onPrompt={vi.fn()} onRecorded={onRecorded}/>);
+  await act(async()=>{await ref.current!.handle(prompt);});
+  await userEvent.click(screen.getByRole('button',{name:'从微信选择群'}));
+  await userEvent.click(screen.getByRole('checkbox',{name:'李娜'}));
+  await userEvent.click(screen.getByRole('checkbox',{name:'小王'}));
+  await userEvent.click(screen.getByRole('button',{name:'开始记录'}));
+  await waitFor(()=>expect(onRecorded).toHaveBeenCalledOnce());
+  expect(parser).toHaveBeenCalledOnce();
+  expect(parser.mock.calls[0][1]).toBe(prompt);
+  expect(fetcher.mock.calls.filter(([url])=>url==='/api/zhiyin/steward-reply')).toHaveLength(1);
+  expect(persistence.mock.calls.filter(([operation])=>operation?.type==='add')).toHaveLength(1);
+  expect(state.books).toHaveLength(1);
+  expect(state.books[0].entries).toHaveLength(1);
+  const entry=state.books[0].entries[0];
+  expect(entry).toMatchObject({amount:22000,fixed:[],shares:[
+    {memberId:'self',weight:2},{memberId:'group-li',weight:1},{memberId:'group-wang',weight:2},
+  ]});
+  expect(entryAllocations(group,entry).map(({id,amount})=>({id,amount}))).toEqual([
+    {id:'self',amount:8800},{id:'group-li',amount:4400},{id:'group-wang',amount:8800},
+  ]);
+  expect(onRecorded).toHaveBeenCalledWith(prompt,expect.stringMatching(/你 ¥88\.00，李娜 ¥44\.00，小王 ¥88\.00/));
+  expect(onRecorded.mock.calls[0]?.[1]).not.toMatch(/55|110/);
+  expect(screen.queryByText(modelMessage)).not.toBeInTheDocument();
+  expect(bridge).toHaveBeenCalledOnce();
+  expect(bridge).toHaveBeenCalledWith('choose');
+});
 it('AA工作区恢复自己的追问上下文，读取共享偏好而不读取另一活动',async()=>{
   const group={id:'g',name:'饭搭子',revision:1,members:[{id:'me',name:'我',self:true}]};
   const state=changeExpenses(emptyExpenseState(),{type:'create',bookId:'book',title:'晚餐',group,participants:['me'],defaultPayerId:'me',revision:0,requestId:'create'});
@@ -118,6 +204,10 @@ it("可以修改活动名称、暂停再继续，无关问题交还普通管家"
   await screen.findByRole("button", { name: /周末出游/ });
   await userEvent.click(screen.getByRole("button", { name: /周末出游/ }));
   await userEvent.click(screen.getByRole("button", { name: "收起活动" }));
+  expect(screen.getByRole("button", { name: "周末出游 · 展开账本" })).toBeInTheDocument();
+  await act(async () =>
+    expect(await ref.current!.handle("暂停记账")).toContain("记录还在"),
+  );
   await userEvent.click(screen.getByRole("button", { name: "随手记消费" }));
   await userEvent.click(screen.getByRole("button", { name: "暂不开始" }));
   expect(screen.queryByText("把这次消费记在一起")).not.toBeInTheDocument();
@@ -289,8 +379,10 @@ it("微信回执丢失后锁定费用，核对找到原收款即恢复，不会�
       };
     });
   render(<ExpenseNotebook onPrompt={vi.fn()} />);
-  await userEvent.click(await screen.findByRole("button", { name: /聚餐/ }));
+  await screen.findByRole("button", { name: /聚餐/ });
+  expect(screen.queryByText("分摊依据")).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "核对并结算" }));
+  expect(screen.getByRole("checkbox", { name: "结算晚饭" })).toBeChecked();
   await userEvent.click(screen.getByRole("button", { name: /去微信确认收款/ }));
   await screen.findByText("微信操作超时");
   expect(state.books[0].batches[0].status).toBe("prepared");

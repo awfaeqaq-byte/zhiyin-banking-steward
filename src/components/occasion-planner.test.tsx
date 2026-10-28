@@ -31,7 +31,7 @@ it('自然语言建议填入可编辑方案；保存、手动改预算和商品�
   render(<OccasionPlanner stewardName="宁宁" getMemoryContext={memory} onOpenCalendar={calendar}/>);
   fireEvent.click(await screen.findByRole('button',{name:'准备一个生日'}));
   fireEvent.change(screen.getByLabelText('交给宁宁整理'),{target:{value:'爱人生日，预算1000'}});fireEvent.click(screen.getByRole('button',{name:'整理筹备需求'}));
-  await screen.findByText('低甜蛋糕已整理，地址请核对。');expect(memory).toHaveBeenCalled();
+  await screen.findByText(/低甜蛋糕已整理，地址请核对。/);expect(memory).toHaveBeenCalled();
   expect(screen.queryByRole('button',{name:'换成巧克力'})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'保存筹备方案'}));await screen.findByText('尚未预留资金');
   fireEvent.click(screen.getByText('手动编辑'));fireEvent.click(screen.getByRole('button',{name:'调整商品'}));
@@ -54,6 +54,39 @@ it('初版先补眼前缺少的时间，不摊开完整表单，也不把模型�
  expect(screen.queryByRole('button',{name:'希望哪天送达？'})).not.toBeInTheDocument();
  expect(screen.getByRole('button',{name:'保存筹备方案'})).toBeDisabled();
 });
+it('首页筹备把缺失信息留在折叠之外，核对方案不会自动预留资金',async()=>{
+ const turn=vi.fn();
+ const fetcher=vi.fn(async(url:string,init?:RequestInit)=>{
+  if(init?.body&&JSON.parse(init.body as string).type==='reserve-occasion')throw new Error('补充需求时不应自动预留资金');
+  return {ok:true,json:async()=>url.includes('steward-reply')?{output_text:'{"text":"先确定生日时间，再安排配送。","patch":{"recipient":"爱人"}}'}:{revision:0,balance:100000,limit:2000000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[]}};
+ });
+ vi.stubGlobal('fetch',fetcher);
+ render(<OccasionPlanner stewardName="宁宁" embedded conversation initialPrompt="给爱人准备生日" onConversationTurn={turn}/>);
+ await waitFor(()=>expect(turn).toHaveBeenCalled());
+ const next=screen.getByRole('region',{name:'下一步需要确认'});
+ expect(next).toBeVisible();
+ expect(next.closest('details')).toBeNull();
+ expect(screen.getByRole('button',{name:'保存筹备方案'})).toBeDisabled();
+ expect(fetcher.mock.calls.some(([,init])=>init?.body&&JSON.parse(init.body as string).type==='reserve-occasion')).toBe(false);
+});
+it('首页已保存方案直接显示预算授权，仍需独立确认才能预留',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'occasion-visible-review-')),bank=createBankStore(join(dir,'bank.json'));
+ bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});
+ bank.saveOccasion({id:'birthday',revision:1,draft:{title:'爱人生日',recipient:'爱人',budget:100000,prepareAt:Date.now()+86400000,deliverAt:Date.now()+3*86400000,address:'测试地址',contact:'叶先生',note:'低甜',productIds:['cake-light']}});
+ vi.stubGlobal('fetch',vi.fn(async(_url:string,init?:RequestInit)=>{
+  const body=init?.body?JSON.parse(init.body as string):null;
+  return {ok:true,json:async()=>body?.type==='reserve-occasion'?bank.reserveOccasion(body.id,body.revision):bank.get()};
+ }));
+ try{
+  render(<OccasionPlanner stewardName="宁宁" embedded conversation initialPlanId="birthday"/>);
+  const reserve=await screen.findByRole('button',{name:'预留这笔预算'});
+  expect(reserve).toBeVisible();expect(reserve.closest('details')).toBeNull();
+  fireEvent.click(reserve);expect(bank.get().occasions![0].status).toBe('draft');
+  const confirm=screen.getByRole('button',{name:/^确认预留 ¥1,000(?:\.00)?$/});
+  expect(confirm).toBeVisible();fireEvent.click(confirm);
+  await waitFor(()=>expect(bank.get().occasions![0].status).toBe('reserved'));
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
 it('已有订单的任务在首次打开时也不能被模型悄悄改金额；到货核对后完成释放余款',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'occasion-lock-')),bank=createBankStore(join(dir,'bank.json'));
  bank.configure({revision:0,controls:{night:false,overseas:false,contactless:true}});
@@ -67,7 +100,8 @@ it('已有订单的任务在首次打开时也不能被模型悄悄改金额；�
  vi.mocked(occasionFoodRequest).mockResolvedValue({status:'ok',orders:[{id:link.orderId,status:'COMPLETED'}]});
  try{
   render(<OccasionPlanner stewardName="宁宁" initialPlanId="birthday" initialPrompt="改成2000"/>);
-  await screen.findByText(/建议改为2000/);expect(screen.getByLabelText('预算（元）')).toHaveValue(1000);
+  await screen.findByText(/建议改为2000/);expect(screen.getByLabelText('预算（元）')).toHaveValue(2000);expect(bank.get().occasions![0].budget).toBe(100000);
+  fireEvent.click(screen.getByRole('button',{name:'放弃本次修改'}));expect(screen.getByLabelText('预算（元）')).toHaveValue(1000);
   fireEvent.click(screen.getByRole('button',{name:'核对订单状态'}));await waitFor(()=>expect(screen.getByRole('button',{name:'确认已收到，完成安排'})).not.toBeDisabled());
   fireEvent.click(screen.getByRole('button',{name:'确认已收到，完成安排'}));fireEvent.click(screen.getByRole('button',{name:'确认完成并释放余款'}));await screen.findByText('安排已完成，余款已释放');
  }finally{rmSync(dir,{recursive:true,force:true});}

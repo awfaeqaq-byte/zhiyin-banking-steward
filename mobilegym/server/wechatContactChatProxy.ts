@@ -18,10 +18,44 @@ export type WechatContactChatProxyPayload = {
 
 type FetchLike = typeof fetch;
 
+export type WechatContactChatReplyResult = {
+  outputText: string;
+  finishReason: string | null;
+  retried: boolean;
+};
+
+type Completion = {
+  outputText: string;
+  finishReason: string | null;
+};
+
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_INSTRUCTIONS_LENGTH = 4_000;
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 2_000;
+
+function isConnectionFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const cause = (error as Error & { cause?: { code?: string } }).cause;
+  return error.message === 'fetch failed' || ['UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET', 'ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN', 'ETIMEDOUT'].includes(cause?.code || '');
+}
+
+/** Retry only the model HTTP call: this endpoint cannot execute financial actions.
+ * Both attempts share the original deadline; authentication errors are not retried. */
+async function fetchModel(fetcher: FetchLike, url: string, init: RequestInit, signal: AbortSignal): Promise<Response> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await fetcher(url, init);
+    } catch (error) {
+      if (signal.aborted || error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)) {
+        throw new Error('模型服务响应超时，请稍后重试', { cause: error });
+      }
+      if (!isConnectionFailure(error)) throw error;
+      if (attempt === 1) throw new Error('暂时无法连接模型服务，请检查网络后重试', { cause: error });
+    }
+  }
+  throw new Error('暂时无法连接模型服务，请检查网络后重试');
+}
 
 function completionUrl(baseUrl: string): string {
   const normalized = baseUrl.trim().replace(/\/+$/, '');
@@ -53,28 +87,74 @@ function normalizePayload(payload: WechatContactChatProxyPayload): {
   return { instructions, messages };
 }
 
-function extractCompletionText(data: unknown): string {
+function extractCompletion(data: unknown): Completion {
   if (!data || typeof data !== 'object' || !('choices' in data) || !Array.isArray(data.choices)) {
     throw new Error('模型服务未返回有效内容');
   }
-  const message = data.choices[0]?.message;
+  const choice = data.choices[0];
+  const message = choice?.message;
   const content = message?.content;
-  if (typeof content === 'string' && content.trim()) return content.trim();
+  const finishReason = typeof choice?.finish_reason === 'string' ? choice.finish_reason : null;
+  if (typeof content === 'string' && content.trim()) {
+    return { outputText: content.trim(), finishReason };
+  }
   if (Array.isArray(content)) {
     const text = content
       .map(part => part && typeof part === 'object' && 'text' in part && typeof part.text === 'string' ? part.text : '')
       .join('')
       .trim();
-    if (text) return text;
+    if (text) return { outputText: text, finishReason };
   }
+  if (finishReason === 'length') return { outputText: '', finishReason };
   throw new Error('模型服务未返回有效内容');
 }
 
-export async function requestWechatContactReply(
+function isLikelyIncomplete(completion: Completion): boolean {
+  if (completion.finishReason === 'length') return true;
+  const text = completion.outputText.trim();
+  if (text.length < 50) return false;
+  if (/[[（【“‘《]$/.test(text)) return true;
+  if (/\[ZHIYIN_(?:ACTION|VIEW):[^\]\r\n]+\]$/.test(text)) return false;
+  return !/(?:[。！？.!?…]|\]\]|\})$/.test(text);
+}
+
+const COMPLETENESS_RETRY_INSTRUCTION =
+  '必须完整回答，不得在句中停止；结尾必须是完整句子或合法的结构化标记。';
+
+async function fetchCompletion(
+  providerMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+  config: WechatContactChatProxyConfig,
+  fetcher: FetchLike,
+  signal: AbortSignal,
+  attempt = 0,
+): Promise<Completion> {
+  const response = await fetchModel(fetcher, completionUrl(config.baseUrl), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.apiKey.trim()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: config.model.trim(),
+      messages: providerMessages,
+      stream: false,
+      temperature: 0.7,
+      max_tokens: (/^MiniMax-M/i.test(config.model.trim()) ? 4096 : 800) * (attempt + 1),
+      ...(/^MiniMax-M/i.test(config.model.trim()) ? { reasoning_split: true } : {}),
+    }),
+    signal,
+    redirect: 'error',
+  }, signal);
+
+  if (!response.ok) throw new Error(`模型服务请求失败（HTTP ${response.status}）`);
+  return extractCompletion(await response.json());
+}
+
+export async function requestWechatContactReplyResult(
   payload: WechatContactChatProxyPayload,
   config: WechatContactChatProxyConfig,
   fetcher: FetchLike = fetch,
-): Promise<string> {
+): Promise<WechatContactChatReplyResult> {
   const apiKey = config.apiKey.trim();
   const model = config.model.trim();
   if (!apiKey) throw new Error('模型服务密钥未配置');
@@ -84,39 +164,30 @@ export async function requestWechatContactReply(
     ? [{ role: 'system' as const, content: instructions }, ...messages]
     : messages;
 
-  // MiniMax's limit includes thinking tokens, so 800 can leave no answer at all.
-  // Keep one deadline across the bounded retry; never expose reasoning as a reply.
-  const reasoningModel=/^MiniMax-M/i.test(model);
-  const initialLimit=reasoningModel?4096:800;
-  const signal=AbortSignal.timeout(45_000);
-  for(let attempt=0;attempt<2;attempt++){
-    const response = await fetcher(completionUrl(config.baseUrl), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: providerMessages,
-        stream: false,
-        temperature: 0.7,
-        max_tokens: initialLimit*(attempt+1),
-        ...(reasoningModel?{reasoning_split:true}:{}),
-      }),
-      signal,
-      redirect: 'error',
-    });
-
-    if (!response.ok) throw new Error(`模型服务请求失败（HTTP ${response.status}）`);
-    const data=await response.json();
-    if(data?.choices?.[0]?.finish_reason==='length'){
-      if(attempt===0)continue;
-      throw new Error('模型回复超出长度限制，请缩短问题后重试');
-    }
-    return extractCompletionText(data);
+  const signal = AbortSignal.timeout(45_000);
+  const first = await fetchCompletion(providerMessages, config, fetcher, signal);
+  if (!isLikelyIncomplete(first)) {
+    return { ...first, retried: false };
   }
-  throw new Error('模型服务未返回有效内容');
+
+  const retryMessages = providerMessages[0]?.role === 'system'
+    ? [
+        { ...providerMessages[0], content: `${providerMessages[0].content}\n${COMPLETENESS_RETRY_INSTRUCTION}` },
+        ...providerMessages.slice(1),
+      ]
+    : [{ role: 'system' as const, content: COMPLETENESS_RETRY_INSTRUCTION }, ...providerMessages];
+  const second = await fetchCompletion(first.finishReason === 'length' ? providerMessages : retryMessages, config, fetcher, signal, 1);
+  if (second.finishReason === 'length') throw new Error('模型连续返回不完整回答：达到长度限制，请缩短问题后重试');
+  if (isLikelyIncomplete(second)) throw new Error('模型连续返回不完整回答，请重试');
+  return { ...second, retried: true };
+}
+
+export async function requestWechatContactReply(
+  payload: WechatContactChatProxyPayload,
+  config: WechatContactChatProxyConfig,
+  fetcher: FetchLike = fetch,
+): Promise<string> {
+  return (await requestWechatContactReplyResult(payload, config, fetcher)).outputText;
 }
 
 function readJsonBody(req: IncomingMessage): Promise<WechatContactChatProxyPayload> {
@@ -159,8 +230,15 @@ export function createWechatContactChatProxyMiddleware(config: WechatContactChat
       return;
     }
     try {
-      const outputText = await requestWechatContactReply(await readJsonBody(req), typeof config === 'function' ? config() : config);
-      sendJson(res, 200, { output_text: outputText });
+      const result = await requestWechatContactReplyResult(
+        await readJsonBody(req),
+        typeof config === 'function' ? config() : config,
+      );
+      sendJson(res, 200, {
+        output_text: result.outputText,
+        finish_reason: result.finishReason,
+        completeness_retried: result.retried,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : '联系人回复服务暂时不可用';
       const isInputError = /(不能为空|过长|过多|格式无效|角色无效|内容过大)/.test(message);

@@ -1,0 +1,78 @@
+.bank-transfer-flow.bank-transfer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  color: var(--ink, #133346);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.bank-transfer-body {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  padding: 2px 2px 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #9ec8cc transparent;
+}
+.bank-transfer-body > :is(h3, p) { margin: 0; }
+.bank-transfer-body h3 { font-size: 16px; }
+.bank-transfer-panel .bank-transfer-body .field { gap: 5px; margin: 0; color: var(--muted, #506d7c); font-size: 12px; }
+.bank-transfer-body .field :is(input, select) {
+  min-width: 0;
+  min-height: 44px;
+  width: 100%;
+  height: auto;
+  padding: 9px 11px;
+  border: 1px solid var(--line, #d5ebee);
+  border-radius: 10px;
+  background: var(--paper, #fff);
+  color: var(--ink, #133346);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  caret-color: var(--teal, #008a87);
+}
+.bank-transfer-body .field input::placeholder { color: var(--muted, #506d7c); opacity: 1; }
+.bank-transfer-panel .fine-print { margin: 0; color: var(--muted, #506d7c); font-size: 12px; line-height: 1.6; }
+.bank-transfer-panel .bank-transfer-facts { margin: 0; }
+.bank-transfer-panel .bank-transfer-facts > div { gap: 12px; padding: 8px 0; font-size: 14px; }
+.bank-transfer-panel .bank-transfer-facts dt { flex-shrink: 0; font-size: 12px; }
+.bank-transfer-panel .bank-transfer-facts dd { overflow-wrap: anywhere; }
+.bank-transfer-actions {
+  display: grid;
+  flex: none;
+  gap: 8px;
+  padding: 10px 2px 2px;
+  border-top: 1px solid var(--line, #d5ebee);
+  background: var(--paper, #fff);
+}
+.bank-transfer-actions .button-base { width: 100%; min-height: 44px; border-radius: 10px; font-size: 14px; }
+.bank-transfer-actions [role="alert"] {
+  max-height: 6.5em;
+  margin: 0;
+  overflow: auto;
+  color: var(--danger, #a44246);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.bank-transfer-panel :is(input, select, button):focus-visible { outline: 2px solid var(--teal, #008a87); outline-offset: 2px; }
+.bank-transfer-panel ::selection { color: var(--ink, #133346); background: #dff2f8; }
+@media (max-width: 640px) {
+  .bank-transfer-body .field :is(input, select) { font-size: 16px; }
+}
+.transfer-risk-review { padding: 12px; border: 1px solid #d9c59a; border-radius: 10px; background: #fffaf0; color: var(--ink, #133346); }
+.transfer-risk-review h3, .transfer-risk-review p { margin: 0 0 8px; }
+.transfer-risk-review ul { margin: 8px 0; padding: 0; list-style: none; }
+.transfer-risk-review li { display: grid; gap: 3px; padding: 8px 0; border-top: 1px solid #e8ddc5; }
+.transfer-risk-review span, .transfer-risk-review small { overflow-wrap: anywhere; }
+.transfer-risk-review small { display: block; color: #626254; font-size: 12px; }
+.transfer-risk-review label { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.transfer-risk-review input { width: 20px; height: 20px; flex: none; accent-color: var(--teal, #008a87); }
+.transfer-risk-review summary { min-height: 44px; cursor: pointer; }

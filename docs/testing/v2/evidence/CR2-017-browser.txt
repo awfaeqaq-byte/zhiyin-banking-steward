@@ -1,0 +1,194 @@
+2026-10-22T06:17:19.270Z
+[可见页面]
+生活筹备
+所有安排
+新建安排
+跨年生日筹备
+交给宁宁整理
+
+本次只更新商品：轻甜鲜果蛋糕 · 6英寸，含配送估算206.00元。其他草案字段保持原值，尚未保存、预留或付款。
+
+待核对的方案 · 商品为初始建议
+准备对象
+待确认
+预算
+¥1,000
+送达时间
+1月3日 18:00
+收货信息
+待补充
+这次为谁准备？
+爱人
+家人
+朋友
+准备对象
+手动编辑
+完整信息与偏好，按需展开
+筹备安排
+安排名称
+为谁准备
+预算（元）
+开始筹备（北京时间）
+希望送达（北京时间）
+收货地址
+联系人与电话
+偏好与祝福
+商品组合
+调整商品
+轻甜鲜果蛋糕 · 6英寸
+低甜鲜奶油，适合2—4人，含生日蜡烛
+配送 ¥8
+¥198
+商品与配送合计
+¥206
+预算内还余 ¥794
+保存筹备方案
+[可访问性字段值]
+Browser tab: 3, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 14:17
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		7 container 知银
+			8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				166 container
+					266 button 返回
+						267 image
+					268 heading 生活筹备, Value: 1
+						269 text 生活筹备
+					171 container 生活筹备
+						172 button 所有安排
+							173 image
+							174 text 所有安排
+						175 button 新建安排
+							176 image
+							177 text 新建安排
+						178 heading 跨年生日筹备, Value: 2
+							179 text 跨年生日筹备
+						180 container
+							181 text 交给 宁宁 整理
+							182 text field (settable) 交给宁宁整理, ID: occasion-prompt
+							183 button (disabled) 整理筹备需求
+								270 image
+						271 text 本次只更新商品：轻甜鲜果蛋糕 · 6英寸，含配送估算206.00元。其他草案字段保持原值，尚未保存、预留或付款。
+						187 container 当前筹备方案
+							188 text 待核对的方案 · 商品为初始建议
+							189 button 修改准备对象
+								190 text 准备对象
+								191 text 待确认
+							192 button 修改预算
+								193 text 预算
+								194 text ¥1,000
+							195 button 修改送达时间
+								196 text 送达时间
+								197 text 1月3日 18:00
+							198 button 修改收货信息
+								199 text 收货信息
+								200 text 待补充
+						201 container 下一步需要确认
+							202 heading 这次为谁准备？, Value: 3
+								203 text 这次为谁准备？
+							204 button 爱人
+							205 button 家人
+							206 button 朋友
+							207 container
+								208 text 准备对象
+								209 text field (settable) 准备对象
+						210 container
+							211 button (expanded) 手动编辑 完整信息与偏好，按需展开, Secondary Actions: Collapse
+								212 AXListMarker ▾
+								213 text 手动编辑
+								214 text 完整信息与偏好，按需展开
+							215 container 筹备安排
+								216 text 筹备安排
+								217 container
+									218 text 安排名称
+									219 text field (settable) 安排名称, Value: 跨年生日筹备
+								220 container
+									221 text 为谁准备
+									222 text field (settable) 为谁准备
+								223 container
+									224 text 预算（元）
+									225 stepper (settable, integer) 预算（元）, Value: 1000
+								226 container
+									227 text 开始筹备（北京时间）
+									228 date field (settable) 开始筹备（北京时间）, Value: 2027-01-01T18:00
+										229 container
+											230 stepper
+											231 stepper
+											232 stepper
+											233 stepper
+											234 stepper
+										235 pop up button 显示当地日期和时间选择器 显示当地日期和时间选择器
+								236 container
+									237 text 希望送达（北京时间）
+									238 date field (settable) 希望送达（北京时间）, Value: 2027-01-03T18:00
+										239 container
+											240 stepper
+											241 stepper
+											242 stepper
+											243 stepper
+											244 stepper
+										245 pop up button 显示当地日期和时间选择器 显示当地日期和时间选择器
+								246 container
+									247 text 收货地址
+									248 text field (settable) 收货地址
+								249 container
+									250 text 联系人与电话
+									251 text field (settable) 联系人与电话
+								252 container
+									253 text 偏好与祝福
+									254 text field (settable) 偏好与祝福
+							255 heading 商品组合, Value: 3
+								256 text 商品组合
+							257 button 调整商品
+							258 container
+								259 checkbox (settable, integer) Description: 轻甜鲜果蛋糕 · 6英寸 低甜鲜奶油，适合2—4人，含生日蜡烛 配送 ¥8 ¥198, Value: 1
+								260 text 轻甜鲜果蛋糕 · 6英寸 低甜鲜奶油，适合2—4人，含生日蜡烛 配送  ¥8 ¥198
+							264 text 商品与配送合计 ¥206 预算内还余 ¥794
+							265 button (disabled) 保存筹备方案
+		126 container
+			127 text 13:15
+			128 text 10月22日 周四
+			129 text 暂无通知消息
+			130 text 中国电信HD | 中国联通HD
+			131 text 10月22日 周四
+			132 image signal
+			133 image wifi
+			134 text 78 %
+			135 container battery
+			136 button Wi‑Fi
+				137 container Xiaomi_AX3
+					138 container
+						139 text Xiaomi_AX3 Xiaomi_AX3
+				140 text 已连接
+			141 button 移动数据
+				142 container 中国联通
+					143 text 中国联通
+				144 text 已开启
+			145 text 暂无播放
+			146 button 蓝牙
+			147 button 飞行模式
+			148 button 静音
+			149 button 手电筒
+			150 button 截屏
+			151 button 省电模式
+			152 button 投屏
+			153 button 旋转锁定
+			154 button 相册
+			155 button 设置
+			156 button 显示
+				157 text A
+			158 button NFC
+				159 text N
+			160 button 票证
+			161 button 护眼
+			162 button 定位
+			163 button 深色
+			164 button 编辑
+	165 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

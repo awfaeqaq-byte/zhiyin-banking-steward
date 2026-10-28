@@ -1,8 +1,41 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import App from "./App";
 import type { ConnectedFinancialSource } from "./lib/financial-connections";
+import {bankCards} from './lib/bank-transfer';
+import {emptyMemory} from './lib/steward-memory';
+
+afterEach(()=>vi.restoreAllMocks());
+
+it('首页指南把示例填入草稿，保留未发内容；我的服务有明确分组',async()=>{
+  localStorage.setItem('zhiyin-mode','"native"');
+  const user=userEvent.setup();render(<App/>);
+  const input=screen.getByRole('textbox',{name:'和宁宁说点什么'});
+  await user.type(input,'我想先聊聊本周安排');
+  await user.click(screen.getByRole('button',{name:'查看使用指南'}));
+  const guide=screen.getByRole('dialog',{name:'可以帮你做什么'});
+  await user.click(within(guide).getByRole('button',{name:'填写示例：管理订阅'}));
+  expect(input).toHaveValue('我想先聊聊本周安排；帮我看看有哪些订阅要续费');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByText('帮我看看有哪些订阅要续费',{selector:'.steward-message *'})).not.toBeInTheDocument();
+  await user.click(within(screen.getByRole('navigation',{name:'主导航'})).getByRole('button',{name:'我的'}));
+  for(const name of ['账户与资金','日常安排','连接与设置'])expect(screen.getByRole('heading',{name})).toBeInTheDocument();
+});
+
+it('财富和选基共享产品，带回分析不会覆盖尚未发送的计划',async()=>{
+  localStorage.setItem('zhiyin-mode','"native"');
+  const user=userEvent.setup();render(<App/>);
+  await user.click(within(screen.getByRole('navigation',{name:'主导航'})).getByRole('button',{name:'财富'}));
+  await user.click(screen.getByRole('button',{name:'展开和宁宁的财富对话'}));
+  await user.type(screen.getByRole('textbox',{name:'和宁宁聊财富计划'}),'先聊聊我的安排');
+  await user.click(screen.getByRole('button',{name:'基金筛选'}));
+  await user.click(screen.getByRole('button',{name:'查看 招商前沿医疗保健股票A'}));
+  await user.click(screen.getByRole('button',{name:'请宁宁分析'}));
+  expect(screen.getByRole('textbox',{name:'和宁宁聊财富计划'})).toHaveValue('先聊聊我的安排\n请帮我分析招商前沿医疗保健股票A');
+  expect(screen.queryByRole('spinbutton',{name:'试算投入金额'})).not.toBeInTheDocument();
+  expect(screen.queryByText(/计划投入.*30,000/)).not.toBeInTheDocument();
+});
 
 const wechat: ConnectedFinancialSource = {
   provider: "wechat_pay",
@@ -60,24 +93,28 @@ it("无授权数据时明确引导连接账户，而不是展示虚构交易", a
   expect(screen.getByRole("button", { name: "连接微信支付或支付宝" })).toBeInTheDocument();
 });
 
-it("账单和银行卡归入我的，资金规划与定时任务保留顶部入口", async()=>{
+it("账单和银行卡归入我的，资金规划与我的关注保留入口", async()=>{
+  const accounts=bankCards.map(card=>({...card,cardId:card.id,revision:0,balance:card.isPrimary?4230000:0,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[]}));
+  vi.spyOn(globalThis,'fetch').mockImplementation(async(url)=>new Response(JSON.stringify(String(url).includes('/bank?view=cards')?accounts:String(url).includes('/bank')?accounts[0]:emptyMemory())));
   localStorage.setItem("zhiyin-mode", '"native"');
   const user=userEvent.setup();
   render(<App/>);
   expect(screen.getByRole('button',{name:'资金规划'})).toBeInTheDocument();
-  expect(screen.getByRole('button',{name:'定时任务'})).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'我的关注'})).toBeInTheDocument();
   expect(screen.queryByText('卡片管理')).not.toBeInTheDocument();
   await user.click(screen.getByRole('button',{name:'资产'}));
   expect(screen.queryByRole('heading',{name:'我的银行卡'})).not.toBeInTheDocument();
   expect(screen.getByRole('heading',{name:'分析与规划'})).toBeInTheDocument();
   await user.click(screen.getByRole('button',{name:'返回'}));
-  await user.click(screen.getByRole('button',{name:'个人中心'}));
+  await user.click(screen.getByRole('button',{name:'我的'}));
   expect(screen.getByRole('button',{name:/我的账单/})).toBeInTheDocument();
   await user.click(screen.getByRole('button',{name:/银行卡与安全/}));
-  expect(screen.getByRole('heading',{name:'常用卡 · 8888'})).toBeInTheDocument();
+  expect(screen.getByRole('heading',{name:'我的卡包'})).toBeInTheDocument();
+  expect(await screen.findByText('3 张银行卡 · 轻点切换')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'日常支付卡，尾号 8888，正常'})).toHaveAttribute('aria-pressed','true');
 });
 
-it("资金观察进入资金规划，我的关注进入定时任务", async()=>{
+it("资金观察进入资金规划，我的关注进入同名页面", async()=>{
   localStorage.setItem("zhiyin-mode", '"native"');
   const user=userEvent.setup();
   render(<App/>);
@@ -86,10 +123,10 @@ it("资金观察进入资金规划，我的关注进入定时任务", async()=>{
   await user.click(screen.getByRole('button',{name:'资金规划'}));
   expect(screen.getByRole('heading',{name:'资金规划'})).toBeInTheDocument();
   expect(screen.getByRole('heading',{name:'资金观察'})).toBeInTheDocument();
-  expect(screen.getByText('宁宁为你整理')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:/储蓄安排.*和宁宁一起规划/})).toBeInTheDocument();
 
   await user.click(screen.getByRole('button',{name:'返回'}));
-  await user.click(screen.getByRole('button',{name:'定时任务'}));
+  await user.click(screen.getByRole('button',{name:'我的关注'}));
   expect(screen.getByRole('heading',{name:'我的关注'})).toBeInTheDocument();
   const input=screen.getByRole('textbox',{name:'用自然语言设置我的关注'});
   await user.type(input,'以后外卖每月超过 800 元提醒我');
@@ -98,12 +135,12 @@ it("资金观察进入资金规划，我的关注进入定时任务", async()=>{
   expect(screen.getByText('单月超过 ¥800 时提醒我')).toBeInTheDocument();
 });
 
-it('手机紧凑导航保留管家身份，资金规划和定时任务仍可从个人中心进入',async()=>{
+it('手机紧凑导航保留管家身份，资金规划和我的关注仍可从个人中心进入',async()=>{
   localStorage.setItem('zhiyin-mode','"native"');
   const user=userEvent.setup();render(<App/>);
   expect(screen.getByRole('button',{name:'资金规划'})).toHaveClass('native-header-secondary');
-  expect(screen.getByRole('button',{name:'定时任务'})).toHaveClass('native-header-secondary');
-  await user.click(screen.getByRole('button',{name:'个人中心'}));
+  expect(screen.getByRole('button',{name:'我的关注'})).toHaveClass('native-header-secondary');
+  await user.click(screen.getByRole('button',{name:'我的'}));
   await user.click(screen.getByRole('button',{name:/资金规划/}));
   expect(screen.getByRole('heading',{name:'资金规划'})).toBeInTheDocument();
 });

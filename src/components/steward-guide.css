@@ -1,0 +1,24 @@
+.steward-guide { color:var(--ink); font-size:14px; line-height:1.65; }
+.steward-guide > p { margin:0 0 12px; }
+.steward-guide .guide-flow { display:flex; flex-wrap:wrap; gap:8px; font-weight:600; color:var(--teal-dark); }
+.guide-examples { display:grid; }
+.guide-examples button { display:flex; align-items:center; gap:12px; width:100%; min-height:64px; padding:12px 0; text-align:left; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--ink); }
+.guide-examples button > svg { flex:none; color:var(--teal); }
+.guide-examples button > span { flex:1; min-width:0; }
+.guide-examples strong { display:block; font-size:14px; font-weight:600; }
+.guide-examples small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+.guide-examples button:hover { background:var(--pale); }
+.guide-platforms { margin-top:16px; }
+.guide-platforms summary { min-height:44px; display:list-item; align-content:center; cursor:pointer; font-weight:600; }
+.guide-platforms p,.steward-guide .guide-boundary { color:var(--muted); font-size:12px; }
+.steward-guide .guide-boundary { margin:12px 0 0; }
+.profile-service-group + .profile-service-group { margin-top:22px; }
+.profile-service-group h3 { margin:0 0 8px; font-size:14px; font-weight:600; color:var(--ink); }
+.app-shell .profile-layout .profile-person { padding-block:14px; }
+.app-shell .profile-layout .profile-steward { padding-block:12px; }
+.bank-history { margin-top:18px; border-top:1px solid var(--line); }
+.bank-history > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:48px; cursor:pointer; color:var(--ink); font-size:14px; font-weight:600; }
+.bank-history > summary span { color:var(--muted); font-size:12px; font-weight:400; }
+.bank-history > summary span { margin-left:auto; }
+.bank-history > summary svg { color:var(--teal); }
+.bank-history[open] > summary svg { rotate:180deg; }

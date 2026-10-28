@@ -34,7 +34,10 @@ export function useSubscriptionSync(
     if (pending.current) return pending.current;
     const entries = (Object.entries(current.current) as [ExternalFinancialProvider, ConnectedFinancialSource][])
       .filter(([, source]) => source.scopes.some(scope => ["autopay", "transactions", "balance"].includes(scope)));
-    if (!entries.length) return Promise.resolve({ connections: current.current, error: "" });
+    if (!entries.length) {
+      setError("");
+      return Promise.resolve({ connections: current.current, error: "" });
+    }
     const startRevision = revision.current;
     setRefreshing(true);
     const work = async (): Promise<SubscriptionSyncResult> => {
@@ -74,5 +77,6 @@ export function useSubscriptionSync(
     return pending.current;
   }, [load]);
 
-  return { connections, setConnections, refresh, refreshing, error, setError };
+  const getCurrentConnections = useCallback(() => current.current, []);
+  return { connections, setConnections, refresh, refreshing, error, setError, getCurrentConnections };
 }

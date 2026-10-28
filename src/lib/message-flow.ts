@@ -1,22 +1,45 @@
+import {validMerchantInsight,type MerchantInsight} from './merchant-assistant';
 import {changeWorkspaces,validateRoutes,type WorkspaceState,type WorkspaceRoute,type WorkspaceOperation} from './workspaces';
-import {advanceTaskProgress,clearBillIntent,readTaskProgress,type TaskProgress} from './task-progress';
+import {advanceTaskProgress,clearBillIntent,type TaskProgress} from './task-progress';
 import {readonlyWechatShare,sharedTextPreview} from './wechat-message-share';
-export type ConversationEntry={id:string;role:'user'|'assistant';content:string;messageId?:string;workspaceId?:string;sceneId?:string;retryPrompt?:string;memoryRevision?:number};
+export type ConversationEntry={merchantUI?:MerchantInsight;id:string;role:'user'|'assistant';content:string;messageId?:string;workspaceId?:string;sceneId?:string;retryPrompt?:string;retryRunId?:string;memoryRevision?:number};
 export type MessageJob={id:string;taskId:string;text:string;replyId:string;status:'queued'|'claimed'|'completed'|'failed';owner?:string;leaseUntil?:number};
-export type MessageRun={id:string;prompt:string;displayText:string;currentId:string;knownTaskId?:string;memoryRevision:number;status:'routing'|'ready'|'processing'|'waiting_user'|'completed'|'failed'|'interrupted';jobs:MessageJob[];trace:Array<{stage:string;at:number;detail?:string}>;createdAt:number;updatedAt:number;error?:string;clarification?:string;decision?:string};
+export type MessageRun={id:string;prompt:string;displayText:string;currentId:string;knownTaskId?:string;sourcePrompt?:string;clarificationOf?:string;retryIds?:string[];memoryRevision:number;status:'routing'|'ready'|'processing'|'waiting_user'|'completed'|'failed'|'interrupted';jobs:MessageJob[];trace:Array<{stage:string;at:number;detail?:string}>;createdAt:number;updatedAt:number;error?:string;clarification?:string;decision?:string};
 export type MessageOperation=
  |{type:'conversation-import';id:string;messages:ConversationEntry[]}
  |{type:'conversation-append';id:string;messages:ConversationEntry[]}
  |{type:'message-submit';id:string;text:string;displayText?:string;currentId:string;memoryRevision:number;knownTaskId?:string}
- |{type:'message-routed';id:string;parts:WorkspaceRoute[];clarification?:string;decision?:string}
+ |{type:'message-routed';id:string;parts:WorkspaceRoute[];clarification?:string;decision?:string;sourcePrompt?:string;clarificationOf?:string}
+ |{type:'message-retry';id:string;retryId:string;memoryRevision:number}
  |{type:'message-claim';id:string;jobId:string;owner:string}
  |{type:'message-stage';id:string;jobId:string;owner:string;stage:'gathering'|'replying'}
- |{type:'message-complete';id:string;jobId:string;owner:string;assistant:string;memoryRevision:number;failed:boolean;progress?:TaskProgress}
- |{type:'message-fail';id:string;error:string;stage:string;interrupted?:boolean;decision?:string};
+ |{type:'message-complete';id:string;jobId:string;owner:string;assistant:string;memoryRevision:number;failed:boolean;progress?:TaskProgress;merchantUI?:MerchantInsight}
+ |{type:'message-fail';id:string;error:string;stage:string;interrupted?:boolean;decision?:string;sourcePrompt?:string;clarificationOf?:string};
 const idOk=(x:unknown):x is string=>typeof x==='string'&&/^[\w-]{1,82}$/.test(x);
 const textOk=(x:unknown,max:number):x is string=>typeof x==='string'&&!!x.trim()&&x.length<=max;
-export function validConversationEntry(x:ConversationEntry):boolean{return !!x&&idOk(x.id)&&['user','assistant'].includes(x.role)&&textOk(x.content,12000)&&(x.messageId===undefined||idOk(x.messageId))&&(x.workspaceId===undefined||idOk(x.workspaceId))&&(x.sceneId===undefined||idOk(x.sceneId))&&(x.retryPrompt===undefined||textOk(x.retryPrompt,2000))&&(x.memoryRevision===undefined||Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0);}
-export function validMessageRun(x:MessageRun):boolean{return !!x&&idOk(x.id)&&textOk(x.prompt,2000)&&textOk(x.displayText,2000)&&typeof x.currentId==='string'&&(!x.currentId||idOk(x.currentId))&&(x.knownTaskId===undefined||idOk(x.knownTaskId))&&Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0&&['routing','ready','processing','waiting_user','completed','failed','interrupted'].includes(x.status)&&Number.isFinite(x.createdAt)&&Number.isFinite(x.updatedAt)&&Array.isArray(x.jobs)&&x.jobs.length<=4&&x.jobs.every(j=>j&&idOk(j.id)&&idOk(j.taskId)&&idOk(j.replyId)&&textOk(j.text,2000)&&['queued','claimed','completed','failed'].includes(j.status)&&(j.owner===undefined||idOk(j.owner))&&(j.leaseUntil===undefined||Number.isFinite(j.leaseUntil)))&&Array.isArray(x.trace)&&x.trace.length<=30&&x.trace.every(t=>t&&textOk(t.stage,80)&&Number.isFinite(t.at)&&(t.detail===undefined||typeof t.detail==='string'&&t.detail.length<=1000))&&(x.error===undefined||textOk(x.error,1000))&&(x.clarification===undefined||textOk(x.clarification,300))&&(x.decision===undefined||typeof x.decision==='string'&&x.decision.length<=6000);}
+export function validConversationEntry(x:ConversationEntry):boolean{return !!x&&(x.merchantUI===undefined||x.role==='assistant'&&validMerchantInsight(x.merchantUI))&&idOk(x.id)&&['user','assistant'].includes(x.role)&&textOk(x.content,12000)&&(x.messageId===undefined||idOk(x.messageId))&&(x.workspaceId===undefined||idOk(x.workspaceId))&&(x.sceneId===undefined||idOk(x.sceneId))&&(x.retryPrompt===undefined||textOk(x.retryPrompt,2000))&&(x.retryRunId===undefined||idOk(x.retryRunId))&&(x.memoryRevision===undefined||Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0);}
+export function validMessageRun(x:MessageRun):boolean{return !!x&&idOk(x.id)&&textOk(x.prompt,2000)&&textOk(x.displayText,2000)&&typeof x.currentId==='string'&&(!x.currentId||idOk(x.currentId))&&(x.knownTaskId===undefined||idOk(x.knownTaskId))&&(x.sourcePrompt===undefined||textOk(x.sourcePrompt,2000))&&(x.clarificationOf===undefined||idOk(x.clarificationOf))&&((x.sourcePrompt===undefined)===(x.clarificationOf===undefined))&&(x.retryIds===undefined||Array.isArray(x.retryIds)&&x.retryIds.length<=30&&x.retryIds.every(idOk)&&new Set(x.retryIds).size===x.retryIds.length)&&Number.isSafeInteger(x.memoryRevision)&&x.memoryRevision>=0&&['routing','ready','processing','waiting_user','completed','failed','interrupted'].includes(x.status)&&Number.isFinite(x.createdAt)&&Number.isFinite(x.updatedAt)&&Array.isArray(x.jobs)&&x.jobs.length<=4&&x.jobs.every(j=>j&&idOk(j.id)&&idOk(j.taskId)&&idOk(j.replyId)&&textOk(j.text,2000)&&['queued','claimed','completed','failed'].includes(j.status)&&(j.owner===undefined||idOk(j.owner))&&(j.leaseUntil===undefined||Number.isFinite(j.leaseUntil)))&&Array.isArray(x.trace)&&x.trace.length<=30&&x.trace.every(t=>t&&textOk(t.stage,80)&&Number.isFinite(t.at)&&(t.detail===undefined||typeof t.detail==='string'&&t.detail.length<=1000))&&(x.error===undefined||textOk(x.error,1000))&&(x.clarification===undefined||textOk(x.clarification,300))&&(x.decision===undefined||typeof x.decision==='string'&&x.decision.length<=6000);}
+/** User-message order is stable even when retries move runs to the queue tail. */
+export function messageClarification(state:WorkspaceState,run:MessageRun):MessageRun|undefined{
+ if(run.sourcePrompt)return undefined;
+ const matches=(entry:ConversationEntry,id:string)=>entry.messageId?entry.messageId===id:entry.id===`user-${id}`;
+ const index=state.conversation?.findIndex(entry=>entry.role==='user'&&matches(entry,run.id))??-1;
+ const previousMessage=index>0?state.conversation?.slice(0,index).reverse().find(entry=>entry.role==='user'):undefined;
+ const previous=previousMessage?state.runs?.find(item=>matches(previousMessage,item.id)):undefined;
+ return previous?.status==='waiting_user'&&previous.memoryRevision===run.memoryRevision&&previous.currentId===run.currentId?previous:undefined;
+}
+/** Retries see only the conversation preceding their original user message. */
+export function messageHistory(state:WorkspaceState,run:MessageRun):ConversationEntry[]{
+ const conversation=state.conversation||[];
+ const index=conversation.findIndex(entry=>entry.role==='user'&&(entry.messageId===run.id||!entry.messageId&&entry.id===`user-${run.id}`));
+ if(index<0)return [];
+ return conversation.slice(0,index).filter(entry=>entry.memoryRevision===run.memoryRevision||entry.messageId&&state.runs?.find(item=>item.id===entry.messageId)?.memoryRevision===run.memoryRevision);
+}
+export function resolvedMessagePrompt(previous:MessageRun,answer:string):string{
+ const text=`${previous.sourcePrompt||previous.prompt}\n补充：${answer}`;
+ if(!textOk(text,2000))throw new Error('原交代与补充超过2000字，请把完整要求简短重述，金额等信息未被截断');
+ return text;
+}
 export function changeMessageState(state:WorkspaceState,operation:MessageOperation):WorkspaceState{
  let next=structuredClone(state);const now=Date.now();next.runs??=[];next.conversation??=[];
  const append=(entry:ConversationEntry)=>{if(!next.conversation!.some(m=>m.id===entry.id))next.conversation=[...next.conversation!,entry].slice(-100);};
@@ -41,10 +64,40 @@ export function changeMessageState(state:WorkspaceState,operation:MessageOperati
  const run=existing;
  const trace=(stage:string,detail?:string)=>{run.trace=[...run.trace,{stage,at:now,...(detail?{detail}: {})}].slice(-30);run.updatedAt=now;};
  const apply=(op:WorkspaceOperation)=>{next=changeWorkspaces(next,{...op,revision:next.revision,requestId:crypto.randomUUID()});};
+ const clearPending=()=>{for(const item of run.jobs)if(item.status!=='completed'){
+  item.status='failed';if(next.items.some(task=>task.id===item.taskId))apply({type:'discard',id:item.taskId,token:item.id});
+ }};
+ if((operation.type==='message-routed'||operation.type==='message-fail')&&(operation.sourcePrompt!==undefined||operation.clarificationOf!==undefined)){
+  if(run.sourcePrompt){if(operation.sourcePrompt!==run.sourcePrompt||operation.clarificationOf!==run.clarificationOf)throw new Error('已绑定的原交代不能修改');}
+  else{
+   const previous=messageClarification(next,run);
+   if(!previous||previous.id!==operation.clarificationOf||operation.sourcePrompt!==resolvedMessagePrompt(previous,run.prompt))throw new Error('澄清原交代不匹配，未更改任务');
+   run.sourcePrompt=operation.sourcePrompt;run.clarificationOf=previous.id;
+  }
+ }
+ if(operation.type==='message-retry'){
+  if(!idOk(operation.retryId)||operation.memoryRevision!==run.memoryRevision)throw new Error('重试或记忆上下文已变化，请重新交代');
+  if(run.retryIds?.includes(operation.retryId)||!['failed','interrupted'].includes(run.status))return next;
+  if((run.retryIds?.length||0)>=30)throw new Error('这条消息重试次数过多，请重新交代');
+  for(const item of run.jobs)if(item.status!=='completed'&&!next.items.some(task=>task.id===item.taskId&&task.status==='active'))throw new Error('对应事项已变化，请重新交代');
+  clearPending();
+  run.jobs=run.jobs.map(item=>{
+   if(item.status==='completed')return item;
+   const id=crypto.randomUUID();apply({type:'enqueue',id:item.taskId,token:id,text:item.text});
+   return {id,replyId:`assistant-${id}`,taskId:item.taskId,text:item.text,status:'queued' as const};
+  });
+  run.retryIds=[...(run.retryIds||[]),operation.retryId];delete run.error;
+  run.status=run.jobs.length?'ready':'routing';trace('retry');
+  // Preserve the in-flight queue head; an explicit retry joins the end of the queue.
+  next.runs=[...next.runs!.filter(item=>item.id!==run.id),run];
+  for(const entry of next.conversation!)if(entry.messageId===run.id){delete entry.retryPrompt;delete entry.retryRunId;}
+  return next;
+ }
+
  if(operation.type==='message-routed'){
   if(run.status!=='routing')throw new Error('消息已离开分流阶段');
   if(operation.decision!==undefined){if(typeof operation.decision!=='string'||operation.decision.length>6000)throw new Error('分类记录无效');run.decision=operation.decision;}
-  const result=validateRoutes({parts:operation.parts,clarification:operation.clarification},run.prompt,next.items);
+  const result=validateRoutes({parts:operation.parts,clarification:operation.clarification},run.sourcePrompt||run.prompt,next.items);
   if(result.clarification){run.status='waiting_user';run.clarification=result.clarification;append({id:`question-${run.id}`,role:'assistant',content:result.clarification,messageId:run.id});trace('waiting_user');return next;}
   for(const part of result.parts){
    const taskId=part.taskId||crypto.randomUUID(),readonly=readonlyWechatShare(part.text);
@@ -66,9 +119,9 @@ export function changeMessageState(state:WorkspaceState,operation:MessageOperati
   if(!textOk(operation.error,1000)||!textOk(operation.stage,80))throw new Error('失败记录无效');
   run.status=operation.interrupted?'interrupted':'failed';run.error=operation.error;trace(run.status,`${operation.stage}: ${operation.error}`);
   if(operation.decision!==undefined){if(typeof operation.decision!=='string'||operation.decision.length>6000)throw new Error('分类记录无效');run.decision=operation.decision;}
-  for(const job of run.jobs)if(job.status!=='completed')job.status='failed';
+  clearPending();
   next.runs=next.runs!.map(r=>r.id===run.id?run:r);
-  append({id:`error-${run.id}`,role:'assistant',content:`这条消息未完成：${operation.error}。可以重试，资金操作没有自动执行。`,messageId:run.id,retryPrompt:run.prompt});return next;
+  append({id:run.retryIds?.length?crypto.randomUUID():`error-${run.id}`,role:'assistant',content:`这条消息未完成：${operation.error}。可以重试，资金操作没有自动执行。`,messageId:run.id,retryPrompt:run.prompt,retryRunId:run.id});return next;
  }
  const job=run.jobs.find(j=>j.id===operation.jobId);if(!job)throw new Error('消息任务不存在');
  if(operation.type==='message-claim'){
@@ -81,11 +134,12 @@ export function changeMessageState(state:WorkspaceState,operation:MessageOperati
  if(job.status==='completed'&&operation.type==='message-complete'){if(job.owner!==operation.owner)throw new Error('消息处理归属已变化');return next;}
  if(!idOk(operation.owner)||job.owner!==operation.owner||job.status!=='claimed'||run.status!=='processing')throw new Error('消息处理归属已变化');
  if(operation.type==='message-stage'){job.leaseUntil=now+120000;trace(operation.stage);return next;}
+ if(operation.merchantUI!==undefined&&!validMerchantInsight(operation.merchantUI))throw new Error('经营快照无效');
  if(!textOk(operation.assistant,12000)||!Number.isSafeInteger(operation.memoryRevision)||operation.memoryRevision!==run.memoryRevision||typeof operation.failed!=='boolean')throw new Error('消息结果或上下文版本无效');
- apply({type:'turn',id:job.taskId,user:job.text,assistant:operation.assistant,memoryRevision:operation.memoryRevision,...(!operation.failed?{token:job.id}:{}),...(operation.progress?{progress:operation.progress}:{})});
+ apply({type:'turn',id:job.taskId,user:job.text,assistant:operation.assistant,memoryRevision:operation.memoryRevision,token:job.id,...(operation.progress?{progress:operation.progress}:{})});
  job.status=operation.failed?'failed':'completed';
- append({id:job.replyId,role:'assistant',content:operation.failed&&!operation.assistant.startsWith('这条消息未完成')?`这条消息未完成：${operation.assistant}。可以重试。`:operation.assistant,workspaceId:job.taskId,messageId:run.id,memoryRevision:run.memoryRevision,...(operation.failed?{retryPrompt:run.prompt}:{})});
+ append({id:job.replyId,role:'assistant',...(operation.merchantUI?{merchantUI:operation.merchantUI}:{}),content:operation.failed&&!operation.assistant.startsWith('这条消息未完成')?`这条消息未完成：${operation.assistant}。可以重试。`:operation.assistant,workspaceId:job.taskId,messageId:run.id,memoryRevision:run.memoryRevision,...(operation.failed?{retryPrompt:run.prompt,retryRunId:run.id}:{})});
  run.status=operation.failed?'failed':run.jobs.every(j=>j.status==='completed')?'completed':'ready';
- if(operation.failed)for(const later of run.jobs)if(later.status==='queued')later.status='failed';
+ if(operation.failed)clearPending();
  next.runs=next.runs!.map(r=>r.id===run.id?run:r);trace(operation.failed?'failed':run.status==='completed'?'completed':'queued');return next;
 }

@@ -1,0 +1,258 @@
+.merchant-workspace, .merchant-insight {
+  --merchant-ink: var(--ink, #133346);
+  --merchant-muted: var(--muted, #506d7c);
+  --merchant-teal: var(--teal, #007d7c);
+  --merchant-line: var(--line, #d5ebee);
+  color: var(--merchant-ink);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.merchant-workspace {max-width: 840px; margin: 0 auto; padding: 0 0 20px;}
+.merchant-workspace *, .merchant-insight * {box-sizing: border-box;}
+.merchant-workspace h2, .merchant-workspace h3, .merchant-workspace h4, .merchant-workspace p, .merchant-insight h3, .merchant-insight h4, .merchant-insight p {margin: 0;}
+.merchant-workspace button, .merchant-insight button, .merchant-workspace a {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--merchant-teal); font: inherit; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: background 160ms ease, color 160ms ease;
+}
+.merchant-workspace button:hover:not(:disabled), .merchant-insight button:hover:not(:disabled), .merchant-workspace a:hover {background: #e8f5f4;}
+.merchant-workspace button:disabled, .merchant-insight button:disabled {opacity: .5; cursor: default;}
+.merchant-workspace :focus-visible, .merchant-insight :focus-visible {outline: 2px solid var(--merchant-teal); outline-offset: 3px;}
+.merchant-workspace ::selection, .merchant-insight ::selection {background: #b9e5df; color: #133346;}
+.merchant-workspace input, .merchant-workspace select {
+  width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--merchant-line);
+  border-radius: 10px; background: #fff; color: var(--merchant-ink); font: inherit; caret-color: var(--merchant-teal);
+}
+.merchant-workspace input::placeholder {color: #627c88; opacity: 1;}
+.merchant-workspace label {display: grid; gap: 6px; color: var(--merchant-muted); font-size: 12px; font-weight: 600;}
+.merchant-workspace label input, .merchant-workspace label select {color: var(--merchant-ink); font-size: 14px; font-weight: 400;}
+.merchant-workspace .merchant-primary {background: var(--merchant-teal); color: #fff;}
+.merchant-workspace .merchant-primary:hover:not(:disabled) {background: #006665;}
+.merchant-heading {display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 22px 18px; border-radius: 15px; background: linear-gradient(120deg, #1c6661, #164c4b 68%, #103e40); color: #f4fffb;}
+.merchant-heading h2 {font-size: 22px; font-weight: 700; letter-spacing: -.02em;}
+.merchant-heading p {font-size: 12px; color: #c5e5dc; margin-top: 5px;}
+.merchant-heading > button {width: 44px; flex-shrink: 0; padding: 0; color: #c5e5dc; align-self: flex-start;}
+.merchant-heading > button:hover:not(:disabled) {background: #286963;}
+.merchant-heading :focus-visible {outline-color: #c5e5dc;}
+.merchant-shop-sign {display: grid; place-items: center; width: 54px; height: 58px; flex-shrink: 0; background: #286963; border-radius: 12px; color: #e3f5ef;}
+.merchant-shop-identity {flex: 1; min-width: 0;}
+.merchant-tabs {display: flex; padding: 4px; border: 1px solid var(--merchant-line); border-radius: 12px; background: #eaf8f7; margin-bottom: 18px; gap: 4px;}
+.merchant-tabs > button {flex: 1; color: var(--merchant-muted); border-radius: 8px; position: relative;}
+.merchant-tabs > button[aria-pressed="true"] {color: var(--merchant-teal); background: #fff; box-shadow: 0 2px 5px rgb(19 51 70 / 6%);}
+.merchant-tabs button > span {min-width: 18px; padding: 0 4px; border-radius: 6px; font-size: 11px; background: #d6ebe8; color: #145b57;}
+.merchant-tab-body {animation: merchant-enter 180ms cubic-bezier(.22, 1, .36, 1);}
+.merchant-period {display: flex; gap: 4px; width: 100%; margin-bottom: 20px; padding: 0 0 12px; border-bottom: 1px solid var(--merchant-line);}
+.merchant-period button {min-height: 44px; flex: 1; padding: 6px 10px; border-radius: 8px; font-size: 13px; color: var(--merchant-muted);}
+.merchant-period button[aria-pressed="true"] {background: #e2f1ee; color: #08605b;}
+.merchant-overview {display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 14px;}
+.merchant-cashbook {padding: 16px 18px 14px; border: 1px solid var(--merchant-line); border-radius: 15px; background: #fff;}
+.merchant-overview-main {display: flex; flex-direction: column; align-items: flex-start; min-width: 0;}
+.merchant-overview-main > span {color: var(--merchant-muted); font-size: 13px;}
+.merchant-overview-main strong {font-size: clamp(28px, 8vw, 38px); color: var(--merchant-teal); line-height: 1.5; font-weight: 650; letter-spacing: -.025em; overflow-wrap: anywhere;}
+.merchant-overview-main small {color: var(--merchant-muted); font-size: 11px;}
+.merchant-overview dl {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0; padding-top: 12px; border-top: 1px solid var(--merchant-line); font-size: 12px;}
+.merchant-overview dl > div + div {border-left: 1px solid var(--merchant-line); padding-left: 16px;}
+.merchant-overview dt {color: var(--merchant-muted);}
+.merchant-overview dd {margin: 0; font-size: 14px;}
+.merchant-metrics {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 17px 2px 10px; gap: 14px;}
+.merchant-metrics > div + div {padding-left: 16px; border-left: 1px solid var(--merchant-line);}
+.merchant-metrics dt {font-size: 12px; color: var(--merchant-muted);}
+.merchant-metrics dd {font-size: 20px; font-weight: 650; line-height: 1.6; margin: 0; letter-spacing: -.02em;}
+.merchant-note {font-size: 12px; color: var(--merchant-muted); line-height: 1.65;}
+.merchant-accounting-note {padding-top: 10px; border-top: 1px dashed var(--merchant-line); font-size: 11px;}
+.merchant-workspace .merchant-pending {display: flex; width: 100%; justify-content: space-between; text-align: left; border: 1px solid #d9e9e7; border-radius: 12px; padding: 12px 14px; background: #eaf5f2; font-weight: 500;}
+.merchant-pending small {display: block; font-size: 11px; color: var(--merchant-muted);}
+.merchant-section {margin-top: 20px; padding: 18px; border: 1px solid var(--merchant-line); border-radius: 15px; background: #fff;}
+.merchant-section-heading {display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px;}
+.merchant-section-heading h3 {display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 650;}
+.merchant-section-heading > span {font-size: 12px; color: var(--merchant-muted);}
+.merchant-section-heading > button {padding: 6px 0 6px 8px; font-size: 13px;}
+.merchant-dish-ranking ol {list-style: none; padding: 0; margin: 0; display: grid; gap: 16px;}
+.merchant-dish-ranking li {display: flex; align-items: center; gap: 10px;}
+.merchant-dish-ranking li > div {flex: 1; min-width: 0;}
+.merchant-rank {color: var(--merchant-muted); font-size: 13px; min-width: 12px;}
+.merchant-dish-ranking li:first-child .merchant-rank {color: var(--merchant-teal); font-weight: 700;}
+.merchant-dish-line {display: flex; gap: 12px; justify-content: space-between; align-items: baseline; font-size: 14px;}
+.merchant-dish-line strong {font-weight: 550;}
+.merchant-dish-line > span {flex-shrink: 0;}
+.merchant-dish-track {height: 5px; background: #e5efed; border-radius: 3px; margin: 8px 0 4px; overflow: hidden;}
+.merchant-dish-track > span {height: 100%; display: block; background: #278f86; border-radius: inherit;}
+.merchant-dish-ranking small {font-size: 11px; color: var(--merchant-muted);}
+.merchant-empty {display: grid; justify-items: start; gap: 6px; padding: 20px 0; border-top: 1px solid var(--merchant-line); color: var(--merchant-muted); font-size: 13px;}
+.merchant-empty p {font-weight: 600; color: var(--merchant-ink);}
+.merchant-empty > svg {color: var(--merchant-teal); margin-bottom: 4px;}
+.merchant-workspace .merchant-empty > button {padding-left: 0;}
+.merchant-ledger {list-style: none; margin: 0; padding: 0;}
+.merchant-ledger li {display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid var(--merchant-line);}
+.merchant-ledger li strong {display: block; font-size: 14px; font-weight: 550;}
+.merchant-ledger li small {display: block; font-size: 11px; color: var(--merchant-muted); margin-top: 4px;}
+.merchant-ledger li > span {flex-shrink: 0; font-size: 15px;}
+.merchant-ledger li > div {flex: 1; min-width: 0;}
+.merchant-ledger li > span[data-income="true"] {color: #086b60;}
+.merchant-expense-form {display: grid; gap: 12px; border: 1px solid var(--merchant-line); border-radius: 12px; padding: 16px; background: #fff; margin-bottom: 14px;}
+.merchant-form-pair {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;}
+.merchant-actions {display: flex; align-items: center; flex-wrap: wrap; gap: 8px;}
+.merchant-order-filters {display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 10px;}
+.merchant-order-filters button {font-size: 12px; padding: 7px 10px; color: var(--merchant-muted);}
+.merchant-order-filters button[aria-pressed="true"] {background: #dff0eb; color: #08605b;}
+.merchant-orders {display: grid; gap: 12px; margin-top: 16px;}
+.merchant-order {border: 1px solid var(--merchant-line); border-radius: 12px; background: #fff; overflow: clip;}
+.merchant-order > summary {display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; list-style: none;}
+.merchant-order > summary::-webkit-details-marker {display: none;}
+.merchant-order > summary > .merchant-order-label {flex: 1; min-width: 0;}
+.merchant-order > summary > .merchant-order-total {text-align: right;}
+.merchant-order > summary strong {display: block; font-size: 16px;}
+.merchant-order > summary small {display: block; color: var(--merchant-muted); font-size: 11px; margin-top: 4px;}
+.merchant-order > summary b {display: block; font-size: 16px; font-weight: 600;}
+.merchant-order > summary > svg {color: var(--merchant-muted); flex-shrink: 0; transition: transform 160ms ease;}
+.merchant-order[open] > summary > svg {transform: rotate(180deg);}
+.merchant-order-status {display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 11px; color: var(--merchant-muted); background: #f0f5f2; margin-bottom: 4px;}
+.merchant-order-status[data-status="pending"] {color: #75551c; background: #fff5dc;}
+.merchant-order-status[data-status="paid"] {color: #086b60; background: #e3f1ed;}
+.merchant-order-detail {padding: 0 16px 16px;}
+.merchant-order-detail > ul {list-style: none; padding: 12px 0; margin: 0; border-top: 1px solid var(--merchant-line); display: grid; gap: 8px;}
+.merchant-order-detail > ul > li {display: flex; justify-content: space-between; gap: 12px; font-size: 13px;}
+.merchant-order-detail > ul > li b {font-weight: 500; flex-shrink: 0;}
+.merchant-order-detail > .merchant-actions {margin-top: 12px;}
+.merchant-confirm {background: #eaf5f2; border-radius: 10px; padding: 14px; margin-top: 14px;}
+.merchant-confirm h4 {font-size: 14px;}
+.merchant-confirm p {font-size: 12px; color: var(--merchant-muted); margin-top: 6px; margin-bottom: 12px;}
+.merchant-workspace .merchant-qr-toggle {display: flex; width: 100%; justify-content: flex-start; text-align: left; padding: 13px 14px; background: #e3f1ed; border-radius: 12px; gap: 12px;}
+.merchant-qr-toggle > span {flex: 1;}
+.merchant-qr-toggle strong, .merchant-qr-toggle small {display: block;}
+.merchant-qr-toggle small {font-size: 11px; color: var(--merchant-muted); font-weight: 400;}
+.merchant-qr-panel {margin: 14px 0 22px; padding: 16px; background: #fff; border: 1px solid var(--merchant-line); border-radius: 12px; display: grid; gap: 14px; justify-items: center;}
+.merchant-qr-panel > label {width: 100%;}
+.merchant-qr-panel img, .merchant-qr-panel canvas {max-width: 100%;}
+.merchant-menu-form {margin-top: 24px;}
+.merchant-menu-form > .merchant-note {margin: -5px 0 14px;}
+.merchant-menu-item {border: 1px solid var(--merchant-line); border-radius: 14px; background: #fff; margin: 0 0 10px; min-width: 0;}
+.merchant-menu-item > fieldset {display: grid; gap: 12px; padding: 14px; margin: 0; border: 0; border-top: 1px solid var(--merchant-line); min-width: 0;}
+.merchant-menu-item > fieldset > legend {position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;}
+.merchant-menu-item > fieldset > input {font-weight: 600;}
+.merchant-workspace .merchant-available {display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 44px; color: var(--merchant-teal); cursor: pointer;}
+.merchant-available input {width: 20px; min-height: 20px; height: 20px; margin: 0; accent-color: var(--merchant-teal);}
+.merchant-available small {font-size: 11px; color: var(--merchant-muted); font-weight: 400;}
+.merchant-workspace .merchant-add-dish {width: 100%; border: 1px dashed #9ac9c5; margin: 4px 0 16px;}
+.merchant-menu-save {display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--merchant-line); padding: 14px 0; background: var(--canvas, #f1fafc); position: sticky; bottom: 0; z-index: 1;}
+.merchant-menu-save > span {color: var(--merchant-muted); font-size: 12px;}
+.merchant-draft-warning {background: #fff5dc; border-radius: 10px; padding: 12px; margin: 14px 0; color: #75551c; font-size: 12px;}
+.merchant-draft-warning button {color: #75551c; padding-left: 0;}
+.merchant-draft-warning details {margin-top: 6px;}
+.merchant-draft-warning summary {min-height: 44px; display: flex; align-items: center; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;}
+.merchant-draft-warning ul {margin: 0 0 8px; padding-left: 18px;}
+.merchant-ask {background: #e3f1ed; border-radius: 14px; margin-top: 18px; padding: 16px;}
+.merchant-ask > label {display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--merchant-ink); margin-bottom: 10px;}
+.merchant-ask > div {display: flex; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--merchant-line); border-radius: 12px; padding: 3px;}
+.merchant-ask > div > input {border: none; background: transparent; flex: 1;}
+.merchant-ask > div > button {height: 44px; width: 44px; flex-shrink: 0; background: #e6f3ef;}
+.merchant-workspace .merchant-ask-suggestion {font-size: 12px; padding-left: 0; font-weight: 500;}
+.merchant-error {display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #8b351f; background: #fff0e8; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px;}
+.merchant-error p {flex: 1; min-width: 160px;}
+.merchant-error button {color: #8b351f;}
+.merchant-notice {display: flex; align-items: center; gap: 8px; color: #086b60; background: #e3f1ed; border-radius: 10px; padding: 12px; margin-bottom: 14px !important; font-size: 13px;}
+.merchant-notice > svg {flex-shrink: 0;}
+.merchant-loading {padding: 24px 0; color: var(--merchant-muted);}
+.merchant-start {padding: 24px 0;}
+.merchant-start > svg {color: var(--merchant-teal); margin-bottom: 18px;}
+.merchant-start h2 {font-size: 23px; letter-spacing: -.02em; margin-bottom: 10px;}
+.merchant-start > p {color: var(--merchant-muted); max-width: 50ch; margin-bottom: 28px;}
+.merchant-start form {display: grid; gap: 16px; max-width: 520px; margin: 24px auto 0; padding: 20px; border: 1px solid var(--merchant-line); border-radius: 14px; background: #fff;}
+
+.merchant-workspace .merchant-quick-tools {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 12px 0 0; gap: 10px;}
+.merchant-workspace .merchant-quick-tools > button {justify-content: flex-start; padding: 12px; background: #fff; border: 1px solid var(--merchant-line); min-width: 0; font-size: 13px;}
+.merchant-quick-tools > button > span {flex: 1; text-align: left;}
+.merchant-quick-tools svg {flex-shrink: 0;}
+.merchant-workspace .merchant-pending {margin-top: 12px; background: #fff5dc; border-color: transparent; color: #75551c;}
+.merchant-workspace .merchant-dish-ranking li:first-child .merchant-rank {font-size: 18px;}
+.merchant-dish-mark {width: 44px; height: 48px; display: grid; place-items: center; border-radius: 10px; flex-shrink: 0; color: #006665; background: #e3f1ed;}
+.merchant-dish-mark[data-kind="drink"] {color: #375e73; background: #edf5f8;}
+.merchant-dish-mark[data-kind="vegetable"] {color: #477962; background: #e9f3ec;}
+.merchant-workspace .merchant-dish-track {height: 6px; margin-block: 7px 4px;}
+.merchant-workspace .merchant-ranking-note {margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--merchant-line); font-size: 11px;}
+.merchant-ledger li > .merchant-ledger-symbol {display: grid; place-items: center; width: 34px; height: 38px; border-radius: 10px; background: #f0f5f2; color: var(--merchant-muted);}
+.merchant-ledger li > .merchant-ledger-symbol[data-income="true"] {background: #eaf8f7;}
+.merchant-orders-heading {display: flex; gap: 12px; align-items: center; margin: 22px 0 12px;}
+.merchant-orders-heading > svg {color: var(--merchant-teal);}
+.merchant-orders-heading h3 {font-size: 17px; font-weight: 650;}
+.merchant-orders-heading p {font-size: 12px; color: var(--merchant-muted); margin-top: 3px;}
+.merchant-order-symbol {display: grid; place-items: center; width: 40px; height: 44px; border-radius: 10px; color: var(--merchant-teal); background: #eaf8f7; flex-shrink: 0;}
+.merchant-order[data-status="pending"] .merchant-order-symbol {color: #75551c; background: #fff5dc;}
+.merchant-order-detail > ul {border-top-style: dashed;}
+.merchant-menu-item > summary {display: flex; align-items: center; gap: 10px; padding: 14px; list-style: none; cursor: pointer; min-height: 76px;}
+.merchant-menu-item > summary > div {min-width: 0; flex: 1;}
+.merchant-menu-item > summary strong {display: block; font-size: 16px;}
+.merchant-menu-item > summary > div > span {display: block; color: var(--merchant-muted); font-size: 12px; margin-top: 3px;}
+.merchant-menu-item > summary::-webkit-details-marker {display: none;}
+.merchant-menu-item > summary > svg {flex-shrink: 0; color: var(--merchant-muted); transition: transform 160ms ease;}
+.merchant-menu-item[open] > summary > svg {transform: rotate(180deg);}
+.merchant-menu-availability {color: var(--merchant-muted); font-size: 11px; flex-shrink: 0;}
+.merchant-menu-availability[data-available="true"] {color: var(--merchant-teal);}
+.merchant-start-sign {display: flex; align-items: center; justify-content: center; gap: 14px; color: #e3f5ef; background: linear-gradient(120deg, #1c6661, #164c4b 68%, #103e40); padding: 26px; border-radius: 15px; margin-bottom: 24px;}
+.merchant-start-sign span {font-size: 26px; font-weight: 650; letter-spacing: -.02em;}
+.merchant-start h2 {font-size: 22px; text-align: center;}
+.merchant-start > p {text-align: center; margin: 10px auto 22px; max-width: 40ch; font-size: 13px;}
+.merchant-start-flow {list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 16px 0; border-block: 1px solid var(--merchant-line); gap: 8px;}
+.merchant-start-flow li {display: grid; justify-items: center; gap: 6px; text-align: center;}
+.merchant-start-flow svg {color: var(--merchant-teal); margin-bottom: 4px;}
+.merchant-start-flow strong {font-size: 13px;}
+.merchant-start-flow span {font-size: 11px; color: var(--merchant-muted);}
+.merchant-workspace .merchant-menu-save {padding-inline: 8px; box-shadow: 0 -6px 18px rgb(19 51 70 / 4%);}
+@media (min-width: 620px) {
+ .merchant-menu-grid {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start;}
+ .merchant-menu-item {margin-bottom: 0;}
+ .merchant-menu-grid {margin-bottom: 16px;}
+ .merchant-cashbook {padding-inline: 24px;}
+ .merchant-overview-main strong {font-size: 38px;}
+ .merchant-overview {grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);}
+ .merchant-overview dl {padding-top: 0; border-top: 0;}
+}
+.merchant-insight {padding: 16px; background: #fff; border: 1px solid var(--merchant-line); border-radius: 14px;}
+.merchant-insight > header {display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--merchant-line);}
+.merchant-insight > header > div {display: flex; align-items: center; gap: 8px; min-width: 0;}
+.merchant-insight > header svg {color: var(--merchant-teal); flex-shrink: 0;}
+.merchant-insight h3 {font-size: 16px;}
+.merchant-insight > header > span {color: var(--merchant-muted); font-size: 12px; flex-shrink: 0;}
+.merchant-insight-total {display: flex; flex-direction: column; align-items: flex-start; padding-top: 14px;}
+.merchant-insight-total > span, .merchant-insight-total > small {font-size: 12px; color: var(--merchant-muted);}
+.merchant-insight-total > strong {font-size: 28px; line-height: 1.6; color: #0c625c; letter-spacing: -.025em;}
+.merchant-insight .merchant-metrics {padding-bottom: 14px; border-bottom: 1px solid var(--merchant-line); margin-bottom: 18px;}
+.merchant-insight .merchant-metrics dd {font-size: 18px;}
+.merchant-insight h4 {font-size: 14px; margin-bottom: 14px;}
+.merchant-pending-note {color: #775616; background: #fff6df; border-radius: 8px; padding: 10px 12px; margin-top: 14px !important; font-size: 12px;}
+.merchant-scope {margin-top: 12px; font-size: 12px; color: var(--merchant-muted);}
+.merchant-scope > summary {min-height: 44px; display: flex; align-items: center; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;}
+.merchant-scope > p {padding-bottom: 10px;}
+.merchant-insight > footer {display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--merchant-line); padding-top: 10px;}
+.merchant-insight > footer > small {font-size: 11px; color: var(--merchant-muted);}
+.merchant-insight > footer > button {font-size: 12px; padding-right: 0;}
+.merchant-spinning {animation: merchant-spin 900ms linear infinite;}
+@keyframes merchant-spin {to {transform: rotate(360deg);}}
+@keyframes merchant-enter {from {opacity: .82;} to {opacity: 1;}}
+@media (max-width: 380px) {
+  .merchant-cashbook {padding: 14px;}
+  .merchant-overview {gap: 10px;}
+  .merchant-overview dl {gap: 14px;}
+  .merchant-overview-main strong {font-size: 28px;}
+  .merchant-overview dd {font-size: 12px;}
+  .merchant-heading {padding: 18px 12px; gap: 10px;}
+  .merchant-heading h2 {font-size: 20px;}
+  .merchant-heading p {font-size: 11px;}
+  .merchant-shop-sign {width: 42px; height: 48px;}
+  .merchant-heading > button {width: 44px;}
+  .merchant-section {padding: 14px;}
+  .merchant-order-symbol {display: none;}
+  .merchant-dish-mark {width: 38px; height: 42px;}
+  .merchant-dish-line {font-size: 13px; gap: 8px;}
+  .merchant-order > summary {padding: 13px; gap: 8px;}
+  .merchant-order-detail {padding: 0 13px 13px;}
+  .merchant-order-filters {gap: 0;}
+  .merchant-order-filters button {padding: 7px 8px;}
+  .merchant-confirm .merchant-actions > button:first-child {width: 100%;}
+}
+@media (prefers-reduced-motion: reduce) {
+  .merchant-workspace *, .merchant-insight * {animation: none !important; transition: none !important; scroll-behavior: auto !important;}
+}

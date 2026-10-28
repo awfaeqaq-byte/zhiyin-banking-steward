@@ -1,4 +1,5 @@
 import type {ExternalFinancialProvider} from './financial-connections';
+import type {BillAnalysis} from './bill-analysis';
 
 export type BillSection = 'overview' | 'categories' | 'trend' | 'transactions';
 export type BillUI = {sections:BillSection[];evidenceRefs:number[]};
@@ -10,9 +11,29 @@ export type BillScene = {
   focus?:BillFocus;
   category?:string;
   interpretationQuestion?:string;
+  interpretationCategory?:string;
+  preferredView?:'insight';
+  interpretationLedger?:string;
 };
 const sections=['overview','categories','trend','transactions'];
 const marker=/\[\[bill-ui:([\s\S]*?)\]\]/g;
+
+/** Identify the ledger snapshot behind a model interpretation, including
+ * transaction details that can change without altering the totals. */
+export function billLedgerFingerprint(bill:BillAnalysis):string {
+  const facts=JSON.stringify({from:bill.from,to:bill.to,sources:bill.sources,coverage:bill.coverage,
+    count:bill.count,expense:bill.expense,income:bill.income,refund:bill.refund,
+    transferIn:bill.transferIn,transferOut:bill.transferOut,trend:bill.diagnosis.trend,
+    transactions:bill.transactions.map(({providerKey,id,title,amount,category,occurredAt,kind})=>
+      [providerKey,id,title,amount,category,occurredAt,kind])});
+  let left=2166136261,right=0x811c9dc7;
+  for(let i=0;i<facts.length;i++){
+    const code=facts.charCodeAt(i);
+    left=Math.imul(left^code,16777619);
+    right=Math.imul(right^code,2246822519);
+  }
+  return `${(left>>>0).toString(16)}:${(right>>>0).toString(16)}`;
+}
 
 /** Presentation only. No model-supplied amounts, URLs, code or executable actions. */
 export function validBillUI(value:unknown):BillUI|undefined {
@@ -31,7 +52,8 @@ export function parseBillUI(content:string):{text:string;ui?:BillUI} {
   try{return {text,ui:validBillUI(JSON.parse(matches[0][1]))};}catch{return {text};}
 }
 export function billProvider(question:string):ExternalFinancialProvider|undefined {
-  const scope=question.split('；').reverse().find(part=>/微信|支付宝|全部平台/.test(part))??question;
+  const selected=question.split('；').reverse().find(part=>/微信|支付宝|全部平台/.test(part))??question;
+  const scope=selected.replace(/(?:不包含|不包括|不含|不使用|排除|不看|不要看)\s*(?:微信(?:支付)?|支付宝)(?:旧数据)?/g,'').replace(/(?:微信(?:支付)?|支付宝)已断开(?:授权|连接)?/g,'');
   return /微信/.test(scope)&&!/支付宝|全部平台/.test(scope)?'wechat_pay':/支付宝/.test(scope)&&!/微信|全部平台/.test(scope)?'alipay':undefined;
 }
 export function billScopeQuestion(question:string,provider?:ExternalFinancialProvider) {
@@ -52,6 +74,9 @@ export function restoreBillScenes(raw:string|null):Record<string,BillScene> {
       ...(v.focus&&['wechat_pay','alipay'].includes(v.focus.provider)&&typeof v.focus.id==='string'&&v.focus.id.length<=200?{focus:{provider:v.focus.provider,id:v.focus.id}}:{}),
       ...(typeof v.category==='string'&&v.category.length>0&&v.category.length<=80?{category:v.category}:{}),
       ...(typeof v.interpretationQuestion==='string'&&v.interpretationQuestion.length<=1000?{interpretationQuestion:v.interpretationQuestion}:{}),
+      ...(typeof v.interpretationCategory==='string'&&v.interpretationCategory.length<=80?{interpretationCategory:v.interpretationCategory}:{}),
+      ...(v.preferredView==='insight'?{preferredView:'insight' as const}:{}),
+      ...(typeof v.interpretationLedger==='string'&&/^[\da-f]{1,8}:[\da-f]{1,8}$/.test(v.interpretationLedger)?{interpretationLedger:v.interpretationLedger}:{}),
     }]));
   }catch{return {};}
 }

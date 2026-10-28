@@ -26,6 +26,13 @@ export type RecurringCandidate = {
 };
 
 type Connections = Partial<Record<ExternalFinancialProvider, ConnectedFinancialSource>>;
+export type RecurringExclusion = {
+  provider:ExternalFinancialProvider; title:string; reason:string; sampleCount:number;
+  evidence:Array<{id:string;occurredAt:string;amount:number}>;
+};
+export type RecurringAnalysis = {
+  providers:ExternalFinancialProvider[]; excluded:RecurringExclusion[]; totalExcluded:number; incomplete:boolean;
+};
 type ObservedPayment = { transaction: FinancialTransaction; timestamp: number; month: number; day: number };
 
 function normalizeTitle(title: string) {
@@ -136,28 +143,29 @@ function matchesKnownAutopay(source: ConnectedFinancialSource, title: string, am
 }
 
 /** Infer candidates from the entire merchant history, never from a convenient subset of bills. */
-export function buildRecurringCandidates(connections: Connections, now = Date.now()): RecurringCandidate[] {
+export function buildRecurringCandidates(connections: Connections, now = Date.now(), exclusions?:RecurringExclusion[]): RecurringCandidate[] {
   if (!Number.isFinite(now)) return [];
   const candidates: RecurringCandidate[] = [];
   for (const { provider, source, merchant, payments } of collectPayments(connections, now)) {
-    if (payments.length < 3) continue;
     payments.sort((a, b) => a.timestamp - b.timestamp || a.transaction.id.localeCompare(b.transaction.id));
+    const reject=(reason:string)=>exclusions?.push({provider,title:payments.at(-1)!.transaction.title,sampleCount:payments.length,reason,evidence:payments.slice(-6).map(({transaction:{id,occurredAt,amount}})=>({id,occurredAt,amount}))});
+    if (payments.length < 3) {reject('有效支出样本不足3期，不能推断周期订阅');continue;}
     const cycle = CYCLES.find(({ months }) => payments.every((payment, index) => index === 0
       || payment.month - payments[index - 1].month === months));
-    if (!cycle) continue;
+    if (!cycle) {reject('同月多笔、缺期或间隔不规则，不能挑部分交易凑成周期');continue;}
     const amounts = payments.map(payment => Math.abs(payment.transaction.amount)).sort((a, b) => a - b);
     const median = amounts[Math.floor(amounts.length / 2)];
     const amountDeviation = Math.max(...amounts.map(amount => Math.abs(amount - median))) / median;
-    if (amountDeviation > 0.05) continue;
+    if (amountDeviation > 0.05) {reject('金额偏离中位数超过5%，不满足稳定周期金额条件');continue;}
     const billingDay = inferCalendarDay(payments);
-    if (billingDay.maxError > DATE_TOLERANCE_DAYS) continue;
+    if (billingDay.maxError > DATE_TOLERANCE_DAYS) {reject('扣费日期偏差超过3天，尚不符合日历周期');continue;}
     const latest = payments[payments.length - 1];
     const nextMonth = latest.month + cycle.months;
     const estimatedNextChargeAt = Date.UTC(
       Math.floor(nextMonth / 12), nextMonth % 12, Math.min(billingDay.day, lastDayOfMonth(nextMonth)),
     ) - CHINA_OFFSET;
     // Keep a just-overdue estimate visible briefly, but never forecast missing charges into the future.
-    if (now - estimatedNextChargeAt > DATE_TOLERANCE_DAYS * DAY) continue;
+    if (now - estimatedNextChargeAt > DATE_TOLERANCE_DAYS * DAY) {reject('上次规律预测已过期超过3天且未见新支出，不滚动推测未来扣款');continue;}
     const amount = Math.abs(latest.transaction.amount);
     const title = latest.transaction.title.trim();
     if (matchesKnownAutopay(source, title, amount)) continue;
@@ -171,4 +179,14 @@ export function buildRecurringCandidates(connections: Connections, now = Date.no
     });
   }
   return candidates.sort((a, b) => a.estimatedNextChargeAt - b.estimatedNextChargeAt || a.key.localeCompare(b.key));
+}
+
+/** Explain rejected samples using exactly the detector's filters and rules. */
+export function buildRecurringAnalysis(connections:Connections, now=Date.now(), question=''):RecurringAnalysis {
+  const all:RecurringExclusion[]=[];
+  const candidates=buildRecurringCandidates(connections,now,all);
+  const mentioned=all.filter(item=>question.includes(item.title));
+  const selected=mentioned.length||candidates.some(item=>question.includes(item.title))?mentioned:all;
+  const providers=PROVIDERS.filter(provider=>connections[provider]?.scopes.includes('transactions'));
+  return {providers,excluded:selected.slice(0,30),totalExcluded:selected.length,incomplete:providers.some(provider=>connections[provider]?.transactionCoverage?.complete===false)};
 }

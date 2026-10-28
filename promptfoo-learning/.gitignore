@@ -1,0 +1,5 @@
+.env
+.promptfoo/
+generated/
+*.log
+__pycache__/

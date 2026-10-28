@@ -1,9 +1,11 @@
 import {applySceneSnapshot,attachSceneParent,validScene,type SceneFlow} from './scene-flow';
 import {validTaskProgress,type TaskProgress} from './task-progress-schema';
 import {changeMessageState,validConversationEntry,validMessageRun,type MessageRun,type ConversationEntry,type MessageOperation} from './message-flow';
+import {analyzeExpenseBreakdown} from './expense-breakdown';
 /** Conversation workspaces are not payment records or execution permissions. */
 export const workspaceKinds = [
   "general",
+  "merchant",
   "aa",
   "transfer",
   "subscriptions",
@@ -15,6 +17,7 @@ export const workspaceKinds = [
 export type WorkspaceKind = (typeof workspaceKinds)[number];
 export const workspaceLabels: Record<WorkspaceKind, string> = {
   general: "日常交代",
+  merchant: "小店经营",
   aa: "AA 记账",
   transfer: "转账安排",
   subscriptions: "订阅管理",
@@ -53,6 +56,7 @@ export type WorkspaceState = {
   requests: string[];
 };
 export type WorkspaceOperation =
+  | {type:'scene-expense-task';id:string;taskId:string}
   | {type:'scene-parent';id:string;parentId:string}
   | {type:'scene-sync';id:string;scenes:SceneFlow[]}
   | MessageOperation
@@ -71,6 +75,7 @@ export type WorkspaceOperation =
   | { type: "discard"; id: string; token: string }
   | { type: "status"; id: string; status: "active" | "archived" }
   | { type: "rename"; id: string; title: string }
+  | { type: "delete"; id: string }
   | { type: "link"; id: string; expenseBookId: string };
 export type WorkspaceCommand = WorkspaceOperation & {
   revision: number;
@@ -166,7 +171,18 @@ export function changeWorkspaces(
   }
   const next = structuredClone(state);
   const current = next.items.find((w) => w.id === command.id);
-  if (command.type === "create") {
+  if(command.type==='scene-expense-task'){
+    if(!current||current.status!=='active')throw new Error('原事项不存在或已经归档');
+    const rootId=current.sceneId||current.id;
+    const root=next.items.find(item=>item.id===rootId&&item.status==='active');
+    if(!root)throw new Error('原事项不存在或已经归档');
+    const existing=next.items.filter(item=>item.status==='active'&&item.kind==='aa'&&(item.id===rootId||item.sceneId===rootId));
+    if(existing.length>1)throw new Error('这件事有多个费用活动，请从原活动继续核对');
+    if(!existing.length){
+      if(!idOk(command.taskId)||next.items.some(item=>item.id===command.taskId)||next.items.length>=100)throw new Error('无法创建费用事项，请重新核对');
+      next.items.push({id:command.taskId,title:`${root.title.slice(0,55)}费用`,kind:'aa',sceneId:rootId,status:'active',updatedAt:Date.now(),messages:[],summary:'',memoryRevision:current.memoryRevision});
+    }
+  } else if (command.type === "create") {
     if (
       current ||
       next.items.length >= 100 ||
@@ -186,7 +202,12 @@ export function changeWorkspaces(
   } else {
     if (!current) throw new Error("任务不存在");
     if(command.type==='scene-parent'){attachSceneParent(next.items,command.id,command.parentId);}
-    else if(command.type==='progress') {
+    else if(command.type==='delete') {
+      if(current.pending?.length)throw new Error('这段对话还有待处理事项，请完成后再删除');
+      if(next.runs?.some(run=>['routing','ready','processing'].includes(run.status)&&(run.currentId===current.id||run.jobs.some(job=>job.taskId===current.id))))throw new Error('这段对话正在处理消息，请完成后再删除');
+      if(next.scenes?.some(scene=>scene.workspaceIds.includes(current.id)))throw new Error('这段对话关联了业务事项，请先归档');
+      next.items.splice(next.items.indexOf(current),1);
+    }else if(command.type==='progress') {
       if(current.status!=='active'||!validTaskProgress(command.progress)||!Number.isSafeInteger(command.memoryRevision)||command.memoryRevision<0
         ||command.kind!==undefined&&(!['general',command.kind].includes(current.kind)||(command.kind==='bills'?!command.progress.bill:command.kind==='food'?!command.progress.food:true)))throw new Error('任务现场无效，未更改记录');
       if(current.memoryRevision!==command.memoryRevision)current.summary='';
@@ -196,6 +217,10 @@ export function changeWorkspaces(
     }else if (command.type === "status") {
       if (!["active", "archived"].includes(command.status))
         throw new Error("任务状态无效");
+      if(command.status==='archived'){
+        if(current.pending?.length)throw new Error('这段对话还有待处理事项，请完成后再归档');
+        if(next.runs?.some(run=>['routing','ready','processing'].includes(run.status)&&(run.currentId===current.id||run.jobs.some(job=>job.taskId===current.id))))throw new Error('这段对话正在处理消息，请完成后再归档');
+      }
       current.status = command.status;
     } else if (command.type === "enqueue") {
       if (
@@ -264,7 +289,7 @@ export function changeWorkspaces(
           (p) => p.token !== command.token,
         );
     } else throw new Error("不支持的任务操作");
-    current.updatedAt = Date.now();
+    if(command.type!=='delete')current.updatedAt = Date.now();
   }
   next.revision++;
   next.requests = [...next.requests, command.requestId].slice(-200);
@@ -300,6 +325,7 @@ export function validateRoutes(
     return { parts: [], clarification: checkedText(data.clarification, 300) };
   if (!data.parts.length) throw new Error("没有找到需要处理的任务");
   let cursor = 0;
+  const ranges:Array<{start:number;end:number}>=[];
   for (const p of data.parts) {
     if (!p || !workspaceKinds.includes(p.kind)) throw new Error("任务类型无效");
     if(p.relatedTaskId!==undefined&&p.relatedTaskId!==null&&(p.taskId!==null||!workspaces.some(t=>t.id===p.relatedTaskId&&t.status==='active')))throw new Error('事项关联无效，请核对原事项');
@@ -309,6 +335,7 @@ export function validateRoutes(
     if (start < 0 || normalized(prompt.slice(cursor, start)))
       throw new Error("任务拆分遗漏或改写了原话，请分开交代");
     cursor = start + p.text.length;
+    ranges.push({start,end:cursor});
     if (
       p.taskId !== null &&
       !workspaces.some(
@@ -319,5 +346,24 @@ export function validateRoutes(
   }
   if (normalized(prompt.slice(cursor)))
     throw new Error("任务拆分遗漏了原话，请分开交代");
-  return { parts: data.parts };
+  // A total and its allocation details are one expense instruction. Preserve
+  // their original span before execution; a comma is not a transaction boundary.
+  const parts:WorkspaceRoute[]=[];
+  for(let index=0;index<data.parts.length;index++){
+    const first=data.parts[index];let end=index;
+    if(first.kind==='aa'){
+      let limit=index;
+      while(limit+1<data.parts.length){
+        const following=data.parts[limit+1];
+        if(following.kind!=='aa'||following.taskId!==first.taskId||(following.relatedTaskId??null)!==(first.relatedTaskId??null))break;
+        limit++;
+      }
+      for(let candidate=limit;candidate>index;candidate--){
+        if(analyzeExpenseBreakdown(prompt.slice(ranges[index].start,ranges[candidate].end))){end=candidate;break;}
+      }
+    }
+    parts.push(end>index?{...first,text:prompt.slice(ranges[index].start,ranges[end].end)}:first);
+    index=end;
+  }
+  return { parts };
 }

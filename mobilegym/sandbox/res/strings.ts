@@ -1,5 +1,25 @@
 // The console is a browser-level operator tool, not a simulated App resource namespace.
 export const consoleStrings = {
+  overseas: {
+    title: '境外交易渠道验证', test: '测试境外付款', merchant: '境外测试商户',
+    description: '用 ¥1.00 验证境外开关、挂失、夜间保护、无卡支付、限额与余额的服务端拦截。这里不会修改卡控设置。',
+    loading: '正在读取银行卡状态…', loadFailed: '银行卡状态读取失败，请重新展开财务测试。', invalidBank: '银行卡数据无法核对，请重新展开财务测试。',
+    account: (overseas: boolean, frozen: boolean, balance: string) => `境外交易${overseas ? '已开启' : '已关闭'} · 银行卡${frozen ? '已挂失' : '正常'} · 余额 ${balance}`,
+    control: (enabled: boolean) => `当前境外交易${enabled ? '已开启' : '已关闭'}`,
+    confirmTitle: '确认境外测试付款', confirmDescription: '将从本机银行账本扣除 ¥1.00，并生成交易回执。不会发起真实跨境支付；此测试不能一键撤销。',
+    confirm: '确认测试付款', running: '正在核对…', check: '核对付款结果',
+    uncertain: '付款结果尚未核实。再次核对会沿用同一交易编号，避免重复扣款。',
+    success: '境外测试付款成功', receipt: (id: string, balance: string) => `回执 ${id} · 交易后余额 ${balance}`,
+    invalidReceipt: '尚未收到可核对的付款回执，请按同一交易编号继续核对。', failed: '付款结果未核实，请继续核对。',
+    refreshFailed: '付款已成功，银行卡状态刷新失败；请重新展开财务测试查看最新状态。',
+  },
+  voice: {
+    title:'实时语音',hint:'连续对话、音色与百炼凭证',description:'Qwen 实时语音负责听和说，办理能力仍由原有宁宁提供。与文本模型独立配置，仅本机 localhost 可修改。',
+    loading:'正在读取语音配置…',loadError:'语音配置暂不可用，请重新展开重试',ready:'语音凭证已配置（密钥不回显）',missing:'尚未配置语音凭证',model:'实时模型',region:'服务地域',beijing:'北京',singapore:'新加坡',workspace:'百炼业务空间 ID',key:'百炼 API 密钥',keepKey:'留空保留现有密钥',enterKey:'输入百炼实时语音密钥',voices:'管家音色',ningning:'宁宁的音色',aheng:'阿衡的音色',lingxin:'龙安灵心 · 温和',
+    keyHelp:'密钥仅保存于本机后端，不写浏览器存储或 Git。更换地域、业务空间时须重新输入密钥；保存不会发起付费通话。',
+    save:'保存语音配置',saving:'正在保存…',saveError:'语音配置未保存，原配置不变',saved:'已保存。下一次开始语音时生效，文字模型不变。',phoneHelp:'手机录音须使用 HTTPS；电脑本机 localhost 可直接测试。单次通话最多5分钟，离开知银即停止收音。',
+    textTitle:'文本模型',textHint:'宁宁与微信联系人',
+  },
   replay: {
     title:'本地 Excel 账单回放',description:'默认使用现有沙箱账单。需要历史样本时，在这里手动切换。',
     enabled:'本地回放已开启',ready:'已配置，尚未开启',missing:'未配置：在仓库根目录 .zhiyin-bill-source.local.json 指定 sourcePath 和 expectedSha256。',loading:'正在读取配置…',

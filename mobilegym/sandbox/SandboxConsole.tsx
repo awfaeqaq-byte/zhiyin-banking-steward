@@ -11,9 +11,11 @@ import { resetWechatChats, type SandboxActionResult } from './actions';
 import './sandbox-console.css';
 import { FinanceTestPanel } from './FinanceTestPanel';
 import { ModelConfigPanel } from './ModelConfigPanel';
+import {VoiceConfigPanel} from './VoiceConfigPanel';
 import { consoleStrings } from './res/strings';
 import { StewardResetPanel } from './StewardResetPanel';
 import { LocalBillReplayPanel } from './LocalBillReplayPanel';
+import { OverseasPaymentTestPanel } from './OverseasPaymentTestPanel';
 
 export type SandboxConsolePhase = 'idle' | 'confirming' | 'running' | 'success' | 'error';
 
@@ -49,6 +51,7 @@ export function SandboxConsoleView({
   onStewardBusyChange,
 }: SandboxConsoleViewProps) {
   const [modelOpen, setModelOpen] = useState(false);
+  const [voiceOpen,setVoiceOpen]=useState(false),[textOpen,setTextOpen]=useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
   return (
     <>
@@ -89,11 +92,13 @@ export function SandboxConsoleView({
         <div className="sandbox-console-body">
           <details className="sandbox-category" name="sandbox-category" onToggle={event=>setModelOpen(event.currentTarget.open)}>
             <summary><span>模型配置<small>服务地址、模型与密钥</small></span></summary>
-            <ModelConfigPanel active={isOpen && modelOpen} />
+            <details className="sandbox-model-group" name="sandbox-model-group" onToggle={event=>setTextOpen(event.currentTarget.open)}><summary>{consoleStrings.voice.textTitle}<small>{consoleStrings.voice.textHint}</small></summary><ModelConfigPanel active={isOpen&&modelOpen&&textOpen}/></details>
+            <details className="sandbox-model-group" name="sandbox-model-group" onToggle={event=>setVoiceOpen(event.currentTarget.open)}><summary>{consoleStrings.voice.title}<small>{consoleStrings.voice.hint}</small></summary><VoiceConfigPanel active={isOpen&&modelOpen&&voiceOpen}/></details>
           </details>
           <details className="sandbox-category" name="sandbox-category" onToggle={event=>setFinanceOpen(event.currentTarget.open)}>
             <summary><span>财务测试<small>场景、余额、时间与扣费</small></span></summary>
             <FinanceTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} />
+            <OverseasPaymentTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} onBusyChange={onStewardBusyChange} />
             <LocalBillReplayPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} onBusyChange={onStewardBusyChange} />
           </details>
           <details className="sandbox-category" name="sandbox-category">

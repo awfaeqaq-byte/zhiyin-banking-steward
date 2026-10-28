@@ -34,6 +34,7 @@ describe('SandboxConsoleView', () => {
 
     expect(html).toContain('沙箱控制台');
     expect(html).toContain('模型配置');
+    expect(html).toContain('实时语音');
     expect(html).toContain('财务测试');
     expect(html).toContain('聊天与数据');
     expect(html).toContain('知银管家');
@@ -46,6 +47,8 @@ describe('SandboxConsoleView', () => {
     expect(html).toContain('测试场景');
     expect(html).toContain('修改测试余额');
     expect(html).toContain('推进时间与扣费');
+    expect(html).toContain('境外交易渠道验证');
+    expect(html).toContain('测试境外付款');
     expect(html).toContain('不会自动授予知银权限');
     expect(html).toContain('操作记录');
     expect(html).not.toContain('1 项可用');

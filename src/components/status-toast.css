@@ -1,0 +1,25 @@
+.app-shell .toast.status-toast {
+ background:var(--ink,#133346);
+ padding:6px 8px 6px 14px;
+ border:1px solid #ffffff20;
+ border-radius:12px;
+ animation:none;
+}
+.app-shell .toast.status-toast > svg { flex:none; color:#a9dfd9; }
+.app-shell .toast.status-toast > span { min-width:0; overflow-wrap:anywhere; }
+.app-shell .toast.status-toast > .icon-control { flex:none; min-width:44px; min-height:44px; color:#d7eeef; }
+@media (prefers-reduced-motion: no-preference) {
+ .app-shell .toast.status-toast[data-state="open"] { animation:status-toast-arrive 240ms cubic-bezier(0.16,1,0.3,1); }
+ .app-shell .toast.status-toast[data-state="closed"] { animation:status-toast-leave 160ms ease-in both; }
+}
+@keyframes status-toast-arrive {
+ from { opacity:0; translate:0 12px; }
+ to { opacity:1; translate:0 0; }
+}
+@keyframes status-toast-leave {
+ from { opacity:1; translate:0 0; }
+ to { opacity:0; translate:0 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .app-shell .toast.status-toast { animation:none; }
+}

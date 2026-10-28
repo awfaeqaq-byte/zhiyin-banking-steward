@@ -1,0 +1,260 @@
+2026-10-22T06:11:32.291Z
+[可见页面]
+授权与批准中心
+
+每一项变更都先展示风险，再由你接受或拒绝
+
+授权与批准集中管理
+
+在这里核对数据读取范围、卡片安全开关、限额与提醒。涉及资金的每一笔操作还会展示独立的金额、收款人和确认回执。
+
+风险：扩大读取范围会让知银看到更多账单；开启支付能力或提高限额会扩大误操作的影响。口头约定和历史对话不会自动授权。
+
+支付账户读取授权
+
+选择只读数据范围。合作方仍需单独确认；这里不能授予转账或扣款权限。
+
+已汇总 2 个资金来源
+
+知银账户与已授权平台统一分析，重复流水只计算一次。
+
+可见余额
+¥142,298.46
+已识别消费
+¥4,469.46
+避免重复计算
+0 笔
+可连接账户
+
+每个数据范围都由你单独决定。
+
+只读连接
+微
+微信支付
+
+零钱、支付账单与自动扣费
+
+查看授权范围
+支
+支付宝
+已连接
+
+叶先生 · 已授权 3 项
+
+账单覆盖 63/63 笔 · 已完整同步
+
+已授权余额
+¥99,998.46
+重新授权
+断开连接
+账单已经统一口径
+
+已排除 37 笔退款、收入或账户互转，并识别 0 笔银行卡渠道重复记录。
+
+演示数据仅保存在当前浏览器中。连接只用于读取和分析，不包含付款、转账或修改第三方账户的权限。
+
+银行卡安全与批准
+
+演示付款账户：常用卡 8888。当前状态：正常。
+
+单笔支付限额（元）
+核对限额变更
+境外交易：已关闭
+核对开启
+无卡支付：已开启
+核对关闭
+夜间保护：已开启
+核对关闭
+核对挂失卡片
+卡片管理
+
+对话可添加演示卡片档案，只保存昵称与末四位；不核验真实卡片归属，不采集完整卡号或卡密，也不赋予付款能力。
+
+卡申请
+
+对比演示卡种，提交后仅生成沙箱申请，不代表真实银行审批或发卡。
+
+标准借记卡
+年费 ¥0 · 日常转账与支付申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+安心借记卡
+年费 ¥0 · 默认开启夜间保护申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+查看申请进度（1）
+提醒与个性化
+事项提醒
+个性化分析
+
+这些展示偏好只影响本地界面，不替代支付账户或资金操作授权。
+
+管家
+资产
+财富
+卡片
+我的
+[可访问性字段值]
+Browser tab: 3, Title: "MobileGym", URL: "http://127.0.0.1:3003/".
+0 AXWebArea MobileGym, URL: 127.0.0.1:3003/
+	1 container
+		2 text 14:11
+		3 image signal
+		4 image wifi
+		5 text 78 %
+		6 container battery
+		7 container 知银
+			8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym
+				166 container root
+					167 container
+						168 button 返回
+							169 image
+						170 heading 授权与批准中心, Value: 1
+							171 text 授权与批准中心
+						172 text 每一项变更都先展示风险，再由你接受或拒绝
+						173 heading 授权与批准集中管理, Value: 2
+							174 text 授权与批准集中管理
+						175 text 在这里核对数据读取范围、卡片安全开关、限额与提醒。涉及资金的每一笔操作还会展示独立的金额、收款人和确认回执。
+						176 text 风险：扩大读取范围会让知银看到更多账单；开启支付能力或提高限额会扩大误操作的影响。口头约定和历史对话不会自动授权。
+						177 container 数据授权
+							178 heading 支付账户读取授权, Value: 2
+								179 text 支付账户读取授权
+							180 text 选择只读数据范围。合作方仍需单独确认；这里不能授予转账或扣款权限。
+							181 container 资金数据概览
+								182 text 已汇总 2 个资金来源
+								183 text 知银账户与已授权平台统一分析，重复流水只计算一次。
+								184 text 可见余额
+								185 text ¥142,298.46
+								186 text 已识别消费
+								187 text ¥4,469.46
+								188 text 避免重复计算
+								189 container
+									190 text 0  笔
+							191 heading 可连接账户, Value: 2
+								192 text 可连接账户
+							193 text 每个数据范围都由你单独决定。
+							194 text 只读连接
+							195 container
+								196 heading 微信支付, Value: 3
+									197 text 微信支付
+								198 text 零钱、支付账单与自动扣费
+								199 button 连接微信支付
+							200 container
+								201 heading 支付宝, Value: 3
+									202 text 支付宝
+								203 text 已连接 叶先生 · 已授权 3 项 账单覆盖  63 / 63  笔  · 已完整同步 已授权余额 ¥99,998.46
+								204 button 重新授权支付宝
+								205 button 断开支付宝
+							206 container 账单处理说明
+								207 text 账单已经统一口径
+								208 container
+									209 text 已排除  37  笔退款、收入或账户互转，并识别  0  笔银行卡渠道重复记录。
+							210 text 演示数据仅保存在当前浏览器中。连接只用于读取和分析，不包含付款、转账或修改第三方账户的权限。
+						211 container 银行卡批准配置
+							212 heading 银行卡安全与批准, Value: 2
+								213 text 银行卡安全与批准
+							214 container
+								215 text 演示付款账户：常用卡 8888。当前状态： 正常 。
+							216 container
+								217 text 单笔支付限额（元）
+								218 text field (settable) 单笔支付限额（元）
+							219 button 核对限额变更
+							220 text 境外交易 ： 已关闭
+							221 button 核对开启
+							222 text 无卡支付 ： 已开启
+							223 button 核对关闭
+							224 text 夜间保护 ： 已开启
+							225 button 核对关闭
+							226 button 核对挂失卡片
+						227 container 卡片申请与脱敏档案
+							228 heading 卡片管理, Value: 2
+								229 text 卡片管理
+							230 text 对话可添加演示卡片档案，只保存昵称与末四位；不核验真实卡片归属，不采集完整卡号或卡密，也不赋予付款能力。
+							231 container 卡申请
+								232 heading 卡申请, Value: 3
+									233 text 卡申请
+								234 text 对比演示卡种，提交后仅生成沙箱申请，不代表真实银行审批或发卡。
+								235 button 标准借记卡 年费 ¥0 · 日常转账与支付申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+									236 text 标准借记卡
+									237 text 年费 ¥
+									238 text 0
+									239 text  ·
+									240 text 日常转账与支付
+									241 text 申请条件：
+									242 text 持有演示沙箱账户
+									243 text  · 模拟资料：
+									244 text 无需提交真实身份资料
+								245 button 安心借记卡 年费 ¥0 · 默认开启夜间保护申请条件：持有演示沙箱账户 · 模拟资料：无需提交真实身份资料
+									246 text 安心借记卡
+									247 text 年费 ¥
+									248 text 0
+									249 text  ·
+									250 text 默认开启夜间保护
+									251 text 申请条件：
+									252 text 持有演示沙箱账户
+									253 text  · 模拟资料：
+									254 text 无需提交真实身份资料
+								255 button (collapsed) 查看申请进度（1）, Secondary Actions: Expand
+									256 text 查看申请进度（
+									257 text 1
+									258 text ）
+						259 container 提醒和个性化
+							260 heading 提醒与个性化, Value: 2
+								261 text 提醒与个性化
+							262 checkbox (settable, integer) Description: 事项提醒, Value: 1
+							263 checkbox (settable, integer) Description: 个性化分析, Value: 0
+							264 text 这些展示偏好只影响本地界面，不替代支付账户或资金操作授权。
+					265 container 主导航
+						266 button 管家
+							267 image
+							268 text 管家
+						269 button 资产
+							270 image
+							271 text 资产
+						272 button 财富
+							273 image
+							274 text 财富
+						275 button 卡片
+							276 image
+							277 text 卡片
+						278 button 我的
+							279 image
+							280 text 我的
+		126 container
+			127 text 13:15
+			128 text 10月22日 周四
+			129 text 暂无通知消息
+			130 text 中国电信HD | 中国联通HD
+			131 text 10月22日 周四
+			132 image signal
+			133 image wifi
+			134 text 78 %
+			135 container battery
+			136 button Wi‑Fi
+				137 container Xiaomi_AX3
+					138 container
+						139 text Xiaomi_AX3 Xiaomi_AX3
+				140 text 已连接
+			141 button 移动数据
+				142 container 中国联通
+					143 text 中国联通
+				144 text 已开启
+			145 text 暂无播放
+			146 button 蓝牙
+			147 button 飞行模式
+			148 button 静音
+			149 button 手电筒
+			150 button 截屏
+			151 button 省电模式
+			152 button 投屏
+			153 button 旋转锁定
+			154 button 相册
+			155 button 设置
+			156 button 显示
+				157 text A
+			158 button NFC
+				159 text N
+			160 button 票证
+			161 button 护眼
+			162 button 定位
+			163 button 深色
+			164 button 编辑
+	165 button (collapsed) Description: 打开沙箱控制台, Secondary Actions: Expand
+
+The focused UI element is 8 AXWebArea 知银 · 个人银行智能管家, URL: 127.0.0.1:3003/zhiyin/index.html?phone=mobilegym

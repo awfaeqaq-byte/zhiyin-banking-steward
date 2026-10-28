@@ -2,10 +2,12 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,MapPin,Minus,Plus,ShoppingBag} from 'lucide-react';
 import {foodQuote,requestFoodAdvice,type FoodCatalog,type FoodDraft,type FoodReceipt} from '../lib/food-order';
 import {foodOrderRequest} from '../lib/food-order-bridge';
+import type {SceneContext} from '../lib/scene-context';
 import type {TaskProgress} from '../lib/task-progress-schema';
 import {Button} from './ui/button';
+import {TaskCardHeader} from './task-card-header';
 import './food-order-planner.css';
-type Props={taskId:string;stewardName:string;initialDraft:FoodDraft;history:Array<{role:'user'|'assistant';content:string}>;injectedPrompt?:{token:string;text:string};getMemoryContext?:(text:string)=>Promise<string>;onPrompt?:(text:string)=>void;onTurn?:(user:string,answer:string,failed:boolean,progress:TaskProgress)=>Promise<void>|void;onDraftChange?:(draft:FoodDraft)=>Promise<void>|void};
+type Props={sceneContext?:SceneContext;taskId:string;stewardName:string;initialDraft:FoodDraft;history:Array<{role:'user'|'assistant';content:string}>;injectedPrompt?:{token:string;text:string};getMemoryContext?:(text:string)=>Promise<string>;onPrompt?:(text:string)=>void;onTurn?:(user:string,answer:string,failed:boolean,progress:TaskProgress)=>Promise<void>|void;onDraftChange?:(draft:FoodDraft)=>Promise<void>|void};
 const money=(value:number)=>`¥${(value/100).toFixed(2)}`;
 const statusLabel:Record<string,string>={PENDING_PAYMENT:'待付款',PAID:'已付款',ACCEPTED:'商家已接单',PREPARING:'正在制作',READY_FOR_DELIVERY:'等待配送',DELIVERY_ASSIGNED:'骑手已接单',DELIVERING:'配送中',COMPLETED:'已送达',CANCELLED:'已取消',REFUNDING:'退款中',REFUNDED:'已退款'};
 /** One inline plan, not a second chat. Model suggestions never invoke the order bridge. */
@@ -31,7 +33,7 @@ export function FoodOrderPlanner(props:Props){
   if(!catalog||lock.current)return;lock.current=true;setBusy(true);setError('');let answer='',failed=false;let next=current.current;
   try{
    const memory=await callbacks.current.getMemoryContext?.(text)||'';
-   const result=await requestFoodAdvice(text,catalog,next,history.current,memory,stewardName);if(!alive.current)return;
+   const result=await requestFoodAdvice(text,catalog,next,history.current,memory,stewardName,callbacks.current.sceneContext);if(!alive.current)return;
    answer=result.text;setChoices(result.choices);
    if(result.intent!=='answer'&&result.intent!=='clarify'&&result.draft&&!next.orderId){next={...result.draft,...(result.draft.address===undefined&&next.address?{address:next.address}:{}),...(result.draft.contact===undefined&&next.contact?{contact:next.contact}:{})};update(next);orderId.current='';}
    else if(result.intent!=='answer'&&result.intent!=='clarify'&&result.draft&&next.orderId){answer='这笔已经生成订单，不能在这里修改。我可以带你回原订单核对。';setChoices([]);}
@@ -59,9 +61,11 @@ export function FoodOrderPlanner(props:Props){
   finally{lock.current=false;if(alive.current)setBusy(false);}
  }
  let quote;try{if(catalog&&draft.items.length)quote=foodQuote(catalog,draft);}catch{/* Changed menus require a new reviewed recommendation. */}
+ const phase=error?'需要重新核对':busy?'正在处理':receipt?statusLabel[receipt.status]||'状态待核对':draft.orderId?'待核对订单':!ready?'正在读取菜单':quote?'待核对方案':'待补充选择';
+ const tone=error?'warning':receipt?.status==='COMPLETED'?'success':receipt&&['CANCELLED','REFUNDED'].includes(receipt.status)?'neutral':'attention';
  return <section className="steward-food-scene" aria-label="外卖方案" aria-busy={busy}>
+  <TaskCardHeader title={catalog?.storeName||'日常点餐'} icon={<ShoppingBag size={18}/>} status={phase} tone={tone} meta={draft.items.length?`${draft.items.length} 款商品 · ${draft.items.reduce((total,item)=>total+item.quantity,0)} 份`:undefined}/>
   {catalog&&(quote||receipt)&&<>
-   <header><span><ShoppingBag size={17}/>{catalog.storeName}</span><small>{receipt?statusLabel[receipt.status]||'状态待核对':'点餐方案 · 未下单'}</small></header>
    {draft.items.map(item=>{const product=catalog.products.find(p=>p.id===item.productId);return product&&<div className="food-scene-product" key={item.productId}>
     {product.image&&<img src={product.image} alt="" loading="lazy"/>}
     <div><strong>{product.name}</strong><p>{product.description}</p><span>{money(product.price)} / 份</span></div>
@@ -70,8 +74,8 @@ export function FoodOrderPlanner(props:Props){
    <p className="food-scene-address"><MapPin size={16}/><span>{draft.address||catalog.address}<small>{draft.contact||catalog.contact}</small></span></p>
    {draft.note&&<p className="food-scene-note">给商家的备注：{draft.note}</p>}
    <div className="food-scene-total"><div><small>{receipt?'订单金额':'预计实付'}</small><strong>{money(receipt?.payable??quote!.payable)}</strong></div>{quote&&<span>商品 {money(quote.itemTotal)}<br/>配送 {money(quote.deliveryFee)} · 优惠 −{money(quote.discount)}</span>}</div>
-   <Button disabled={busy||!ready||!quote&&!receipt} onClick={()=>void checkout()}>{busy?'正在核对…':receipt?.status==='PENDING_PAYMENT'?'继续付款':receipt?'查看订单':'核对后去支付'}<ArrowUpRight size={16}/></Button>
-   <p className="food-scene-footnote">{receipt?'订单状态以外卖 App 为准。':'下一步进入外卖 App 选择微信或支付宝支付；现在不会扣款。'}</p>
+   <Button disabled={busy||!ready||!quote&&!receipt} onClick={()=>void checkout()}>{busy?'正在核对…':receipt?.status==='PENDING_PAYMENT'?'继续付款':receipt||draft.orderId?'查看订单':'核对后去支付'}<ArrowUpRight size={16}/></Button>
+   <p className="food-scene-footnote">{receipt||draft.orderId?'订单状态以外卖 App 为准。':'下一步进入外卖 App 选择微信或支付宝支付；现在不会扣款。'}</p>
   </>}
   {!!choices.length&&!draft.orderId&&<div className="food-scene-choices">{choices.map(choice=><Button key={choice} variant="secondary" disabled={busy} onClick={()=>callbacks.current.onPrompt?.(choice)}>{choice}</Button>)}</div>}
   {error&&<div className="food-scene-error" role="alert"><p>{error}</p>{!ready&&<Button variant="secondary" onClick={()=>void refresh()}>重新读取菜单</Button>}</div>}

@@ -436,7 +436,7 @@
 
 .steward-brief p { line-height: 1.8; white-space: pre-wrap; }
 
-.steward-brief button {
+.steward-brief button:where(:not(.button-base):not(.switch-root)) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -554,7 +554,7 @@
   position: fixed;
   z-index: 30;
   right: 0;
-  bottom: 0;
+  bottom: 76px;
   left: 0;
   max-width: 800px;
   margin: 0 auto;
@@ -628,10 +628,32 @@
 .transfer-follow-up { margin: 8px 0 16px; padding: 14px 16px; border-left: 3px solid #248794; border-radius: 4px 12px 12px 4px; background: #edf7f7; }
 .transfer-follow-up p { margin: 0 0 7px; font-size: 13px; line-height: 1.55; }
 .transfer-follow-up p strong { font-size: 15px; }
-.steward-wealth-inline { margin: 16px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-.steward-wealth-inline h3 { margin: 0 0 6px; font-size: 14px; }
-.steward-wealth-inline > p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.steward-wealth-inline { margin: 8px 0 14px; padding: 18px; border: 1px solid #d7e7df; border-radius: 18px; background: linear-gradient(145deg,#f3faf6,#fff 70%); box-shadow: 0 8px 28px #1b514b0b; }
+.steward-wealth-inline h3 { margin: 4px 0 0; font-size: 19px; line-height: 1.35; letter-spacing: -.02em; }
+.steward-wealth-inline > p { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.wealth-inline-kicker { color: var(--teal-dark); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.steward-wealth-gate { display: grid; justify-items: start; gap: 5px; }
+.steward-wealth-gate > p { margin: 2px 0 10px; }
+.steward-wealth-gate > button,.wealth-inline-heading button { min-height: 42px; border: 1px solid var(--teal); border-radius: 10px; padding: 9px 14px; background: var(--teal); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.wealth-inline-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.wealth-inline-heading button { background: #fff; color: var(--teal-dark); border-color: #bed7cb; }
+.steward-wealth-inline .wealth-inline-brief { margin-top: 14px; color: var(--ink); font-size: 14px; line-height: 1.6; }
+.steward-wealth-inline .wealth-inline-reask { min-height: 42px; margin-top: 12px; padding: 9px 13px; border: 1px solid #bed7cb; border-radius: 10px; background: #fff; color: var(--teal-dark); font: inherit; font-size: 12px; font-weight: 600; }
+.wealth-inline-disclosure { border-top: 1px solid #e2ebe5; margin-top: 13px; }
+.wealth-inline-disclosure summary { display: flex; align-items: center; min-height: 44px; color: var(--teal-dark); font-size: 13px; font-weight: 600; cursor: pointer; }
+.wealth-inline-disclosure[open] summary { margin-bottom: 8px; }
+.wealth-inline-disclosure .reply-prose { font-size: 13px; line-height: 1.6; }
+.wealth-inline-tool .wealth-compare-controls { grid-template-columns: 1fr; }
 .steward-wealth-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.steward-wealth-inline-actions button { border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 9px 11px; font: inherit; font-size: 11px; }
-.steward-wealth-inline-actions button:first-child { background: var(--primary); border-color: var(--primary); color: #fff; }
+.steward-wealth-inline-actions button { min-height: 42px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); padding: 9px 12px; font: inherit; font-size: 12px; }
+.steward-wealth-inline-actions button:first-child { background: var(--teal); border-color: var(--teal); color: #fff; }
 .steward-wealth-inline-actions button:disabled { opacity: .55; }
+.wealth-archived-reply { margin: 8px 0; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; background: #f8fbf9; }
+.wealth-archived-reply summary { display: flex; align-items: center; min-height: 44px; color: var(--teal-dark); font-size: 12px; font-weight: 600; cursor: pointer; }
+.wealth-archived-reply[open] .reply-prose { padding: 0 0 12px; font-size: 12px; }
+
+/* Task plans participate in message order, with one live editor per task. */
+.conversation-task-panel { min-width: 0; }
+.conversation-task-controls { min-width: 0; margin: 0; padding: 0; border: 0; }
+.conversation-task-summary { min-height: 44px; padding: 8px 12px; border: 1px solid var(--border, #d8e9ed); border-radius: 12px; background: var(--surface, #fff); color: var(--teal-dark, #006e70); font: inherit; font-size: 13px; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.conversation-task-summary:focus-visible { outline: 2px solid var(--teal-dark, #006e70); outline-offset: 3px; }

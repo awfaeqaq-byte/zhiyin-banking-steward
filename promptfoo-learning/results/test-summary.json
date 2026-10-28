@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-13",
+  "targetModel": "glm-5.2",
+  "gradingModel": "glm-5.3",
+  "gradingTemperature": 0,
+  "evalIds": [
+    "eval-QUR-2026-10-12T17:31:32",
+    "eval-2Rq-2026-10-12T17:35:31",
+    "eval-L4s-2026-10-12T17:37:33",
+    "eval-vpn-2026-10-12T17:38:35"
+  ],
+  "functional": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "passRate": 1.0,
+    "note": "Latest passing result per case. F03 initially hit a grader JSON-format failure and passed after deterministic temperature-0 rerun."
+  },
+  "capabilityContract": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0
+  },
+  "proxyCompletenessTests": {
+    "files": 1,
+    "tests": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "nonBrowserExecutionTests": {
+    "files": 6,
+    "tests": 25,
+    "passed": 25,
+    "failed": 0,
+    "domains": {
+      "transfer": { "tests": 8, "passed": 8 },
+      "groupAA": { "tests": 8, "passed": 8 },
+      "wealth": { "tests": 9, "passed": 9 }
+    }
+  },
+  "liveCompletenessProbe": {
+    "http": 200,
+    "finishReason": "stop",
+    "completenessRetried": true,
+    "outputLength": 244,
+    "rejectedGuaranteedReturn": true,
+    "requiredConfirmation": true
+  },
+  "build": {
+    "mobilegym": "passed"
+  },
+  "remainingRecommendations": [
+    "Run the high-risk completeness scenario at least 20 times before release",
+    "Move the test-side capability contract into a runtime shared registry when action definitions are next refactored",
+    "Use a real browser only for layout, focus, navigation, and browser-specific integration risks"
+  ]
+}

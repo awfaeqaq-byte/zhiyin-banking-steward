@@ -1,10 +1,17 @@
 import {it,expect,vi} from 'vitest';
 import {render,screen} from '@testing-library/react';import userEvent from '@testing-library/user-event';
 import {HomePreviewHeader} from './home-preview-header';
-import type {BankSnapshot} from '../lib/bank-transfer';
-const bank:BankSnapshot={revision:0,balance:3280000,limit:500000,frozen:false,controls:{night:false,overseas:false,contactless:true},transactions:[],assetSummary:{cash:3280000,availableCash:3180000,reservedCash:100000,wealth:420000,deposits:1000000,total:4700000,holdingCount:1,depositCount:1}};
-const props={stewardName:'宁宁',stewardImage:'/ningning.png',bank,bankError:'',onRefresh:vi.fn(),onSwitchSteward:vi.fn(),onTasks:vi.fn(),onSubscriptions:vi.fn(),onProfile:vi.fn(),onAssets:vi.fn()};
-it('资产来自沙箱快照，默认收起明细，展开后保留原资产入口',async()=>{const user=userEvent.setup();render(<HomePreviewHeader {...props}/>);expect(screen.getByText('47,000.00')).toBeVisible();expect(screen.queryByText('银行理财')).not.toBeInTheDocument();await user.click(screen.getByRole('button',{name:'展开资产明细'}));expect(screen.getByText('银行理财')).toBeVisible();await user.click(screen.getByRole('button',{name:'资产'}));expect(props.onAssets).toHaveBeenCalled();});
-it('隐私开关同时遮住摘要和明细；读取失败不继续展示旧金额和虚构趋势',async()=>{const user=userEvent.setup(),view=render(<HomePreviewHeader {...props}/>);await user.click(screen.getByRole('button',{name:'隐藏首页资产金额'}));expect(screen.queryByText('47,000.00')).not.toBeInTheDocument();view.rerender(<HomePreviewHeader {...props} bankError="读取失败"/>);expect(screen.queryByText('47,000.00')).not.toBeInTheDocument();expect(screen.getByText('资产暂未更新')).toBeVisible();expect(screen.queryByText(/12.5%|较上月/)).not.toBeInTheDocument();});
-
-it('没有资产汇总时只称银行卡余额，所有入口进入原页面，更新快照才请求读取',async()=>{const user=userEvent.setup();render(<HomePreviewHeader {...props} bank={{...bank,assetSummary:undefined}}/>);expect(screen.getByText('银行卡余额')).toBeVisible();expect(screen.queryByText('我的总资产')).not.toBeInTheDocument();expect(props.onRefresh).not.toHaveBeenCalled();await user.click(screen.getByRole('button',{name:'任务日历'}));expect(props.onTasks).toHaveBeenCalled();await user.click(screen.getByRole('button',{name:'订阅'}));expect(props.onSubscriptions).toHaveBeenCalled();await user.click(screen.getByRole('button',{name:'个人中心'}));expect(props.onProfile).toHaveBeenCalled();await user.click(screen.getByRole('button',{name:'选择私人管家'}));expect(props.onSwitchSteward).toHaveBeenCalled();await user.click(screen.getByRole('button',{name:'展开资产明细'}));await user.click(screen.getByRole('button',{name:'更新快照'}));expect(props.onRefresh).toHaveBeenCalledTimes(1);});
+const props={stewardName:'宁宁',stewardImage:'/ningning.png',onSwitchSteward:vi.fn(),onTasks:vi.fn(),onSubscriptions:vi.fn(),onProfile:vi.fn()};
+it('页头保留日程、订阅、个人中心与管家选择入口',async()=>{
+ const user=userEvent.setup();render(<HomePreviewHeader {...props}/>);
+ await user.click(screen.getByRole('button',{name:'任务日历'}));expect(props.onTasks).toHaveBeenCalled();
+ await user.click(screen.getByRole('button',{name:'订阅'}));expect(props.onSubscriptions).toHaveBeenCalled();
+ await user.click(screen.getByRole('button',{name:'个人中心'}));expect(props.onProfile).toHaveBeenCalled();
+ await user.click(screen.getByRole('button',{name:'选择私人管家'}));expect(props.onSwitchSteward).toHaveBeenCalled();
+});
+it('首页提供常驻指南入口时，不重复底部的个人中心',async()=>{
+ const onHelp=vi.fn();render(<HomePreviewHeader {...props} onHelp={onHelp}/>);
+ await userEvent.click(screen.getByRole('button',{name:'查看使用指南'}));
+ expect(onHelp).toHaveBeenCalledOnce();
+ expect(screen.queryByRole('button',{name:'个人中心'})).not.toBeInTheDocument();
+});

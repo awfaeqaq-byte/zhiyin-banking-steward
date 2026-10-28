@@ -52,7 +52,7 @@ export function buildSubscriptionInsights(
 ): SubscriptionInsights {
   const items = (Object.entries(connections) as Array<[ExternalFinancialProvider, ConnectedFinancialSource]>)
     .flatMap(([provider, source]) => source.scopes.includes("autopay")
-      ? source.autopays.map(item => {
+      ? source.autopays.filter(item => !source.cancelledAutopayIds?.includes(item.id)).map(item => {
         const daysUntilCharge = typeof item.nextChargeAt === "number"
           ? Math.max(0, Math.ceil((item.nextChargeAt - now) / DAY)) : null;
         return {
