@@ -1,0 +1,20 @@
+[
+  {
+    "run": 1,
+    "chars": 176,
+    "completeEnding": false,
+    "ending": "端核验及您的独立确认，我不能代您执行买入动作。\n\n您当前银行"
+  },
+  {
+    "run": 2,
+    "chars": 109,
+    "completeEnding": false,
+    "ending": "金损失风险，而保本类产品（如存款或货币基金）的收益率会低得多"
+  },
+  {
+    "run": 3,
+    "chars": 274,
+    "completeEnding": true,
+    "ending": "做风险测评|那就算了，我不买理财|帮我讲讲理财的风险常识]]"
+  }
+]

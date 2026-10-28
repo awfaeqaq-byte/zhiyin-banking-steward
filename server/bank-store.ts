@@ -3,7 +3,7 @@ import {requireTransferReview} from './transfer-risk';
 import {existsSync,readFileSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync} from 'node:fs';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {validBankPayment,type BankPayment,type BankPaymentReceipt} from '../src/lib/bank-transfer';
-import {validTransfer,validBankSnapshot,validBankCardId,bankCards,cardProducts,type BankCardId,type BankCardSummary,type CardApplication,type TransferIntent,type BankDraft,type BankReceipt,type BankSnapshot,type BankSettings} from '../src/lib/bank-transfer';
+import {validTransfer,validBankSnapshot,validBankCardId,bankCards,cardProducts,type BankCardId,type BankCardSummary,type CardApplication,type ManagedCard,type TransferIntent,type BankDraft,type BankReceipt,type BankSnapshot,type BankSettings} from '../src/lib/bank-transfer';
 import {authorizeSchedule,executeDue,createAA,settleAA,checkTransferBudget,type SmartState} from './smart-bank';
 import type {AAIntent,BankRecipientId} from '../src/lib/bank-transfer';
 import type {WealthBookState} from './wealth-store';
@@ -12,7 +12,7 @@ import {buildBankAssetSummary,validDepositDraft,validDepositWithdrawalDraft,type
 import {prepareTermDeposit,confirmTermDeposit,prepareTermWithdrawal,confirmTermWithdrawal} from './term-deposits';
 import {availableBankFunds, heldOccasionBudget, occasionTotals, occasionChangeImpact, occasionProducts, validateOccasionDraft, validOccasionId, type OccasionDraft, type OccasionOrder, type OccasionPlan} from '../src/lib/occasion-plans';
 type State=SmartState & {version:1;wealth?:Omit<WealthBookState,'cashBalance'>;wealthMigrated?:boolean;termDeposits?:BankSnapshot['termDeposits'];depositDrafts?:DepositDraft[];depositWithdrawalDrafts?:DepositWithdrawalDraft[]};
-function accountSnapshot(s:State):BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[],occasions=[],cardApplications=[],termDeposits=[]}=s;return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections,occasions,cardApplications,termDeposits,assetSummary:buildBankAssetSummary(s,s.wealth?.holdings,termDeposits)};}
+function accountSnapshot(s:State):BankSnapshot {const {revision,balance,limit,frozen,controls,transactions,payments=[],schedules=[],aaRequests=[],collections=[],occasions=[],cardApplications=[],managedCards=[],termDeposits=[]}=s;return {revision,balance,limit,frozen,controls,transactions,payments,schedules,aaRequests,collections,occasions,cardApplications,managedCards,termDeposits,assetSummary:buildBankAssetSummary(s,s.wealth?.holdings,termDeposits)};}
 function occasion(s:State,id:string){const plan=s.occasions?.find(p=>p.id===id);if(!plan)throw new Error('筹备安排不存在');return plan;}
 function checkOccasionFunds(s:State,amount:number,excludeId?:string){
  const pending=(s.schedules??[]).filter(p=>p.status==='pending');
@@ -151,6 +151,16 @@ function createSingleBankStore(file:string,cardId:BankCardId) {
    const application:CardApplication={id:input.id,productId:input.productId,createdAt:now,status:'submitted'};
    (s.cardApplications??=[]).push(application);s.revision++;return application;
   });},
+  addManagedCard(input:{id:string;label:string;last4:string;revision:number},now=Date.now()):ManagedCard{return mutate(s=>{
+   if(typeof input.id!=='string'||!/^[\w-]{1,80}$/.test(input.id))throw new Error('卡片记录编号无效');
+   const previous=s.managedCards?.find(item=>item.id===input.id);
+   if(previous){if(previous.label!==input.label||previous.last4!==input.last4)throw new Error('同一记录编号的卡片信息不一致');return previous;}
+   if(input.revision!==s.revision)throw new Error('账户已变化，请重新核对卡片资料');
+   if(typeof input.label!=='string'||!/^[\p{L}\p{N} ·-]{1,24}$/u.test(input.label.trim())||/\d{8,}|卡号|卡密|密码|安全码|验证码/.test(input.label)||typeof input.last4!=='string'||!/^\d{4}$/.test(input.last4))throw new Error('仅填写卡片昵称和末四位，不要输入完整卡号或卡密');
+   if((s.managedCards?.length??0)>=20)throw new Error('演示卡片档案已达上限');
+   const card:ManagedCard={id:input.id,label:input.label.trim(),last4:input.last4,createdAt:now,status:'demo-only'};
+   (s.managedCards??=[]).push(card);s.revision++;return card;
+  });},
   configure(input:BankSettings){return mutate(s=>{
    if(input.revision!==s.revision)throw new Error('账户已变化，请刷新后重试');
    const next={...s,...(input.limit===undefined?{}:{limit:input.limit}),...(input.frozen===undefined?{}:{frozen:input.frozen}),...(input.controls===undefined?{}:{controls:input.controls})};
@@ -160,12 +170,13 @@ function createSingleBankStore(file:string,cardId:BankCardId) {
   prepare(input:TransferIntent|unknown,now=Date.now()):BankDraft {return mutate(s=>{
    guard(s,now);
    if(!validTransfer(input))throw new Error('请核对已登记收款人和转账金额（至少1分）');
+   if(input.sourceAccountId!==undefined&&(input.sourceAccountId==='demo-8888'?'primary':input.sourceAccountId)!==cardId)throw new Error('付款账户与当前银行卡不一致');
    if(input.executeAt!==undefined && (input.executeAt<=now || input.executeAt>now+366*86400000))throw new Error('预约时间须在未来一年内');
    if(input.amount>s.limit)throw new Error(`超过沙箱单笔限额${s.limit/100}元`);
    if(input.amount>s.balance)throw new Error('付款账户余额不足，不会使用其他平台资金');
    const impact=checkTransferBudget(s,input);
    const risk=assessTransferRisk(s,input,now);
-   const draft={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),recipientId:input.recipientId,amount:input.amount,...(input.executeAt===undefined?{}:{executeAt:input.executeAt}),...(input.protectedAmount===undefined?{}:{protectedAmount:input.protectedAmount}),impact,...(risk.large||risk.matches.length?{review:{...risk,token:crypto.randomUUID()}}:{}),id:crypto.randomUUID(),revision:s.revision,balance:s.balance,createdAt:now,expiresAt:now+300000};
+   const draft={...(input.workspaceId?{workspaceId:input.workspaceId}:{}),recipientId:input.recipientId,amount:input.amount,sourceAccountId:cardId==='primary'?'demo-8888' as const:cardId,...(input.remark?{remark:input.remark.trim()}:{}),...(input.executeAt===undefined?{}:{executeAt:input.executeAt}),...(input.protectedAmount===undefined?{}:{protectedAmount:input.protectedAmount}),impact,...(risk.large||risk.matches.length?{review:{...risk,token:crypto.randomUUID()}}:{}),id:crypto.randomUUID(),revision:s.revision,balance:s.balance,createdAt:now,expiresAt:now+300000};
    s.drafts=[...s.drafts.filter(d=>d.expiresAt>now).slice(-19),draft];return draft;
   });},
   confirm(id:string,now=Date.now(),riskReviewToken?:string):BankReceipt {return mutate(s=>{
@@ -180,7 +191,7 @@ function createSingleBankStore(file:string,cardId:BankCardId) {
    requireTransferReview(s,draft,now,riskReviewToken);
    if(s.transactions.length>=5000)throw new Error('沙箱账本已满，请联系开发者归档');
    s.balance-=draft.amount;s.received[draft.recipientId]=(s.received[draft.recipientId]??0)+draft.amount;s.revision++;
-   const receipt={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id:draft.id,recipientId:draft.recipientId,amount:draft.amount,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),completedAt:now,balanceAfter:s.balance};
+   const receipt={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id:draft.id,recipientId:draft.recipientId,amount:draft.amount,sourceAccountId:cardId==='primary'?'demo-8888' as const:cardId,...(draft.remark?{remark:draft.remark}:{}),...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),completedAt:now,balanceAfter:s.balance};
    s.transactions.push(receipt);s.drafts=s.drafts.filter(d=>d.id!==id);return receipt;
   });},
  };
@@ -254,6 +265,7 @@ export function bankMiddleware(rootStore:ReturnType<typeof createBankStore>) {
    if(data?.type==='prepare')return send(200,store.prepare(data));
    if(data?.type==='settings'){const next=store.configure(data);return send(200,cardId==='primary'?rootStore.get():next);}
    if(data?.type==='apply-card' && data.authorized===true)return send(200,store.applyCard(data));
+   if(data?.type==='add-managed-card' && data.authorized===true)return send(200,store.addManagedCard(data));
    if(data?.type==='confirm' && data.authorized===true && typeof data.draftId==='string' && data.draftId.length<=80)return send(200,store.confirm(data.draftId,Date.now(),data.riskReviewToken));
    return send(400,{error:'请在确认面板明确授权'});
   }catch(error){return send(error instanceof Error && 'code' in error?500:400,{error:error instanceof Error?error.message:'银行沙箱暂时不可用'});}

@@ -243,7 +243,7 @@ function actionSubscription(
   action: StewardAction,
   subscriptions: StewardSubscription[],
 ) {
-  if (action.type==='open_merchant'||action.type==='open_connections'||action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
+  if (action.type==='open_merchant'||action.type==='prepare_add_card'||action.type==='open_connections'||action.type==='open_occasions'||action.type==='open_group_aa'||action.type==='prepare_task'||action.type==='open_tasks'||action.type === "prepare_transfer" || action.type === "prepare_aa" || action.type === "open_transfers" || action.type === "open_transfer_records" || action.type === "open_subscriptions" || action.type === "open_funding" || action.type === "set_duplicate_preference") return undefined;
   return subscriptions.find(
     item => item.provider === action.provider && item.id === action.subscriptionId,
   );
@@ -582,6 +582,25 @@ export function StewardChatHome({
     const readonlyShare=readonlyWechatShare(prompt);
     const routedSubmission=Boolean(onRoutePrompt&&!bypassRoute);
     if (!prompt || viewLock.current || (sending&&!routedSubmission)) return;
+    if(!readonlyShare&&(/(?:^|\D)\d{12,19}(?:\D|$)/.test(prompt)||/(?:卡密|安全码|支付密码|验证码)\s*[:：是为]?\s*[A-Za-z0-9]{3,}/.test(prompt))){const id=crypto.randomUUID();setInput('');setMessages(current=>[...current,{id:`user-${id}`,role:'user',content:'[已拦截敏感卡片信息]'},{id:`assistant-${id}`,role:'assistant',content:'请不要在对话中输入完整卡号、卡密、安全码或验证码。刚才的敏感内容没有发送给模型，也没有保存到卡片档案。'}]);setActiveReplyId(`assistant-${id}`);return;}
+    const pending=messages.find(item=>item.id===activeReplyId&&item.role==='assistant')?.action;
+    const consent=/^(?:接受|同意|确认)(?:添加|授权|核对)?[。！!\s]*$/.test(prompt);
+    const refusal=/^(?:拒绝|不同意|不接受|暂不|取消)(?:添加|授权|核对)?[。！!\s]*$/.test(prompt);
+    if(pending&&(consent||refusal)){
+      const id=crypto.randomUUID();
+      setInput('');setError('');setLastPrompt(prompt);
+      if(refusal){setMessages(current=>[...current,{id:`user-${id}`,role:'user',content:prompt,workspaceId:workspace?.id},{id:`assistant-${id}`,role:'assistant',content:'已拒绝这项申请，本次没有保存卡片、变更设置或执行资金操作。',workspaceId:workspace?.id}]);setActiveReplyId(`assistant-${id}`);return;}
+      if(pending.type==='prepare_add_card'){
+        setSending(true);
+        try{const current=await bankRequest<import('../lib/bank-transfer').BankSnapshot>();const card=await bankRequest<import('../lib/bank-transfer').ManagedCard>({type:'add-managed-card',id,revision:current.revision,label:pending.label,last4:pending.last4,authorized:true});setMessages(items=>[...items,{id:`user-${id}`,role:'user',content:prompt,workspaceId:workspace?.id},{id:`assistant-${id}`,role:'assistant',content:`已保存演示卡片档案“${card.label}” · 尾号${card.last4}。这不是已核验的付款卡；没有收集或显示完整卡号和卡密。`,workspaceId:workspace?.id}]);setActiveReplyId(`assistant-${id}`);window.dispatchEvent(new Event('zhiyin-bank-updated'));}
+        catch(cause){setError(cause instanceof Error?cause.message:'卡片资料没有保存，请重新核对。');}
+        finally{setSending(false);}return;
+      }
+      if(pending.type==='prepare_transfer'&&onPrepareTransfer){onPrepareTransfer(pending,workspace?.id);setMessages(items=>[...items,{id:`user-${id}`,role:'user',content:prompt,workspaceId:workspace?.id},{id:`assistant-${id}`,role:'assistant',content:'已打开转账核对。请再选择付款账户、填写或跳过备注，核对转后余额和上次同路径记录；最终确认前不会扣款。',workspaceId:workspace?.id}]);setActiveReplyId(`assistant-${id}`);return;}
+      if(pending.type==='prepare_aa'&&onPrepareTransfer){onPrepareTransfer({...pending,kind:'aa'},workspace?.id);setMessages(items=>[...items,{id:`user-${id}`,role:'user',content:prompt,workspaceId:workspace?.id},{id:`assistant-${id}`,role:'assistant',content:'已打开收款分摊核对；这还没有向任何人发起收款。',workspaceId:workspace?.id}]);setActiveReplyId(`assistant-${id}`);return;}
+      if(pending.type==='prepare_cancel'){onPrepareCancel(pending.provider,pending.subscriptionId);setMessages(items=>[...items,{id:`user-${id}`,role:'user',content:prompt,workspaceId:workspace?.id},{id:`assistant-${id}`,role:'assistant',content:'已打开订阅取消核对；是否取消仍以合作方确认状态为准。',workspaceId:workspace?.id}]);setActiveReplyId(`assistant-${id}`);return;}
+      if(pending.type==='open_connections'&&onOpenConnections){onOpenConnections(pending.provider);setMessages(items=>[...items,{id:`user-${id}`,role:'user',content:prompt,workspaceId:workspace?.id},{id:`assistant-${id}`,role:'assistant',content:'已打开数据读取范围核对；当前没有新增授权，仍需你在合作方页面确认。',workspaceId:workspace?.id}]);setActiveReplyId(`assistant-${id}`);return;}
+    }
     if(routedSubmission&&(sending||externalBusy)){await submitRoutedPrompt(prompt,recordUser,billTurn);return;}
     if(interaction.current?.prompt!==prompt)interaction.current=undefined;
     if(automationEvidence&&!prompt.startsWith(WECHAT_SHARE_PREFIX)){
@@ -1129,6 +1148,9 @@ export function StewardChatHome({
                   {!historyOpen && message.id===activeReplyId && message.view!=='wealth_compare' && choices.length>0 && <div className="steward-reply-choices" role="group" aria-label="你可以这样回答，也可以直接输入">
                     {choices.map(choice=><button type="button" key={choice} disabled={sending || refreshing || viewSaving} onClick={()=>void sendPrompt(choice,activeBill?.id===message.id)}>{choice}</button>)}
                   </div>}
+                  {!historyOpen&&message.id===activeReplyId&&action?.type==='prepare_add_card'&&<div className="steward-reply-choices" role="group" aria-label="卡片档案授权"><button type="button" disabled={sending||externalBusy} onClick={()=>void sendPrompt('接受添加')}>接受添加</button><button type="button" disabled={sending||externalBusy} onClick={()=>void sendPrompt('拒绝添加')}>拒绝添加</button><small>也可在下方输入框回复；只保存昵称和末四位，不采集卡密。</small></div>}
+                  {!historyOpen&&message.id===activeReplyId&&action?.type==='prepare_transfer'&&<div className="steward-reply-choices" role="group" aria-label="转账核对授权"><p>风险：转账确认后沙箱余额立即减少，收款人和金额请仔细核对。接受仅打开核对，最终扣款还需再次确认。</p><button type="button" disabled={sending||externalBusy} onClick={()=>void sendPrompt('接受核对')}>接受核对</button><button type="button" disabled={sending||externalBusy} onClick={()=>void sendPrompt('拒绝授权')}>拒绝授权</button></div>}
+                  {!historyOpen&&message.id===activeReplyId&&action&&['prepare_aa','prepare_cancel','open_connections'].includes(action.type)&&<div className="steward-reply-choices" role="group" aria-label="待核对授权"><p>风险：同意后会打开事项核对；收款可能通知参与人，取消订阅可能影响服务，扩大读取范围会暴露更多交易信息。服务端及合作方仍需独立确认。</p><button type="button" disabled={sending||externalBusy} onClick={()=>void sendPrompt('接受核对')}>接受核对</button><button type="button" disabled={sending||externalBusy} onClick={()=>void sendPrompt('拒绝授权')}>拒绝授权</button></div>}
                   {!taskSurface&&action?.type === "prepare_cancel" && related && !historyOpen && (
                     <button onClick={() => onPrepareCancel(action.provider, action.subscriptionId)}>
                       核对并取消{related.title}<ArrowRight size={16} />
@@ -1143,7 +1165,8 @@ export function StewardChatHome({
                   {!taskSurface&&action?.type==='prepare_transfer' && onPrepareTransfer && !historyOpen && <button disabled={sending||externalBusy} onClick={()=>onPrepareTransfer(action,message.workspaceId)}>{action.executeAt?'核对预约转账':'核对银行转账'}<ArrowRight size={16}/></button>}
                   {action?.type==='prepare_aa' && onPrepareTransfer && !historyOpen && <button disabled={sending||externalBusy} onClick={()=>onPrepareTransfer({...action,kind:'aa'},message.workspaceId)}>核对AA分摊<ArrowRight size={16}/></button>}
                   {action?.type==='open_transfers' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({recipientId:'mom',amount:0})}>打开智能转账<ArrowRight size={16}/></button>}
-                  {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records'})}>查看转账安排<ArrowRight size={16}/></button>}
+                  {action?.type==='open_transfer_records' && onPrepareTransfer && !historyOpen && <button disabled={sending} onClick={()=>onPrepareTransfer({kind:'records',recipientId:action.recipientId})}>查看逐笔转账记录<ArrowRight size={16}/></button>}
+                  {action?.type==='prepare_add_card'&&!historyOpen&&<p className="fine-print left">请在输入框回复“接受添加”或“拒绝添加”；只有接受后才会向服务端提交脱敏档案。</p>}
                   {action?.type==='open_tasks'&&onOpenTasks&&!historyOpen&&<button onClick={()=>onOpenTasks()}>打开任务日历<ArrowRight size={16}/></button>}
                   {action?.type==='open_connections'&&onOpenConnections&&!(seamless&&onConnectSource)&&!historyOpen&&<button disabled={sending||externalBusy} onClick={()=>onOpenConnections(action.provider)}>核对{action.provider==='wechat_pay'?'微信支付':action.provider==='alipay'?'支付宝':'账户'}授权<ArrowRight size={16}/></button>}
                   {action?.type==='open_group_aa'&&onOpenGroupAA&&!historyOpen&&<button onClick={onOpenGroupAA}>配置微信群AA<ArrowRight size={16}/></button>}

@@ -21,7 +21,7 @@ export function authorizeSchedule(s:SmartState,id:string,now:number,riskReviewTo
  checkTransferBudget(s,draft);
  requireTransferReview(s,draft,now,riskReviewToken);
  if((s.schedules?.length??0)>=1000)throw new Error('预约数量已达上限');
- const schedule:BankSchedule={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id,recipientId:draft.recipientId,amount:draft.amount,executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending',...(draft.review?{reviewedTransferIds:draft.review.matches.map(m=>m.id)}:{})};
+ const schedule:BankSchedule={...(draft.workspaceId?{workspaceId:draft.workspaceId}:{}),id,recipientId:draft.recipientId,amount:draft.amount,...(draft.sourceAccountId?{sourceAccountId:draft.sourceAccountId}:{}),...(draft.remark?{remark:draft.remark}:{}),executeAt:draft.executeAt,...(draft.protectedAmount===undefined?{}:{protectedAmount:draft.protectedAmount}),createdAt:now,status:'pending',...(draft.review?{reviewedTransferIds:draft.review.matches.map(m=>m.id)}:{})};
  (s.schedules??=[]).push(schedule);s.drafts=s.drafts.filter(d=>d.id!==id);s.revision++;
  return schedule;
 }
@@ -33,7 +33,7 @@ export function executeDue(s:SmartState,now:number,guard:(s:SmartState,now:numbe
    const newDuplicates=assessTransferRisk(s,item,now,{excludeId:item.id,completedOnly:true}).matches.filter(m=>!item.reviewedTransferIds?.includes(m.id));
    if(newDuplicates.length)throw new Error('同一事项出现新的重复或相近转账，本预约未扣款，请核对记录后重新安排');
    s.balance-=item.amount;s.received[item.recipientId]=(s.received[item.recipientId]??0)+item.amount;
-   s.transactions.push({...(item.workspaceId?{workspaceId:item.workspaceId}:{}),id:item.id,recipientId:item.recipientId,amount:item.amount,executeAt:item.executeAt,...(item.protectedAmount===undefined?{}:{protectedAmount:item.protectedAmount}),completedAt:now,balanceAfter:s.balance});
+   s.transactions.push({...(item.workspaceId?{workspaceId:item.workspaceId}:{}),id:item.id,recipientId:item.recipientId,amount:item.amount,...(item.sourceAccountId?{sourceAccountId:item.sourceAccountId}:{}),...(item.remark?{remark:item.remark}:{}),executeAt:item.executeAt,...(item.protectedAmount===undefined?{}:{protectedAmount:item.protectedAmount}),completedAt:now,balanceAfter:s.balance});
    item.status='completed';
   }catch(error){item.status='failed';item.error=error instanceof Error?error.message:'预约执行失败';}
   s.revision++;

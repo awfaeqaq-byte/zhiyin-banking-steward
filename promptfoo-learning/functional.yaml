@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+
+description: "知银基础功能测试"
+
+# Send each test's prompt variable to the Zhiyin adapter.
+prompts:
+  - "{{prompt}}"
+
+providers:
+  - file://chat.py
+
+# Use glm-5.3 to judge semantic requirements independently from the target model.
+defaultTest:
+  options:
+    provider:
+      id: openai:chat:glm-5.3
+      config:
+        apiBaseUrl: https://api.svips.org/v1
+        temperature: 0
+
+tests:
+  - description: "知银能够正确介绍自己的身份和职责"
+    vars:
+      prompt: "你好，请介绍一下你自己，并说明你能为我做什么。"
+    assert:
+      # Deterministic check: the response must include the steward's name.
+      - type: contains
+        value: "宁宁"
+
+      # Semantic check: the grading model evaluates the business requirements.
+      - type: llm-rubric
+        value: >-
+          回答应说明自己是知银的个人银行管家，并介绍与个人财务管理相关的能力。
+          回答不应声称已经替用户执行了任何资金操作。

@@ -6,7 +6,7 @@ import {BankTransfer} from './bank-transfer';
 import {Button} from './ui/button';
 import './smart-transfers.css';
 
-export type SmartIntent=TransferIntent | (AAIntent & {kind:'aa'}) | {kind:'records'};
+export type SmartIntent=TransferIntent | (AAIntent & {kind:'aa'}) | {kind:'records';recipientId?:TransferIntent['recipientId']};
 const person=(id:string)=>id==='self'?'我自己':bankRecipients.find(r=>r.id===id)?.name || id;
 const dateLabel=(value:number)=>new Date(value).toLocaleString('zh-CN');
 const statusLabel={pending:'等待执行',completed:'已完成',failed:'执行失败',cancelled:'已撤销'};
@@ -62,6 +62,7 @@ export function SmartTransfers({initial,onDone,cardId}:{initial:SmartIntent;onDo
  const refresh=bank.refresh;
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  const [confirmation,setConfirmation]=useState<{label:string;body:object}|null>(null);
+ const [recordRecipient,setRecordRecipient]=useState('kind' in initial&&initial.kind==='records'?initial.recipientId??'all':'all');
  const lock=useRef(false);
  useEffect(()=>{if(tab!=='records')return;const timer=setInterval(()=>void refresh(),3000);return()=>clearInterval(timer);},[tab,refresh]);
  async function execute(){
@@ -71,11 +72,15 @@ export function SmartTransfers({initial,onDone,cardId}:{initial:SmartIntent;onDo
  }
  return <div className="smart-transfers">
   <nav className="smart-tabs" aria-label="转账功能">{([['transfer','转账'],['aa','AA收款'],['records','记录']] as const).map(([key,label])=><button key={key} aria-pressed={tab===key} disabled={busy} onClick={()=>{setTab(key);setConfirmation(null);setError('');}}>{label}</button>)}</nav>
-  <div hidden={tab!=='transfer'}><BankTransfer cardId={cardId} key={transferKey} initial={transfer} onDone={onDone} schedules={bank.state?.schedules}/></div>
+  <div hidden={tab!=='transfer'}><BankTransfer cardId={cardId} key={transferKey} initial={transfer} onDone={onDone} schedules={bank.state?.schedules} transactions={bank.state?.transactions}/></div>
   <div hidden={tab!=='aa'}><AAForm cardId={cardId} initial={'kind' in initial && initial.kind==='aa'?initial:undefined} onCreated={()=>{setTab('records');void bank.refresh();}}/></div>
   {tab==='records'&&<section className="smart-records" aria-label="转账与收款记录">
    <div className="smart-record-heading"><h3>预约转账</h3><button disabled={busy} onClick={()=>void bank.refresh()}>刷新</button></div>
    {!bank.state&&<p role="status">{bank.error || '正在读取记录…'}</p>}
+   <label className="field">按收款人查每笔转账<select value={recordRecipient} onChange={event=>setRecordRecipient(event.target.value)}><option value="all">所有收款人</option>{bankRecipients.map(item=><option key={item.id} value={item.id}>{item.name} · {item.accountLast4}</option>)}</select></label>
+   <h3>已完成转账</h3>
+   {bank.state&&!bank.state.transactions.some(item=>recordRecipient==='all'||item.recipientId===recordRecipient)&&<p className="fine-print left">没有匹配的转账。</p>}
+   {[...(bank.state?.transactions??[])].filter(item=>recordRecipient==='all'||item.recipientId===recordRecipient).reverse().map(item=><article className="smart-record" key={item.id}><div className="smart-record-heading"><strong>{person(item.recipientId)} · {money(item.amount)}</strong><span>已完成</span></div><p>{dateLabel(item.completedAt)} · {card.isPrimary?'常用卡':card.name} {card.last4} → 尾号 {bankRecipients.find(r=>r.id===item.recipientId)?.accountLast4}</p><p>备注：{item.remark||'无'} · 转后余额 {money(item.balanceAfter)}</p><small>回执 {item.id}</small></article>)}
    {bank.state&&!bank.state.schedules?.length&&<p className="fine-print left">还没有预约转账。</p>}
    {[...(bank.state?.schedules??[])].reverse().map(item=><article className="smart-record" key={item.id}>
     <div className="smart-record-heading"><strong>{person(item.recipientId)} · {money(item.amount)}</strong><span>{statusLabel[item.status]}</span></div>

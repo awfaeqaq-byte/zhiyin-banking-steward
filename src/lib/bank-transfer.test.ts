@@ -26,6 +26,14 @@ it('核对不扣钱，确认原子更新余额与账单，重试不重复扣款'
  expect(bank.confirm(draft.id,102)).toEqual(receipt);
  expect(bank.get().transactions).toHaveLength(1);
 });
+it('付款账户和备注随服务端回执保存，历史可按同一路径核对',()=>{
+ const bank=setup();const draft=bank.prepare({recipientId:'mom',amount:10000,sourceAccountId:'demo-8888',remark:'生活费'},Date.parse('2026-10-17T12:00:00+08:00'));
+ expect(draft.remark).toBe('生活费');expect(bank.get().transactions).toHaveLength(0);
+ const receipt=bank.confirm(draft.id,Date.parse('2026-10-17T12:00:01+08:00'));
+ expect(receipt).toMatchObject({sourceAccountId:'demo-8888',remark:'生活费',balanceAfter:4220000});
+ expect(bank.get().transactions.filter(item=>item.recipientId==='mom')).toEqual([receipt]);
+ expect(()=>bank.prepare({recipientId:'mom',amount:100,sourceAccountId:'other' as 'demo-8888'},Date.parse('2026-10-17T12:01:00+08:00'))).toThrow();
+});
 it('余额变化或超时需要重新核对；非法金额与收款人被后端拒绝',()=>{
  const bank=setup();
  for(const amount of [0,-1,1.1,Infinity,2000001])expect(()=>bank.prepare({recipientId:'mom',amount},100)).toThrow();

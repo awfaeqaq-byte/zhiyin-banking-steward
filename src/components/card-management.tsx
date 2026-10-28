@@ -238,12 +238,12 @@ function SelectedCard({card, cachedSnapshot, onAsk, onTransfer, onSnapshot}: Car
 
 function CardHistory({state, last4}: {state: BankSnapshot; last4: string}) {
   const records = [
-    ...state.transactions.map(item => ({id: `transfer:${item.id}`, title: `转给${bankRecipients.find(person => person.id === item.recipientId)?.name ?? '收款人'}`, amount: -item.amount, at: item.completedAt, balance: item.balanceAfter, receipt: item.id})),
+    ...state.transactions.map(item => ({id: `transfer:${item.id}`, title: `转给${bankRecipients.find(person => person.id === item.recipientId)?.name ?? '收款人'}`, remark: item.remark, amount: -item.amount, at: item.completedAt, balance: item.balanceAfter, receipt: item.id})),
     ...(state.collections ?? []).map(item => ({id: `collection:${item.id}`, title: `AA 收款 · ${bankRecipients.find(person => person.id === item.recipientId)?.name ?? '参与人'}`, amount: item.amount, at: item.completedAt, balance: item.balanceAfter, receipt: item.id})),
     ...(state.payments ?? []).flatMap(item => [
       {id: `payment:${item.id}`, title: item.merchant, amount: -item.amount, at: item.completedAt, balance: item.balanceAfter, receipt: item.id},
       ...(item.refundedAt !== undefined ? [{id: `refund:${item.id}`, title: `${item.merchant} · 退款`, amount: item.amount, at: item.refundedAt, balance: item.refundBalanceAfter, receipt: item.id}] : []),
     ]),
   ].sort((a, b) => b.at - a.at);
-  return <div className="card-record-list">{records.length ? records.map(item => <details key={item.id}><summary><span>{item.title}<small>{new Date(item.at).toLocaleString('zh-CN')}</small></span><strong>{item.amount >= 0 ? '+' : '−'}{assetMoney(Math.abs(item.amount))}</strong></summary><p>尾号 {last4}{item.balance === undefined ? '' : ` · 交易后余额 ${assetMoney(item.balance)}`}</p><small>回执 {item.receipt}</small></details>) : <p>这张卡暂时没有交易记录。</p>}</div>;
+  return <div className="card-record-list">{records.length ? records.map(item => <details key={item.id}><summary><span>{item.title}<small>{new Date(item.at).toLocaleString('zh-CN')}</small></span><strong>{item.amount >= 0 ? '+' : '−'}{assetMoney(Math.abs(item.amount))}</strong></summary><p>尾号 {last4}{item.balance === undefined ? '' : ` · 交易后余额 ${assetMoney(item.balance)}`}</p>{'remark' in item&&typeof item.remark==='string'&&item.remark&&<p>备注：{item.remark}</p>}<small>回执 {item.receipt}</small></details>) : <p>这张卡暂时没有交易记录。</p>}</div>;
 }

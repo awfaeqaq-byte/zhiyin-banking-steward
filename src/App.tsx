@@ -63,6 +63,7 @@ import {AssetDashboard} from './components/asset-dashboard';
 import {AssetSchedule} from './components/asset-schedule';
 import {WealthConversationProvider} from './components/wealth-conversation';
 import {parseCardIntent,cardIntentTarget} from './lib/card-intent';
+import {AuthorizationCenter} from './components/authorization-center';
 import { AgentAutomationCenter } from "./components/agent-automation-center";
 import { FinancialFocusRules } from "./components/financial-focus-rules";
 import { FundingInsights } from "./components/funding-insights";
@@ -111,6 +112,7 @@ type Page =
   | "profile"
   | "settings"
   | "connections"
+  | "authorization"
   | "funding"
   | "funds"
   | "tasks"
@@ -280,9 +282,10 @@ function AppContent() {
   const [speak, setSpeak] = useState<StewardId | null>(null);
   const [attachment, setAttachment] = useState("");
   const [privacy, setPrivacy] = useState({
-    notifications: true,
-    analytics: false,
+    notifications: read('zhiyin-privacy', {notifications:true,analytics:false}).notifications,
+    analytics: read('zhiyin-privacy', {notifications:true,analytics:false}).analytics,
   });
+  useEffect(()=>save('zhiyin-privacy',privacy),[privacy]);
   const {
     connections, setConnections, refresh: refreshSubscriptions,
     refreshing: subscriptionsRefreshing, error: subscriptionRefreshError,
@@ -909,7 +912,7 @@ function AppContent() {
           {page === "spending" && (
             <>
               <Heading title="我的账单" subtitle="按授权账单生成月度与年度报告" />
-              <BillReports connections={connections} onConnect={() => go("connections")} />
+              <BillReports connections={connections} onConnect={() => go("authorization")} />
             </>
           )}
           {page === "deposits" && <><Heading title="存款" subtitle="同一银行账本，先核对资金影响再由你确认"/>{hidden?<button type="button" className="primary-button" onClick={()=>setHidden(false)}>显示金额，继续办理</button>:<TermDepositPanel/>}</>}
@@ -975,7 +978,7 @@ function AppContent() {
                     <Row icon={CalendarDays} title="我的关注" subtitle="持续检查账单、理财与异常线索" onClick={()=>go('automations')}/>
                   </div></div>
                   <div className="profile-service-group"><h3>连接与设置</h3><div className="surface">
-                    <Row icon={Link2} title="数据连接" subtitle={Object.keys(connections).length?`已连接 ${Object.keys(connections).length} 个支付账户`:'连接微信支付、支付宝'} onClick={()=>go('connections')}/>
+                    <Row icon={Link2} title="数据连接" subtitle={Object.keys(connections).length?`已连接 ${Object.keys(connections).length} 个支付账户`:'连接微信支付、支付宝'} onClick={()=>go('authorization')}/>
                     <Row icon={Settings2} title="设置" subtitle={`使用模式 · ${mode==='classic'?'经典款':'AI 原生'}`} onClick={()=>go('settings')}/>
                   </div></div>
                 </section>
@@ -996,8 +999,8 @@ function AppContent() {
                   <div className="surface">
                     <Row icon={Settings2} title="管理记忆" subtitle="对我的了解 · 确认、纠正或忘记"
                       onClick={() => setModal("memory")} />
-                    <Row icon={ShieldCheck} title="隐私与授权" subtitle="你始终拥有数据的控制权"
-                      onClick={() => setModal("privacy")} />
+                    <Row icon={ShieldCheck} title="授权与批准中心" subtitle="集中管理读取范围、卡片安全和提醒"
+                      onClick={() => go('authorization')} />
                     <Row icon={CircleHelp} title="帮助与使用指南" onClick={() => setModal("help")} />
                   </div>
                 </section>
@@ -1074,13 +1077,14 @@ function AppContent() {
                           ? `微信支付、支付宝 · 已连接 ${Object.keys(connections).length} 个`
                           : "微信支付、支付宝 · 尚未连接"
                       }
-                      onClick={() => go("connections")}
+                      onClick={() => go("authorization")}
                     />
                   </div>
                 </section>
               </div>
             </>
           )}
+          {page === "authorization" && <><Heading title="授权与批准中心" subtitle="每一项变更都先展示风险，再由你接受或拒绝"/><AuthorizationCenter bank={bank.state} bankBusy={bank.busy} bankError={bank.error} onBankChange={bank.change} onRefresh={bank.refresh} connections={connections} initialProvider={connectionEntry} onEntryConsumed={()=>setConnectionEntry(undefined)} onConnect={async(provider,scopes)=>{await connectFinancialSource(provider,scopes);}} onDisconnect={disconnectFinancialSource} privacy={privacy} onPrivacyChange={setPrivacy}/></>}
           {page === "connections" && (
             <>
               <Heading
@@ -1118,7 +1122,7 @@ function AppContent() {
                 disabledReminders={disabledSubscriptionReminders}
                 onToggleReminder={toggleSubscriptionReminder}
                 onCancel={cancelSubscription}
-                onConnect={() => go("connections")}
+                onConnect={() => go("authorization")}
                 focusKey={subscriptionFocusTarget}
                 onFocusConsumed={() => setSubscriptionFocusTarget(null)}
                 selectedKey={subscriptionActionTarget}
@@ -1136,7 +1140,7 @@ function AppContent() {
               <Heading title="近期资金安排" subtitle="分开核对每个账户，留足接下来的续费" />
               <FundingPlan connections={connections} refreshing={subscriptionsRefreshing}
                 refreshError={subscriptionRefreshError} onRefresh={refreshSubscriptions}
-                onConnect={() => go("connections")} onOpenSubscriptions={() => go("subscriptions")} />
+                onConnect={() => go("authorization")} onOpenSubscriptions={() => go("subscriptions")} />
             </>
           )}
           {page === "automations" && (
@@ -1178,7 +1182,7 @@ function AppContent() {
               refreshing={subscriptionsRefreshing}
               onToggleReminder={toggleSubscriptionReminder}
               onOpenSubscriptions={() => go("subscriptions")}
-              onOpenConnections={provider=>{setConnectionEntry(provider);go('connections');}}
+              onOpenConnections={provider=>{setConnectionEntry(provider);go('authorization');}}
               onConnectSource={connectFinancialSource}
               onOpenFunding={() => go("funding")}
               onOpenTasks={date=>{setTaskDate(date);go('tasks');}}
@@ -1518,7 +1522,7 @@ function AppContent() {
             }
             onClick={() => {
               setModal(null);
-              go("connections");
+              go("authorization");
             }}
           />
           <Row

@@ -123,3 +123,13 @@ it('客户端显式选卡请求，主卡保持旧请求路径兼容',async()=>{
  expect(JSON.parse(fetchMock.mock.calls[3][1].body)).toMatchObject({cardId:'reserve',type:'settings'});
  await expect(bankRequest({type:'settings',cardId:'reserve'},'primary')).rejects.toThrow(/不一致/);
 });
+
+it('合并后的付款账户和备注仍归属所选副卡，不能借主卡标识写入副卡',()=>{
+ const {bank}=setup(),living=bank.forCard('living');
+ const aa=living.createAA({requestId:'source-fund',title:'入账',amount:10000,recipientIds:['mom'],includeSelf:false},noon);living.settleAA(aa.id,'mom',noon+1);
+ expect(()=>living.prepare({recipientId:'dad',amount:100,sourceAccountId:'demo-8888'},noon+2)).toThrow('付款账户');
+ const draft=living.prepare({recipientId:'dad',amount:100,sourceAccountId:'living',remark:'聚餐结算'},noon+2);
+ const receipt=living.confirm(draft.id,noon+3);
+ expect(receipt).toMatchObject({sourceAccountId:'living',remark:'聚餐结算'});
+ expect(living.get().balance).toBe(9900);expect(bank.get().balance).toBe(4230000);
+});

@@ -10,6 +10,7 @@ it('只在最后授权时扣款，修改金额需重新核对，显示服务器�
   return new Response(JSON.stringify(body.type==='prepare'?{id:'draft',recipientId:body.recipientId,amount:body.amount,revision:0,balance:4230000,createdAt:1,expiresAt:Date.now()+300000}:{id:'draft',recipientId:'mom',amount:300000,completedAt:Date.now(),balanceAfter:3930000}));
  });
  render(<BankTransfer initial={{recipientId:'mom',amount:200000}} onDone={vi.fn()}/>);
+ await user.selectOptions(screen.getByLabelText('从哪个账户转出'),'demo-8888');
  await user.click(screen.getByRole('button',{name:'核对即时转账'}));
  expect(calls.filter(c=>c.type==='confirm')).toHaveLength(0);
  await user.click(screen.getByRole('button',{name:'返回修改'}));
@@ -28,6 +29,7 @@ it('未知结果保持原方案重试，刷新后从回执恢复，不重发新�
   return new Response(JSON.stringify(body.type==='status'?{receipt:{...draft,completedAt:100,balanceAfter:4229900}}:draft));
  });
  const view=render(<BankTransfer initial={{recipientId:'dad',amount:100}} onDone={vi.fn()}/>);
+ await user.selectOptions(screen.getByLabelText('从哪个账户转出'),'demo-8888');
  await user.click(screen.getByRole('button',{name:'核对即时转账'}));await user.click(screen.getByRole('button',{name:'确认并立即转账（沙箱）'}));
  expect(confirmed).toBe(true);expect(screen.getByRole('button',{name:'返回修改'})).toBeDisabled();
  view.unmount();render(<BankTransfer initial={{recipientId:'mom',amount:200000}} onDone={vi.fn()}/>);

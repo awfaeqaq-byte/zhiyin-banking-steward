@@ -11,6 +11,7 @@ it('大额和重复证据就地展示，核对勾选不等于付款，修改后�
   return new Response(JSON.stringify(body.type==='prepare'?{id:'draft',recipientId:'mom',amount:500000,revision:1,balance:4230000,createdAt:now,expiresAt:now+300000,review:{large:true,token:'review-token',matches:[{id:'previous',kind:'completed',recipientId:'mom',amount:500000,at:now-2000}]}}:{id:'draft',recipientId:'mom',amount:500000,completedAt:now,balanceAfter:3730000}));
  });
  render(<BankTransfer initial={{workspaceId:'dinner',recipientId:'mom',amount:500000}} onDone={vi.fn()}/>);
+ await user.selectOptions(screen.getByLabelText('从哪个账户转出'),'demo-8888');
  await user.click(screen.getByRole('button',{name:'核对即时转账'}));
  expect(screen.getByText('可能重复转账')).toBeVisible();expect(screen.getByText(/大额转账/)).toBeVisible();
  const button=screen.getByRole('button',{name:'确认并立即转账（沙箱）'});expect(button).toBeDisabled();
