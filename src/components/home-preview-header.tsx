@@ -1,6 +1,6 @@
 import {Menu,CalendarDays,BellRing,UserRound,CircleHelp,ChevronDown,ChartNoAxesCombined,CalendarClock} from 'lucide-react';
 import './home-ui-preview.css';
-type Props={stewardName:string;stewardImage:string;onSwitchSteward:()=>void;onTasks:()=>void;onSubscriptions:()=>void;onProfile:()=>void;onHelp?:()=>void;onWealth?:()=>void;onAutomations?:()=>void;onConversations?:()=>void;conversationsOpen?:boolean};
+type Props={stewardName:string;stewardImage:string;onSwitchSteward:()=>void;onTasks:()=>void;onSubscriptions:()=>void;onProfile:()=>void;onHelp?:()=>void;onToggleElder?:()=>void;onWealth?:()=>void;onAutomations?:()=>void;onConversations?:()=>void;conversationsOpen?:boolean};
 export function HomePreviewHeader(props:Props){
  return <header className="home-preview-header fixed-chat-header">
   <div className="home-preview-brand-row">
@@ -10,6 +10,7 @@ export function HomePreviewHeader(props:Props){
     <button aria-label="订阅" onClick={props.onSubscriptions}><BellRing size={21}/><span>订阅</span></button>
     {props.onWealth&&<button className="native-header-secondary" onClick={props.onWealth}><ChartNoAxesCombined size={21}/><span>资金规划</span></button>}
     {props.onAutomations&&<button className="native-header-secondary" onClick={props.onAutomations}><CalendarClock size={21}/><span>我的关注</span></button>}
+    {props.onToggleElder&&<button aria-label="切换到长辈版" onClick={props.onToggleElder}><UserRound size={21} aria-hidden="true"/><span>长辈版</span></button>}
     {props.onHelp?<button aria-label="查看使用指南" onClick={props.onHelp}><CircleHelp size={21}/><span>指南</span></button>:<button aria-label="个人中心" onClick={props.onProfile}><UserRound size={21}/><span>我的</span></button>}
    </nav>
   </div>

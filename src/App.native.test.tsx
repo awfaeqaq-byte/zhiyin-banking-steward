@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import * as phoneBridge from "./lib/phone-bridge";
@@ -8,6 +8,10 @@ import {createMessageService} from '../server/message-service';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {emptyMemory} from './lib/steward-memory';
+import {emptyWorkspaces} from './lib/workspaces';
+import {bankCards} from './lib/bank-transfer';
+import type {AutomationRun} from './lib/agent-automations';
 
 const messageDirs:string[]=[];
 afterEach(() => {vi.restoreAllMocks();messageDirs.splice(0).forEach(path=>rmSync(path,{recursive:true,force:true}));});
@@ -110,9 +114,11 @@ it("经典模式保留，AI 原生首页可切换并记住选择", async () => {
   expect(screen.getByRole("textbox", { name: "和宁宁说点什么" })).toBeInTheDocument();
 });
 
-it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页", async () => {
+it.each([false, true])("宁宁用真实授权数据回答，取消意图进入指定订阅确认页（长辈版：%s）", async elderMode => {
   vi.spyOn(phoneBridge, "refreshFinancialSource").mockResolvedValue({ status: "granted", source: alipay });
+  const cancel = vi.spyOn(phoneBridge, "cancelFinancialAutopay");
   localStorage.setItem("zhiyin-mode", '"native"');
+  localStorage.setItem("zhiyin-elder-mode", JSON.stringify(elderMode));
   localStorage.setItem("zhiyin-connections", JSON.stringify({ alipay }));
   const directory=mkdtempSync(join(tmpdir(),'zhiyin-native-messages-'));messageDirs.push(directory);
   const service=createMessageService(directory,async payload=>payload.instructions.includes('任务分类器')?JSON.stringify({parts:[{taskId:null,kind:'subscriptions',title:'优酷续费',segmentIds:[0]}]}):'可以，我先带你核对优酷续费，确认后才会取消。\n[ZHIYIN_ACTION:PREPARE_CANCEL|alipay|ali-video]');
@@ -134,6 +140,7 @@ it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页"
   }), { status: 200, headers: { "Content-Type": "application/json" } });});
   const user = userEvent.setup();
   render(<App />);
+  if (elderMode) await user.click(screen.getByRole("button", { name: "和宁宁聊聊" }));
 
   expect(screen.queryByText("优酷VIP会员连续包月")).not.toBeInTheDocument();
   await user.type(screen.getByRole("textbox", { name: "和宁宁说点什么" }), "帮我取消优酷会员续费");
@@ -142,6 +149,7 @@ it("宁宁用真实授权数据回答，取消意图进入指定订阅确认页"
   await user.click(await screen.findByRole("button", { name: "核对并取消优酷VIP会员连续包月" }));
 
   expect(await screen.findByRole("dialog", { name: "取消自动续费" })).toHaveTextContent("优酷VIP会员连续包月");
+  expect(cancel).not.toHaveBeenCalled();
   expect(fetchSpy).toHaveBeenCalledWith("/api/zhiyin/messages", expect.objectContaining({ method: "POST" }));
   fetchSpy.mockRestore();
 });
@@ -227,4 +235,102 @@ it("资产页进入真实资金安排并保留返回路径", async () => {
   expect(screen.getByText("先连接你的支付账户")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "返回" }));
   expect(screen.getByRole("heading", { name: "我的资产" })).toBeInTheDocument();
+});
+
+function mockFollowupContext() {
+  const run: AutomationRun = {
+    id: 'followup-report', kind: 'monthly_bill_review', status: 'completed',
+    summary: '已核对本月支出 ¥25.00。', evidence: [], startedAt: Date.now(),
+    completedAt: Date.now(), trigger: 'manual', engine: 'mastra',
+  };
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async url => {
+    const path = String(url);
+    if (path.endsWith('/messages') || path.endsWith('/workspaces')) {
+      return Response.json({...emptyWorkspaces(), conversation: [], runs: []});
+    }
+    if (path.endsWith('/automations')) return Response.json({version: 1, engine: 'mastra', tasks: [], runs: [run]});
+    if(path.startsWith('/api/zhiyin/bank')){
+      const bank={revision:0,balance:4230000,limit:2000000,frozen:false,controls:{overseas:false,contactless:true,night:true},transactions:[]};
+      if(new URL(path,'http://localhost').searchParams.get('view')==='cards')return Response.json(bankCards.map(card=>({...card,...bank})));
+      return Response.json(bank);
+    }
+    if (path.endsWith('/market-context')) return Response.json({provider: 'akshare', status: 'ready', fetchedAt: Date.now(), stale: false, message: '测试市场数据', indicators: [], capabilities: []});
+    return Response.json(emptyMemory());
+  });
+}
+
+it.each([false, true])('资金规划提问直接显示聊天草稿且不自动发送（长辈版：%s）', async elderMode => {
+  localStorage.setItem('zhiyin-mode', '"native"');
+  localStorage.setItem('zhiyin-elder-mode', JSON.stringify(elderMode));
+  const requests = mockFollowupContext();
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole('button', {name: elderMode ? '更多服务' : '我的'}));
+  await user.click(screen.getByRole('button', {name: /^资金规划/}));
+  await user.click(screen.getByRole('button', {name: /消费去向/}));
+  expect(screen.getByRole('textbox', {name: '和宁宁说点什么'})).toHaveValue('详细解释一下最近支出的变化');
+  expect(screen.getByRole('textbox', {name: '和宁宁说点什么'})).toBeVisible();
+  expect(requests.mock.calls.some(([url, init]) => String(url).endsWith('/messages') && init?.body && JSON.parse(String(init.body)).type === 'submit')).toBe(false);
+});
+
+it.each([false, true])('任务报告继续询问直接显示聊天草稿且不自动发送（长辈版：%s）', async elderMode => {
+  localStorage.setItem('zhiyin-mode', '"native"');
+  localStorage.setItem('zhiyin-elder-mode', JSON.stringify(elderMode));
+  const requests = mockFollowupContext();
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole('button', {name: elderMode ? '更多服务' : '我的'}));
+  await user.click(screen.getByRole('button', {name: /^我的关注/}));
+  await user.click(await screen.findByRole('button', {name: '继续问宁宁'}));
+  expect(screen.getByRole('textbox', {name: '和宁宁说点什么'})).toHaveValue('我想继续了解“每月账单管家报告”：已核对本月支出 ¥25.00。请结合这次检查的依据，告诉我最需要先处理什么。');
+  expect(screen.getByRole('textbox', {name: '和宁宁说点什么'})).toBeVisible();
+  expect(requests.mock.calls.some(([url, init]) => String(url).endsWith('/messages') && init?.body && JSON.parse(String(init.body)).type === 'submit')).toBe(false);
+});
+
+it.each([false, true])('手机返回先关闭智能转账，保留原页面且不执行交易（长辈版：%s）', async elderMode => {
+  localStorage.setItem('zhiyin-mode', '"native"');
+  localStorage.setItem('zhiyin-elder-mode', JSON.stringify(elderMode));
+  const requests = mockFollowupContext();
+  const user = userEvent.setup();
+  render(<App />);
+  if (elderMode) {
+    await user.click(screen.getByRole('button', {name: '转账汇款'}));
+  } else {
+    await user.click(screen.getByRole('button', {name:'我的'}));
+    await user.click(screen.getByRole('button', {name: /^银行卡与安全/}));
+    await user.click(await screen.findByRole('button',{name:'用此卡转账与 AA 收款'}));
+  }
+  expect(screen.getByRole('dialog', {name: '智能转账'})).toBeVisible();
+  act(() => {expect(phoneBridge.dispatchPhoneBack()).toBe(true);});
+  expect(screen.queryByRole('dialog', {name: '智能转账'})).not.toBeInTheDocument();
+  expect(elderMode ? screen.getByRole('region', {name: '长辈版首页'}) : screen.getByRole('heading',{name:'我的卡包'})).toBeVisible();
+  expect(requests.mock.calls.some(([url, init]) => String(url).endsWith('/bank') && init?.method === 'POST')).toBe(false);
+});
+
+it('长辈更多服务保留群AA与数据授权入口，拒绝批准或关闭授权不执行变更', async () => {
+  localStorage.setItem('zhiyin-elder-mode', 'true');
+  const requests = mockFollowupContext();
+  const authorize = vi.spyOn(phoneBridge, 'requestAuthorizedFinancialSource');
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole('button', {name: '更多服务'}));
+  await user.click(screen.getByRole('button', {name: /^微信群智能AA/}));
+  expect(screen.getByRole('heading', {name: '微信群智能AA'})).toBeVisible();
+  expect(screen.getByRole('button', {name: '从微信选择群'})).toBeEnabled();
+  await user.click(screen.getByRole('button', {name: '返回'}));
+  await user.click(screen.getByRole('button', {name: /^数据连接/}));
+  expect(screen.getByRole('heading', {name: '授权与批准中心'})).toBeVisible();
+  const card = within(screen.getByRole('region', {name: '银行卡批准配置'}));
+  await user.click(card.getByRole('button', {name: '核对开启'}));
+  expect(card.getByRole('group', {name: '待批准变更'})).toHaveTextContent('潜在风险');
+  await user.click(card.getByRole('button', {name: '拒绝'}));
+  expect(card.getByRole('status')).toHaveTextContent('已拒绝，本次没有变更');
+  await user.click(screen.getByRole('button', {name: '连接支付宝'}));
+  const consent = within(screen.getByRole('dialog', {name: '连接支付宝'}));
+  expect(consent.getAllByRole('checkbox')).toHaveLength(3);
+  for (const scope of consent.getAllByRole('checkbox')) await user.click(scope);
+  expect(consent.getByRole('button', {name: '继续到支付宝确认'})).toBeDisabled();
+  await user.click(consent.getByRole('button', {name: '关闭'}));
+  expect(authorize).not.toHaveBeenCalled();
+  expect(requests.mock.calls.some(([url, init]) => String(url).endsWith('/bank') && init?.method === 'POST')).toBe(false);
 });

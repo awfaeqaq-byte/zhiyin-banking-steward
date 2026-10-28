@@ -40,6 +40,7 @@ import {
   Sparkles,
   TrendingUp,
   UserRound,
+  Wallet,
   Users,
   X,
   CalendarDays,
@@ -54,6 +55,8 @@ import { DataConnections } from "./components/data-connections";
 import { PhoneContactPicker } from "./components/phone-contact-picker";
 import { SubscriptionCenter } from "./components/subscription-center";
 import {HomePreviewHeader} from './components/home-preview-header';
+import {ElderHome} from './components/elder-home';
+import './components/elder-mode.css';
 import { StewardWorkspaces } from "./components/steward-workspaces";
 import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
@@ -229,14 +232,26 @@ export default function App() {
   return <WealthConversationProvider><AppContent/></WealthConversationProvider>;
 }
 function AppContent() {
-  const [mode, setMode] = useState<"classic" | "native">(() =>
+  const [standardMode, setMode] = useState<"classic" | "native">(() =>
     read<string>("zhiyin-mode", "classic") === "native" ? "native" : "classic",
   );
+  const [elderMode, setElderMode] = useState(() => read<unknown>('zhiyin-elder-mode', false) === true);
+  const [elderChatOpen, setElderChatOpen] = useState(false);
+  const mode = elderMode ? 'native' : standardMode;
+  useEffect(() => {
+    save('zhiyin-elder-mode', elderMode);
+    document.body.dataset.zhiyinAppearance = elderMode ? 'elder' : 'standard';
+    return () => { delete document.body.dataset.zhiyinAppearance; };
+  }, [elderMode]);
   const stewardWorkerStarted=useRef(mode==='native');
   if(mode==='native')stewardWorkerStarted.current=true;
   const [page, setPage] = useState<Page>("home");
   const navigationIntent = useRef<'forward' | 'back'>('forward');
   const pageSurface = usePageMotion(page, navigationIntent.current);
+  useEffect(()=>{
+    if(!elderMode||!pageSurface.current)return;
+    pageSurface.current.scrollTop=elderChatOpen?pageSurface.current.scrollHeight:0;
+  },[elderMode,elderChatOpen,pageSurface]);
   const [fundDetailId,setFundDetailId]=useState<string>();
   const [wealthFocusProductId,setWealthFocusProductId]=useState<string>();
   const [wealthEntry,setWealthEntry]=useState<'assessment'|'holdings'>();
@@ -330,8 +345,8 @@ function AppContent() {
   }, [controls]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
   useEffect(() => {
-    save("zhiyin-mode", mode);
-  }, [mode]);
+    save("zhiyin-mode", standardMode);
+  }, [standardMode]);
   useEffect(() => {
     save("zhiyin-connections", connections);
   }, [connections]);
@@ -422,6 +437,11 @@ function AppContent() {
     window.scrollTo({ top: 0 });
     document.querySelector(".workspace")?.scrollTo({ top: 0 });
   }
+  function askSteward(prompt: string, useNative=mode==='native') {
+    if(useNative){setChatDraft(prompt);if(elderMode)setElderChatOpen(true);}
+    else setInput(prompt);
+    go('home');
+  }
   function openCardIntent(instruction?:string){
     const intent=instruction?parseCardIntent(instruction):null;
     const target=instruction?cardIntentTarget(instruction):null;
@@ -447,10 +467,14 @@ function AppContent() {
       goBack();
       return true;
     }
+    if (elderMode && elderChatOpen) {
+      setElderChatOpen(false);
+      return true;
+    }
     return false;
   });
   usePhoneBridge();
-  const wechatShare=useWechatShare(()=>{setMode('native');setPage('home');setModal(null);setPageHistory([]);});
+  const wechatShare=useWechatShare(()=>{setMode('native');setElderChatOpen(true);setPage('home');setModal(null);setPageHistory([]);});
   useEffect(() => {
     if (connections.wechat_pay) return;
     let cancelled = false;
@@ -522,7 +546,8 @@ function AppContent() {
     window.speechSynthesis.speak(utterance);
   }
   const activeNav =
-    page === "cards" ? "cards"
+    elderMode ? (page === 'home' ? 'home' : ['assets', 'deposits', 'funding'].includes(page) ? 'assets' : 'profile')
+      : page === "cards" ? "cards"
       : page === "risk" || page === "plan" || page === "funds" ? "risk"
       : page === "profile" || page === "settings" || page === "connections"
       ? "profile"
@@ -589,7 +614,7 @@ function AppContent() {
   }
 
   return (
-    <div className={`app-shell mode-${mode} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
+    <div className={`app-shell mode-${mode} ${elderMode ? 'elder-mode' : ''} ${elderMode && !elderChatOpen ? 'elder-home-view' : ''} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
       <aside className="sidebar" hidden={mode === "native"}>
         <a
           className="brand"
@@ -649,7 +674,17 @@ function AppContent() {
         </div>
       </aside>
       <div className="workspace">
-        {page === "home" && mode === 'native' && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')} onConversations={()=>setConversationListOpen(true)} conversationsOpen={conversationListOpen} onHelp={()=>setModal('help')}/>}
+        {(elderMode||mode==='classic')&&<div className="appearance-toolbar" role="group" aria-label="界面版本">
+          <span>{elderMode ? '长辈版' : '普通版'}</span>
+          <button type="button" className="appearance-toggle" aria-label={elderMode ? '切换到普通版' : '切换到长辈版'} onClick={() => setElderMode(value => !value)}>
+            {elderMode ? '切换普通版' : '切换长辈版'}
+          </button>
+        </div>}
+        {page === 'home' && elderMode && elderChatOpen && <header className="elder-chat-heading fixed-chat-header">
+          <button type="button" aria-label="返回长辈版首页" onClick={() => setElderChatOpen(false)}><ArrowLeft aria-hidden="true" size={24}/>返回首页</button>
+          <strong>和{steward.name}聊聊</strong>
+        </header>}
+        {page === "home" && mode === 'native' && !elderMode && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')} onConversations={()=>setConversationListOpen(true)} conversationsOpen={conversationListOpen} onToggleElder={()=>setElderMode(true)} onHelp={()=>setModal('help')}/>}
         {page === "home" && mode === 'classic' && (
           <header className="topbar">
             <button
@@ -719,6 +754,14 @@ function AppContent() {
           ref={pageSurface}
           className={`main-content page-${page} ${page === "home" ? "home-content" : "is-detail-page"}`}
         >
+          {page === 'home' && elderMode && !elderChatOpen && <ElderHome
+            stewardName={steward.name} stewardImage={steward.image}
+            bank={bank.state} bankError={bank.error} hidden={hidden}
+            onToggleHidden={() => setHidden(value => !value)} onRefresh={() => { void bank.refresh(); }}
+            onAssets={() => go('assets')} onTransfer={() => setBankIntent({recipientId:'mom',amount:0})}
+            onBills={() => go('spending')} onSubscriptions={() => go('subscriptions')}
+            onChat={() => setElderChatOpen(true)} onHelp={() => setModal('help')}
+          />}
           {page === "home" && mode === "classic" && (
             <>
               <div className="home-title">
@@ -900,7 +943,7 @@ function AppContent() {
             <>
               <Heading title="我的资产" />
               <AssetDashboard snapshot={bank.state} error={bank.error} hidden={hidden} onToggleHidden={()=>setHidden(value=>!value)} onRefresh={()=>void bank.refresh()}
-                stewardName={steward.name} stewardImage={steward.image} onAsk={prompt=>{if(mode==='native')setChatDraft(prompt);else setInput(prompt);go('home');}}
+                stewardName={steward.name} stewardImage={steward.image} onAsk={askSteward}
                 onOpenCards={id=>{setCardEntry(id);go('cards');}} onOpenHoldings={()=>{setWealthEntry('holdings');go('risk');}}
                 onOpenDeposits={()=>go('deposits')} onOpenBills={()=>go('spending')} onOpenRisk={()=>go('risk')} onOpenFunds={()=>openFunds()} onOpenFocus={()=>go('automations')}
                 schedule={<AssetSchedule snapshot={bank.state} hidden={hidden} loading={!bank.state&&!bank.error} error={bank.error} subscriptions={subscriptionInsights.upcoming}
@@ -929,7 +972,7 @@ function AppContent() {
                 connections={connections}
                 automationAttention={homeAutomationAttention}
                 onOpenAutomations={() => go("automations")}
-                onAsk={(prompt) => { setChatDraft(prompt); go("home"); }}
+                onAsk={askSteward}
               />
               <div className="surface" aria-label="继续安排资金">
                 <Row icon={CalendarDays} title="近期资金安排" subtitle="按账户核对接下来的续费" onClick={()=>go('funding')}/>
@@ -942,7 +985,7 @@ function AppContent() {
               <WealthOperationMvp entry={wealthFollowup} onEntryConsumed={()=>setWealthFollowup(undefined)} onBack={goBack} availableBalance={bank.state?.balance} stewardName={steward.name} onOpenFund={openFunds} focusProductId={wealthFocusProductId} onFocusHandled={()=>setWealthFocusProductId(undefined)} initialScreen={wealthEntry} onInitialScreenConsumed={()=>setWealthEntry(undefined)}/>
             </>
           )}
-          {page === "cards" && <CardManagement onBack={goBack} initialCardId={cardEntry} onInitialCardConsumed={()=>setCardEntry(undefined)} onTransfer={cardId=>setCardTransfer({cardId,initial:{recipientId:'mom',amount:0}})} onAsk={prompt=>{if(mode==='native')setChatDraft(prompt);else setInput(prompt);go('home');}}/>}
+          {page === "cards" && <CardManagement onBack={goBack} initialCardId={cardEntry} onInitialCardConsumed={()=>setCardEntry(undefined)} onTransfer={cardId=>setCardTransfer({cardId,initial:{recipientId:'mom',amount:0}})} onAsk={askSteward}/>}
           {page === "profile" && (
             <>
               <Heading title="我的" subtitle="熟悉你的习惯，也尊重你的边界" />
@@ -980,7 +1023,7 @@ function AppContent() {
                   </div></div>
                   <div className="profile-service-group"><h3>连接与设置</h3><div className="surface">
                     <Row icon={Link2} title="数据连接" subtitle={Object.keys(connections).length?`已连接 ${Object.keys(connections).length} 个支付账户`:'连接微信支付、支付宝'} onClick={()=>go('authorization')}/>
-                    <Row icon={Settings2} title="设置" subtitle={`使用模式 · ${mode==='classic'?'经典款':'AI 原生'}`} onClick={()=>go('settings')}/>
+                    <Row icon={Settings2} title="设置" subtitle={elderMode?'长辈版 · 大字显示':`使用模式 · ${standardMode==='classic'?'经典款':'AI 原生'}`} onClick={()=>go('settings')}/>
                   </div></div>
                 </section>
 
@@ -1019,6 +1062,13 @@ function AppContent() {
               <Heading title="设置" subtitle="选择适合你的使用方式" />
               <div className="settings-content">
                 <fieldset className="mode-preferences">
+                  <legend>界面显示</legend>
+                  <label className={`mode-option ${elderMode ? 'selected' : ''}`}>
+                    <input type="checkbox" checked={elderMode} onChange={event => setElderMode(event.target.checked)}/>
+                    <span><strong>长辈版</strong><small>大字、大按钮，常用功能更好找。随时可以切回普通版。</small></span>
+                  </label>
+                </fieldset>
+                <fieldset className="mode-preferences">
                   <legend>使用模式</legend>
                   <p id="mode-help">
                     只改变办理方式。管家、偏好与未完成安排都会保留。
@@ -1039,24 +1089,24 @@ function AppContent() {
                   ).map(([value, title, description]) => (
                     <label
                       key={value}
-                      className={`mode-option ${mode === value ? "selected" : ""}`}
+                      className={`mode-option ${standardMode === value ? "selected" : ""}`}
                     >
                       <input
                         type="radio"
                         name="usage-mode"
                         value={value}
-                        checked={mode === value}
+                        checked={standardMode === value}
                         aria-describedby="mode-help"
                         onChange={() => {
                           setMode(value);
-                          setToast(`已切换为${title}，返回首页即可体验`);
+                          setToast(elderMode ? `普通版已设为${title}，切回普通版即可体验` : `已切换为${title}，返回首页即可体验`);
                         }}
                       />
                       <span>
                         <strong>{title}</strong>
                         <small>{description}</small>
                       </span>
-                      {mode === value && <Check size={19} aria-hidden="true" />}
+                      {standardMode === value && <Check size={19} aria-hidden="true" />}
                     </label>
                   ))}
                 </fieldset>
@@ -1131,10 +1181,10 @@ function AppContent() {
               />
             </>
           )}
-          {page === 'tasks' && <><Heading title="日程"/><TaskCalendar stewardName={steward.name} onDiscuss={mode==='native'?prompt=>{setChatDraft(prompt);go('home');}:undefined} initialDate={taskDate} schedules={bank.state?.allSchedules??bank.state?.schedules??[]} occasions={bank.state?.occasions??[]} onOpenOccasion={id=>{setOccasionEntry({id});go('occasions');}} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={cardId=>cardId&&cardId!=='primary'?setCardTransfer({cardId,initial:{kind:'records'}}):setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(null);setSubscriptionFocusTarget(`${source}:${id}`);go('subscriptions');}}/></>}
+          {page === 'tasks' && <><Heading title="日程"/><TaskCalendar stewardName={steward.name} onDiscuss={mode==='native'?askSteward:undefined} initialDate={taskDate} schedules={bank.state?.allSchedules??bank.state?.schedules??[]} occasions={bank.state?.occasions??[]} onOpenOccasion={id=>{setOccasionEntry({id});go('occasions');}} sources={Object.values(connections).filter((s):s is NonNullable<typeof s>=>!!s)} bankError={bank.error} sourceError={subscriptionRefreshError} draft={taskDraft} onDraftConsumed={()=>setTaskDraft(null)} onOpenTransfers={cardId=>cardId&&cardId!=='primary'?setCardTransfer({cardId,initial:{kind:'records'}}):setBankIntent({kind:'records'})} onOpenSubscription={(source,id)=>{setSubscriptionActionTarget(null);setSubscriptionFocusTarget(`${source}:${id}`);go('subscriptions');}}/></>}
           {page === 'group-aa' && <><Heading title="微信群智能AA"/><GroupAA onOpenHistory={()=>go('aa-history')}/></>}
-          {page === 'merchant' && <><Heading title="我的小店"/><MerchantWorkspace stewardName={steward.name} onAsk={prompt=>{setMode('native');setChatDraft(prompt);go('home');}}/></>}
-          {page === 'aa-history' && <><Heading title="历史 AA 账本"/><AAHistory stewardName={steward.name} onStartBook={()=>{setMode('native');setChatDraft('帮我记下这次聚餐的消费，最后一起 AA');go('home');}} onOpenGroupAA={()=>go('group-aa')} onOpenConversation={id=>{setMode('native');setConversationRequest({id,token:crypto.randomUUID()});go('home');}}/></>}
+          {page === 'merchant' && <><Heading title="我的小店"/><MerchantWorkspace stewardName={steward.name} onAsk={prompt=>{setMode('native');askSteward(prompt,true);}}/></>}
+          {page === 'aa-history' && <><Heading title="历史 AA 账本"/><AAHistory stewardName={steward.name} onStartBook={()=>{setMode('native');askSteward('帮我记下这次聚餐的消费，最后一起 AA',true);}} onOpenGroupAA={()=>go('group-aa')} onOpenConversation={id=>{setMode('native');setConversationRequest({id,token:crypto.randomUUID()});if(elderMode)setElderChatOpen(true);go('home');}}/></>}
           {page === 'occasions' && <><Heading title="生活筹备"/><OccasionPlanner stewardName={steward.name} initialPrompt={occasionEntry.prompt} initialPlanId={occasionEntry.id} getMemoryContext={async prompt=>{const current=await memory.refresh();return current?memoryContext(current,prompt):'';}} onOpenCalendar={date=>{setTaskDate(date);go('tasks');}}/></>}
           {page === "funding" && (
             <>
@@ -1152,22 +1202,22 @@ function AppContent() {
                 onOpenBills={() => go("spending")} onOpenWealth={() => go("risk")} onOpenCards={() => go("cards")}
                 onSnapshotChange={setAutomationSnapshot}
                 onDiscussRun={(run:AutomationRun)=>{
-                  setChatDraft(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
-                  go('home');
+                  askSteward(`我想继续了解“${automationTemplates[run.kind].title}”：${run.summary.replace(/[。；;]+$/,'')}。请结合这次检查的依据，告诉我最需要先处理什么。`);
                 }} />
             </>
           )}
           {stewardWorkerStarted.current && (
-            <div data-page-persistent hidden={mode !== "native" || page !== "home"} style={mode !== "native" || page !== "home"?{display:"none"}:undefined} aria-label="管家处理现场">
+            <div data-page-persistent hidden={mode !== "native" || page !== "home" || (elderMode && !elderChatOpen)} style={mode !== "native" || page !== "home" || (elderMode && !elderChatOpen)?{display:"none"}:undefined} aria-label="管家处理现场">
             {wechatShare.error&&<p role="alert">{wechatShare.error}</p>}
             <StewardWorkspaces
               conversationRequest={conversationRequest}
               onConversationRequestConsumed={()=>setConversationRequest(undefined)}
               conversationListOpen={conversationListOpen}
               onConversationListOpenChange={setConversationListOpen}
-              voiceEnabled={mode==='native'&&page==='home'&&!['steward','privacy','memory'].includes(modal||'')}
+              voiceEnabled={mode==='native'&&page==='home'&&(!elderMode||elderChatOpen)&&!['steward','privacy','memory'].includes(modal||'')}
               voiceReviewing={!!bankIntent||!!cardTransfer||!!modal}
               homePreview
+              elderMode={elderMode}
               wechatShare={wechatShare.share}
               onWechatShareDone={wechatShare.done}
               memory={memory}
@@ -1255,7 +1305,11 @@ function AppContent() {
             </span>
           </div>
         )}
-        <AnimatedBottomNav items={nav} activePage={activeNav} onNavigate={go}/>
+        <AnimatedBottomNav items={elderMode?[
+          {page:'home' as const,label:'首页',icon:MessageCircle},
+          {page:'assets' as const,label:'我的账户',icon:Wallet},
+          {page:'profile' as const,label:'更多服务',icon:UserRound},
+        ]:nav} activePage={activeNav} onNavigate={next=>{if(elderMode&&next==='home')setElderChatOpen(false);go(next);}}/>
       </div>
       <StatusToast message={toast} onDismiss={() => setToast('')}/>
       <Dialog
@@ -1640,7 +1694,7 @@ function AppContent() {
         description="不用找菜单，先告诉我你想做什么。"
       >
         <StewardGuide stewardName={steward.name} onChoose={prompt=>{
-          if(mode==='native')setChatDraft(prompt);
+          if(mode==='native'){setChatDraft(prompt);if(elderMode)setElderChatOpen(true);}
           else setInput(current=>current.trim()?`${current}；${prompt}`:prompt);
           go('home');
         }}/>

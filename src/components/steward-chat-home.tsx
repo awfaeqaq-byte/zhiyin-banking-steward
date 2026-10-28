@@ -125,6 +125,7 @@ type Props = {
   wechatShare?:WechatShare;
   onWechatShareDone?:(id:string)=>void;
   homePreview?:boolean;
+  elderMode?:boolean;
   seamless?: boolean;
   fullSession?: boolean;
   conversationNotice?: {id:string;text:string;retryPrompt?:string};
@@ -259,7 +260,7 @@ export function StewardChatHome({
   voiceReviewing=false,getVoiceContext,onVoiceTurn,
   onVoiceRequest,
   wechatShare,onWechatShareDone,
-  seamless=false, homePreview=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,conversationRuns,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
+  seamless=false, homePreview=false, elderMode=false, fullSession=false, sceneFlows=[],onResumeScene, conversationNotice,conversationMessages,conversationRuns,onConversationEntries,processingPhase, contextWorkspaces=[],onBackgroundTurn,onBackgroundBook,onBackgroundProgress,
   workspace, onRoutePrompt, onRetryMessage, submissionDisabled=false, externalBusy=false, injectedPrompt, onTurnComplete, onWorkspaceBook,onBillViewChange,
   memory,
   stewardName,
@@ -1231,12 +1232,13 @@ export function StewardChatHome({
               value={input}
               disabled={voiceActive}
               onChange={event => setInput(event.target.value)}
-              placeholder={wechatShare?'想让我怎么处理这些消息？':`和${stewardName}说点什么…`}
+              placeholder={wechatShare?'想让我怎么处理这些消息？':elderMode?'输入想办的事':`和${stewardName}说点什么…`}
               autoComplete="off"
               maxLength={wechatShare?200:1000}
             />
             <button type="submit" aria-label={`发送给${stewardName}`} disabled={voiceActive || submissionDisabled || (!onRoutePrompt&&(sending||externalBusy)) || viewSaving || (!input.trim()&&!wechatShare)}>
               {sending&&!onRoutePrompt ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
+              {elderMode && <span className="elder-send-label">{sending ? '处理中' : '发送'}</span>}
             </button>
           </div>
           {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} getContext={getVoiceContext} onTurn={onVoiceTurn} reviewing={voiceReviewing} enabled={voiceEnabled} disabled={!!wechatShare} onActiveChange={setVoiceActive}/>}
