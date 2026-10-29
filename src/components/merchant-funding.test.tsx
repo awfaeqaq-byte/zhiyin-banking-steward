@@ -77,3 +77,25 @@ it('保存前随金额修改展示资金影响，预览不改变真实账本',as
  fireEvent.change(screen.getByLabelText('安排金额（元）'),{target:{value:'1500'}});
  expect(screen.getByText(/保存后预计可用 ¥500.00/)).toBeInTheDocument();expect(merchantRequest).toHaveBeenCalledTimes(1);
 });
+it.each(['cancelled','paid'] as const)('恢复%s安排的旧修改卡只显示最终记录，不再展示编辑和预测缺口',async status=>{
+ const state=fixture();state.revision=4;state.funding!.plans[0]={...state.funding!.plans[0],status};
+ vi.mocked(merchantRequest).mockResolvedValue(state);
+ render(<MerchantFundingPanel draft={{intent:'plan',revision:2,planId:'rent',title:'房租',amount:800000,dueDate:'2026-11-01'}}/>);
+ expect(await screen.findByText(status==='paid'?'这笔安排已支付':'这笔安排已取消')).toBeInTheDocument();
+ expect(screen.queryByText(/保存后预计/)).not.toBeInTheDocument();
+ expect(screen.queryByLabelText('安排金额（元）')).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'确认保存安排'})).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'已核对最新记录'})).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'核对余额'})).toBeEnabled();
+ expect(merchantRequest).toHaveBeenCalledTimes(1);
+});
+it('当前打开的修改方案在同步为取消状态后立即移除预测和编辑',async()=>{
+ render(<MerchantFundingPanel draft={{intent:'plan',revision:2,planId:'rent',title:'房租',amount:800000,dueDate:'2026-11-01'}}/>);
+ expect(await screen.findByText(/保存后预计缺口/)).toBeInTheDocument();
+ const ended=fixture();ended.revision=3;ended.funding!.plans[0].status='cancelled';
+ vi.mocked(merchantRequest).mockResolvedValue(ended);
+ fireEvent.click(screen.getByRole('button',{name:'刷新资金安排'}));
+ expect(await screen.findByText('这笔安排已取消')).toBeInTheDocument();
+ expect(screen.queryByText(/保存后预计/)).not.toBeInTheDocument();
+ expect(screen.queryByLabelText('安排金额（元）')).not.toBeInTheDocument();
+});
