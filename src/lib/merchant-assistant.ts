@@ -9,7 +9,8 @@ export function validMerchantInsight(value:unknown):value is MerchantInsight{
 export function isMerchantPrompt(prompt:string,inMerchantContext=false):boolean{
  if(/\[微信分享|ZHIYIN_WECHAT_SHARE|AA|aa|均摊|平摊|转账|汇款|银行卡|基金|理财|订阅|提醒我/.test(prompt))return false;
  const owner=/帮我分析小店经营|我的小店|我(?:的)?店(?:里|铺)?|我们店|经营(?:账本|账目|支出|收入|分析)|小店.{0,18}(?:收入|营业|菜品|利润|赚|账|进货|实收)|菜品.{0,12}(?:销量|收入|排行|贡献)|什么(?:菜)?卖得好|哪(?:道|个|些)菜.{0,10}(?:卖|收入)|生成.{0,5}点餐码/.test(prompt);
- return owner||/(?:小店|店里|经营)/.test(prompt)&&isFundingPrompt(prompt)||inMerchantContext&&isFundingPrompt(prompt)||inMerchantContext&&/^(?:那|再|看看|看一下|帮我看|帮我看看)?(?:今天|今日|近7天|最近7天|近七天|全部|支出|收入|菜品|销量|账本|经营支出|订单|点餐码)(?:的)?(?:呢|情况|收入|支出|销量|排行|分析|怎么样|多少|什么卖得好)?[？?。！!\s]*$/.test(prompt.trim());
+ const fundingFollowup=inMerchantContext&&/^(?:\d+(?:\.\d{1,2})?(?:万)?(?:元|块)?|(?:20\d{2}[-/年])?\d{1,2}[-/月]\d{1,2}(?:日|号)?|今天|明天|后天|(?:下周|本周|这周|周)[一二三四五六日天])[。！!\s]*$/.test(prompt.trim());
+ return fundingFollowup||owner||/(?:小店|店里|经营)/.test(prompt)&&isFundingPrompt(prompt)||inMerchantContext&&isFundingPrompt(prompt)||inMerchantContext&&/^(?:那|再|看看|看一下|帮我看|帮我看看)?(?:今天|今日|近7天|最近7天|近七天|全部|支出|收入|菜品|销量|账本|经营支出|订单|点餐码)(?:的)?(?:呢|情况|收入|支出|销量|排行|分析|怎么样|多少|什么卖得好)?[？?。！!\s]*$/.test(prompt.trim());
 }
 const money=(value:number)=>`¥${(value/100).toFixed(2)}`;
 export function merchantAnswer(state:MerchantState,prompt:string,now=Date.now(),previous?:FundingDraft):{text:string;merchantUI?:MerchantInsight;action:{type:'open_merchant'}}{

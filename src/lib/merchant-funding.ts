@@ -82,7 +82,8 @@ export function fundingReply(state: MerchantState, prompt: string, now = Date.no
  const amounts = [...withoutDates.matchAll(/(?<![\d.])(\d+(?:\.\d{1,2})?)\s*(万)?\s*(?:元|块)(?!\d)/g)];
  if (amounts.length > 1 || /(?:房租.*(?:进货|采购|工资)|(?:进货|采购|工资).*房租)/.test(prompt)) return overview('这里有多笔资金安排，请逐笔核对金额与日期；本次还没有保存任何一笔。');
  const bare = !amounts.length && withoutDates.match(/(?:改成|金额(?:是|为)?|房租|进货款?|采购款?|可用资金|可用余额|周转金)\s*(\d+(?:\.\d{1,2})?)(万)?(?:\s|[，。！？]|$)/);
- const match = amounts[0] || bare;
+ const numeric = continuation ? withoutDates.trim().match(/^(\d+(?:\.\d{1,2})?)(万)?[。！!]?$/) : null;
+ const match = amounts[0] || bare || numeric;
  const amount = match ? Math.round(Number(match[1]) * (match[2] ? 10000 : 1) * 100) : undefined;
  if (amount !== undefined && (!integer(amount, 0, 100000000) || /-\s*\d|\d+\.\d{3,}/.test(prompt))) return overview('金额需要在 0 到 100 万元之间，最多保留两位小数。原安排没有修改。');
  if (/可用资金|可用余额|周转金/.test(prompt) || previous?.intent === 'cash' && continuation) return {text: '请核对现在可用于小店经营的余额。确认后会作为测算起点，未收款订单不计入。', draft: {intent: 'cash', revision: state.revision, ...(amount !== undefined ? {amount} : {})}};
@@ -97,6 +98,7 @@ export function fundingReply(state: MerchantState, prompt: string, now = Date.no
  }
  if (editing && !prior) return overview('请先选中一笔安排，或告诉我是哪笔房租、进货款。原安排没有修改。');
  if (/取消|付了|已付|已经付/.test(prompt)) {
+  if (amount !== undefined && prior?.amount !== amount) return overview('你刚说的金额与原安排不同，请先调整并保存金额，再核对付款记录。');
   if (!active.some(p => p.id === prior?.planId)) return overview('这笔草稿还未保存，无需取消，也不能登记为已支付。');
   return {text: /取消/.test(prompt) ? '核对后可取消这笔预算安排，不会撤销已经发生的付款。' : '请确认这笔钱已在原渠道支付，并选择新记一笔支出或关联已有账目。', draft: {...prior!, revision: state.revision, intent: /取消/.test(prompt) ? 'cancel' : 'paid'}};
  }

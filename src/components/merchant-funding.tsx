@@ -12,7 +12,7 @@ function applied(state:MerchantState,draft?:FundingDraft|null) {
  if(!draft||state.revision<=draft.revision)return false;
  const p=state.funding?.plans.find(p=>p.id===draft.planId);
  if(draft.intent==='cash')return state.funding?.cash?.amount===draft.amount;
- if(draft.intent==='plan')return !!p&&p.amount===draft.amount&&p.title===draft.title&&p.dueDate===draft.dueDate;
+ if(draft.intent==='plan')return !!p&&p.amount===draft.amount&&p.title===draft.title&&p.dueDate===draft.dueDate&&(!draft.category||p.category===draft.category);
  return draft.intent==='paid'?p?.status==='paid':draft.intent==='cancel'?p?.status==='cancelled':false;
 }
 export function MerchantFundingPanel({draft:proposal,active=true,stewardName='宁宁',onAsk}:{draft?:FundingDraft;active?:boolean;stewardName?:string;onAsk?:(text:string)=>void}) {
