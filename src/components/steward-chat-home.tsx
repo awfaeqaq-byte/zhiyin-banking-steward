@@ -1,3 +1,4 @@
+import {MerchantFundingPanel} from './merchant-funding';
 import {isGroupAAAuthorizationRequired} from '../lib/group-aa-authorization';
 import {MerchantInsightCard} from './merchant-insight-card';
 import {isMerchantPrompt,merchantAnswer,validMerchantInsight,type MerchantInsight} from '../lib/merchant-assistant';
@@ -696,7 +697,7 @@ export function StewardChatHome({
       if(!readonlyShare&&(workspace?.kind==='merchant'||!workspace&&isMerchantPrompt(prompt))){
         const response=workspace?.kind==='merchant'
           ?await reply({stewardName,subscriptions:[],messages:requestMessages})
-          :merchantAnswer(await merchantRequest(),prompt);
+          :merchantAnswer(await merchantRequest(),prompt,Date.now(),messages.filter(m=>m.merchantUI).at(-1)?.merchantUI?.funding);
         if(epoch!==contextEpoch.current)return;
         outcome=response.text;
         const id=injectedPrompt?.replyId||`assistant-${crypto.randomUUID()}`;
@@ -1151,7 +1152,7 @@ export function StewardChatHome({
                       ? <WealthInlineCompare reply={parsed.text} replyAssessedAt={message.riskAssessedAt} stewardName={stewardName} onExplain={selection=>void sendPrompt(selection)} onOpenWealth={onOpenWealth}/>
                       : <details className="wealth-archived-reply"><summary>历史理财说明</summary><StewardReplyContent content={parsed.text} stewardName={stewardName}/></details>
                     : seamless&&message.role==='user'?<WechatSharedText content={message.content}/>:homePreview&&message.role==='assistant'?<HomeReplyVisual content={parsed.text} prompt={sourceText} stewardName={stewardName}/>:<StewardReplyContent content={parsed.text} bill={!seamless&&!historyOpen && activeBill?.id===message.id ? activeBill.data : undefined} stewardName={stewardName}/>)}
-                  {message.role==='assistant'&&message.merchantUI&&<MerchantInsightCard summary={message.merchantUI.summary} shopName={message.merchantUI.shopName} onOpen={onOpenMerchant}/>}
+                  {message.role==='assistant'&&message.merchantUI&&(message.merchantUI.funding?<MerchantFundingPanel draft={message.merchantUI.funding} active={!historyOpen&&message.id===messages.filter(m=>m.merchantUI?.funding).at(-1)?.id} stewardName={stewardName}/>:<MerchantInsightCard summary={message.merchantUI.summary} shopName={message.merchantUI.shopName} onOpen={onOpenMerchant}/>)}
                   {action?.type==='open_merchant'&&!message.merchantUI&&onOpenMerchant&&<button onClick={onOpenMerchant}>打开我的小店<ArrowRight size={16}/></button>}
                   {!taskSurface&&message.sceneId&&message.id===messages.filter(m=>m.sceneId===message.sceneId).at(-1)?.id&&sceneFlows.find(s=>s.id===message.sceneId)?.next&&onResumeScene&&<button className="desk-text-action" onClick={()=>void resumeSceneAtSource(sceneFlows.find(s=>s.id===message.sceneId)!.next!).catch(cause=>setError(cause instanceof Error?cause.message:'原事项暂未打开'))}>{({food:'查看原订单',occasion:'继续核对筹备',expense:'查看收款进度',calendar:'查看日历安排',bank:'查看银行记录'} as const)[sceneFlows.find(s=>s.id===message.sceneId)!.next!.kind]}</button>}
                   {(message.retryRunId&&onRetryMessage||!message.retryRunId&&message.retryPrompt&&message.id===activeReplyId)&&<button className="desk-text-action" disabled={sending||externalBusy||viewSaving} onClick={()=>void retryMessage(message)}>重试这条消息</button>}

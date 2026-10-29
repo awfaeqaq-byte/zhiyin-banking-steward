@@ -1,3 +1,4 @@
+import {MerchantFundingPanel} from './merchant-funding';
 import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
 import {ArrowDownLeft, ArrowUpRight, BookOpen, Check, ChevronDown, Clipboard, CupSoda, Leaf, MessageCircle, Plus, QrCode, ReceiptText, RefreshCw, Send, Soup, Store, UtensilsCrossed} from 'lucide-react';
 import {emptyMerchantState, merchantSummary, type MerchantMenuItem, type MerchantOperation, type MerchantOrder, type MerchantPeriod, type MerchantState} from '../lib/merchant';
@@ -6,7 +7,7 @@ import {MerchantQRCode} from './merchant-qr';
 import {MerchantCashflow} from './merchant-cashflow';
 import './merchant-workspace.css';
 
-type Tab = 'overview' | 'orders' | 'menu';
+type Tab = 'overview' | 'orders' | 'menu' | 'funding';
 type MenuDraft = Omit<MerchantMenuItem, 'price'> & {price: string};
 type Confirmation = {type: 'record-payment' | 'cancel-order' | 'record-refund'; orderId: string; total: number; status: MerchantOrder['status']};
 const money = (value: number) => `¥${(value / 100).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -157,7 +158,8 @@ export function MerchantWorkspace({stewardName, onAsk}: {stewardName: string; on
   </section>}
   {shop && <>
    <header className="merchant-heading"><span className="merchant-shop-sign" aria-hidden="true"><Store size={30} strokeWidth={1.5}/></span><div className="merchant-shop-identity"><h2>{shop.name}</h2><p>{availableCount} 道菜在售 · 每一笔生意，都有数</p></div><button type="button" aria-label="刷新小店" disabled={loading || busy} onClick={() => void load()}><RefreshCw size={18} className={loading ? 'merchant-spinning' : ''} aria-hidden="true"/></button></header>
-   <nav className="merchant-tabs" aria-label="小店功能"><button type="button" aria-pressed={tab === 'overview'} onClick={() => setTab('overview')}>概览</button><button type="button" aria-pressed={tab === 'orders'} onClick={() => setTab('orders')}>订单{pendingCount > 0 && <span aria-hidden="true">{pendingCount}</span>}</button><button type="button" aria-pressed={tab === 'menu'} onClick={() => setTab('menu')}>菜单</button></nav>
+   <nav className="merchant-tabs" aria-label="小店功能"><button type="button" aria-pressed={tab === 'overview'} onClick={() => setTab('overview')}>概览</button><button type="button" aria-pressed={tab === 'orders'} onClick={() => setTab('orders')}>订单{pendingCount > 0 && <span aria-hidden="true">{pendingCount}</span>}</button><button type="button" aria-pressed={tab === 'menu'} onClick={() => setTab('menu')}>菜单</button><button type="button" aria-pressed={tab === 'funding'} onClick={() => setTab('funding')}>资金安排</button></nav>
+   {tab === 'funding' && <MerchantFundingPanel stewardName={stewardName} onAsk={onAsk}/>}
    {tab === 'overview' && <div className="merchant-tab-body">
     <section className="merchant-cashbook" aria-label="经营收支"><div className="merchant-period" role="group" aria-label="统计范围">{periods.map(item => <button type="button" key={item.id} aria-pressed={period === item.id} onClick={() => setPeriod(item.id)}>{item.label}</button>)}</div>
     <div className="merchant-overview"><div className="merchant-overview-main"><span>净收款</span><strong>{money(summary.netCollected)}</strong><small>{period === 'today' ? '今天' : period === 'week' ? '近 7 天' : '全部记录'} · 按实际收付时间</small></div><dl><div><dt>已收款</dt><dd>{money(summary.collectedTotal)}</dd></div><div><dt>已退款</dt><dd>{money(summary.refundedTotal)}</dd></div></dl></div>
@@ -188,7 +190,7 @@ export function MerchantWorkspace({stewardName, onAsk}: {stewardName: string; on
      <button type="button" className="merchant-add-dish" disabled={busy || pending} onClick={() => {const id = crypto.randomUUID(); setExpandedMenuId(id); setMenu(current => [...current, {id, name: '', category: '热菜', price: '', available: true}]); setMenuDirty(true); dirtyRef.current = true;}}><Plus size={17} aria-hidden="true"/>添加菜品</button><div className="merchant-menu-save"><span>{menuDirty ? '有未保存的修改' : '菜单已保存'}</span><button className="merchant-primary" disabled={busy || pending || !menuDirty || menuStale}>{busy ? '正在保存…' : '保存菜单'}</button></div>
     </form>
    </div>}
-   {tab !== 'overview' && assistantEntry}
+   {tab !== 'overview' && tab !== 'funding' && assistantEntry}
 
   </>}
  </div>;
