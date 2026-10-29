@@ -59,6 +59,7 @@ export function MerchantFundingPanel({draft:proposal,active=true,stewardName='�
  const validPayment=paymentMode==='existing'?!!expenseId:paymentMode==='new'&&Number.isFinite(paymentDate)&&paymentDate<=Date.now();
  const invalid=draft?.intent==='cash'?value===null:draft?.intent==='plan'?value===null||value<=0||!title.trim()||!validFundingDate(dueDate):draft?.intent==='paid'?!validPayment:false;
  const disabled=busy||loading||pending||stale||ended||invalid;
+ const previewRemaining=draft?.intent==='plan'&&p?.available!==null&&p?.available!==undefined&&value!==null&&value>0?p.available-p.required+(current?.status==='planned'?current.amount:0)-value:null;
  const selection=(plan:FundingPlan,intent:FundingDraft['intent'])=>edit({intent,revision:state!.revision,planId:plan.id,title:plan.title,category:plan.category,amount:plan.amount,dueDate:plan.dueDate});
  function submit(event:FormEvent){
   event.preventDefault();if(disabled||!draft||value===null&&['cash','plan'].includes(draft.intent))return;
@@ -91,6 +92,7 @@ export function MerchantFundingPanel({draft:proposal,active=true,stewardName='�
      {draft.intent==='plan'&&<details><summary>记账分类</summary><select aria-label="安排分类" value={category} onChange={e=>setCategory(e.target.value)}>{['进货','房租','人工','水电','其他'].map(c=><option key={c}>{c}</option>)}</select></details>}
     </fieldset>}
     {draft.intent==='cash'&&<p className="funding-note">填写此刻可用的经营资金，不含未收款订单。后续新登记收款、退款和支出会调整测算；补记已包含在余额里的旧账后，请重新核对余额。</p>}
+    {previewRemaining!==null&&<p className="funding-preview" data-warning={previewRemaining<0} aria-live="polite">保存后预计{previewRemaining<0?'缺口':'可用'} {money(Math.abs(previewRemaining))}<small>按当前已确认余额和全部待付安排测算</small></p>}
     {draft.intent==='plan'&&<p className="funding-note">仅安排预算，不会冻结资金或自动付款。到期状态可在此查看。</p>}
     {(draft.intent==='paid'||draft.intent==='cancel')&&<p className="funding-confirm-line">{current?.title??draft.title} · {money(current?.amount??draft.amount??0)}<br/>{current?.dueDate??draft.dueDate}</p>}
     {draft.intent==='paid'&&<fieldset disabled={busy||pending||ended}><p className="funding-note">仅登记已经在原渠道完成的付款，不会发起转账。</p><label>记账方式<select aria-label="记账方式" value={paymentMode} onChange={e=>{setPaymentMode(e.target.value);setExpenseId('');}}><option value="">请选择，避免重复记账</option><option value="new">这笔尚未入账，新记支出</option><option value="existing">已经记过，关联已有支出</option></select></label>{paymentMode==='new'&&<label>实际付款时间<input aria-label="实际付款时间" type="datetime-local" value={paidAt} max={dateTime()} onChange={e=>setPaidAt(e.target.value)}/></label>}{paymentMode==='existing'&&<label>关联已有支出<select aria-label="关联已有支出" value={expenseId} onChange={e=>setExpenseId(e.target.value)}><option value="">选择同金额的记录</option>{state.expenses.filter(e=>e.amount===current?.amount&&!state.funding?.plans.some(p=>p.expenseId===e.id)).map(e=><option value={e.id} key={e.id}>{e.title} · {money(e.amount)} · {stamp(e.occurredAt)}</option>)}</select></label>}</fieldset>}
