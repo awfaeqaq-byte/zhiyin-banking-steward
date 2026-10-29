@@ -24,3 +24,14 @@ it('商户分流从服务端本店账本分析，跨会话重载保留当时卡�
  service.submit(other,{id:otherId,text:'我的小店今天收入多少',currentId:'',memoryRevision:0});await service.idle(other);const otherJob=service.get(other).runs![0].jobs[0];service.claim(other,otherId,otherJob.id,owner);
  const empty=await service.reply(other,{id:otherId,jobId:otherJob.id,owner,request:{stewardName:'宁宁',subscriptions:[],messages:[]}});expect(empty.merchantUI).toBeUndefined();expect(empty.text).toContain('创建');
 });
+it('小店资金草稿在服务端恢复，日期和金额补充沿用同一个计划',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'zhiyin-funding-message-'));dirs.push(dir);
+ createMerchantStore(dir).change(scope,{type:'create-shop',name:'资金测试小馆',revision:0,requestId:crypto.randomUUID()});
+ const model=vi.fn(async()=>{throw new Error('此处不需要模型');});let service=createMessageService(dir,model);let currentId='';
+ async function ask(text:string){const id=crypto.randomUUID(),owner=crypto.randomUUID();service.submit(scope,{id,text,currentId,memoryRevision:0});await service.idle(scope);const job=service.get(scope).runs!.find(r=>r.id===id)!.jobs[0];expect(job).toBeDefined();currentId=job.taskId;service.claim(scope,id,job.id,owner);return service.reply(scope,{id,jobId:job.id,owner,request:{stewardName:'宁宁',subscriptions:[],messages:[]}});}
+ const first=await ask('小店预留进货款800元');expect(first.merchantUI?.funding?.dueDate).toBeUndefined();
+ service=createMessageService(dir,model);
+ const second=await ask('11月5日');expect(second.merchantUI?.funding?.planId).toBe(first.merchantUI?.funding?.planId);expect(second.merchantUI?.funding?.dueDate).toMatch(/-11-05$/);
+ const third=await ask('改成1000元');expect(third.merchantUI?.funding?.amount).toBe(100000);expect(third.merchantUI?.funding?.dueDate).toBe(second.merchantUI?.funding?.dueDate);
+ expect(createMerchantStore(dir).get(scope).funding).toBeUndefined();expect(model).not.toHaveBeenCalled();expect(validWorkspaces(service.get(scope))).toBe(true);
+});

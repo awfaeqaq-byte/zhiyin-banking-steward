@@ -69,3 +69,10 @@ describe('小店资金安排',()=>{
   expect(store.get('22345678-1234-4234-8234-123456789abc').funding).toBeUndefined();
  });
 });
+
+it('补充日期与裸金额留在商户任务，付款金额不同先核对，不能默默沿用旧金额',()=>{
+ expect(isMerchantPrompt('11月5日',true)).toBe(true);expect(isMerchantPrompt('8000',true)).toBe(true);
+ const s=fixture(),cash=fundingReply(s,'小店可用资金',now)!.draft;
+ expect(fundingReply(s,'8000',now,cash)!.draft.amount).toBe(800000);
+ expect(fundingReply(s,'房租3500元已付',now)!.draft.intent).toBe('overview');
+});
