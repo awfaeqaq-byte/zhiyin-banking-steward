@@ -8,6 +8,7 @@ export function explicitOccasionFields(prompt:string,draft:Partial<OccasionDraft
  const patch:Partial<OccasionDraft>={};
  const budget=prompt.match(/预算(?:写错了?|不加[，,；;]?仍|仍为|仍|保持|是|为|改成|改为|改|调整为|[:：])?\s*(\d+(?:\.\d{1,2})?)\s*(?:元|[，,；;。]|$)/)?.[1];
  if(budget)patch.budget=Math.round(Number(budget)*100);
+ prompt=prompt.split(/[，,。；;]/).filter(part=>!/不变|保持原样|保持原值|别动|不要改|不修改/.test(part)).join('，');
  const title=prompt.match(/(?:安排名称|安排名|草案名|方案名|名称)\s*[:：]?\s*([^，,。；;]{1,60})/)?.[1]?.trim();if(title)patch.title=title;
  const recipient=prompt.match(/(?:准备对象|对象)(?:是|为|[:：])?\s*([^，,。；;]{1,30})/)?.[1]?.trim()||prompt.match(/为([^，,。；;]{1,30}?)准备/)?.[1]?.trim()||prompt.match(/(?:帮我)?安排([^，,。；;]{1,30}?)的?生日/)?.[1]?.trim();
  if(recipient)patch.recipient=recipient;

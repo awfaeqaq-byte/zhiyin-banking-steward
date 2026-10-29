@@ -5,6 +5,7 @@ const cancel = /(?:取消|关闭|停止)(?!提醒|提示).{0,55}(?:自动续费|
 const selector = /^(?:改成|改为|换成|换为|就|选|选择)?(?:微信(?:支付)?|支付宝)\s*(?:\d+(?:\.\d{1,2})?元)?(?:的)?(?:那|这)?(?:一)?项[。！!？?\s]*$/;
 const preference = /(?:稍后再说|暂缓|明天再说|都(?:要)?保留|全部保留|不(?:要|用)?再提示|别再提示|重新评估|重新检查)/;
 const otherBusiness = /转账|汇款|给.{0,15}转|AA|aa|点餐|外卖|生日|日历|银行卡/;
+const isCancellationStatusQuery = (text:string)=>/先查|核查|取消成功|没取消成功|是否.*取消|状态/.test(text)&&!/重新取消|现在取消/.test(text);
 const quoted = /ZHIYIN_ACTION:|原样|展示.*(?:指令|文字|标记)|不要(?:操作|办理|执行)|不(?:要|用)?取消|暂不取消|只.{0,40}提醒|(?:取消|关闭).{0,40}提醒/;
 
 const nameAnalysis = (text:string)=>/名称|服务名|虚构/.test(text)&&/仅分析|只分析|只作.{0,6}分析|仅作.{0,6}分析|名称分析/.test(text);
@@ -53,7 +54,7 @@ export function subscriptionCommandReply(request:StewardReplyRequest):StewardRep
   let text=users.at(-1)?.content.trim()||'';
   if(/(?:把|将).{0,8}(?:那个|这个).{0,8}取消/.test(text)&&!request.subscriptions.some(item=>text.includes(item.title)))return {text:'这里指当前有效签约，还是账单识别出的历史候选？请明确服务、平台和要做的动作。确认前不会取消签约或删除历史记录。',waitingQuestion:'请明确有效签约或历史候选、服务名和平台。'};
   if(/统计|多少钱|多少元/.test(text)&&/测试会员|接下来|未来/.test(text)&&!/未来\s*\d+\s*天/.test(text))return {text:'这次统计哪个平台、未来多少天的计划扣费？请说明时间窗口和服务范围，我会按当前有效签约的实际下次扣费日统计。',waitingQuestion:'请确认平台、服务范围及未来多少天。'};
-  let prior=users.slice(0,-1).reverse().find(m=>cancel.test(m.content)&&!quoted.test(m.content)&&!otherBusiness.test(m.content));
+  let prior=users.slice(0,-1).reverse().find(m=>cancel.test(m.content)&&!isCancellationStatusQuery(m.content)&&!quoted.test(m.content)&&!otherBusiness.test(m.content));
   if(prior){
     const chosen=users.slice(0,-1).reverse().map(m=>({message:m,items:matchingSubscriptions('取消'+m.content.replace(/^(?:更正为|改成|改为|选|选择)/,''),request.subscriptions)})).find(value=>value.items.length>0);
     if(chosen){const source=chosen.message.content+'\n'+prior.content;const provider=/微信/.test(source)&&!/支付宝/.test(source)?'微信':/支付宝/.test(source)&&!/微信/.test(source)?'支付宝':'';prior={...prior,content:'取消'+provider+chosen.items[0].title};}
@@ -73,7 +74,7 @@ export function subscriptionCommandReply(request:StewardReplyRequest):StewardRep
     const context=users.map(m=>m.content).join('\n'),matches=currentItems.filter(item=>context.includes(item.title)&&(!/微信/.test(context)||/支付宝/.test(context)||item.provider==='wechat_pay'));
     if(matches.length===1){const item=matches[0];return {text:`${label(item)}，${item.nextChargeAt===undefined?'当前未返回下次扣费日期':`下次计划${new Date(item.nextChargeAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'})}`}。本次仅查询，签约、提醒和偏好保持不变。`,action:{type:'open_subscriptions'}};}
   }
-  const statusQuery=/先查|核查|取消成功|没取消成功|是否.*取消|状态/.test(text)&&!/重新取消|现在取消/.test(text);
+  const statusQuery=isCancellationStatusQuery(text);
   const priorPlatform=prior&&/微信/.test(prior.content)?'wechat_pay':prior&&/支付宝/.test(prior.content)?'alipay':undefined;
   if(statusQuery||prior&&/继续/.test(text)&&!currentItems.some(item=>item.title===targetName(prior.content)&&(!priorPlatform||item.provider===priorPlatform))){
     const origin=prior?.content||'取消'+text.replace(/^(?:微信支付|微信|支付宝)(?:的)?/,'').split(/刚才|已经|可能|是否|当前|现在/)[0];
@@ -121,7 +122,7 @@ export function subscriptionCommandReply(request:StewardReplyRequest):StewardRep
   if(!dateQuery&&!otherBusiness.test(text)&&keepUnchanged(text)&&(/订阅|音乐|云盘|视频|两项|这组/.test(text)||users.slice(0,-1).some(message=>/订阅|自动续费|会员/.test(message.content))))return {text:`${/比较|重复/.test(text)?'同类服务只能提示可能重复，不代表是同一签约或同一笔扣款。还需核对实际权益与使用频率；当前资料没有使用频率，不能断言哪项多余。':''}保留现有订阅；这次没有修改签约、续费提醒或重复提示偏好。需要关闭重复提示时，请单独说明。`};
   if(/订阅|续费|会员/.test(text)&&/只问|仅询问|规则|取消后|退款|仅分析|只分析|名称.*(?:指令|执行)/.test(text)&&!/现在(?:帮我)?取消|请(?:帮我)?取消/.test(text))return {text:'取消自动续费只会停止后续扣费，不会自动退还历史款项；已付周期的权益按商家规则保留，退款须另行核对。本次仅作说明，没有取消签约、修改提醒或重复提示偏好。'};
   if(quoted.test(text)||otherBusiness.test(text)||!request.subscriptionAccess)return null;
-  const previous=[...users.slice(0,-1)].reverse().find(message=>cancel.test(message.content)&&!quoted.test(message.content)&&!otherBusiness.test(message.content));
+  const previous=[...users.slice(0,-1)].reverse().find(message=>cancel.test(message.content)&&!isCancellationStatusQuery(message.content)&&!quoted.test(message.content)&&!otherBusiness.test(message.content));
   const changing=selector.test(text)&&Boolean(previous);
   const cancelling=cancel.test(text)||changing;
   const choosing=preference.test(text)&&/订阅|会员|音乐|视频|云盘|这组|两项/.test(text);

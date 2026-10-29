@@ -80,6 +80,8 @@ describe('浏览器失败原句：账单范围与证据',()=>{
   expect(billTaskQuestion(next)).toContain('2026年10月账单');
   const r=await reply(['分析2026年10月支付宝账单','这笔归到生活费，这次分析用','支付宝2026年10月25日燃气费36.20元，只改A归到生活费，重列水费23.50元'],{billAnalysis:bill,billFocus:{provider:'alipay',id:'gas'}});
   expect(r.text).toContain('生活费');expect(r.text).toContain('水费');expect(r.text).toContain('59.70元');expect(r.text).toContain('未持久');
+  const lookup=await reply(['列出支付宝燃气费36.20元和水费23.50元的真实日期、平台与金额，先不改分类'],{billAnalysis:bill});expect(lookup.text).toContain('2026-10-25');expect(lookup.text).toContain('2026-10-24');
+  const again=await reply(['分析2026年10月支付宝账单','这笔归到生活费，这次分析用','支付宝2026年10月25日燃气费36.20元，只改A归到生活费，重列水费23.50元','按本次分类反馈重列A/B与汇总'],{billAnalysis:bill});expect(again.waitingQuestion).toBeUndefined();expect(again.text).toContain('燃气费 36.20元：生活费');expect(again.text).toContain('水费 23.50元：生活');expect(again.text).toContain('59.70元');
  });
  it('BI2-066 两个实际平台名与只算微信冲突先澄清',async()=>{
   const prompt='分析2026年10月微信和支付宝合计，但只算微信';
@@ -127,7 +129,12 @@ describe('浏览器失败原句：订阅更正和状态变化',()=>{
  it('SU2-063 明确比较的两个同价项目先问选择，不重问签约或候选',async()=>{const r=await reply(['比较微信V3音乐和支付宝V3视频乙并把这两个里面贵的那个取消'],subContext);expect(r.text).toContain('价格相同');expect(r.text).toContain('取消支付宝V3视频乙');expect(r.action).toBeUndefined();});
  it.each(['SU2-066','SU2-074'])('%s 自然纠正前缀不被当作服务名',async()=>{expect((await reply(['取消微信V3音乐家自动续费','名称记错了，是你列表中的微信V3音乐25元/月'],subContext)).action).toEqual({type:'prepare_cancel',provider:'wechat_pay',subscriptionId:'music'});});
  it('SU2-067 查询扣费日期和金额优先于其他都保留',async()=>{const r=await reply(['帮我处理一下微信V3音乐这个订阅','我只是想知道下一次什么时候扣、扣多少，其他都保留'],subContext);expect(r.text).toContain('2026-11-28');expect(r.text).toContain('25.00');expect(r.action?.type).toBe('open_subscriptions');});
- it('SU2-073 首句查询外部季卡取消状态也返回清单事实',async()=>{const r=await reply(['微信V3季卡刚才可能没取消成功，先查这项状态，不要重复操作'],subContext);expect(r.text).toContain('当前未显示为有效签约');expect(r.action?.type).toBe('open_subscriptions');});
+ it('SU2-073 首句及重复查询外部季卡状态始终保留服务名称',async()=>{
+  const query='刚才可能没取消成功，先查微信V3季卡这项状态，不要重复操作';
+  for(const messages of [['微信V3季卡刚才可能没取消成功，先查这项状态，不要重复操作'],['取消微信V3季卡自动续费，先核对',query,query]]){
+   const r=await reply(messages,subContext);expect(r.text).toContain('当前未显示为有效签约');expect(r.text).toContain('“V3季卡”');expect(r.text).not.toContain('“成功”');expect(r.action?.type).toBe('open_subscriptions');
+  }
+ });
  it('SU2-075 仅微信目标外部已关闭时不被支付宝同名掩盖',async()=>{const r=await reply(['取消微信的V3云盘自动续费','继续刚才的操作'],{...subContext,subscriptions:subs.filter(s=>s.id!=='wc-cloud')});expect(r.text).toContain('当前未显示为有效签约');expect(r.action?.type).toBe('open_subscriptions');});
  it.each(['SU2-076','SU2-077'])('%s 泛指V3会员或云盘先产生候选澄清',async(id)=>{const r=await reply([id==='SU2-076'?'取消一个V3会员':'取消那个云盘会员'],subContext);expect(r.waitingQuestion).toContain('服务');expect(r.action).toBeUndefined();});
 });
@@ -135,6 +142,6 @@ describe('浏览器失败原句：订阅更正和状态变化',()=>{
 const draft:OccasionDraft={title:'专项CR2-066',recipient:'测试家人',budget:100000,prepareAt:Date.parse('2026-11-04T18:00:00+08:00'),deliverAt:Date.parse('2026-11-06T18:00:00+08:00'),address:'上海市测试区沙箱路1号101室',contact:'测试家人 13800000000',note:'',productIds:['cake-light','flowers-roses']};
 describe('浏览器失败原句：筹备合并',()=>{
  it('CR2-063 明确公历送达先落字段，随后只补筹备不覆盖送达',async()=>{const a=await requestOccasionAdvice('我已核对，使用公历2026年11月11日18点送达',{...draft,prepareAt:0,deliverAt:0},'');expect(a.patch?.deliverAt).toBe(Date.parse('2026-11-11T18:00:00+08:00'));const b=await requestOccasionAdvice('筹备2026年11月9日18:00，其他已确认时间不变',{...draft,...a.patch,prepareAt:0},'');expect(b.patch?.prepareAt).toBe(Date.parse('2026-11-09T18:00:00+08:00'));expect(b.patch?.deliverAt).toBeUndefined();});
- it('CR2-065 完整请求先落准备对象，替代蛋糕不抹掉已有对象和时间',async()=>{const a=await requestOccasionAdvice('帮我安排测试家人生日，安排名专项CR2-065。预算380元，2026年11月4日18:00开始筹备，11月6日18:00送达，收件人测试家人13800000000，地址上海市测试区沙箱路1号101室。',{...draft,recipient:''},'');expect(a.patch?.recipient).toBe('测试家人');const b=await requestOccasionAdvice('预算不加，仍380元，只保留一份轻甜鲜果蛋糕，花束不要',{...draft,...a.patch},'');expect(b.patch).toMatchObject({productIds:['cake-light'],budget:38000});expect(b.patch?.recipient).toBeUndefined();});
+ it('CR2-065 完整请求先落准备对象，替代蛋糕不抹掉已有对象和时间',async()=>{const a=await requestOccasionAdvice('帮我安排测试家人生日，安排名专项CR2-065。预算380元，2026年11月4日18:00开始筹备，11月6日18:00送达，收件人测试家人13800000000，地址上海市测试区沙箱路1号101室。',{...draft,recipient:''},'');expect(a.patch?.recipient).toBe('测试家人');const b=await requestOccasionAdvice('预算不加，仍380元，只保留一份轻甜鲜果蛋糕，花束不要，其他对象日期收货信息不变',{...draft,...a.patch},'');expect(b.patch).toMatchObject({productIds:['cake-light'],budget:38000});expect(b.patch?.recipient).toBeUndefined();});
  it('CR2-070 选择存量方案续用澄清前900预算，不受另一个计划影响',async()=>{const r=await requestOccasionAdvice('专项CR2-066，071不要动',draft,'',[{role:'user',content:'我已有专项CR2-071预算1000和专项CR2-066预算1000，把那个生日计划预算改900元'},{role:'assistant',content:'选择哪份计划？'}]);expect(r.patch).toEqual({budget:90000});expect(r.text).toContain('尚未保存');});
 });
