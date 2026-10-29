@@ -82,6 +82,7 @@
     "src/lib/scene-context.ts",
     "src/lib/scene-expenses.ts",
     "src/lib/merchant.ts",
+    "src/lib/merchant-funding.ts",
     "src/lib/merchant-assistant.ts"
   ]
 }

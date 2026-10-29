@@ -1,3 +1,4 @@
+import {applyFundingOperation} from './merchant-funding';
 import { existsSync, readFileSync, writeFileSync, renameSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -163,7 +164,9 @@ export function createMerchantStore(root: string) {
                         state.expenses.push({ id: randomUUID(), title: field(input.title, 80, '支出名称'), category: field(input.category, 30, '支出分类'), amount: integer(input.amount, 1, 100000000, '支出金额'), occurredAt: integer(input.occurredAt, 0, now, '支出时间') });
                         break;
                     }
-                    default: throw new MerchantError('不支持的小店操作');
+                    default: {
+                        try {applyFundingOperation(state, input, now);} catch (error) {throw new MerchantError(error instanceof Error ? error.message : '资金安排未保存');}
+                    }
                 }
                 state.revision++;
                 account.ownerRequests.push({ requestId: rid, body: fingerprint });

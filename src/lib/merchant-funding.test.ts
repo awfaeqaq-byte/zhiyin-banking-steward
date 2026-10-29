@@ -56,7 +56,7 @@ describe('小店资金安排',()=>{
   change({type:'set-funding-cash',amount:500000});
   const plan={type:'save-funding-plan',id:'rent',title:'房租',category:'房租',amount:300000,dueDate:'2026-11-01'};
   change(plan);expect(s.expenses).toHaveLength(0);expect(s.funding!.plans).toHaveLength(1);
-  expect(()=>store.change(scope,{...plan,revision:0,requestId:crypto.randomUUID()})).toThrow(/更新|版本/);
+  expect(()=>store.change(scope,{...plan,revision:0,requestId:crypto.randomUUID()})).toThrow(/更新|版本|变化/);
   expect(()=>change({...plan,id:'duplicate'})).toThrow(/已存在/);
   const pay={type:'pay-funding-plan',id:'rent',occurredAt:Date.now(),revision:s.revision,requestId:crypto.randomUUID()};
   s=store.change(scope,pay);expect(s.expenses).toHaveLength(1);expect(s.funding!.plans[0].status).toBe('paid');

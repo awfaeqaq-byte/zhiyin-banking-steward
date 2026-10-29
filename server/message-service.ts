@@ -100,7 +100,8 @@ export function createMessageService(directory:string,model:StewardModelCall){
     const current=memory.get();if(current.revision!==run.memoryRevision)throw new Error('记忆上下文已变化，请重新交代');
     const progress=readTaskProgress(task);
     if(task.kind==='merchant'){
-      const result=merchantAnswer(createMerchantStore(directory).get(scope),job.text);
+      const previous=messageHistory(state,run).filter(entry=>entry.workspaceId===task.id&&entry.merchantUI).at(-1)?.merchantUI?.funding;
+      const result=merchantAnswer(createMerchantStore(directory).get(scope),job.text,Date.now(),previous);
       complete(scope,{type:'message-complete',id:run.id,jobId:job.id,owner:input.owner,assistant:result.text,memoryRevision:run.memoryRevision,failed:false,merchantUI:result.merchantUI,progress:{goal:task.title,stage:'ready'}});
       return result;
     }

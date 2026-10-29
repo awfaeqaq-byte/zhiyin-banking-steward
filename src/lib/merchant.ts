@@ -1,3 +1,4 @@
+import {validFunding,type MerchantFunding,type FundingOperation} from './merchant-funding';
 /** Amounts are integer fen. A submitted order is not a receipt. */
 export type MerchantMenuItem = {
     id: string;
@@ -43,6 +44,7 @@ export type MerchantState = {
     shop: MerchantShop | null;
     orders: MerchantOrder[];
     expenses: MerchantExpense[];
+    funding?: MerchantFunding;
 };
 export type MerchantPeriod = 'today' | 'week' | 'all';
 export type MerchantSummary = {
@@ -63,7 +65,7 @@ export type MerchantSummary = {
         amount: number;
     }>;
 };
-export type MerchantOperation = {
+export type MerchantOperation = FundingOperation | {
     type: 'create-shop';
     name: string;
 } | {
@@ -110,6 +112,8 @@ export function validMerchantState(value: unknown): value is MerchantState {
         return false;
     if (value.shop === null && (value.orders.length || value.expenses.length))
         return false;
+    const expenses: unknown[] = value.expenses;
+    if (value.funding !== undefined && (!value.shop || !validFunding(value.funding) || value.funding.plans.some(p => p.status === 'paid' && !expenses.some(e => record(e) && e.id === p.expenseId && e.amount === p.amount)))) return false;
     return value.orders.length <= 10000 && value.orders.every(validMerchantOrder) && new Set(value.orders.map(order => order.id)).size === value.orders.length && value.expenses.length <= 10000 && value.expenses.every(expense => record(expense) && id(expense.id) && text(expense.title, 80) && text(expense.category, 30) && money(expense.amount) && timestamp(expense.occurredAt)) && new Set(value.expenses.map(expense => expense.id)).size === value.expenses.length;
 }
 /** Cash uses event dates; a later refund appears in its actual refund period.
