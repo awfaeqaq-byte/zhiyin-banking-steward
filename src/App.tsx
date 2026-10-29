@@ -78,6 +78,7 @@ import { FundDiscovery } from "./components/fund-discovery";
 import {TaskCalendar} from './components/task-calendar';
 import {GroupAA} from './components/group-aa';
 import {MerchantWorkspace} from './components/merchant-workspace';
+import {isMerchantPrompt} from './lib/merchant-assistant';
 import {AAHistory} from './components/aa-history';
 import {OccasionPlanner} from './components/occasion-planner';
 import {memoryContext} from './lib/steward-memory';
@@ -268,6 +269,7 @@ function AppContent() {
   const [toast, setToast] = useState("");
   const [message, setMessage] = useState("");
   const [chatDraft,setChatDraft]=useState('');
+  const [submittedMessage,setSubmittedMessage]=useState<{token:string;text:string}>();
   const [conversationListOpen,setConversationListOpen]=useState(false);
   const [conversationRequest,setConversationRequest]=useState<{id:string;token:string}>();
   const [automationSnapshot,setAutomationSnapshot]=useState<AutomationServerSnapshot>(emptyAutomationSnapshot);
@@ -516,7 +518,12 @@ function AppContent() {
     const text = input.trim();
     if (!text) return;
     setInput("");
-    if (/定时|自动任务|每月.*分析|每周.*检查/.test(text)) go("automations");
+    if (isMerchantPrompt(text)) {
+      setSubmittedMessage({token:crypto.randomUUID(),text});
+      setMode('native');
+      go('home');
+    }
+    else if (/定时|自动任务|每月.*分析|每周.*检查/.test(text)) go("automations");
     else if (/转|汇款/.test(text)) openTransfer(text);
     else if (/消费|花|账单|支出/.test(text)) go("spending");
     else if (/理财|投资|稳妥/.test(text)) go("plan");
@@ -1250,6 +1257,8 @@ function AppContent() {
               onAutomationDecision={decideHomeAutomationEvidence}
               initialDraft={chatDraft}
               onInitialDraftConsumed={()=>setChatDraft('')}
+              submittedMessage={submittedMessage}
+              onSubmittedMessageConsumed={()=>setSubmittedMessage(undefined)}
               onPrepareTransfer={setBankIntent}
               bankReceipt={bankReceipt}
               onPrepareCancel={(provider, subscriptionId) => {

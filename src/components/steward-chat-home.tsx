@@ -172,6 +172,8 @@ type Props = {
   onAutomationDecision?:(runId:string,evidenceId:string,decision:'confirmed'|'dismissed')=>Promise<void>;
   initialDraft?:string;
   onInitialDraftConsumed?:()=>void;
+  submittedMessage?:{token:string;text:string};
+  onSubmittedMessageConsumed?:()=>void;
   onPrepareTransfer?: (intent:SmartIntent,workspaceId?:string)=>void;
   bankReceipt?:BankReceipt|null;
   onPrepareCancel: (provider: ExternalFinancialProvider, subscriptionId: string) => void;
@@ -284,6 +286,8 @@ export function StewardChatHome({
   automationAttention,
   onAutomationDecision,
   initialDraft,
+  submittedMessage,
+  onSubmittedMessageConsumed,
   onInitialDraftConsumed,
   onPrepareTransfer,
   bankReceipt,
@@ -571,7 +575,7 @@ export function StewardChatHome({
   }
   async function submitRoutedPrompt(prompt:string,recordUser:boolean,billTurn?:{taskId:string;displayText?:string}) {
     if(!onRoutePrompt||submissionDisabled)return;
-    const submittedDraft=input,messageId=crypto.randomUUID();
+    const submittedDraft=input||prompt,messageId=crypto.randomUUID();
     setInput('');
     // A queued message owns only its original text. It must not reset the
     // active job's bill interaction or response while that job is still running.
@@ -859,6 +863,13 @@ export function StewardChatHome({
     }
   }
   const sendRef=useRef(sendPrompt);sendRef.current=sendPrompt;
+  const consumedSubmission=useRef('');
+  useEffect(()=>{
+    if(!submittedMessage||submissionDisabled||sending||viewSaving||consumedSubmission.current===submittedMessage.token)return;
+    consumedSubmission.current=submittedMessage.token;
+    void sendRef.current(submittedMessage.text);
+    onSubmittedMessageConsumed?.();
+  },[submittedMessage,submissionDisabled,sending,viewSaving,onSubmittedMessageConsumed]);
   const consumed=useRef('');
   useEffect(()=>{
     if(!sending&&!viewSaving&&workspace?.kind!=='occasion'&&workspace?.kind!=='food'&&injectedPrompt&&consumed.current!==injectedPrompt.token){consumed.current=injectedPrompt.token;void sendRef.current(injectedPrompt.text,false,true);}

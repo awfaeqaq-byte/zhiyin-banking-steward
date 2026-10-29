@@ -436,7 +436,7 @@
 
 .steward-brief p { line-height: 1.8; white-space: pre-wrap; }
 
-.steward-brief button:where(:not(.button-base):not(.switch-root)) {
+.steward-brief button:where(:not(.button-base):not(.switch-root):not(.merchant-funding button)) {
   display: flex;
   align-items: center;
   justify-content: space-between;

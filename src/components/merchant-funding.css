@@ -7,3 +7,12 @@
 @keyframes funding-reveal{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.merchant-funding *{animation:none!important;transition:none!important}}@media(max-width:360px){.merchant-funding{padding:12px}.funding-fields{grid-template-columns:1fr}.funding-timeline summary{gap:7px}.funding-timeline summary>strong{font-size:13px}.funding-balance strong{font-size:25px}}
 
 .funding-preview{padding:10px 12px;background:#dff1ed;border-radius:8px;color:#006d66;font-weight:600}.funding-preview[data-warning=true]{background:#fff2dd;color:#8b4c22}.funding-preview small{display:block;font-weight:400;margin-top:3px}
+
+/* The embedded panel owns its controls; amount text must not compete with a full-width button. */
+.funding-heading>span{min-width:0;flex:1}.funding-heading>span svg{flex-shrink:0}
+.merchant-funding .funding-heading>button{flex:0 0 44px;width:44px;height:44px;padding:10px}
+.funding-balance{flex-wrap:wrap;gap:6px 10px}.funding-balance>div{flex:1 1 190px}
+.funding-balance strong{white-space:nowrap}.funding-balance>button{margin-left:auto}
+.funding-final{display:grid;gap:5px;padding:14px 0;border-top:1px solid var(--mf-line);border-bottom:1px solid var(--mf-line)}
+.funding-final>strong{font-size:16px}.funding-final p{color:var(--mf-muted)}
+.elder-mode .funding-final>strong{font-size:20px}

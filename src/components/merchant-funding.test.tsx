@@ -62,7 +62,7 @@ it('新登记付款保存实际发生时间，已保存旧卡不重复执行，�
  fireEvent.change(screen.getByLabelText('实际付款时间'),{target:{value:'2026-01-01T12:00'}});fireEvent.click(screen.getByRole('button',{name:'确认登记已支付'}));
  await waitFor(()=>expect(merchantRequest).toHaveBeenCalledWith({type:'pay-funding-plan',id:'rent',occurredAt:Date.parse('2026-01-01T12:00:00+08:00')},2));
  fireEvent.click(screen.getByText('已完成与取消的安排'));expect(screen.getByText('已支付',{selector:'.funding-history span'})).toBeInTheDocument();
- unmount();render(<MerchantFundingPanel draft={proposal}/>);expect(await screen.findByText(/这份方案已记录/)).toBeInTheDocument();expect(screen.queryByRole('button',{name:'确认登记已支付'})).not.toBeInTheDocument();
+ unmount();render(<MerchantFundingPanel draft={proposal}/>);expect(await screen.findByText('这笔安排已支付')).toBeInTheDocument();expect(screen.queryByRole('button',{name:'确认登记已支付'})).not.toBeInTheDocument();
 });
 it('读取失败可恢复；无余额不推算，无小店不能创建资金安排',async()=>{
  vi.mocked(merchantRequest).mockRejectedValueOnce(new Error('暂时断开'));
