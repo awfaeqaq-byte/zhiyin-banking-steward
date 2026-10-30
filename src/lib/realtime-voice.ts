@@ -9,7 +9,7 @@ export const initialVoiceState: VoiceState = {
   phase: 'idle', muted: false, heard: '', answer: '', error: '', notice: '',
   pending: 0, userSpeaking: false,
 };
-export type VoiceBusiness = (text: string, id: string, signal: AbortSignal, context?: {recent: VoiceLine[]}) => Promise<{text: string; review?: import('./voice-wealth-review').VoiceWealthReview | import('./voice-transfer-review').VoiceTransferReview | import('./voice-limit-review').VoiceLimitReview | import('./voice-cake-review').VoiceCakeReview; expense?:import('./voice-expense-record').VoiceExpenseRecord}>;
+export type VoiceBusiness = (text: string, id: string, signal: AbortSignal, context?: {recent: VoiceLine[]}) => Promise<{text: string; review?: import('./voice-wealth-review').VoiceWealthReview | import('./voice-transfer-review').VoiceTransferReview | import('./voice-limit-review').VoiceLimitReview | import('./voice-cake-review').VoiceCakeReview; expense?:import('./voice-expense-record').VoiceExpenseRecord;merchant?:import('./voice-merchant-report').VoiceMerchantReport}>;
 export function voiceSessionInstructions(name: string) {
   return '你是' + name + '，与文字首页同一位私人银行管家，不是语音输入法或播报器。' +
     '普通交流、问候、解释一般概念由你直接自然回应，不调用工具、不创建任务。宁宁温和简短，阿衡沉稳直接。' +
