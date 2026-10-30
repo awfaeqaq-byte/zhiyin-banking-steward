@@ -42,3 +42,10 @@ it('直接展示时也拒绝缺失记录，并按实际人数、份数和垫付�
  expect(screen.getByText('按约定分摊')).toBeVisible();expect(screen.getByText('小王先垫付')).toBeVisible();expect(screen.getByText('¥9.00')).toBeVisible();
  view.rerender(<VoiceExpenseRecord record={{...expense,book:{...book,entries:[{...entry,shares:shares.map(s=>({...s,weight:1}))}]}}}/>);expect(screen.getByText('3人均摊')).toBeVisible();
 });
+it('晚饭350元原页展示各自的1份或0.5份及金额，同时保留饮料',async()=>{
+ const dinner={...entry,id:'dinner-350',title:'晚饭',amount:35000,shares:entry.shares.map((s,i)=>({...s,weight:i%2===0?2:1}))};
+ await setup({...expense,book:{...book,entries:[entry,dinner]},entryId:dinner.id});
+ const card=screen.getByRole('region',{name:'已记账消费'});
+ expect(within(card).getByText('¥350.00')).toBeVisible();expect(within(card).getAllByText('1份')).toHaveLength(2);expect(within(card).getAllByText('0.5份')).toHaveLength(2);
+ expect(within(card).getAllByText('¥116.67')).toHaveLength(2);expect(within(card).getAllByText('¥58.33')).toHaveLength(2);
+});
