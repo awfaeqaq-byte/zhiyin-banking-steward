@@ -8,6 +8,8 @@ import type {VoiceContextLoader, VoiceTurn} from '../lib/voice-conversation';
 import {usePhoneBack} from '../lib/phone-bridge';
 import {VoiceWealthReview} from './voice-wealth-review';
 import {validVoiceWealthReview, type VoiceWealthReview as WealthReview} from '../lib/voice-wealth-review';
+import {VoiceTransferReview} from './voice-transfer-review';
+import {validVoiceTransferReview, type VoiceTransferReview as TransferReview} from '../lib/voice-transfer-review';
 import './steward-voice.css';
 
 // Operate: a call, not a dictation popover. Keep the incumbent teal/white world.
@@ -27,7 +29,7 @@ export function StewardVoice({
   const [reviewHost, setReviewHost] = useState<Element | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [captionsVisible, setCaptionsVisible] = useState(true);
-  const [wealthReview, setWealthReview] = useState<WealthReview>();
+  const [wealthReview, setWealthReview] = useState<WealthReview | TransferReview>();
   const wealthReviewRef = useRef(wealthReview); wealthReviewRef.current = wealthReview;
   const [operationAnswer, setOperationAnswer] = useState('');
   const connection = useRef<ReturnType<typeof createVoiceConnection>>();
@@ -43,10 +45,10 @@ export function StewardVoice({
       onTurn: turn => callbacks.current.onTurn?.(turn),
       business: async (...args) => {
         if (callbacks.current.reviewing) return {text: '用户正在核对方案。本次没有修改、没有授权或执行。可以解释已有结果；如需改金额、对象或时间，请先返回修改，不能代替本人点击。'};
-        if (wealthReviewRef.current) return {text: '请在当前语音页面点击方案上的确认按钮。口头确认不会执行赎回；如需修改，请先点“暂不赎回”。'};
+        if (wealthReviewRef.current) return {text: '请在当前语音页面点击方案上的确认按钮。口头确认不会执行；如需修改，请先取消当前方案。'};
         setOperationAnswer('');
         const result = await callbacks.current.onRequest(...args);
-        if (!args[2].aborted && validVoiceWealthReview(result.review)) {
+        if (!args[2].aborted && (validVoiceWealthReview(result.review) || validVoiceTransferReview(result.review))) {
           wealthReviewRef.current = result.review;
           setWealthReview(result.review);
         }
@@ -146,7 +148,8 @@ export function StewardVoice({
           {state.heard && <p className="voice-caption-user"><span>你</span>{state.heard}</p>}
           {(operationAnswer || state.answer && showAnswer) && <p className="voice-caption-steward"><span>{stewardName}</span>{operationAnswer || state.answer}</p>}
         </section>}
-        {wealthReview && <VoiceWealthReview key={wealthReview.draft.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，这笔先不赎回，没有提交这笔操作。'); }} onResult={setOperationAnswer}/>}
+        {wealthReview?.kind === 'wealth_redemption' && <VoiceWealthReview key={wealthReview.draft.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，这笔先不赎回，没有提交这笔操作。'); }} onResult={setOperationAnswer}/>}
+        {wealthReview?.kind === 'scheduled_transfer' && <VoiceTransferReview key={wealthReview.draft.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，先不预约，没有提交这笔操作。'); }} onResult={setOperationAnswer}/>}
         {state.error && <p className="voice-error" role="alert">{state.error}</p>}
         {state.notice && <p className="voice-notice">{state.notice}</p>}
         {state.pending > 0 && state.phase !== 'working' && <p className="voice-pending">还有事项在后台整理，结果会留在首页。</p>}
