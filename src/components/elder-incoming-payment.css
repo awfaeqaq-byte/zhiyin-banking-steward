@@ -1,0 +1,22 @@
+.elder-mode .elder-incoming { padding: 18px; color: #163d3b; border: 1px solid #a7cfc0; border-radius: 22px; background: #fff; }
+.elder-mode .elder-incoming-status { display: flex; align-items: center; gap: 8px; color: #005c50; font-size: 20px; font-weight: 650; }
+.elder-mode .elder-incoming-status svg { width: 32px; height: 32px; padding: 5px; color: #fff; background: #006c64; border-radius: 50%; }
+.elder-mode .elder-incoming h2 { margin: 10px 0 10px; color: #163d3b; font-size: 26px; line-height: 1.5; }
+.elder-mode .elder-incoming-amount { display: flex; align-items: baseline; gap: 8px; margin: 0; line-height: 1.25; }
+.elder-mode .elder-incoming-amount strong { color: #005c50; font-size: 56px; font-weight: 650; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.elder-mode .elder-incoming-amount span { font-size: 22px; }
+.elder-mode .elder-incoming-reassurance { margin: 8px 0 14px; color: #365651; font-size: 20px; }
+.elder-mode .elder-incoming :is(.elder-incoming-speak,.elder-incoming-details-toggle) { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 58px; padding: 13px 10px; border: 1px solid #6baca0; border-radius: 14px; background: #edf7f2; color: #00564f; font-size: 21px; line-height: 1.5; font-weight: 600; }
+.elder-mode .elder-incoming .elder-incoming-details-toggle { margin-top: 12px; border-color: #006c64; background: #006c64; color: #fff; }
+.elder-mode .elder-incoming .elder-incoming-speak:disabled { opacity: 1; border-color: #006c64; background: #d9eee5; }
+.elder-mode .elder-incoming-details { margin-top: 14px; padding-top: 12px; border-top: 1px solid #c0d5cc; }
+.elder-mode .elder-incoming-details dl { display: grid; gap: 8px; margin: 0; }
+.elder-mode .elder-incoming-details dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.elder-mode .elder-incoming-details :is(dt,dd) { margin: 0; font-size: 20px; line-height: 1.6; }
+.elder-mode .elder-incoming-details dt { color: #4b625f; flex: 0 0 auto; }
+.elder-mode .elder-incoming-details dd { color: #163d3b; text-align: right; }
+.elder-mode .elder-incoming .elder-incoming-error { margin: 14px 0 0; color: #7b3434; font-size: 20px; }
+.elder-mode .elder-dashboard.has-incoming { gap: 14px; }
+.elder-mode .elder-dashboard.has-incoming .elder-hero > img { width: 58px; height: 58px; flex-basis: 58px; }
+.elder-mode .elder-dashboard.has-incoming .elder-hero h1 { font-size: 26px; }
+@media (max-width: 360px) { .elder-mode .elder-incoming { padding: 18px; } .elder-mode .elder-incoming-amount strong { font-size: 50px; } }

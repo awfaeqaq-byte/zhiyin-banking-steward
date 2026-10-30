@@ -12,6 +12,8 @@ import {
   FileText,
 } from 'lucide-react';
 import type { BankSnapshot } from '../lib/bank-transfer';
+import {validIncomingTransfer, type IncomingTransfer} from '../lib/incoming-transfer';
+import {ElderIncomingPayment} from './elder-incoming-payment';
 import './elder-mode.css';
 
 type Props = {
@@ -28,6 +30,8 @@ type Props = {
   onChat: () => void;
   onHelp: () => void;
   onRefresh: () => void;
+  incomingReceipt?: IncomingTransfer;
+  onReadIncoming?: (receipt: IncomingTransfer) => Promise<void>;
 };
 
 const formatAmount = (cents: number) =>
@@ -37,6 +41,7 @@ const formatAmount = (cents: number) =>
   });
 
 export function ElderHome(props: Props) {
+  const incoming = validIncomingTransfer(props.incomingReceipt) ? props.incomingReceipt : undefined;
   // An unsuccessful refresh must not present an older snapshot as current.
   const bank = props.bankError ? null : props.bank;
   const total = bank?.assetSummary?.total ?? bank?.balance;
@@ -48,16 +53,17 @@ export function ElderHome(props: Props) {
   ];
 
   return (
-    <section className="elder-dashboard" aria-label="长辈版首页">
+    <section className={`elder-dashboard${incoming ? ' has-incoming' : ''}`} aria-label="长辈版首页">
       <header className="elder-hero">
         <img src={props.stewardImage} alt="" />
         <div>
-          <p className="elder-eyebrow">知银 · 您的银行管家</p>
+          {!incoming && <p className="elder-eyebrow">知银 · 您的银行管家</p>}
           <h1>您好，我是{props.stewardName}</h1>
-          <p>想办什么，点下面就好。</p>
+          <p>{incoming ? '有一笔钱到账，我来告诉您。' : '想办什么，点下面就好。'}</p>
         </div>
       </header>
 
+      {incoming ? <ElderIncomingPayment receipt={incoming} stewardName={props.stewardName} onRead={props.onReadIncoming}/> : <>
       <section className="elder-assets" aria-labelledby="elder-assets-title">
         <div className="elder-assets-top">
           <h2 id="elder-assets-title">{bank?.assetSummary ? '我的总资产' : '银行卡余额'}<span>（元）</span></h2>
@@ -114,6 +120,7 @@ export function ElderHome(props: Props) {
         </button>
       </div>
       <p className="elder-home-note"><ShieldCheck size={23} aria-hidden="true" /><span>转账前会请您核对，确认后才办理。</span></p>
+      </>}
     </section>
   );
 }
