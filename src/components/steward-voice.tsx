@@ -6,6 +6,8 @@ import {createVoiceConnection} from '../lib/voice-connection';
 import {initialVoiceState, type VoiceBusiness} from '../lib/realtime-voice';
 import type {VoiceContextLoader, VoiceTurn} from '../lib/voice-conversation';
 import {usePhoneBack} from '../lib/phone-bridge';
+import {VoiceWealthReview} from './voice-wealth-review';
+import {validVoiceWealthReview, type VoiceWealthReview as WealthReview} from '../lib/voice-wealth-review';
 import './steward-voice.css';
 
 // Operate: a call, not a dictation popover. Keep the incumbent teal/white world.
@@ -25,6 +27,9 @@ export function StewardVoice({
   const [reviewHost, setReviewHost] = useState<Element | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [captionsVisible, setCaptionsVisible] = useState(true);
+  const [wealthReview, setWealthReview] = useState<WealthReview>();
+  const wealthReviewRef = useRef(wealthReview); wealthReviewRef.current = wealthReview;
+  const [operationAnswer, setOperationAnswer] = useState('');
   const connection = useRef<ReturnType<typeof createVoiceConnection>>();
   const callbacks = useRef({onRequest, getContext, onTurn, reviewing});
   const inReview = reviewing || !!reviewHost;
@@ -36,25 +41,34 @@ export function StewardVoice({
     const current = createVoiceConnection({
       stewardName, getContext: async () => callbacks.current.getContext?.() ?? {recent: [], preferences: []},
       onTurn: turn => callbacks.current.onTurn?.(turn),
-      business: (...args) => callbacks.current.reviewing
-        ? Promise.resolve({text: '用户正在核对方案。本次没有修改、没有授权或执行。可以解释已有结果；如需改金额、对象或时间，请先返回修改，不能代替本人点击。'})
-        : callbacks.current.onRequest(...args),
+      business: async (...args) => {
+        if (callbacks.current.reviewing) return {text: '用户正在核对方案。本次没有修改、没有授权或执行。可以解释已有结果；如需改金额、对象或时间，请先返回修改，不能代替本人点击。'};
+        if (wealthReviewRef.current) return {text: '请在当前语音页面点击方案上的确认按钮。口头确认不会执行赎回；如需修改，请先点“暂不赎回”。'};
+        setOperationAnswer('');
+        const result = await callbacks.current.onRequest(...args);
+        if (!args[2].aborted && validVoiceWealthReview(result.review)) {
+          wealthReviewRef.current = result.review;
+          setWealthReview(result.review);
+        }
+        return result;
+      },
       onState: setState,
     });
     connection.current = current;
     const stop = () => current.stop('已停止收音，原有事项保留在首页。');
+    const reset = () => { stop(); wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer(''); };
     const hidden = () => { if (document.visibilityState === 'hidden') stop(); };
     const background = (event: MessageEvent) => {
       if (event.source === window.parent && event.origin === window.location.origin && event.data?.type === 'zhiyin-voice-stop') stop();
     };
     document.addEventListener('visibilitychange', hidden);
     window.addEventListener('message', background);
-    window.addEventListener('zhiyin-memory-context-reset', stop);
+    window.addEventListener('zhiyin-memory-context-reset', reset);
     return () => {
       current.stop();
       document.removeEventListener('visibilitychange', hidden);
       window.removeEventListener('message', background);
-      window.removeEventListener('zhiyin-memory-context-reset', stop);
+      window.removeEventListener('zhiyin-memory-context-reset', reset);
     };
   }, [stewardName]);
   useEffect(() => { if (!enabled) { connection.current?.stop('已离开首页，收音已停止。'); setOpen(false); } }, [enabled]);
@@ -118,7 +132,7 @@ export function StewardVoice({
         <div><strong><AudioLines size={18} aria-hidden="true"/>语音对话</strong><span>{active && !connecting ? <><i aria-hidden="true"/>{clock}</> : '你的个人银行管家'}</span></div>
         <button type="button" className="voice-minimize" aria-label="收起语音面板" onClick={minimize}><ArrowDown size={21} aria-hidden="true"/><span>回首页</span></button>
       </header>
-      <div className="voice-call-body" data-has-captions={hasCaptions}>
+      <div className="voice-call-body" data-has-captions={hasCaptions} data-has-operation={!!wealthReview}>
         <div className="voice-call-person">
           <div className="voice-presence" data-motion={speaking ? 'speaking' : 'quiet'}><img src={stewardImage} alt={stewardName}/><span aria-hidden="true"/></div>
           <DialogPrimitive.Title asChild><h2>{stewardName}<span>AI</span></h2></DialogPrimitive.Title>
@@ -130,15 +144,16 @@ export function StewardVoice({
         </div>
         {hasCaptions && <section className="voice-captions" aria-label="通话字幕">
           {state.heard && <p className="voice-caption-user"><span>你</span>{state.heard}</p>}
-          {state.answer && showAnswer && <p className="voice-caption-steward"><span>{stewardName}</span>{state.answer}</p>}
+          {(operationAnswer || state.answer && showAnswer) && <p className="voice-caption-steward"><span>{stewardName}</span>{operationAnswer || state.answer}</p>}
         </section>}
+        {wealthReview && <VoiceWealthReview key={wealthReview.draft.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，这笔先不赎回，没有提交这笔操作。'); }} onResult={setOperationAnswer}/>}
         {state.error && <p className="voice-error" role="alert">{state.error}</p>}
         {state.notice && <p className="voice-notice">{state.notice}</p>}
         {state.pending > 0 && state.phase !== 'working' && <p className="voice-pending">还有事项在后台整理，结果会留在首页。</p>}
       </div>
       <footer className="voice-call-footer">
         {!active && <p className="voice-consent"><ShieldCheck size={17} aria-hidden="true"/><span>开启后，音频、近期对话、已确认偏好和必要的业务结果会发送至阿里云百炼处理。本项目不保存原始录音。</span></p>}
-        {active && <p className="voice-return-hint">{connecting ? '连接时也可以收起，回首页查看。' : '回首页看方案，通话会继续。'}</p>}
+        {active && <p className="voice-return-hint">{wealthReview ? '就在这里核对，我陪你看。' : connecting ? '连接时也可以收起，回首页查看。' : '回首页看方案，通话会继续。'}</p>}
         <div className="voice-controls">{active ? <>
           {!connecting && <>{muteControl}<button type="button" className="voice-control voice-caption-toggle" aria-label={captionsVisible ? '关闭字幕' : '显示字幕'} aria-pressed={captionsVisible} onClick={() => setCaptionsVisible(value => !value)}><span className="voice-control-icon"><Captions size={24} aria-hidden="true"/></span><span className="voice-control-label">{captionsVisible ? '字幕已开' : '字幕已关'}</span></button></>}
           {endControl}

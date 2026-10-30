@@ -1,4 +1,4 @@
-import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
+import {act,fireEvent,render,screen,within} from '@testing-library/react';
 import {afterEach,expect,it,vi} from 'vitest';
 import {StewardVoice} from './steward-voice';
 import * as transport from '../lib/voice-connection';
@@ -45,7 +45,7 @@ it('口头确认不会授权或重做方案',async()=>{
  expect(result.text).toContain('点击');expect(request).not.toHaveBeenCalled();expect(onRequest).toHaveBeenCalledOnce();
 });
 it('方案过期后禁止执行，取消仅关闭当前方案',async()=>{
- const request=vi.spyOn(wealth,'wealthRequest');const value=review();value.draft.expiresAt=Date.now()-1;await setup(value);
+ const request=vi.spyOn(wealth,'wealthRequest');const value=review();value.draft.createdAt=Date.now()-300000;value.draft.expiresAt=Date.now()-1;await setup(value);
  expect(screen.getByRole('button',{name:'确认赎回 ¥3,000.00'})).toBeDisabled();expect(screen.getByText(/方案已过期/)).toBeVisible();
  fireEvent.click(screen.getByRole('button',{name:'暂不赎回'}));expect(screen.queryByRole('region',{name:'旅费赎回方案'})).not.toBeInTheDocument();expect(request).not.toHaveBeenCalled();
 });
@@ -58,12 +58,12 @@ it('长期持仓复查不一致时不能显示全部核对成功',async()=>{
 it('提交返回丢失只查原回执，不再次执行赎回',async()=>{
  const request=vi.spyOn(wealth,'wealthRequest').mockRejectedValueOnce(new Error('连接中断')).mockResolvedValueOnce(snapshot());await setup();
  fireEvent.click(screen.getByRole('button',{name:'确认赎回 ¥3,000.00'}));await screen.findByText('已到账');
- expect(request).toHaveBeenCalledTimes(2);expect(request.mock.calls.filter(args=>args[0]?.type==='confirm-redemption')).toHaveLength(1);
+ expect(request).toHaveBeenCalledTimes(2);expect(request.mock.calls.filter(args=>(args[0] as {type?:string})?.type==='confirm-redemption')).toHaveLength(1);
 });
 it('复查也失败时只允许重新核对结果',async()=>{
  const request=vi.spyOn(wealth,'wealthRequest').mockRejectedValueOnce(new Error('连接中断')).mockRejectedValueOnce(new Error('离线')).mockResolvedValueOnce(snapshot());await setup();
  fireEvent.click(screen.getByRole('button',{name:'确认赎回 ¥3,000.00'}));const retry=await screen.findByRole('button',{name:'重新核对结果'});fireEvent.click(retry);await screen.findByText('已到账');
- expect(request.mock.calls.filter(args=>args[0]?.type==='confirm-redemption')).toHaveLength(1);
+ expect(request.mock.calls.filter(args=>(args[0] as {type?:string})?.type==='confirm-redemption')).toHaveLength(1);
 });
 it('被取消的旧语音请求不能重新展示可执行方案',async()=>{
  let resolve:(v:unknown)=>void=()=>{};const pending=new Promise(r=>{resolve=r;});let business:VoiceBusiness=async()=>({text:''});
