@@ -126,6 +126,8 @@
 .voice-wealth-facts > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 1.5; }
 .voice-wealth-facts dt { color: var(--muted); flex: 0 0 auto; }
 .voice-wealth-facts dd { margin: 0; text-align: right; color: var(--ink); }
+.voice-expense-record .voice-wealth-badge { display: inline-flex; align-items: center; gap: 4px; }
+.voice-expense-portion { margin-left: 8px; font-size: 11px; color: var(--teal-dark); }
 .voice-wealth-protected { display: flex; gap: 9px; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--teal-dark); }
 .voice-wealth-protected > svg { flex: 0 0 auto; margin-top: 1px; }
 .voice-wealth-protected > div { display: grid; flex: 1; gap: 6px; min-width: 0; }
