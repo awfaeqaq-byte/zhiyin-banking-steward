@@ -19,6 +19,7 @@
     "src/lib/voice-wealth-review.ts",
     "src/lib/voice-transfer-review.ts",
     "src/lib/voice-limit-review.ts",
+    "src/lib/voice-expense-record.ts",
     "src/lib/voice-conversation.ts",
     "src/lib/workspaces.ts",
     "src/lib/scene-flow.ts",

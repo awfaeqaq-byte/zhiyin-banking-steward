@@ -4,11 +4,13 @@ import {StewardVoice} from './steward-voice';
 import * as transport from '../lib/voice-connection';
 import * as bank from '../lib/bank-transfer';
 import {initialVoiceState,type VoiceBusiness} from '../lib/realtime-voice';
+import type {VoiceExpenseRecord as ExpenseRecord} from '../lib/voice-expense-record';
+import {VoiceExpenseRecord} from './voice-expense-record';
 
 const group={id:'trip-four',name:'海边四人行',revision:1,members:[{id:'self',name:'小叶',self:true},{id:'partner',name:'爱人'},{id:'wang',name:'小王'},{id:'li',name:'李娜'}]};
 const entry={id:'drink-18',at:Date.now(),title:'饮料',amount:1800,payerId:'self',fixed:[],shares:group.members.map(m=>({memberId:m.id,weight:1}))};
 const book={id:'seaside-trip',title:'海边旅行',group,participants:group.members.map(m=>m.id),defaultPayerId:'self',entries:[entry],batches:[],at:Date.now()};
-const expense={kind:'expense_record' as const,book,entryId:entry.id};
+const expense:ExpenseRecord={kind:'expense_record',book,entryId:entry.id};
 afterEach(()=>vi.restoreAllMocks());
 async function setup(value=expense){
  let business:VoiceBusiness=async()=>({text:''});const stop=vi.fn();
@@ -31,5 +33,12 @@ it('账本缺失该条消费时不显示已记账',async()=>{
  await setup({...expense,book:{...book,entries:[]}});expect(screen.queryByRole('region',{name:'已记账消费'})).not.toBeInTheDocument();
 });
 it('已发布到结算的旧消费不能冒充本轮刚记好的回执',async()=>{
- await setup({...expense,book:{...book,entries:[{...entry,batchId:'old'}]}} as typeof expense);expect(screen.queryByRole('region',{name:'已记账消费'})).not.toBeInTheDocument();
+ await setup({...expense,book:{...book,entries:[{...entry,batchId:'old'}]}});expect(screen.queryByRole('region',{name:'已记账消费'})).not.toBeInTheDocument();
+});
+it('直接展示时也拒绝缺失记录，并按实际人数、份数和垫付人呈现',()=>{
+ const invalid={...expense,entryId:'missing'};const view=render(<VoiceExpenseRecord record={invalid}/>);expect(screen.queryByRole('region',{name:'已记账消费'})).not.toBeInTheDocument();
+ const shares=entry.shares.slice(0,3).map((s,i)=>({...s,weight:i===0?2:1}));
+ view.rerender(<VoiceExpenseRecord record={{...expense,book:{...book,entries:[{...entry,payerId:'wang',shares}]}}}/>);
+ expect(screen.getByText('按约定分摊')).toBeVisible();expect(screen.getByText('小王先垫付')).toBeVisible();expect(screen.getByText('¥9.00')).toBeVisible();
+ view.rerender(<VoiceExpenseRecord record={{...expense,book:{...book,entries:[{...entry,shares:shares.map(s=>({...s,weight:1}))}]}}}/>);expect(screen.getByText('3人均摊')).toBeVisible();
 });
