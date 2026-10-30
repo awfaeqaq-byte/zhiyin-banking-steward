@@ -14,6 +14,8 @@ import {VoiceLimitReview} from './voice-limit-review';
 import {validVoiceLimitReview, type VoiceLimitReview as LimitReview} from '../lib/voice-limit-review';
 import {VoiceExpenseRecord} from './voice-expense-record';
 import {readVoiceExpenseRecord,type VoiceExpenseRecord as ExpenseRecord} from '../lib/voice-expense-record';
+import {VoiceCakeReview} from './voice-cake-review';
+import {validVoiceCakeReview,type VoiceCakeReview as CakeReview} from '../lib/voice-cake-review';
 import './steward-voice.css';
 
 // Operate: a call, not a dictation popover. Keep the incumbent teal/white world.
@@ -33,7 +35,7 @@ export function StewardVoice({
   const [reviewHost, setReviewHost] = useState<Element | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [captionsVisible, setCaptionsVisible] = useState(true);
-  const [wealthReview, setWealthReview] = useState<WealthReview | TransferReview | LimitReview>();
+  const [wealthReview, setWealthReview] = useState<WealthReview | TransferReview | LimitReview | CakeReview>();
   const wealthReviewRef = useRef(wealthReview); wealthReviewRef.current = wealthReview;
   const [operationAnswer, setOperationAnswer] = useState('');
   const [expenseRecord,setExpenseRecord] = useState<ExpenseRecord>();
@@ -54,7 +56,7 @@ export function StewardVoice({
         setOperationAnswer('');
         setExpenseRecord(undefined);
         const result = await callbacks.current.onRequest(...args);
-        if (!args[2].aborted && (validVoiceWealthReview(result.review) || validVoiceTransferReview(result.review) || validVoiceLimitReview(result.review))) {
+        if (!args[2].aborted && (validVoiceWealthReview(result.review) || validVoiceTransferReview(result.review) || validVoiceLimitReview(result.review) || validVoiceCakeReview(result.review))) {
           wealthReviewRef.current = result.review;
           setWealthReview(result.review);
         }
@@ -158,6 +160,7 @@ export function StewardVoice({
         {wealthReview?.kind === 'wealth_redemption' && <VoiceWealthReview key={wealthReview.draft.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，这笔先不赎回，没有提交这笔操作。'); }} onResult={setOperationAnswer}/>}
         {wealthReview?.kind === 'scheduled_transfer' && <VoiceTransferReview key={wealthReview.draft.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，先不预约，没有提交这笔操作。'); }} onResult={setOperationAnswer}/>}
         {wealthReview?.kind === 'payment_limit' && <VoiceLimitReview key={wealthReview.createdAt} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，先不调整，限额没有修改。'); }} onResult={setOperationAnswer}/>}
+        {wealthReview?.kind === 'cake_preorder' && <VoiceCakeReview key={wealthReview.id} review={wealthReview} onCancel={() => { wealthReviewRef.current = undefined; setWealthReview(undefined); setOperationAnswer('好，蛋糕先不预订，没有提交订单或付款。'); }} onResult={setOperationAnswer}/>}
         {expenseRecord && <VoiceExpenseRecord record={expenseRecord}/>}
         {state.error && <p className="voice-error" role="alert">{state.error}</p>}
         {state.notice && <p className="voice-notice">{state.notice}</p>}

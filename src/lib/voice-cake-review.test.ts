@@ -1,13 +1,15 @@
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach,expect,it} from 'vitest';
+import {afterEach,expect,it,vi} from 'vitest';
+import {createServer} from 'node:http';
 import {createBankStore} from '../../server/bank-store';
-import {createVoiceCakeService} from '../../server/voice-cake-service';
-import {validVoiceCakeReview,verifyVoiceCakeResult} from './voice-cake-review';
+import {createVoiceCakeService,voiceCakeMiddleware} from '../../server/voice-cake-service';
+import {validVoiceCakeReview,verifyVoiceCakeResult,voiceCakeRequest} from './voice-cake-review';
 const NOW=Date.parse('2026-10-30T18:00:00+08:00'),AT=Date.parse('2026-10-31T18:00:00+08:00');
 const draft={title:'爱人生日',recipient:'爱人',budget:30000,prepareAt:NOW,deliverAt:AT,address:'浙江省舟山市普陀区海莲路88号 海风度假酒店·海景餐厅',contact:'叶先生 13800001234',note:'个人承担，不计入旅行AA；含生日蜡烛',productIds:['cake-light']};
 const dirs:string[]=[];afterEach(()=>dirs.splice(0).forEach(d=>rmSync(d,{recursive:true,force:true})));
+afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
 function setup(){const dir=mkdtempSync(join(tmpdir(),'zhiyin-cake-'));dirs.push(dir);const bank=createBankStore(join(dir,'bank.json')),file=join(dir,'cake.json'),service=createVoiceCakeService(file,bank);const review=service.prepare(draft,NOW);return {bank,file,service,review};}
 it('只拟定不扣款，明确确认后产生真实沙箱订单、206元回执及明天配送信息',()=>{
  const x=setup(),before=x.bank.get();expect(x.service.get(x.review.id)).toBeNull();expect(before.payments).toHaveLength(0);expect(before.occasions).toHaveLength(0);
@@ -35,4 +37,23 @@ it('损坏或超预算方案不能进入确认；订单、配送、金额、回�
  const result=x.service.confirm(x.review.id,selection,true,NOW+1);
  for(const value of [null,{...result,order:{...result.order,payable:1}},{...result,order:{...result.order,deliveryAt:AT+1}},{...result,order:{...result.order,status:'PENDING_PAYMENT'}},{...result,bank:{...result.bank,payments:[]}},{...result,bank:{...result.bank,balance:1}}])expect(()=>verifyVoiceCakeResult(x.review,selection,value)).toThrow();
  expect(()=>x.service.prepare({...draft,note:'大家平分'},NOW)).toThrow();
+});
+it('HTTP仅接受同源明确确认；只读接口复查原订单不再扣款',async()=>{
+ const x=setup(),now=Date.now(),review=x.service.prepare({...draft,prepareAt:now,deliverAt:now+86400000},now),handle=voiceCakeMiddleware(x.service),server=createServer((req,res)=>void handle(req,res));
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();if(!address||typeof address==='string')throw Error('missing address');const url=`http://127.0.0.1:${address.port}`;
+ const headers={'Content-Type':'application/json','X-Zhiyin-Cake':'1'};
+ try{
+  expect(await (await fetch(url+'?reviewId=missing')).json()).toBeNull();
+  expect((await fetch(url,{method:'PUT'})).status).toBe(405);expect((await fetch(url,{method:'POST',body:'{}'})).status).toBe(403);
+  expect((await fetch(url,{headers:{origin:'https://other.test'}})).status).toBe(403);
+  expect((await fetch(url,{method:'POST',headers,body:'invalid'})).status).toBe(409);
+  expect((await fetch(url,{method:'POST',headers,body:'x'.repeat(2050)})).status).toBe(413);
+  const body={reviewId:review.id,productId:'cake-light',deliverAt:review.draft.deliverAt,authorized:true};const response=await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});expect(response.status).toBe(200);const receipt=await response.json();expect(receipt.order.status).toBe('PAID');
+  expect((await (await fetch(url+`?reviewId=${review.id}`)).json()).order.id).toBe(receipt.order.id);expect(x.bank.get().payments).toHaveLength(1);
+ }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+it('前端请求保留原订单标识和超时限制，服务器拒绝时不能当成功',async()=>{
+ const fetcher=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true})});vi.stubGlobal('fetch',fetcher);
+ await voiceCakeRequest(undefined,'original');expect(fetcher.mock.calls[0][0]).toContain('reviewId=original');await voiceCakeRequest({reviewId:'original',authorized:true});expect(fetcher.mock.calls[1][1].method).toBe('POST');
+ fetcher.mockResolvedValue({ok:false,json:async()=>({error:'方案已过期'})});await expect(voiceCakeRequest()).rejects.toThrow('方案已过期');
 });

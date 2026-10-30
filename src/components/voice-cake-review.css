@@ -1,0 +1,29 @@
+.voice-cake-review { padding: 14px; }
+.voice-call-body .voice-cake-recommend { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.voice-cake-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.voice-call-root .voice-call-stage .voice-cake-options button { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 12px 10px; border: 1px solid var(--line); background: var(--pale); border-radius: 12px; }
+.voice-cake-options strong { font-size: 13px; font-weight: 600; }
+.voice-cake-options span { font-size: 11px; }
+.voice-cake-options small { color: var(--muted); font-size: 10px; }
+.voice-call-body .voice-cake-personal { display: flex; gap: 6px; align-items: center; margin-top: 12px; color: var(--teal-dark); font-size: 12px; line-height: 1.5; }
+.voice-call-root .voice-call-stage .voice-cake-cancel { margin-top: 8px; min-height: 36px; padding: 8px; font-size: 11px; background: transparent; }
+.voice-cake-selected { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; }
+.voice-cake-selected>div { flex: 1; display: grid; gap: 8px; }
+.voice-cake-selected strong { font-size: 13px; font-weight: 600; }
+.voice-cake-selected span { font-size: 25px; font-weight: 600; }
+.voice-cake-selected small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; font-weight: 400; }
+.voice-call-root .voice-call-stage .voice-cake-selected button { padding: 6px; min-height: 32px; min-width: 0; font-size: 10px; background: transparent; }
+.voice-cake-shipping { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; }
+.voice-cake-shipping>span { color: var(--muted); }
+.voice-cake-shipping>strong { font-size: 12px; font-weight: 500; }
+.voice-cake-times { display: flex; gap: 5px; }
+.voice-call-root .voice-call-stage .voice-cake-times button { min-height: 36px; min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 8px; font-size: 10px; }
+.voice-call-root .voice-call-stage .voice-cake-times button[aria-pressed=true] { border-color: var(--teal); background: var(--teal); color: white; }
+.voice-cake-address { display: grid; gap: 5px; margin-top: 12px; padding-block: 10px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.voice-cake-address strong { font-size: 12px; font-weight: 500; }
+.voice-cake-address span { font-size: 10px; line-height: 1.5; color: var(--muted); }
+.voice-call-body .voice-cake-payment { margin-top: 10px; color: var(--muted); font-size: 11px; }
+.voice-cake-review .voice-wealth-actions { margin-top: 8px; }
+.voice-call-root .voice-call-stage .voice-cake-review .voice-wealth-actions button { padding-inline: 8px; font-size: 10px; }
+.voice-call-body .voice-cake-done { margin-top: 12px; color: var(--teal-dark); font-size: 12px; line-height: 1.6; }
+.voice-cake-done small { display: block; color: var(--muted); font-size: 10px; }
