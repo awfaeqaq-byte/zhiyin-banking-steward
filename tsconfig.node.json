@@ -22,6 +22,7 @@
     "src/lib/voice-expense-record.ts",
     "src/lib/voice-cake-review.ts",
     "src/lib/voice-merchant-report.ts",
+    "src/lib/voice-trip-report.ts",
     "mobilegym/apps/Zhiyin/occasion-food.ts",
     "mobilegym/apps/FoodDelivery/orderModel.ts",
     "src/lib/voice-conversation.ts",

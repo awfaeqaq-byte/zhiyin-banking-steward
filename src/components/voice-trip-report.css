@@ -1,0 +1,31 @@
+.voice-trip-report { display: grid; gap: 10px; width: 100%; max-width: 440px; margin-inline: auto; flex: 0 0 auto; font-size: 12px; }
+.voice-trip-bill,.voice-trip-renewal { padding: 13px 15px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper,#fff); }
+.voice-trip-heading { display: flex; align-items: center; gap: 7px; color: var(--teal-dark); }
+.voice-trip-heading strong { font-size: 13px; font-weight: 600; color: var(--ink); }
+.voice-trip-heading>span { margin-left: auto; font-size: 11px; color: var(--muted); }
+.voice-trip-total { display: flex; align-items: baseline; gap: 10px; margin: 9px 0; }
+.voice-trip-total strong { font-size: 28px; font-weight: 600; color: var(--teal-dark); letter-spacing: -.025em; }
+.voice-trip-total>span { font-size: 11px; color: var(--muted); }
+.voice-trip-days { display: flex; gap: 12px; margin: 0 0 10px; color: var(--muted); }
+.voice-trip-days>span { display: grid; gap: 2px; font-size: 10px; }
+.voice-trip-days b { font-weight: 500; font-size: 11px; color: var(--ink); }
+.voice-trip-members { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 20px; padding: 10px 0; border-block: 1px solid var(--line); }
+.voice-trip-members>div { display: flex; justify-content: space-between; gap: 6px; }
+.voice-trip-members b { font-weight: 600; }
+.voice-call-body .voice-trip-rule,.voice-call-body .voice-trip-personal { margin-top: 7px; font-size: 10px; line-height: 1.5; color: var(--muted); }
+.voice-trip-personal { color: var(--teal-dark)!important; }
+.voice-trip-report details { margin-top: 8px; font-size: 11px; color: var(--teal-dark); }
+.voice-trip-report summary { cursor: pointer; }
+.voice-trip-report ol { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.voice-trip-report li { display: flex; gap: 12px; font-size: 11px; color: var(--ink); }
+.voice-trip-report li time { color: var(--muted); }
+.voice-trip-report li b { margin-left: auto; font-weight: 500; }
+.voice-call-body .voice-trip-ready { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 11px; color: var(--teal-dark); }
+.voice-trip-ready b { margin-left: auto; font-weight: 600; }
+.voice-trip-subscription { display: flex; justify-content: space-between; margin-top: 9px; }
+.voice-trip-subscription b { font-weight: 600; color: var(--teal-dark); }
+.voice-trip-subscription small { font-size: 10px; color: var(--muted); font-weight: 400; }
+.voice-call-body .voice-trip-renewal p { margin-top: 7px; font-size: 10px; line-height: 1.5; color: var(--muted); }
+.voice-call-body .voice-trip-renewal .voice-trip-next { color: var(--teal-dark); }
+.voice-call-body[data-has-trip=true] { gap: 12px; padding-block: 14px; }
+.voice-call-body[data-has-trip=true] .voice-captions p { font-size: 13px; line-height: 1.6; }

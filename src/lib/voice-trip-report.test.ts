@@ -8,7 +8,7 @@ it('从原账本汇总AA、特殊份额和个人请客；从三期账单识别�
 });
 it('完成状态必须有保存的待发批次和当前签约取消回读，不能把推断或旧回复当成功',()=>{
  const r=reportFixture();expect(readVoiceTripReport({...r,stage:'done'})).toBeNull();
- let state={revision:0,books:[r.book],applied:[]};state=changeExpenses(state,{type:'prepare',bookId:'trip',batchId:'trip-batch',entryIds:r.entryIds,revision:0,requestId:'prepare'},now);
+ let state:import('./expense-notebook').ExpenseState={revision:0,books:[r.book],applied:[]};state=changeExpenses(state,{type:'prepare',bookId:'trip',batchId:'trip-batch',entryIds:r.entryIds,revision:0,requestId:'prepare'},now);
  const done={...r,stage:'done' as const,book:state.books[0],batchId:'trip-batch'};expect(readVoiceTripReport(done)).toBeNull();
  expect(readVoiceTripReport({...done,source:{...r.source,cancelledAutopayIds:['video'],autopays:[]}})).toBeNull();
  const cancelled={...done,source:{...r.source,cancelledAutopayIds:['video'],autopays:r.source.autopays.map(a=>({...a,nextChargeAt:undefined}))}};
