@@ -35,7 +35,7 @@ it('口头确认不能提交；取消不修改限额',async()=>{
  expect(call.request).toHaveBeenCalledOnce();fireEvent.click(screen.getByRole('button',{name:'暂不调整'}));expect(request).not.toHaveBeenCalled();expect(screen.queryByRole('region',{name:'单笔支付限额方案'})).not.toBeInTheDocument();
 });
 it('过期方案禁止确认',async()=>{
- await setup({...review,createdAt:now-600000,expiresAt:now-1});expect(screen.getByRole('button',{name:'确认调整为 ¥2,000.00'})).toBeDisabled();
+ await setup({...review,createdAt:now-300001,expiresAt:now-1});expect(screen.getByRole('button',{name:'确认调整为 ¥2,000.00'})).toBeDisabled();
 });
 it('提交响应丢失仍先读回，不重复设置',async()=>{
  const request=vi.spyOn(bank,'bankRequest').mockRejectedValueOnce(Error('lost')).mockResolvedValueOnce(after);await setup();fireEvent.click(screen.getByRole('button',{name:'确认调整为 ¥2,000.00'}));await screen.findByText('已生效');expect(request).toHaveBeenCalledTimes(2);
