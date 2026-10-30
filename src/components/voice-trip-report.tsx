@@ -11,6 +11,7 @@ export function VoiceTripReport({report}:{report:Report}){
    <div className="voice-trip-heading"><ReceiptText size={17}/><strong>海边旅行账单</strong><span>{d.entries.length}笔 · {d.days.length}天</span></div>
    <div className="voice-trip-total"><strong>{money(d.total)}</strong><span>本次AA总额</span></div>
    <div className="voice-trip-days">{d.days.map(v=><span key={v.date}>{v.date.replace('-','/')}<b>{money(v.amount)}</b></span>)}</div>
+   <p className="voice-trip-types">{[...d.entries].sort((a,b)=>b.amount-a.amount).slice(0,4).map(e=>e.title).join(' · ')}等</p>
    <div className="voice-trip-members">{d.members.map(m=><div key={m.id}><span>{m.self?'你':m.name}</span><b>{money(m.amount)}</b></div>)}</div>
    <p className="voice-trip-rule">晚饭女生半份、男生一份，其余四人均分</p>
    {d.personal.map(e=><p className="voice-trip-personal" key={e.id}>{e.title} {money(e.amount)} · 你请客，不计AA</p>)}

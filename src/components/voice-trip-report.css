@@ -29,3 +29,17 @@
 .voice-call-body .voice-trip-renewal .voice-trip-next { color: var(--teal-dark); }
 .voice-call-body[data-has-trip=true] { gap: 12px; padding-block: 14px; }
 .voice-call-body[data-has-trip=true] .voice-captions p { font-size: 13px; line-height: 1.6; }
+/* Keep the evidence visible even with the full spoken reminder caption. */
+.voice-trip-heading { line-height: 1.4; }
+.voice-trip-bill,.voice-trip-renewal { padding-block: 11px; }
+.voice-trip-total { margin-block: 7px; }
+.voice-trip-total strong { line-height: 1.15; }
+.voice-trip-days { margin-bottom: 7px; line-height: 1.4; }
+.voice-trip-members { padding-block: 8px; gap: 5px 20px; line-height: 1.4; }
+.voice-call-body .voice-trip-rule,.voice-call-body .voice-trip-personal { margin-top: 5px; }
+.voice-call-body[data-has-trip=true] { gap: 10px; padding-block: 10px; }
+.voice-call-stage:has(.voice-trip-report) .voice-call-footer { gap: 8px; }
+.voice-call-stage:has(.voice-trip-report) .voice-confirmation { margin-top: 0; }
+.voice-call-stage:has(.voice-trip-report) .voice-call-footer>small { font-size: 10px; }
+
+.voice-call-body .voice-trip-types { margin-bottom: 7px; font-size: 10px; line-height: 1.4; color: var(--muted); }
