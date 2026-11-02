@@ -52,6 +52,7 @@ export function parseBillUI(content:string):{text:string;ui?:BillUI} {
   try{return {text,ui:validBillUI(JSON.parse(matches[0][1]))};}catch{return {text};}
 }
 export function billProvider(question:string):ExternalFinancialProvider|undefined {
+  if(/双平台|两平台|两个平台|全部平台|所有平台/.test(question)&&!/只(?:看|算|统计)\s*(?:微信|支付宝)/.test(question))return undefined;
   const selected=question.split('；').reverse().find(part=>/微信|支付宝|全部平台/.test(part))??question;
   const scope=selected.replace(/(?:不包含|不包括|不含|不使用|排除|不看|不要看)\s*(?:微信(?:支付)?|支付宝)(?:旧数据)?/g,'').replace(/(?:微信(?:支付)?|支付宝)已断开(?:授权|连接)?/g,'');
   return /微信/.test(scope)&&!/支付宝|全部平台/.test(scope)?'wechat_pay':/支付宝/.test(scope)&&!/微信|全部平台/.test(scope)?'alipay':undefined;

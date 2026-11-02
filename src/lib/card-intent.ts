@@ -17,9 +17,11 @@ export type CardIntent=
  | {kind:'control';key:'overseas'|'contactless'|'night';enabled:boolean}
  | {kind:'application'};
 export function parseCardIntent(text:string):CardIntent|null{
+ const specific=text.split(/[，,；;。]/).find(part=>/无卡|境外|夜间|线上支付/.test(part)&&/开启|打开|恢复|关闭|停用|禁止|允许/.test(part)&&!/保持|不变|不要改|不(?:要)?开/.test(part));
+ if(specific&&specific!==text)return parseCardIntent(specific);
  if(/申请.{0,6}(?:借记卡|银行卡|卡)|办.{0,4}(?:借记卡|银行卡|卡)/.test(text))return {kind:'application'};
  if(/挂失|锁卡|冻结卡/.test(text)&&!/解挂|解除挂失|取消挂失/.test(text))return {kind:'freeze'};
- if(/解挂|解除挂失|取消挂失|恢复.{0,5}卡|解锁.{0,5}卡/.test(text))return {kind:'unfreeze'};
+ if(/解挂|解除挂失|取消挂失|恢复(?:这张|我的|银行|演示|此)?卡(?:片)?(?:使用)?$|解锁.{0,5}卡/.test(text)&&!/无卡/.test(text))return {kind:'unfreeze'};
  const limit=text.match(/(?:单笔|支付|交易).{0,6}(?:限额|额度).{0,8}?(?:到|为|成)?\s*(\d+(?:\.\d{1,2})?)\s*(?:元|块)?/);
  if(limit){const yuan=Number(limit[1]);return Number.isFinite(yuan)?{kind:'limit',yuan}:null;}
  // Negation of execution ("先不要执行") is not negation of the requested control.

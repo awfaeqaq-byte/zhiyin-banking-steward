@@ -22,7 +22,8 @@ function billConceptOrRefusal(question:string):boolean {
 
 export function isBillQuestion(question: string) {
   return (/账单|收支|消费|花了|花费|花销|花在哪|花到哪|支出|收入|退款|转账记录|流水|大额/.test(question)
-    ||/分类/.test(question)&&/这笔|交易|\d+(?:\.\d+)?元/.test(question))
+    ||/分类/.test(question)&&/这笔|交易|\d+(?:\.\d+)?元/.test(question)
+    ||/分析|统计/.test(question)&&/微信|支付宝/.test(question)&&/合计|只算|只看/.test(question))
     && !billConceptOrRefusal(question)
     && !/取消.*(续费|订阅)|关闭.*提醒/.test(question);
 }
@@ -93,6 +94,8 @@ export function buildBillAnalysis(connections: Connections, question: string, no
   const sources = Object.values(connections).filter((source): source is ConnectedFinancialSource =>
     Boolean(source?.scopes.includes('transactions')) && (!provider || source?.provider === provider));
   const incompleteSources = sources.filter(source=>source.transactionCoverage && !source.transactionCoverage.complete);
+  const requested=provider?[provider]:/双平台|两平台|两个平台|全部平台|所有平台|微信.{0,8}支付宝/.test(question)?['wechat_pay','alipay']:[];
+  const missingSources=requested.filter(key=>!sources.some(source=>source.provider===key)).map(key=>key==='wechat_pay'?'微信支付':'支付宝');
   const seen = new Set<string>();
   const history:DiagnosticRow[]=[];
   const quality={duplicates:0,invalid:0};
@@ -132,8 +135,8 @@ export function buildBillAnalysis(connections: Connections, question: string, no
     categories:[...categories].map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount),
     largest:purchases.sort((a,b)=>a.amount-b.amount).slice(0,5),
     recent:rows.sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt)).slice(0,8),
-    coverageIncomplete:incompleteSources.length>0,
-    coverage:incompleteSources.length
+    coverageIncomplete:incompleteSources.length>0||missingSources.length>0,
+    coverage:missingSources.length?`数据范围不完整：缺少${missingSources.join('、')}的交易读取授权或本轮数据，仅统计已返回平台，缺失不能视为零消费。`:incompleteSources.length
       ? `数据不完整：${incompleteSources.map(source=>{
         const coverage=source.transactionCoverage!;
         return `${source.displayName}返回${coverage.returned}/${coverage.total}笔${coverage.invalid ? `，另有${coverage.invalid}笔格式无效` : ''}`;

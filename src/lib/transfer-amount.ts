@@ -8,10 +8,10 @@ const labels = [...new Set(bankRecipients.flatMap(person=>[person.name,person.ph
 const recipientAmount = new RegExp(`(?:给|向)\\s*(?:${labels.join('|')})\\s*(?:转账?|汇款?)?\\s*(${number})\\s*(?:元|块(?:钱)?)(?=[\\s，。！？!?]|吧|就行|即可|$)`);
 const verbAmount = new RegExp(`(?:转账|汇款|转|汇)(?:金额)?\\s*(?:是|为)?\\s*(${number})(?=[\\s元块，。！？!?]|给|向|$)`);
 const amountField = new RegExp(`金额\\s*(?:是|为|改成|改为|[:：])?\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
-const amendment = new RegExp(`^(?:把)?(?:金额)?(?:改成|改为|改到|调整为|更正为|更正回|改)\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
+const amendment = new RegExp(`^(?:把)?(?:金额)?(?:改成|改为|改到|调整为|更正为|更正回|改回|改|应(?:该)?是|应为)\\s*(${number})(?=[\\s元块，。！？!?]|$)`);
 const amendedAmount=(text:string)=>text.split(/[，,；;]/).reverse().map(part=>amendment.exec(part.trim())?.[1]).find(value=>value!==undefined);
 const amountAnswer = new RegExp(`^(${number})\\s*(?:元|块(?:钱)?)?(?:吧|就行|即可)?[。！!\\s]*$`);
-const transferWords = /转账|汇款|转给|汇给|(?:给|向).{1,25}(?:转|汇)/;
+const transferWords = /转账|汇款|转给|汇给|(?:给|向).{1,25}(?:转|汇)|从.{0,15}转\s*\d/;
 
 /** Recognize registered-recipient shorthand without preparing or authorizing a transfer. */
 export function hasRecipientTransferAmount(text:string):boolean {

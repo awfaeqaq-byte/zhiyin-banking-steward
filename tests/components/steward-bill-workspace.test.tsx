@@ -118,7 +118,7 @@ it('无选择不能授权，恢复选择后处理错误回执而不是宣称成�
 it('分类收起、长列表展开、交易证据和不足的趋势均可操作',async()=>{
  const user=userEvent.setup(),change=vi.fn(),connect=vi.fn();
  const many={...wechat,transactions:[...wechat.transactions,...Array.from({length:5},(_,i)=>({id:`s${i}`,title:'便利店',amount:-1000,category:'购物',occurredAt:'2026-09-20'}))]};
- const props={question:'本月支出',connections:{wechat_pay:many},onInteract:change,onRequestConnection:connect,ui:{sections:['trend','transactions'] as const,evidenceRefs:[1]}};
+ const props={question:'本月微信支出',connections:{wechat_pay:many},onInteract:change,onRequestConnection:connect,ui:{sections:['trend','transactions'] as const,evidenceRefs:[1]}};
  render(<StewardBillWorkspace {...props} ui={{...props.ui,sections:[...props.ui.sections]}}/>);
  expect(screen.getByText('前期记录不足，暂不能判断消费趋势。')).toBeVisible();
  await user.click(screen.getByRole('button',{name:'展开更多 · 7 笔'}));
@@ -126,6 +126,14 @@ it('分类收起、长列表展开、交易证据和不足的趋势均可操作'
  await user.click(screen.getByRole('button',{name:'收起明细'}));
  await user.click(screen.getByRole('button',{name:'加入支付宝账单'}));expect(connect).toHaveBeenCalledWith('alipay');
  expect(screen.getByText('核对交易依据')).toBeVisible();
+});
+
+it('请求双平台但只返回微信时明确说明缺失，不能将支付宝当作零消费',async()=>{
+ render(<StewardBillWorkspace question="本月微信和支付宝合计支出" connections={{wechat_pay:wechat}} onInteract={vi.fn()} ui={{sections:['trend'],evidenceRefs:[]}}/>);
+ await userEvent.click(screen.getByText('统计范围与其他收支'));
+ expect(screen.getByText(/缺少支付宝的交易读取授权或本轮数据/)).toBeVisible();
+ expect(screen.getByText('记录尚未补全，暂不能判断消费趋势。')).toBeVisible();
+ expect(screen.queryByText('前期记录不足，暂不能判断消费趋势。')).not.toBeInTheDocument();
 });
 
 it('紧凑明细只出现一份流水，不重复概览、分类图或分析入口',async()=>{

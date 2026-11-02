@@ -14,6 +14,7 @@ export type DepositDraft={id:string;amount:number;months:number;rateBps:number;r
 export type DepositWithdrawalDraft={id:string;depositId:string;amount:number;interest:number;rateBps:number;early:boolean;revision:number;createdAt:number;expiresAt:number};
 export type DepositWithdrawalReceipt={id:string;depositId:string;amount:number;interest:number;completedAt:number;balanceAfter:number};
 export type BankAssetSummary={cash:number;availableCash:number;reservedCash:number;wealth:number;deposits:number;total:number;holdingCount:number;depositCount:number};
+export const isAssetOverviewQuestion=(text:string)=>/总资产|资产总额/.test(text)&&!/转账|申购|赎回|分配|配置|规划|购买|买|卖|存入|记账|订阅/.test(text);
 const cents=(value:unknown):value is number=>Number.isSafeInteger(value)&&Number(value)>=0;
 const identifier=(value:unknown):value is string=>typeof value==='string'&&/^[\w-]{1,80}$/.test(value);
 export function validDepositDraft(value:unknown):value is DepositDraft {

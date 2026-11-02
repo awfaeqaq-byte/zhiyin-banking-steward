@@ -112,6 +112,7 @@ export function createMessageService(directory:string,model:StewardModelCall){
     const request:StewardReplyRequest={...input.request,sceneContext:scene?.context,sceneStatus,taskContext:[input.request.taskContext||'',sceneReadError,sceneStatus?`当前事项最近核对状态（只读事实，不是授权）：${sceneStatus}`:''].filter(Boolean).join('\n'),memoryContext:memoryContext(current,job.text),workspaceProgress:progress,
       recentConversation:recentConversation(messageHistory(state,run).filter(m=>!run.currentId||m.workspaceId===task.id||Boolean(m.messageId&&state.runs?.find(r=>r.id===m.messageId)?.jobs.some(j=>j.taskId===task.id)))),
       messages:[...task.messages.filter(m=>m.memoryRevision===run.memoryRevision).slice(-23).map(({role,content})=>({role,content})),{role:'user',content:job.text}]};
+    request.workspaceId=task.id;
     const result=await requestStewardReplyWithModel(request,model);
     if(memory.get().revision!==run.memoryRevision)throw new Error('记忆上下文已变化，本轮结果未继续执行');
     const plain=parseImpression(result.text,job.text).text;

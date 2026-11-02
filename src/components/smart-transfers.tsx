@@ -22,7 +22,7 @@ function AAForm({initial,onCreated,cardId}:{initial?:AAIntent;onCreated:()=>void
  const cardLabel=card.isPrimary?'常用卡 8888':`${card.name} ${card.last4}`;
  const [amount,setAmount]=useState(initial?String(initial.amount/100):'');
  const [ids,setIds]=useState<AAIntent['recipientIds']>(initial?.recipientIds??[]);
- const [includeSelf,setIncludeSelf]=useState(initial?.includeSelf??true),[title,setTitle]=useState('聚餐AA');
+ const [includeSelf,setIncludeSelf]=useState(initial?.includeSelf??true),[title,setTitle]=useState(initial?.title||'聚餐AA');
  const [draft,setDraft]=useState<AADraft|null>(()=>pendingAA(pendingKey));
  const [error,setError]=useState(''),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(()=>!!pendingAA(pendingKey));
  const lock=useRef(false);

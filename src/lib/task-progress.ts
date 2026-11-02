@@ -18,7 +18,7 @@ function billPeriodAnswer(prompt:string):boolean {
   return /^(?:那|就|只看|就看|改成|改为|看)?(?:(?:最近|就近|近|过去)?(?:一|1)个?月|(?:最近|近|这)?(?:\d{1,3}|七|三十)天|最近|最近的|本月|这个月|上月|上个月|下月|下个月|昨天|今天|(?:\d{4}年)?\d{1,2}月)(?:的|账单|支出|收支|呢|吧)*$/.test(compactAnswer(prompt));
 }
 function billProviderAnswer(prompt:string):boolean {
-  return /^(?:补充[:：])?(?:就|只看|就看|仅看|先看|先|用|换成|改成|选|选择)?(?:微信(?:支付)?|支付宝|全部平台|所有平台|两个平台|都看|都要)(?:吧|的)?$/.test(compactAnswer(prompt));
+  return /^(?:补充[:：])?(?:但|不过)?(?:就|只看|只算|就看|仅看|仅算|先看|先|用|换成|改成|选|选择)?(?:微信(?:支付)?|支付宝|全部平台|所有平台|两个平台|都看|都要)(?:吧|的)?$/.test(compactAnswer(prompt));
 }
 export function clearBillIntent(prompt:string) {
   if(!isBillQuestion(prompt)||otherBusiness.test(prompt))return false;
@@ -44,12 +44,13 @@ function periodIn(prompt:string):string|undefined {
   return prompt.match(/(?:\d{4}年)?\d{1,2}月/)?.[0];
 }
 function mergeBill(progress:TaskProgress,prompt:string):TaskProgress {
+ if(progress.bill?.period&&/分类|归到|归为|只改|交易编号/.test(prompt))return {...progress,stage:'collecting',waitingFor:undefined};
   let period=periodIn(prompt);
   const start=progress.bill?.period?.match(/(?:从|起始|开始)(?:日期)?[：:\s]*((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/);
   const end=prompt.match(/(?:截止|截至|到|至)(?:日期)?\s*((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/)
     ||(start?prompt.match(/((?:\d{4}年)?\d{1,2}月\d{1,2}[日号])/):null);
   if(start&&end)period=`${start[1]}至${end[1]}`;
-  const provider=/剩余已授权|剩余.*授权账单|当前已授权平台/.test(prompt)?'all':billProvider(prompt)||(/全部平台|所有平台|两个平台|都看|都要/.test(prompt)||/微信/.test(prompt)&&/支付宝/.test(prompt)?'all':undefined);
+ const provider=/剩余已授权|剩余.*授权账单|当前已授权平台|全部平台|所有平台|两个平台|两平台|双平台|都看|都要/.test(prompt)?'all':billProvider(prompt)||(/微信/.test(prompt)&&/支付宝/.test(prompt)?'all':undefined);
   return {...progress,stage:'collecting',waitingFor:undefined,bill:{...progress.bill,...(period?{period}:{}),...(provider?{provider}:{})}};
 }
 export function readTaskProgress(task:Workspace):TaskProgress {

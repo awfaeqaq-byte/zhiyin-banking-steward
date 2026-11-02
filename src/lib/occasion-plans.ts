@@ -1,5 +1,6 @@
 import {type BankSnapshot, bankRequest} from './bank-transfer';
 import {formatSceneContext,type SceneContext} from './scene-context';
+import {explicitOccasionFields} from './occasion-fields';
 
 /** Shared sandbox merchant catalog. Prices are integer cents, not model-generated quotes. */
 export const occasionProducts = [
@@ -68,6 +69,23 @@ export async function requestOccasionAdvice(prompt:string,draft:Partial<Occasion
  if(/提前[两二2]天(?:安排好|安排|准备好)/.test(prompt)&&!/筹备|送达|送到/.test(prompt))return ask('“提前两天”指开始筹备，还是提前送达？请分别确认筹备时刻和生日当天送达时刻。');
  if(/(?:两|二|[2-9])(?:份|个|束).{0,12}(?:蛋糕|花)|(?:蛋糕|花束).{0,5}(?:两|二|[2-9])(?:份|个|束)/.test(prompt))return ask('当前目录每种商品只支持一件，不能把两份静默改成一份。是否接受一份蛋糕和一束花，或重新选择不同商品？');
  if(/(?:电话|手机|号码).{0,8}(?:尾|后)(?:四|4)位/.test(prompt)&&!/(?<!\d)1\d{10}(?!\d)/.test(prompt))return ask('电话尾号不足以配送，请提供完整的虚构收件手机号码；不会自行补齐前七位。');
+ const explicit=explicitOccasionFields(prompt,draft);
+ const choice=prompt.split(/[，,；;]/).find(part=>/(?:只|仅)(?:要|留|保留|选)/.test(part));
+ if(choice&&/蛋糕|花束|玫瑰|鲜花/.test(choice))explicit.productIds=[/蛋糕/.test(choice)?/巧克力/.test(choice)?'cake-chocolate':'cake-light':/时令/.test(choice)?'flowers-seasonal':'flowers-roses'];
+ if(!Object.keys(explicit).length&&draft.title&&prompt.includes(draft.title)){
+  const previous=history.filter(m=>m.role==='user').slice().reverse().find(m=>/预算.{0,5}(?:改|调整)/.test(m.content));
+  const amount=previous?.content.match(/预算.{0,5}(?:改为|改成|改|调整为)\s*(\d+(?:\.\d{1,2})?)/)?.[1];if(amount)explicit.budget=Math.round(Number(amount)*100);
+ }
+ const direct=explicit.prepareAt!==undefined||explicit.deliverAt!==undefined||explicit.recipient!==undefined||explicit.contact!==undefined||explicit.address!==undefined||explicit.productIds!==undefined||explicit.title!==undefined||/预算.{0,8}(?:改|调整|写错|不加|保持|仍)/.test(prompt)||Boolean(draft.title&&prompt.includes(draft.title)&&explicit.budget);
+ if(direct&&Object.keys(explicit).length&&!/甲.{0,100}乙/.test(prompt)){
+  const next={...draft,...explicit};
+  if(explicit.deliverAt!==undefined&&(explicit.deliverAt<=Date.now()||explicit.deliverAt>Date.now()+366*86400000)||next.prepareAt&&next.deliverAt&&next.prepareAt>next.deliverAt)throw Error('请核对建议日期：送达须在未来一年内，筹备不能晚于送达');
+  const missing=[!next.recipient?'准备对象':'',!next.prepareAt?'筹备时间':'',!next.deliverAt?'送达时间':'',!next.address?'完整收货地址':'',!/(?<!\d)1\d{10}(?!\d)/.test(next.contact||'')?'完整收件电话':''].filter(Boolean);
+  const quote=next.productIds?.length?occasionQuote({productIds:next.productIds}):undefined;
+  const over=quote!==undefined&&next.budget!==undefined&&quote>next.budget;
+  const question=over?'商品与配送费超过预算。请明确删减商品或调整预算，不会自行加预算。':missing.length?'请补充'+missing.join('、')+'。':undefined;
+  return {text:`已把本次明确的信息合并到当前草案，其余字段保持原值。${quote===undefined?'':`当前目录含配送合计${(quote/100).toFixed(2)}元。`}${question||'请核对后保存。'}尚未保存、预留、下单或付款。`,patch:explicit,questions:question?[question]:[]};
+ }
  const onlyProducts=/(?:只|仅)(?:要|留|保留|选择|改|调整|修改|移除|删除|去掉)|不要(?:蛋糕|鲜花|花束)/.test(prompt)&&/花束|玫瑰|鲜花|蛋糕|商品/.test(prompt)&&!/(?:改|调整).{0,8}(?:日期|时间|地址|电话)|预算|金额/.test(prompt);
  if(onlyProducts){
   let ids=[...(draft.productIds??[])];
@@ -103,7 +121,7 @@ export async function requestOccasionAdvice(prompt:string,draft:Partial<Occasion
  try{result=JSON.parse(data.output_text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'')) as OccasionAdvice;}
  catch{return {text:'暂时未能整理成可核对的草案，当前草案未变更。请重试或在表单中编辑；没有预留、下单或付款。',patch:{}};}
  if(!result||typeof result.text!=='string'||result.text.length>3000)throw new Error('建议格式无法核对，请重试');
- const patch=result.patch?{...result.patch}:{};
+ const patch=result.patch?{...result.patch,...explicit}:{...explicit};
  if(phone&&/电话|手机|号码/.test(prompt)){
   const contactName=prompt.match(/(?:收件人|收货人|联系人)(?:仍|是|为|[:：])?\s*([^，,；;。\d]{1,20})/)?.[1]?.trim()||draft.contact?.replace(/1\d{10}/g,'').trim()||'';
   patch.contact=`${contactName} ${phone}`.trim();

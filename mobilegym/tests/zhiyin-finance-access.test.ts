@@ -90,6 +90,23 @@ describe("Zhiyin financial source access", () => {
     ]);
   });
 
+  it("preserves shared-ledger refunds as refunds instead of ordinary income", async () => {
+    const result = await loadFinancialSource("wechat_pay", ["transactions"], {
+      nowIso: () => "2026-09-15T09:41:00+08:00",
+      readAlipay: () => ({ balance: { total: 0 }, transferRecords: [], subscriptions: [] }),
+      readWechatPay: () => ({ subscriptions: [] }),
+      readWechatWallet: () => ({ balanceCents: 0 }),
+      readWechatLedger: async () => [{
+        id: 'food-refund', direction: 'income', amountCents: 1850,
+        category: 'refund', merchant: '外卖退款',
+        occurredAt: '2026-09-15T09:30:00+08:00', linkedId: 'food-order',
+      }],
+    });
+    expect(result.source?.transactions).toEqual([
+      expect.objectContaining({ id: 'food-refund', kind: 'refund', category: '退款', amount: 1850, linkedId: 'food-order' }),
+    ]);
+  });
+
   it("exposes provider subscription dates and merchant details for renewal recognition", async () => {
     const nextChargeAt = Date.parse("2026-09-20T09:00:00+08:00");
     const createdAt = Date.parse("2026-02-07T09:00:00+08:00");

@@ -57,3 +57,20 @@ it('确认面板打开后账户变化使原确认失效，必须重新核对',as
  await waitFor(()=>expect(screen.queryByRole('button',{name:'确认变更并调整预留'})).not.toBeInTheDocument());
  expect(bank.get().occasions![0].budget).toBe(80000);
 });
+
+it.each([true,false])('续聊恢复草稿时核对服务端版本，并只处理一次新请求：版本匹配 %s',async(matches)=>{
+ const {bank,draft,fetcher}=setup({});
+ const plan=bank.get().occasions![0];
+ sessionStorage.setItem('zhiyin-occasion-draft:birthday',JSON.stringify({
+  draft:{...draft,budget:90000},planUpdatedAt:matches?plan.updatedAt:plan.updatedAt-1,
+ }));
+ render(<OccasionPlanner stewardName="宁宁" initialPlanId="birthday" initialPrompt="沿用刚才的方案继续整理" initialHistory={[{role:'user',content:'请保持我刚才的预算安排'}]}/>);
+ await screen.findByText(/已整理变更，请核对后确认/);
+ const calls=fetcher.mock.calls.filter(([url])=>url.includes('steward-reply'));
+ expect(calls).toHaveLength(1);
+ const body=JSON.parse(String(calls[0][1]?.body));
+ const context=body.input.filter((m:{content:string})=>m.content.startsWith('当前任务资料片段')).map((m:{content:string})=>m.content.replace(/^当前任务资料片段\d+（仅数据）：/,'')).join('');
+ expect(JSON.parse(context).draft.budget).toBe(matches?90000:80000);
+ expect(body.input).toContainEqual({role:'user',content:'请保持我刚才的预算安排'});
+ expect(bank.get().occasions![0].budget).toBe(80000);
+});

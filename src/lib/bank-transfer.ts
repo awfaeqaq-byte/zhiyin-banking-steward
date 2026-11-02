@@ -15,7 +15,7 @@ export function findBankRecipients(query:string){
 export type BankRecipientId=typeof bankRecipients[number]['id'];
 export type TransferIntent={workspaceId?:string;recipientId:BankRecipientId;amount:number;executeAt?:number;protectedAmount?:number;remark?:string;sourceAccountId?:'demo-8888'|BankCardId};
 export type BankSchedule=TransferIntent & {id:string;executeAt:number;createdAt:number;status:'pending'|'completed'|'cancelled'|'failed';error?:string;reviewedTransferIds?:string[]};
-export type AAIntent={workspaceId?:string;amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
+export type AAIntent={workspaceId?:string;title?:string;amount:number;recipientIds:BankRecipientId[];includeSelf:boolean};
 export type AAShare={recipientId:BankRecipientId|'self';amount:number;paidAt?:number};
 export type AARequest=AAIntent & {id:string;title:string;createdAt:number;status:'pending'|'completed'|'cancelled';shares:AAShare[]};
 export type AACollection={id:string;requestId:string;recipientId:BankRecipientId;amount:number;completedAt:number;balanceAfter:number};

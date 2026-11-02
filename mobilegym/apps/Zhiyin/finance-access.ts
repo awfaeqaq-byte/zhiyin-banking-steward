@@ -7,6 +7,11 @@ import * as TimeService from '@/os/TimeService';
 export type FinancialProvider = 'alipay' | 'wechat_pay';
 export type FinancialScope = 'balance' | 'transactions' | 'autopay';
 
+// Shared-ledger refunds are also produced by FoodDelivery, beyond Wechat's legacy category union.
+type FinancialWechatTransaction = Omit<WechatPayTransaction, 'category'> & {
+  category: WechatPayTransaction['category'] | 'refund';
+};
+
 type Dependencies = {
   nowIso: () => string;
   readAlipay: () => {
@@ -16,7 +21,7 @@ type Dependencies = {
   };
   readWechatPay: () => { subscriptions: Array<Record<string, unknown>> };
   readWechatWallet: () => { balanceCents: number };
-  readWechatLedger: () => Promise<WechatPayTransaction[]>;
+  readWechatLedger: () => Promise<FinancialWechatTransaction[]>;
 };
 
 const categoryLabels: Record<string, string> = {
@@ -151,7 +156,7 @@ function autopays(records: Array<Record<string, unknown>>) {
   };
 }
 
-function wechatTransactions(records: WechatPayTransaction[]) {
+function wechatTransactions(records: FinancialWechatTransaction[]) {
   const valid = records.filter(record => (
     typeof record.id === 'string' && typeof record.merchant === 'string' &&
     Number.isSafeInteger(record.amountCents) && record.amountCents > 0 &&

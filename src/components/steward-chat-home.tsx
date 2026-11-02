@@ -792,7 +792,7 @@ export function StewardChatHome({
       const taskContext=tasks?`日程记录（最多20项，未列出不代表没有；时间为北京时间）：${JSON.stringify(taskEvents.filter(t=>t.status==='pending'||t.status==='failed').slice(0,20).map(t=>({title:t.title,time:localTaskTime(t.dueAt),kind:t.kind,status:t.status}))).slice(0,2200)}${!bankData?'；银行安排未能更新':''}${backgroundUnavailable?'；平台续费未能更新':''}`:'提醒数据未能读取，不能断言没有任务。';
       const transferBills=bankOnly?buildBillAnalysis(latestConnections,'本月账单',billReferenceTime(latestConnections,latestTime)):null;
       const transferBackground=bankOnly?(backgroundUnavailable?'平台账单及续费未能更新，不能使用旧数据保证资金充足。':transferBills?.sources.length?`已授权账单摘要（分）：${JSON.stringify({from:transferBills.from,to:transferBills.to,sources:transferBills.sources,expense:transferBills.expense,income:transferBills.income,count:transferBills.count})}。仅为已返回历史记录，不代表完整支出，也不是未来生活费预算。`:'没有已授权账单，不能据此估算生活费。'):undefined;
-      const request = { stewardName, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
+      const request = { stewardName, workspaceId:workspace?.id, subscriptions: latestSubscriptions, recurringCandidates: latestRecurring,
         subscriptionAccess: subscriptionAccess(latestConnections),
         ...(isRecurringReviewQuestion(prompt)?{recurringAnalysis:buildRecurringAnalysis(latestConnections,latestTime,prompt)}:{}),
         ...(seamless?{recentConversation:recentContext().filter((message,index,array)=>!(index===array.length-1&&message.role==='user'))}:{}),
@@ -857,8 +857,11 @@ export function StewardChatHome({
         riskAssessedAt:validWealthSnapshot(wealthData)&&wealthData.assessment&&wealthData.assessment.expiresAt>Date.now()?wealthData.assessment.assessedAt:undefined,
       }]);
       setActiveReplyId(responseId);
-      setActiveBill(billAnalysis ? {id:responseId,data:billAnalysis} : null);
-      if((seamless||fullSession)&&(billAnalysis&&!billAnalysis.needsClarification||response.action?.type==='open_connections'&&response.action.scope!=='autopay')){
+      const bankAction=response.action&&['open_transfer_records','prepare_transfer','prepare_aa'].includes(response.action.type);
+      const showBill=!response.waitingQuestion&&!bankAction;
+      setActiveBill(billAnalysis&&showBill ? {id:responseId,data:billAnalysis} : null);
+      if(!showBill)setBillScenes(current=>{const next={...current};delete next[workspace?.id||'bill'];return next;});
+      if(showBill&&(seamless||fullSession)&&(billAnalysis&&!billAnalysis.needsClarification||response.action?.type==='open_connections'&&response.action.scope!=='autopay')){
         const key=workspace?.id||'bill';
         const question=billQuestion||billScenes[key]?.question||billQuestionForMessages(requestMessages.slice(0,-1))||'';
         const needsConsent=Boolean(response.action?.type==='open_connections'&&!billAnalysis?.sources.length||billAnalysis&&!billAnalysis.sources.length);

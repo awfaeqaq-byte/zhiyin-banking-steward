@@ -143,7 +143,7 @@ MobileGym 源码遵循 Apache-2.0；素材数据另遵循 CC BY-NC 4.0，并受�
 - `src/components/native-banking.tsx`、`native-banking.css`：AI 原生事务、对话、编辑、语音演示和授权界面。
 - `src/lib/native-banking.ts`：以分计算的资金模型、有限指令解析、校验与事务恢复。
 - `src/assets/`：从用户提供的管家概念图裁出的头像。
-- `tests/App.test.tsx`：主要用户流程回归测试。
-- `tests/App.native.test.tsx`、`tests/lib/native-banking.test.ts`：双模式交互与资金逻辑测试。
+- `tests/app/App.test.tsx`：主要用户流程回归测试。
+- `tests/app/App.native.test.tsx`、`tests/lib/native-banking.test.ts`：双模式交互与资金逻辑测试。
 
 头像仅用于本次概念原型；正式公开发布前请确认素材授权。

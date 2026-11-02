@@ -1,5 +1,12 @@
 import {bankRecipients,splitAA,type AAIntent} from './bank-transfer';
 
+export function hasUnknownAAMember(text:string):boolean {
+ const list=text.split(/[，,；;。]/).map(part=>part.split(/(?:[一二两三四五六七八九十]|\d+)个?人|这顿饭|聚餐|均摊|分摊|总共|总额|\d+(?:\.\d+)?\s*元|做AA/)[0]).find(part=>/[、和与]/.test(part)&&/我|本人|妈妈|爸爸|张三|李四|王五/.test(part));
+ if(!list)return false;
+ const value=list.replace(/^.*?(?=我|本人|妈妈|爸爸|张三|李四|王五)/,'');
+ return value.split(/[、和与]/).some(member=>{const name=member.trim();return name&&!['我','本人','自己',...bankRecipients.map(p=>p.name),...bankRecipients.map(p=>p.phone)].includes(name);});
+}
+
 export function isBankAACommand(text:string):boolean {
  if(!/AA|分摊|均摊/i.test(text))return false;
  if(/银行|银行卡|常用卡/.test(text))return true;
@@ -8,6 +15,7 @@ export function isBankAACommand(text:string):boolean {
 
 /** Only prepare a draft when the amount and complete participant count agree. */
 export function bankAAIntent(text:string):AAIntent|null {
+ if(hasUnknownAAMember(text))return null;
  const participants=bankRecipients.filter(person=>text.includes(person.name)||text.includes(person.phone));
  const amounts=[...text.matchAll(/(-?\d+(?:\.\d+)?)\s*元/g)];
  const includeSelf=/不(?:含|包含|包括)(?:我|本人|自己)/.test(text)?false:/我[、，,和与]|包[含括](?:我|本人|自己)/.test(text)?true:undefined;
@@ -17,7 +25,7 @@ export function bankAAIntent(text:string):AAIntent|null {
  if(amounts.length!==1||!/^\d+(?:\.\d{1,2})?$/.test(amounts[0][1])||!participants.length||includeSelf===undefined)return null;
  if(count!==undefined&&count!==participants.length+Number(includeSelf))return null;
  // Natural-language lists must identify every member; unknown names need clarification.
- const list=text.match(/(?:参与人(?:就是|是|为)?[：:]?)?([\p{Script=Han}\d、和与，,]+?)(?:[一二两三四五六七八九十\d]+个?人|聚餐|总额)/u)?.[1];
+ const list=text.match(/(?:名单|参与人)(?:就是|是|为)?[：:]?\s*([^，,；;。]+)/u)?.[1];
  if(list&&/[、和与]/.test(list)){
   const unexplained=participants.reduce((rest,person)=>rest.replaceAll(person.name,'').replaceAll(person.phone,''),list).replace(/本人|自己|我|参与人|就是|是|为|[、和与，,\s]/g,'');
   if(unexplained)return null;

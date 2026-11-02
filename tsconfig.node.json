@@ -66,6 +66,8 @@
     "src/lib/wechat-message-share.ts",
     "src/lib/workspace-service.ts",
     "src/lib/business-continuation.ts",
+    "src/lib/bank-followup.ts",
+    "src/lib/occasion-fields.ts",
     "src/lib/bill-clarification.ts",
     "src/lib/operation-followup.ts",
     "src/lib/route-decision.ts",

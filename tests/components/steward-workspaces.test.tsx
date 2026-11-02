@@ -535,7 +535,9 @@ it('生活筹备也在同一个首页输入，不换对话页、不自动付款'
   const api=server();
   render(<StewardWorkspaces {...props} reply={async()=>({text:'另件事也收到。'})} route={async(text,tasks)=>({parts:[{taskId:tasks.find(w=>w.kind==='occasion')?.id||null,kind:'occasion',title:'爱人生日',text}]})}/>);
   const input=await say('预算800，只要蛋糕');
-  await screen.findByText('预算已改成800元，蛋糕保留。');
+  await waitFor(()=>expect(screen.getByLabelText('当前筹备方案')).toHaveTextContent('¥800'));
+  expect(screen.getByRole('checkbox',{name:/轻甜鲜果蛋糕/})).toBeChecked();
+  expect(screen.getByRole('checkbox',{name:/粉玫瑰花束/})).not.toBeChecked();
   expect(screen.getByRole('textbox',{name:'和宁宁说点什么'})).toBe(input);
   expect(screen.queryByLabelText('交给宁宁整理')).not.toBeInTheDocument();
   await waitFor(()=>expect(api.state().items[0].messages).toHaveLength(2));

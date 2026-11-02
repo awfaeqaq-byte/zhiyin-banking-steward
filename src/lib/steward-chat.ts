@@ -26,8 +26,9 @@ import {subscriptionReadReply, type SubscriptionAccess} from './subscription-acc
 import {subscriptionCommandReply} from './subscription-commands';
 import {recurringReviewReply} from './recurring-reply';
 import {aaConversation,cancelledTransfer,transferFields,transferUserTurns} from './business-continuation';
-import {billClarification,netBillSummary} from './bill-clarification';
+import {billClarification,netBillSummary,billClassificationReply} from './bill-clarification';
 import {operationFollowup,type WealthEntry} from './operation-followup';
+import {bankFollowup} from './bank-followup';
 import type {RecurringAnalysis} from './recurring-payments';
 export type StewardDuplicateGroup = { id: string; titles: string[]; kept: boolean; category?:string };
 
@@ -90,6 +91,7 @@ export type StewardReply = {
 export type StewardReplyRequest = {
   sceneContext?:SceneContext;
   sceneStatus?:string;
+  workspaceId?:string;
   recentConversation?:StewardChatMessage[];
   workspaceProgress?:TaskProgress;
   taskContext?:string;
@@ -191,11 +193,11 @@ function fundingContext(forecast: FundingForecast | undefined, question: string)
 }
 
 import { choiceInstructions } from './reply-choices';
-import {depositRequestForMessages,depositProducts} from './bank-assets';
-export const isBankRequest=(messages:StewardChatMessage[])=>messages.slice(-4).some(m=>hasRecipientTransferAmount(m.content)||isCardManagementQuestion(m.content))||/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)|(?:之前|上次).{0,15}安排.{0,15}(?:钱|款)/.test(messages.slice(-4).map(m=>m.content).join(' '));
+import {depositRequestForMessages,depositProducts,isAssetOverviewQuestion,validAssetSummary,assetMoney} from './bank-assets';
+export const isBankRequest=(messages:StewardChatMessage[])=>messages.slice(-4).some(m=>hasRecipientTransferAmount(m.content)||isCardManagementQuestion(m.content)||m.role==='user'&&isAssetOverviewQuestion(m.content))||/转账|汇款|给.{1,12}转|银行卡|银行余额|改成|改为|AA|aa|平摊|均摊|收款|预约|安排.{0,20}(?:那笔|那次)|(?:那笔|那次).{0,12}(?:钱|转|安排)|(?:之前|上次).{0,15}安排.{0,15}(?:钱|款)/.test(messages.slice(-4).map(m=>m.content).join(' '));
 export const isBankOperation=(text:string)=>hasRecipientTransferAmount(text)||/AA|aa|平摊|均摊|拆分.*收款|(?:给|向).{1,25}(?:转|汇)|预约.*转|定时.*转/.test(text);
-const isCardManagementQuestion=(text:string)=>bankCards.some(card=>text.includes(card.name))||/卡片|银行卡|信用卡|借记卡|储蓄卡|常用卡|8888|卡种|办卡|申请.{0,8}卡|挂失|锁卡|解锁|解挂|单笔限额|境外交易|无卡支付|夜间保护/.test(text);
-export const isWealthQuestion=(text:string)=>/理财|投资|基金|存款|资产|闲钱|收益|赎回|申购|风险测评|持仓|谨慎型|稳健型|进取型|风险等级|最高风险|风险偏好|风险承受|产品对比|产品推荐/.test(text)||wealthProducts.some(product=>text.includes(product.name));
+const isCardManagementQuestion=(text:string)=>bankCards.some(card=>text.includes(card.name))||/卡片|银行卡|我的卡|这张卡|信用卡|借记卡|储蓄卡|常用卡|8888|卡种|办卡|申请.{0,8}卡|挂失|锁卡|解锁|解挂|单笔限额|支付限额|境外交易|无卡支付|夜间保护/.test(text);
+export const isWealthQuestion=(text:string)=>/理财|投资|基金|存款|资产|闲钱|收益|赎回|申购|风险测评|持仓|谨慎型|稳健型|进取型|风险等级|最高风险|风险偏好|风险承受|产品对比|产品推荐|买到|买成功|\bR[123]\b|\d+元.{0,15}\d+天后.*用/.test(text)||wealthProducts.some(product=>text.includes(product.name));
 
 export const isTaskRequest=(messages:StewardChatMessage[])=>{
  const user=messages.filter(m=>m.role==='user');const latest=user.at(-1)?.content??'';const pattern=/日历|日程|任务安排|提醒我|提醒一下我|记个提醒|记下来|哪些安排|生日.{0,15}(?:资料|来源|检测)|检测.{0,15}生日/;
@@ -461,7 +463,13 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
   const readonlyShare=readonlyWechatShare(latest);
   const boundary=readonlyShare?null:authorizationBoundary(request.messages);
   if(boundary)return {text:boundary};
+  if(!readonlyShare&&isAssetOverviewQuestion(latest)){
+    const assets=request.bank?.assetSummary;
+    return {text:validAssetSummary(assets)?`当前银行沙箱总资产${assetMoney(assets.total)}：现金${assetMoney(assets.cash)}、理财持仓${assetMoney(assets.wealth)}、定存本金${assetMoney(assets.deposits)}。预留资金已包含在现金中，不重复累加。未执行资金操作。`:'本轮未能读取当前银行资产汇总，请打开资产页核对；不能把未读取的数据当成零，也不会发起资金操作。'};
+  }
+  const bankStatus=readonlyShare?null:bankFollowup(request);if(bankStatus)return bankStatus;
   const billQuestion=readonlyShare?null:billClarification(request);if(billQuestion)return billQuestion;
+  const classification=readonlyShare?null:billClassificationReply(request);if(classification)return classification;
   if(!readonlyShare&&request.billAnalysis&&!request.billAnalysis.needsClarification&&request.billAnalysis.sources.length&&/净消费|退款|恢复|继续/.test(latest)&&!/分类|这笔|那笔/.test(latest))return {text:groundedBillReply(request.billAnalysis)+'\n'+netBillSummary(request.billAnalysis),billUI:{sections:['overview','categories'],evidenceRefs:[]}};
   if(!readonlyShare&&cancelledTransfer(latest)&&transferFields(request.messages.slice(0,-1)))return {text:'这笔未付款转账已停止准备，原核对入口不再继续使用。没有扣款，也没有撤销已完成交易。'};
   if(!readonlyShare&&(/(?:告诉|显示|查看|查询|给我|透露|复述|输出|记得|是什么|发我).{0,24}(?:卡密|密码|支付密码|安全码|验证码|完整卡号|卡号全号|有效期)|(?:卡密|安全码|验证码|完整卡号|卡号全号).{0,16}(?:是什么|告诉|显示|给我|输出)/.test(latest)||/完整卡号|安全码|卡密/.test(latest)&&/发|给|告诉|显示|输出/.test(latest)))return {text:'我不能提供或复述卡片密码、安全码、验证码或完整卡号。演示卡片档案只保存昵称和末四位，不保存完整卡号、有效期或安全码，也没有验证后显示这些资料的功能；请通过发卡机构的正式渠道核验。本次没有读取或发送卡密。'};
@@ -536,9 +544,10 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     const intent=aa?.intent??bankAAIntent(latest);
     if(intent){
       const {amount,recipientIds,includeSelf:self}=intent;
-      try{const shares=splitAA(amount,recipientIds,self);return {text:`银行沙箱AA仅准备核对：${shares.map(share=>`${share.recipientId==='self'?'本人':bankRecipients.find(p=>p.id===share.recipientId)!.name}${(share.amount/100).toFixed(2)}元`).join('，')}。总额${(amount/100).toFixed(2)}元，发起收款后仍需对方支付才入账。`,action:{type:'prepare_aa',amount,recipientIds,includeSelf:self}};}catch{return {text:'请核对AA金额和参与人，每人至少分摊1分，尚未发起。'};}
+      try{const shares=splitAA(amount,recipientIds,self);return {text:`银行沙箱AA仅准备核对：${shares.map(share=>`${share.recipientId==='self'?'本人':bankRecipients.find(p=>p.id===share.recipientId)!.name}${(share.amount/100).toFixed(2)}元`).join('，')}。总额${(amount/100).toFixed(2)}元，发起收款后仍需对方支付才入账。`,action:{type:'prepare_aa',...intent}};}catch{return {text:'请核对AA金额和参与人，每人至少分摊1分，尚未发起。'};}
     }
-    return {text:'可以在银行沙箱准备AA。请明确总额、已登记参与人及是否包含本人；尚未发起收款。',waitingQuestion:'AA总额、参与人和是否包含本人分别是什么？'};
+    const question=(aa&&'clarification'in aa?aa.clarification:undefined)??'请明确AA总额、已登记参与人及是否包含本人；尚未发起收款。';
+    return {text:question,waitingQuestion:question};
   }
   if(!readonlyShare&&!bankAA&&/群收款|微信群.*(?:AA|aa|分摊|收款)|(?:AA|aa|分摊).*微信群/.test(newestUser?.content??''))return {text:'可以，从已有微信群选择参与人，再把费用和分摊规则告诉我。点选和文字都能调整同一份方案，核对后再去微信发起。',action:{type:'open_group_aa'}};
   const userContext=request.messages.filter(m=>m.role==='user').slice(-4).map(m=>m.content).join('\n');
@@ -553,7 +562,7 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     const explicit=explicitTransferCents(latest);
     if(explicit!==null&&checked.action.amount!==explicit)return {text:'生成方案的金额与本轮要求不一致，已停止展示该方案。请重新核对收款人与金额，尚未付款。',waitingQuestion:'请再次确认本轮转账金额。'};
     const recentUsers=transferUserTurns(request.messages).slice(-8);
-    const sourceSelected=recentUsers.some(content=>/(?:从|用|选择).{0,8}(?:常用卡|8888)|(?:常用卡|8888).{0,8}(?:转出|付款)/.test(content));
+    const sourceSelected=recentUsers.some(content=>/(?:从|用|选择).{0,8}(?:常用卡|8888)|(?:付款账户|付款卡|账户)\s*8888|(?:常用卡|8888).{0,8}(?:转出|付款)/.test(content));
     if(!sourceSelected)return {text:'这笔转账从哪个账户转出？目前仅能使用银行沙箱常用卡 8888，微信和支付宝余额不能代付。请明确选择，尚未转账。\n[[choices:从常用卡8888转出|先不转了]]'};
     const remarkValue=(content:string)=>content.match(/(?:^|[，,；;])\s*(?:转账)?(?:备注|附言)(?:写|为|是|：|:)?\s*([^，。；;？?]{1,80})/)?.[1]?.trim();
     const remarkTurn=[...recentUsers].reverse().find(content=>/(?:不用|不需要|无需|不写|无)(?:转账)?(?:备注|附言)/.test(content)||Boolean(remarkValue(content)));
@@ -580,7 +589,7 @@ export async function requestStewardReplyWithModel(request:StewardReplyRequest,m
     if(!fields.recipientId)return {text:'这笔转账要给谁？请确认唯一收款人的姓名、完整手机号或唯一备注；已说明的金额与付款卡会保留。',waitingQuestion:'请确认唯一收款人。'};
     if(fields.amount===undefined)return {text:`已识别${bankRecipients.find(p=>p.id===fields.recipientId)!.name}，这次要转多少元？`,waitingQuestion:'本次转账金额是多少？'};
     if(!fields.sourceAccountId)return {text:'这笔转账从哪个账户转出？目前只能从银行沙箱常用卡8888转出，微信或支付宝不能代付。是否改用常用卡8888？尚未付款。',waitingQuestion:'是否从常用卡8888转出？'};
-    return verifyPlan({text:'仅准备当前转账核对，尚未付款。',action:{type:'prepare_transfer',recipientId:fields.recipientId,amount:fields.amount,sourceAccountId:fields.sourceAccountId}});
+    return verifyPlan({text:'仅准备当前转账核对，尚未付款。',action:{type:'prepare_transfer',recipientId:fields.recipientId,amount:fields.amount,sourceAccountId:fields.sourceAccountId,...(fields.executeAt?{executeAt:fields.executeAt}:{})}});
   }
   const directTransfer=/(?:给|向).{1,25}(?:转|汇)|从.{0,15}转\s*[\d一二两三四五六七八九十百千万]/.test(latest)
     && !/如果|假设|只解释|只咨询|不办理|不执行转账|不要转|先别转|已(?:经)?转|昨天|记录|历史|预约|定时|今天|明天|后天|凌晨|周[一二三四五六日天]|星期|\d{1,2}[月日号点:]|AA|aa|分摊|每月|每周/.test(latest);
