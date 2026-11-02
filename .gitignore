@@ -1,6 +1,11 @@
 node_modules/
 dist/
 coverage/
+# Local build output, coverage, caches and historical generated materials
+.artifacts/
+/tmp/
+/output/
+/outputs/
 .impeccable/review/
 mobilegym/public/__task-cards-preview/
 .DS_Store

@@ -131,41 +131,133 @@
 .elder-mode .elder-home-note { display: flex; align-items: flex-start; gap: 9px; margin: -7px 0 0; color: #4b625f; font-size: 18px; line-height: 1.65; }
 .elder-mode .elder-home-note svg { flex: 0 0 auto; margin-top: 3px; }
 
-/* Shared conversation keeps its original message and authorization logic. */
-.elder-mode .elder-chat-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; width: 100%; max-width: 800px; padding: 14px 18px; margin-inline: auto; background: #f5faf7; border-bottom: 1px solid #c8dcd2; flex-shrink: 0; }
-.elder-mode .elder-chat-heading h1 { margin: 0; font-size: 25px; }
-.elder-mode .elder-chat-heading p { margin: 3px 0 0; color: #4b625f; font-size: 18px; }
-.elder-mode .elder-chat-heading button { padding: 10px 14px; border: 1px solid #99bdb2; border-radius: 12px; background: #fff; color: #00564f; }
+/* A focused conversation: one header, full-width reading, explicit input actions. */
+.elder-mode .elder-chat-heading {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 800px;
+  min-height: 80px;
+  margin-inline: auto;
+  padding: 8px 12px;
+  background: #f5faf7;
+  border-bottom: 1px solid #c8dcd2;
+}
+.elder-mode .elder-chat-heading > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  min-height: 56px;
+  padding: 3px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #00564f;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.elder-mode .elder-chat-heading > button:hover { background: #e5f2eb; }
+.elder-mode .elder-chat-person { display: flex; align-items: center; justify-content: center; gap: 9px; min-width: 0; }
+.elder-mode .elder-chat-person > img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex: none; }
+.elder-mode .elder-chat-person > div { min-width: 0; }
+.elder-mode .elder-chat-person h1 { margin: 0; font-size: 23px; line-height: 1.3; overflow-wrap: anywhere; }
+.elder-mode .elder-chat-person span { display: block; color: #4b625f; font-size: 16px; line-height: 1.5; }
+.app-shell.elder-mode.elder-chat-view { --chat-composer-space: calc(var(--elder-composer-height, 210px) + 20px); }
+.app-shell.elder-mode.elder-chat-view .home-content { padding: 10px 16px var(--chat-composer-space); scroll-padding-bottom: var(--chat-composer-space); }
 .elder-mode .steward-chat-home { font-size: 20px; }
 .elder-mode .steward-thread-context { flex-wrap: wrap; gap: 8px; font-size: 18px; }
 .elder-mode :is(.steward-presence > span, .steward-live-heading p, .steward-summary-meta, .steward-summary-meta button) { font-size: 18px; color: #4b625f; }
 .elder-mode .steward-live-heading h1 { font-size: 28px; }
-.elder-mode :is(.reply-prose, .steward-brief, .steward-brief p, .steward-message.user .steward-brief, .steward-message.user p, .steward-quick-prompts button, .steward-reply-choices button, .steward-brief > button) { font-size: 20px; line-height: 1.65; }
+.elder-mode.home-ui-preview .home-preview-chat :is(.reply-prose, .steward-brief, .steward-brief p, .steward-message.user .steward-brief, .steward-message.user p, .steward-brief > button) { font-size: 20px; line-height: 1.7; }
+.elder-mode.home-ui-preview .home-preview-chat .steward-transcript { gap: 24px; padding-bottom: 8px; }
+.elder-mode.home-ui-preview .home-preview-chat .steward-message { min-width: 0; gap: 0; }
+.elder-mode.home-ui-preview .home-preview-chat .steward-message.assistant .steward-brief { gap: 12px; padding: 16px; border-color: #d0e0d8; border-radius: 14px; }
+.elder-mode.home-ui-preview .home-preview-chat .steward-message.user .steward-brief { max-width: 92%; padding: 12px 16px; background: #deeee6; color: #163d3b; }
+.elder-mode.home-ui-preview .home-preview-chat .home-reply-identity { gap: 8px; font-size: 18px; color: #365651; }
+.elder-mode.home-ui-preview .home-preview-chat .has-bill-card .home-reply-identity { padding-left: 0; }
+.elder-mode .home-reply-identity > img { width: 28px; height: 28px; object-fit: cover; border-radius: 50%; }
+.elder-mode.home-ui-preview .home-preview-chat .home-reply-identity > span { font-size: 14px; padding-inline: 6px; background: #006c64; }
+.elder-mode.home-ui-preview .home-preview-chat .steward-thread-context { padding: 6px 0 14px; font-size: 16px; color: #4b625f; }
 .elder-mode .steward-quick-prompts { gap: 10px; }
-.elder-mode .steward-quick-prompts button { width: 100%; min-height: 58px; padding: 12px; border: 1px solid #bdcfc6; background: #fff; }
-.elder-mode .steward-message { min-width: 0; }
-.elder-mode .steward-brief { min-width: 0; }
+.elder-mode .steward-quick-prompts button { width: 100%; min-height: 58px; padding: 12px; border: 1px solid #bdcfc6; background: #fff; font-size: 20px; line-height: 1.65; }
 .elder-mode .steward-reply-choices { gap: 12px; }
-.elder-mode .steward-chat-composer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: #f5faf7; }
-.elder-mode .steward-composer-field { gap: 8px; padding: 6px; border: 2px solid #abc9bd; border-radius: 14px; }
-.elder-mode .steward-chat-composer input { min-height: 56px; padding: 8px; font-size: 20px; }
-.elder-mode .steward-chat-composer button { width: auto; min-width: 56px; height: auto; min-height: 56px; padding: 12px; border-radius: 10px; }
-.elder-mode .steward-composer-note { align-items: flex-start; font-size: 18px; text-align: center; line-height: 1.5; }
-.elder-mode .steward-composer-note svg { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 3px; }
-.elder-mode .steward-chat-error { gap: 10px; padding: 14px; font-size: 20px; }
-.elder-mode :is(.home-reply-identity, .next-renewal-copy, .next-renewal-copy small, .transfer-follow-up p, .transfer-follow-up p strong, .steward-decision-heading, .steward-insight-actions button, .steward-reply-choices p) { font-size: 20px; line-height: 1.65; }
+.elder-mode.home-ui-preview .home-preview-chat .steward-reply-choices button { min-height: 52px; font-size: 20px; line-height: 1.5; }
+.elder-mode :is(.desk-working, .steward-chat-error, .steward-chat-error button) { font-size: 18px; line-height: 1.65; }
+.elder-mode .steward-chat-error { gap: 10px; padding: 14px; }
+.elder-mode :is(.next-renewal-copy, .next-renewal-copy small, .transfer-follow-up p, .transfer-follow-up p strong, .steward-decision-heading, .steward-insight-actions button, .steward-reply-choices p) { font-size: 20px; line-height: 1.65; }
 .elder-mode :is(.transfer-follow-up, .steward-wealth-inline, .steward-decision) { padding: 16px; }
 .elder-mode :is(.steward-insight-actions, .steward-wealth-inline-actions) { flex-wrap: wrap; gap: 12px; }
-.elder-mode.home-ui-preview { --chat-composer-space: calc(234px + env(safe-area-inset-bottom)); }
-.elder-mode.native-chat-shell:not(.elder-home-view) .home-content { padding-bottom: var(--chat-composer-space); scroll-padding-bottom: var(--chat-composer-space); }
-.elder-mode.home-ui-preview .home-preview-chat :is(.reply-prose, .steward-brief, .steward-brief p, .steward-message.user .steward-brief, .steward-message.user p, .steward-brief > button) { font-size: 20px; line-height: 1.65; }
-.elder-mode.home-ui-preview .home-preview-chat :is(.home-reply-identity, .steward-thread-context) { font-size: 18px; }
-.elder-mode.home-ui-preview .home-preview-chat .steward-chat-composer { bottom: calc(84px + env(safe-area-inset-bottom)); padding: 12px 16px; background: #f5faf7; }
-.elder-mode.home-ui-preview .home-preview-chat .steward-chat-composer input { font-size: 20px; min-height: 56px; }
-.elder-mode.home-ui-preview .home-preview-chat .steward-chat-composer button { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 5px; width: auto; min-width: 86px; min-height: 56px; height: auto; padding: 10px; border-radius: 10px; background: #006c64; font-size: 20px; }
-.elder-mode.home-ui-preview .home-preview-chat .steward-composer-note { font-size: 18px; }
+
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer {
+  grid-template-columns: minmax(0, 1fr) minmax(90px, .65fr);
+  align-items: stretch;
+  gap: 8px 12px;
+  bottom: 0;
+  padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid #c8dcd2;
+  background: #f5faf7;
+}
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer .steward-composer-field { grid-column: 1 / -1; display: block; min-width: 0; padding: 0; border: 1px solid #8cac9f; border-radius: 12px; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  max-height: 128px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  resize: none;
+  background: transparent;
+  color: #163d3b;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1.5;
+  caret-color: #00645f;
+  scroll-padding-block: 8px;
+}
+.elder-mode .elder-composer textarea:focus-visible { outline-offset: -3px; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer > button,
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer .steward-voice > .voice-entry { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 0; min-height: 52px; height: auto; padding: 10px 12px; border-radius: 10px; font-size: 20px; line-height: 1.4; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer > button { grid-column: 2; background: #006c64; color: #fff; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer:not(.has-voice) > button { grid-column: 1 / -1; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer > button:disabled { background: #e0ece7; color: #4b625f; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer .steward-voice > .voice-entry { border: 1px solid #9dbeb1; background: #e5f2eb; color: #00564f; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer .steward-voice > .voice-entry:hover:not(:disabled) { background: #d7eade; }
 .elder-mode .elder-send-label { font-size: 20px; white-space: nowrap; }
-.elder-mode.home-ui-preview .home-preview-chat .steward-chat-composer button:disabled { background: #e0ece7; color: #4b625f; }
+.elder-mode.home-ui-preview .home-preview-chat .elder-composer .steward-composer-note { grid-column: 1 / -1; align-items: center; gap: 6px; font-size: 16px; color: #4b625f; line-height: 1.5; text-align: center; }
+.elder-mode .elder-composer .steward-composer-note svg { flex: none; width: 18px; height: 18px; }
+
+/* Call and history are still the shared surfaces; their essential labels stay legible. */
+.elder-mode .voice-call-stage { padding-inline: 16px; overflow-y: auto; }
+.elder-mode .voice-call-heading { flex-wrap: wrap; gap: 8px; }
+.elder-mode .voice-call-heading strong { font-size: 20px; }
+.elder-mode .voice-call-heading span { font-size: 18px; }
+.elder-mode .voice-call-body { flex: 1 0 auto; padding-block: 20px; overflow: visible; }
+.elder-mode .voice-call-body :is(.voice-status, .voice-captions p) { font-size: 20px; line-height: 1.65; }
+.elder-mode .voice-call-root .voice-call-stage button { min-height: 52px; font-size: 20px; }
+.elder-mode .voice-call-root .voice-call-stage button.voice-start { min-height: 56px; font-size: 22px; }
+.elder-mode .voice-call-body :is(.voice-error, .voice-notice) { font-size: 18px; line-height: 1.65; }
+.elder-mode .voice-call-root :is(.voice-minimize span, .voice-control-label, .voice-consent, .voice-call-hint, .voice-call-footer p, .voice-call-footer small) { font-size: 18px; line-height: 1.6; }
+.elder-mode .voice-controls { gap: 12px; flex-wrap: wrap; }
+.elder-mode .voice-call-footer { padding-top: 12px; }
+.elder-mode .steward-voice > .voice-call-bar { left: 0; right: auto; width: min(600px, calc(100vw - 32px)); flex-wrap: wrap; }
+.elder-mode .steward-chat-composer .steward-voice .voice-call-bar button.voice-resume { font-size: 20px; }
+.elder-mode .voice-resume small { font-size: 18px; }
+body[data-zhiyin-appearance="elder"] :is(.conversation-sheet, .conversation-modal) { color: #163d3b; font-size: 20px; line-height: 1.65; }
+body[data-zhiyin-appearance="elder"] .conversation-sheet { width: min(440px, calc(100vw - 20px)); padding: 16px; }
+body[data-zhiyin-appearance="elder"] .conversation-sheet-head h2 { font-size: 25px; }
+body[data-zhiyin-appearance="elder"] :is(.conversation-sheet, .conversation-modal) :is(button, input) { min-height: 52px; font-size: 20px; line-height: 1.5; }
+body[data-zhiyin-appearance="elder"] .conversation-sheet-head button { min-width: 52px; }
+body[data-zhiyin-appearance="elder"] .conversation-search { font-size: 18px; }
+body[data-zhiyin-appearance="elder"] .conversation-list-select strong { white-space: normal; font-size: 20px; }
+body[data-zhiyin-appearance="elder"] .conversation-list-select span { font-size: 18px; color: #4b625f; }
+body[data-zhiyin-appearance="elder"] .conversation-sheet-list { flex-shrink: 0; overflow: visible; }
+body[data-zhiyin-appearance="elder"] :is(.conversation-sheet, .conversation-modal) :is(button, input):focus-visible { outline: 3px solid #00645f; outline-offset: 2px; }
 
 /* Radix portals are outside app-shell; the body attribute scopes them. */
 body[data-zhiyin-appearance="elder"] .dialog-content {

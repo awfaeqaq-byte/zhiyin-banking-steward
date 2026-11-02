@@ -4,7 +4,7 @@ import {MerchantInsightCard} from './merchant-insight-card';
 import {isMerchantPrompt,merchantAnswer,validMerchantInsight,type MerchantInsight} from '../lib/merchant-assistant';
 import {merchantRequest} from '../lib/merchant-service';
 import {useConversationArrival} from '../lib/use-interface-motion';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { buildBillAnalysis, billQuestionForMessages, billReferenceTime, isBillQuestion, type BillAnalysis } from '../lib/bill-analysis';
 import {billTaskQuestion,readTaskProgress,settleTaskProgress,type TaskProgress} from '../lib/task-progress';
 import {TaskConversationTimeline,type ConversationTaskPanel} from './task-conversation-timeline';
@@ -214,6 +214,12 @@ function writeMessages(messages: DisplayMessage[],key=storageKey) {
   } catch {
     // Conversation persistence is optional in restricted browser contexts.
   }
+}
+
+function fitComposerTextarea(field: HTMLInputElement | HTMLTextAreaElement | null) {
+  if (!(field instanceof HTMLTextAreaElement)) return;
+  field.style.height = 'auto';
+  field.style.height = `${Math.min(128, Math.max(76, field.scrollHeight))}px`;
 }
 
 /** Restore completed turns lost while the home was unmounted. Text only: no
@@ -465,7 +471,30 @@ export function StewardChatHome({
   const [requestPhase, setRequestPhase] = useState<'checking' | 'replying'>('checking');
   const transcriptEnd = useRef<HTMLDivElement>(null);
   const responseStart = useRef<HTMLDivElement>(null);
-  const composerInput = useRef<HTMLInputElement>(null);
+  const composerInput = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const composerForm = useRef<HTMLFormElement>(null);
+  // Reserve the actual input height, including wrapped text and system font scaling.
+  useLayoutEffect(() => {
+    if (!elderMode) return;
+    const form = composerForm.current;
+    const shell = form?.closest<HTMLElement>('.app-shell');
+    if (!form || !shell) return;
+    let wasVisible = false;
+    const measure = () => {
+      const visible = form.getBoundingClientRect().height > 0;
+      if (visible && !wasVisible) fitComposerTextarea(composerInput.current);
+      wasVisible = visible;
+      const height = form.getBoundingClientRect().height;
+      if (height > 0) shell.style.setProperty('--elder-composer-height', `${Math.ceil(height)}px`);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure);
+    observer?.observe(form);
+    return () => { observer?.disconnect(); shell.style.removeProperty('--elder-composer-height'); };
+  }, [elderMode]);
+  useLayoutEffect(() => {
+    if (elderMode) fitComposerTextarea(composerInput.current);
+  }, [elderMode, input]);
   const currentGroups = useRef<string[]>([]);
   currentGroups.current = subscriptionGroups(insights.items).map(duplicateGroupKey);
   function chooseDuplicate(key: string, decision: DuplicateDecision, titles: string[]) {
@@ -954,6 +983,11 @@ export function StewardChatHome({
         onDraftChange={async food=>{await onBackgroundProgress?.(w.id,{goal:w.title,stage:'waiting_authorization',food},revision);}} onTurn={record}/>:null;
     return node?[{id:w.id,title:w.title,active:active||Boolean(waitingForAA[w.id]),disabled:w.status!=='active',pendingMessageId:prompt?.messageId,node}]:[];
   });
+  const sendControl = <button type="submit" aria-label={`发送给${stewardName}`} disabled={voiceActive || submissionDisabled || (!onRoutePrompt&&(sending||externalBusy)) || viewSaving || (!input.trim()&&!wechatShare)}>
+    {sending&&!onRoutePrompt ? <LoaderCircle className="spin" size={20} aria-hidden="true" /> : <Send size={20} aria-hidden="true" />}
+    {elderMode && <span className="elder-send-label">{sending&&!onRoutePrompt ? '处理中' : '发送'}</span>}
+  </button>;
+
   return (
     <div ref={messageSurface} className={`steward-chat-home steward-desk ${seamless?'seamless-conversation':''} ${homePreview?'home-preview-chat':''} ${sending || externalBusy ? 'is-working' : ''}`}>
       <section className="steward-conversation" aria-label={`与${stewardName}对话`}>
@@ -1154,9 +1188,9 @@ export function StewardChatHome({
             // Current ledger first, then its explanation. Consent still follows the question asking for it.
             return [scene?.needsConsent||billCard?null:billSurface,(
               <div ref={seamless&&message.id===activeReplyId?responseStart:undefined} className={`steward-message ${message.role}${billCard?' has-bill-card':''}`} data-message-id={message.id} data-workspace-id={message.workspaceId} role={message.retryPrompt?'alert':undefined} key={message.id}>
-                {homePreview&&message.role==='assistant'&&<img className="home-reply-avatar" src={stewardImage} alt=""/>}
+                {homePreview&&!elderMode&&message.role==='assistant'&&<img className="home-reply-avatar" src={stewardImage} alt=""/>}
                 <div className="steward-brief">
-                  {homePreview&&message.role==='assistant'&&<div className="home-reply-identity"><strong>{stewardName}</strong><span>AI</span></div>}
+                  {homePreview&&message.role==='assistant'&&<div className="home-reply-identity">{elderMode&&<img src={stewardImage} alt=""/>}<strong>{stewardName}</strong><span>AI</span></div>}
                   {(historyOpen || fullSession) && <small>{message.role === 'user' ? '你' : stewardName}</small>}
                   {billCard??taskSurface??(message.view==='wealth_compare'
                     ? !historyOpen && message.id===activeReplyId
@@ -1234,27 +1268,35 @@ export function StewardChatHome({
         )}
         <div ref={transcriptEnd} aria-hidden="true" />
 
-        <form className={`steward-chat-composer${onVoiceRequest?' has-voice':''}`} onSubmit={submit}>
+        <form ref={composerForm} className={`steward-chat-composer${onVoiceRequest?' has-voice':''}${elderMode?' elder-composer':''}`} onSubmit={submit}>
           <label className="sr-only" htmlFor="steward-chat-input">和{stewardName}说点什么</label>
           <div className="steward-composer-field">
-            <input
-              ref={composerInput}
+            {elderMode ? <textarea
+              ref={node => { composerInput.current = node; }}
               id="steward-chat-input"
               aria-label={`和${stewardName}说点什么`}
               value={input}
               disabled={voiceActive}
               onChange={event => setInput(event.target.value)}
-              placeholder={wechatShare?'想让我怎么处理这些消息？':elderMode?'输入想办的事':`和${stewardName}说点什么…`}
+              placeholder={wechatShare?'想让我怎么处理这些消息？':'输入您想办的事…'}
+              rows={2}
+              maxLength={wechatShare?200:1000}
+            /> : <input
+              ref={node => { composerInput.current = node; }}
+              id="steward-chat-input"
+              aria-label={`和${stewardName}说点什么`}
+              value={input}
+              disabled={voiceActive}
+              onChange={event => setInput(event.target.value)}
+              placeholder={wechatShare?'想让我怎么处理这些消息？':`和${stewardName}说点什么…`}
               autoComplete="off"
               maxLength={wechatShare?200:1000}
-            />
-            <button type="submit" aria-label={`发送给${stewardName}`} disabled={voiceActive || submissionDisabled || (!onRoutePrompt&&(sending||externalBusy)) || viewSaving || (!input.trim()&&!wechatShare)}>
-              {sending&&!onRoutePrompt ? <LoaderCircle className="spin" size={20} /> : <Send size={20} />}
-              {elderMode && <span className="elder-send-label">{sending ? '处理中' : '发送'}</span>}
-            </button>
+            />}
+            {!elderMode && sendControl}
           </div>
-          {onVoiceRequest&&<StewardVoice stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} getContext={getVoiceContext} onTurn={onVoiceTurn} reviewing={voiceReviewing} enabled={voiceEnabled} disabled={!!wechatShare} onActiveChange={setVoiceActive}/>}
-          <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />涉及资金的操作仍需你确认</span>
+          {onVoiceRequest&&<StewardVoice elderMode={elderMode} stewardName={stewardName} stewardImage={stewardImage} onRequest={onVoiceRequest} getContext={getVoiceContext} onTurn={onVoiceTurn} reviewing={voiceReviewing} enabled={voiceEnabled} disabled={!!wechatShare} onActiveChange={setVoiceActive}/>}
+          {elderMode && sendControl}
+          <span className="steward-composer-note"><ShieldCheck size={13} aria-hidden="true" />{elderMode?'涉及资金，先核对再由您确认':'涉及资金的操作仍需你确认'}</span>
         </form>
       </section>
     </div>

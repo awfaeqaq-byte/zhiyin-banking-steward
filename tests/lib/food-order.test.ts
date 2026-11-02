@@ -1,0 +1,80 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {foodRoute,foodQuote,parseFoodAdvice,requestFoodAdvice,validFoodDraft,type FoodCatalog} from '../../src/lib/food-order';
+import {advanceTaskProgress} from '../../src/lib/task-progress';
+import {changeWorkspaces,emptyWorkspaces,type Workspace} from '../../src/lib/workspaces';
+export const catalog:FoodCatalog={storeId:'shop',storeName:'橙子小馆',deliveryFee:300,discount:500,deliveryMinutes:32,address:'默认地址',contact:'林晓',products:[{id:'tea',name:'黑糖珍珠鲜奶茶',description:'微糖500ml',price:880,image:''},{id:'rice',name:'鸡丁饭',description:'现炒',price:2580,image:''}]};
+afterEach(()=>vi.restoreAllMocks());
+it('真实菜单以分计算费用；拒绝不存在商品、浮点份数与伪造价格',()=>{
+ expect(foodQuote(catalog,{items:[{productId:'tea',quantity:1}],note:''})).toEqual({itemTotal:880,deliveryFee:300,discount:500,payable:680});
+ expect(()=>foodQuote(catalog,{items:[{productId:'fake',quantity:1}],note:''})).toThrow();
+ expect(validFoodDraft({items:[{productId:'tea',quantity:1.5}],note:''})).toBe(false);
+ expect(validFoodDraft({items:[],note:'',payable:1})).toBe(false);
+});
+it('日常点餐与旧的general外卖任务续聊复用，AA消费不能误归点餐',()=>{
+ const old:Workspace={id:'old',kind:'general',title:'点奶茶外卖',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute('我让你推荐啊',[old],'old')?.parts[0]).toMatchObject({taskId:'old',kind:'food'});
+ expect(foodRoute('喝个奶茶吧，就默认地址',[old],'old')?.parts[0].taskId).toBe('old');
+ expect(foodRoute('帮我点个外卖',[],'')?.parts[0].kind).toBe('food');
+ expect(foodRoute('饮料18，平分',[],'')).toBeNull();
+ expect(foodRoute('帮我点外卖，给妈妈转500',[],'')).toBeNull();
+ const progress=advanceTaskProgress({...old,kind:'food',progress:{goal:'点奶茶',stage:'ready',food:{items:[{productId:'tea',quantity:1}],note:'',orderId:'order1'}}},'继续付款');
+ expect(progress.food?.orderId).toBe('order1');
+});
+it.each(['帮我点外卖，明天提醒我开会','帮我点外卖。解释一下复利','好的，明天提醒我开会','好的，换个话题','明天天气怎么样','推荐一下杭州景点'])('点餐快捷路径不吞掉新事项：%s',prompt=>{
+ const current:Workspace={id:'food',kind:'food',title:'晚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute(prompt,[current],current.id)).toBeNull();
+});
+it.each(['好的','可以','就默认地址','换成少冰','这个味道怎么样','推荐一杯奶茶'])('保留明确点餐补充的快捷路径：%s',prompt=>{
+ const current:Workspace={id:'food',kind:'food',title:'晚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute(prompt,[current],current.id)?.parts[0].taskId).toBe(current.id);
+});
+it('模型只提出菜单方案，不得捏造商品、执行授权或覆盖订单编号',()=>{
+ expect(parseFoodAdvice(JSON.stringify({text:'推荐奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''},choices:[]}),catalog).draft?.items[0].productId).toBe('tea');
+ for(const draft of [{items:[{productId:'fake',quantity:1}],note:''},{items:[{productId:'tea',quantity:1}],note:'',orderId:'fake'}])expect(()=>parseFoodAdvice(JSON.stringify({text:'已下单',draft}),catalog)).toThrow();
+ expect(()=>parseFoodAdvice('坏格式',catalog)).toThrow();
+});
+it('模型的已下单与积分口误不能呈现为交易事实',()=>{
+ const r=parseFoodAdvice(JSON.stringify({text:'880积分，已按默认地址下单啦',draft:{items:[{productId:'tea',quantity:1}],note:'微糖'}}),catalog);
+ expect(r.text).not.toContain('已');expect(r.text).not.toContain('积分');expect(r.text).toContain('核对后再付款');
+});
+it('请求包含实际菜单及旧对话；模型不可用不能默默下单',async()=>{
+ const f=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({text:'推荐黑糖珍珠鲜奶茶',draft:{items:[{productId:'tea',quantity:1}],note:''}})})));
+ await requestFoodAdvice('你推荐',catalog,{items:[],note:''},[{role:'user',content:'喝奶茶，用默认地址'}],'喜欢微糖','宁宁');
+ const body=JSON.parse(String(f.mock.calls[0][1]?.body));expect(JSON.stringify(body)).toContain('喝奶茶，用默认地址');expect(JSON.stringify(body)).toContain('880');expect(JSON.stringify(body)).toContain('喜欢微糖');
+ f.mockResolvedValue(new Response(JSON.stringify({error:'模型不可用'}),{status:502}));await expect(requestFoodAdvice('推荐',catalog,{items:[],note:''},[],'','宁宁')).rejects.toThrow('模型不可用');
+});
+it('旧普通事项只能用已校验的点餐现场转为food，刷新后仍有方案',()=>{
+ let state=changeWorkspaces(emptyWorkspaces(),{type:'create',id:'old',kind:'general',title:'点餐',revision:0,requestId:'a'});
+ state=changeWorkspaces(state,{type:'progress',id:'old',kind:'food',progress:{goal:'点奶茶',stage:'ready',food:{items:[{productId:'tea',quantity:1}],note:''}},memoryRevision:0,revision:1,requestId:'b'});
+ expect(state.items[0].kind).toBe('food');
+ expect(()=>changeWorkspaces(state,{type:'progress',id:'old',kind:'food',progress:{goal:'乱转',stage:'ready'},memoryRevision:0,revision:2,requestId:'c'})).toThrow();
+});
+it('问热量沿用点餐上下文，不把询问变成方案修改',async()=>{
+ const current:Workspace={id:'food',kind:'food',title:'晚餐',status:'active',updatedAt:0,messages:[],summary:'',memoryRevision:0};
+ expect(foodRoute('这个热量大概怎么样啊？',[current],'food')?.parts[0]).toMatchObject({taskId:'food',kind:'food'});
+ const answer='按常见份量粗估约 500–700 千卡，主要取决于份量和用油；不是商家实测。';
+ const f=vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({intent:'update',text:answer,draft:{items:[{productId:'rice',quantity:2}],note:''}})})));
+ const result=await requestFoodAdvice('这个热量大概怎么样啊？',catalog,{items:[{productId:'tea',quantity:1}],note:'少冰'},[],'','宁宁');
+ expect(result.text).toBe(answer);expect(result.intent).toBe('answer');expect(result.draft).toBeUndefined();
+ const body=JSON.parse(String(f.mock.calls[0][1]?.body));expect(body.instructions).toContain('估算');expect(body.instructions).toContain('商家实测');
+});
+it('普通文字营养答复能只读展示，损坏JSON只返回用户可理解的错误',async()=>{
+ const answer='菜单没有标注热量，但可以根据食材、常见份量和用油粗略估算，不是商家实测。';
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:answer})));
+ const result=await requestFoodAdvice('大概多少热量',catalog,{items:[{productId:'tea',quantity:1}],note:''},[],'','宁宁');
+ expect(result).toMatchObject({intent:'answer',text:answer});expect(result.draft).toBeUndefined();
+ expect(()=>parseFoodAdvice('{"text":',catalog)).toThrow('回复格式');
+ expect(()=>parseFoodAdvice('{"text":',catalog)).not.toThrow('Unexpected');
+});
+it('保留自然解释和推荐理由，只有伪造交易事实才替换文案',()=>{
+ const reason='推荐这杯奶茶，因为你喜欢微糖，也可以改成少冰。';
+ const result=parseFoodAdvice(JSON.stringify({intent:'update',text:reason,draft:{items:[{productId:'tea',quantity:1}],note:''}}),catalog);
+ expect(result.text).toBe(reason);expect(result.draft?.items[0].productId).toBe('tea');
+ const readOnly=parseFoodAdvice(JSON.stringify({intent:'answer',text:'我只是估算，没有修改你的点餐方案。',draft:{items:[{productId:'rice',quantity:2}],note:''}}),catalog);
+ expect(readOnly.draft).toBeUndefined();expect(readOnly.intent).toBe('answer');
+});
+it('真正修改请求仍能改方案，不因提及热量被当成只读问题',async()=>{
+ vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(JSON.stringify({output_text:JSON.stringify({intent:'update',text:'改成鸡丁饭。',draft:{items:[{productId:'rice',quantity:1}],note:'少油'}})})));
+ const result=await requestFoodAdvice('帮我换成热量低一点的鸡丁饭',catalog,{items:[{productId:'tea',quantity:1}],note:''},[],'','宁宁');
+ expect(result.intent).toBe('update');expect(result.draft?.items[0].productId).toBe('rice');
+});

@@ -30,10 +30,11 @@ type Props = {
   getContext?: VoiceContextLoader; onTurn?: (turn: VoiceTurn) => void;
   disabled?: boolean; enabled?: boolean; reviewing?: boolean;
   onActiveChange?: (active: boolean) => void;
+  elderMode?: boolean;
 };
 export function StewardVoice({
   stewardName, stewardImage, onRequest, getContext, onTurn,
-  disabled = false, enabled = true, reviewing = false, onActiveChange,
+  disabled = false, enabled = true, reviewing = false, onActiveChange, elderMode = false,
 }: Props) {
   const [open, setOpen] = useState(false), [state, setState] = useState(initialVoiceState);
   const [reviewHost, setReviewHost] = useState<Element | null>(null);
@@ -91,7 +92,13 @@ export function StewardVoice({
       window.removeEventListener('zhiyin-memory-context-reset', reset);
     };
   }, [stewardName]);
-  useEffect(() => { if (!enabled) { connection.current?.stop('已离开首页，收音已停止。'); setOpen(false); } }, [enabled]);
+  useEffect(() => {
+    if (!enabled) {
+      const phase = connection.current?.getState().phase;
+      connection.current?.stop(phase && phase !== 'idle' && phase !== 'error' ? '已离开对话，收音已停止。' : '');
+      setOpen(false);
+    }
+  }, [enabled]);
   useEffect(() => { onActiveChange?.(active); return () => onActiveChange?.(false); }, [active, onActiveChange]);
   useEffect(() => {
     if (!active) { beganAt.current = 0; setSeconds(0); return; }
@@ -145,12 +152,13 @@ export function StewardVoice({
   return <div className="steward-voice">
     <button ref={entry} type="button" className="voice-entry" aria-label={'和' + stewardName + '语音对话'} aria-expanded={open && !inReview} disabled={!enabled || disabled && !active || inReview && !active} onClick={() => open ? minimize() : setOpen(true)}>
       <AudioLines size={22} aria-hidden="true"/>
+      {elderMode && <span>语音聊天</span>}
     </button>
     {(active || enabled && !!state.error && !inReview) && (!open || inReview) && (inReview && reviewHost ? createPortal(<div className="voice-review-dock">{compact}</div>, reviewHost) : compact)}
     {open && !inReview && <DialogPrimitive.Root open onOpenChange={next => { if (!next) minimize(); }}><DialogPrimitive.Portal container={entry.current?.closest('.app-shell') ?? document.body}><DialogPrimitive.Content asChild aria-label="语音通话" aria-labelledby={undefined} aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); entry.current?.focus(); }}><div className="voice-call-root"><section className="voice-call-stage" data-phase={state.phase} role="region" aria-label="语音对话" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); minimize(); } }}>
       <header className="voice-call-heading">
         <div><strong><AudioLines size={18} aria-hidden="true"/>语音对话</strong><span>{active && !connecting ? <><i aria-hidden="true"/>{clock}</> : '你的个人银行管家'}</span></div>
-        <button type="button" className="voice-minimize" aria-label="收起语音面板" onClick={minimize}><ArrowDown size={21} aria-hidden="true"/><span>回首页</span></button>
+        <button type="button" className="voice-minimize" aria-label="收起语音面板" onClick={minimize}><ArrowDown size={21} aria-hidden="true"/><span>{elderMode ? '回到对话' : '回首页'}</span></button>
       </header>
       <div className="voice-call-body" data-has-captions={hasCaptions} data-has-trip={!!tripReport} data-has-operation={!!wealthReview || !!expenseRecord || !!merchantReport || !!tripReport}>
         <div className="voice-call-person">

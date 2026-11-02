@@ -13,7 +13,7 @@ const day=(time:number)=>new Date(time).toISOString().slice(0,10);
 export function createFundSamplesService(options:{cacheFile:string;runner?:Runner;now?:()=>number;python?:string}){
   const now=options.now||Date.now;
   const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-  const script=resolve(projectRoot,'scripts/akshare_fund_samples.py');
+  const script=resolve(projectRoot,'scripts/data/akshare_fund_samples.py');
   const localPython=resolve(projectRoot,'.venv-akshare/bin/python');
   const python=options.python||process.env.AKSHARE_PYTHON||(existsSync(localPython)?localPython:'python3');
   const run:Runner=options.runner||(async end=>{

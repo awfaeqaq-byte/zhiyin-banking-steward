@@ -36,7 +36,7 @@ export function memoryPlugin():Plugin {
   const fundSamples=fundSamplesMiddleware(createFundSamplesService({cacheFile:fileURLToPath(new URL('../.zhiyin-fund-samples.local.json',import.meta.url))}));
   const billSources=createBillSourceService({grantFile:fileURLToPath(new URL('../.zhiyin-bill-grants.local.json',import.meta.url)),fetchSource:(provider,month)=>{
     if(provider!=='wechat_pay')throw new Error('支付宝尚无服务端账单适配器，请断开该来源或等待接入');
-    return readLocalWechatSource(fileURLToPath(new URL('../.zhiyin-bill-source.local.json',import.meta.url)),fileURLToPath(new URL('../scripts/import_wechat_bill.py',import.meta.url)),month);
+    return readLocalWechatSource(fileURLToPath(new URL('../.zhiyin-bill-source.local.json',import.meta.url)),fileURLToPath(new URL('../scripts/data/import_wechat_bill.py',import.meta.url)),month);
   }});
   const billSource=billSourceMiddleware(billSources);
   const automations=agentAutomationMiddleware(createAgentAutomationService({stateFile:fileURLToPath(new URL('../.zhiyin-automations.local.json',import.meta.url)),databaseUrl:`file:${fileURLToPath(new URL('../.zhiyin-mastra.db',import.meta.url))}`,refreshBills:billSources.refresh}));

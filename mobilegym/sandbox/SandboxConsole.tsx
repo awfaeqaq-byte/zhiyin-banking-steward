@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import {JudgeExperiencePanel} from './JudgeExperiencePanel';
 import {
   Check,
   ChevronRight,
@@ -51,10 +52,20 @@ export function SandboxConsoleView({
   onStewardBusyChange,
 }: SandboxConsoleViewProps) {
   const [modelOpen, setModelOpen] = useState(false);
+  const reviewRef=React.useRef<HTMLDetailsElement>(null);
+  const modelRef=React.useRef<HTMLDetailsElement>(null);
+  const textRef=React.useRef<HTMLDetailsElement>(null);
+  const financeRef=React.useRef<HTMLDetailsElement>(null);
+  const [reviewOpen,setReviewOpen]=useState(true);
+  function openSection(ref:React.RefObject<HTMLDetailsElement|null>){
+    if(ref.current){ref.current.open=true;ref.current.scrollIntoView({block:'start',behavior:'smooth'});}
+  }
   const [voiceOpen,setVoiceOpen]=useState(false),[textOpen,setTextOpen]=useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
   return (
     <>
+      <div className="sandbox-console-launchers">
+      <button type="button" className={`sandbox-console-trigger sandbox-judge-trigger${isOpen?' is-hidden':''}`} aria-label="打开评委体验" aria-expanded={isOpen&&reviewOpen} onClick={()=>{onOpen();openSection(reviewRef);}}><ChevronRight size={17} aria-hidden="true"/><span>评委体验</span></button>
       <button
         type="button"
         className={`sandbox-console-trigger${isOpen ? ' is-hidden' : ''}`}
@@ -66,6 +77,7 @@ export function SandboxConsoleView({
         <ShieldCheck size={17} aria-hidden="true" />
         <span>沙箱控制台</span>
       </button>
+      </div>
 
       <aside
         className={`sandbox-console-panel${isOpen ? ' is-open' : ''}`}
@@ -90,12 +102,16 @@ export function SandboxConsoleView({
         </header>
 
         <div className="sandbox-console-body">
-          <details className="sandbox-category" name="sandbox-category" onToggle={event=>setModelOpen(event.currentTarget.open)}>
+          <details ref={reviewRef} className="sandbox-category" name="sandbox-category" open={reviewOpen} onToggle={event=>setReviewOpen(event.currentTarget.open)}>
+            <summary><span>评委体验<small>场景入口、示例问题与核对步骤</small></span></summary>
+            <JudgeExperiencePanel active={isOpen&&reviewOpen} disabled={stewardBusy||phase==='running'||phase==='confirming'} onOpened={onClose} onModel={()=>{openSection(modelRef);if(textRef.current)textRef.current.open=true;}} onPrepare={()=>openSection(financeRef)}/>
+          </details>
+          <details ref={modelRef} className="sandbox-category" name="sandbox-category" onToggle={event=>setModelOpen(event.currentTarget.open)}>
             <summary><span>模型配置<small>服务地址、模型与密钥</small></span></summary>
-            <details className="sandbox-model-group" name="sandbox-model-group" onToggle={event=>setTextOpen(event.currentTarget.open)}><summary>{consoleStrings.voice.textTitle}<small>{consoleStrings.voice.textHint}</small></summary><ModelConfigPanel active={isOpen&&modelOpen&&textOpen}/></details>
+            <details ref={textRef} className="sandbox-model-group" name="sandbox-model-group" onToggle={event=>setTextOpen(event.currentTarget.open)}><summary>{consoleStrings.voice.textTitle}<small>{consoleStrings.voice.textHint}</small></summary><ModelConfigPanel active={isOpen&&modelOpen&&textOpen}/></details>
             <details className="sandbox-model-group" name="sandbox-model-group" onToggle={event=>setVoiceOpen(event.currentTarget.open)}><summary>{consoleStrings.voice.title}<small>{consoleStrings.voice.hint}</small></summary><VoiceConfigPanel active={isOpen&&modelOpen&&voiceOpen}/></details>
           </details>
-          <details className="sandbox-category" name="sandbox-category" onToggle={event=>setFinanceOpen(event.currentTarget.open)}>
+          <details ref={financeRef} className="sandbox-category" name="sandbox-category" onToggle={event=>setFinanceOpen(event.currentTarget.open)}>
             <summary><span>财务测试<small>场景、余额、时间与扣费</small></span></summary>
             <FinanceTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} />
             <OverseasPaymentTestPanel active={isOpen && financeOpen} disabled={stewardBusy || phase === 'running' || phase === 'confirming'} onBusyChange={onStewardBusyChange} />

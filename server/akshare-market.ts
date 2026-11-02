@@ -14,7 +14,7 @@ const day=(time:number)=>new Date(time).toISOString().slice(0,10).replaceAll('-'
 export function createAkshareMarketService(options:{cacheFile:string;runner?:Runner;now?:()=>number;python?:string}){
   const now=options.now||Date.now;
   const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-  const script=resolve(projectRoot,'scripts/akshare_market.py');
+  const script=resolve(projectRoot,'scripts/data/akshare_market.py');
   const defaultPython=resolve(projectRoot,'.venv-akshare/bin/python');
   const python=options.python||process.env.AKSHARE_PYTHON||(existsSync(defaultPython)?defaultPython:'python3');
   const run:Runner=options.runner||(async(mode,start,end)=>{
@@ -24,7 +24,7 @@ export function createAkshareMarketService(options:{cacheFile:string;runner?:Run
     }catch(error){
       const detail=error as Error & {stderr?:string;code?:number|string};
       const message=detail.stderr?.trim()||detail.message;
-      throw new Error(message.includes('AKSHARE_NOT_INSTALLED')?'未安装 AKShare，请先执行 scripts/setup_akshare.sh':`外部数据获取失败：${message.slice(0,240)}`);
+      throw new Error(message.includes('AKSHARE_NOT_INSTALLED')?'未安装 AKShare，请先执行 scripts/data/setup_akshare.sh':`外部数据获取失败：${message.slice(0,240)}`);
     }
   });
   const base=(status:MarketContext['status'],message:string):MarketContext=>({provider:'akshare',status,message,indicators:[],capabilities:[]});

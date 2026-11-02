@@ -8,11 +8,11 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "phone:sync": "node scripts/sync-phone.mjs",
+    "phone:sync": "node scripts/build/sync-phone.mjs",
     "phone:dev": "npm run phone:sync && npm --prefix mobilegym run dev -- --host 127.0.0.1 --port 3000 --strictPort",
     "phone:build": "npm run phone:sync && npm --prefix mobilegym run build",
     "phone:preview": "npm --prefix mobilegym run preview -- --host 127.0.0.1 --port 3000 --strictPort",
-    "prompts:sync": "node scripts/sync-steward-prompts.mjs",
+    "prompts:sync": "node scripts/build/sync-steward-prompts.mjs",
     "prebuild": "npm run prompts:sync",
     "pretest": "npm run prompts:sync"
   },

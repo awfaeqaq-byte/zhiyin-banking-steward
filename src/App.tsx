@@ -1,3 +1,4 @@
+import {useJudgeEntry} from './lib/use-judge-entry';
 import {usePageMotion} from './lib/use-interface-motion';
 import {AnimatedBottomNav} from './components/animated-bottom-nav';
 import {StatusToast} from './components/status-toast';
@@ -27,6 +28,7 @@ import {
   FileText,
   Fingerprint,
   Headphones,
+  History,
   Landmark,
   Leaf,
   Link2,
@@ -57,6 +59,7 @@ import { SubscriptionCenter } from "./components/subscription-center";
 import {HomePreviewHeader} from './components/home-preview-header';
 import {ElderHome} from './components/elder-home';
 import './components/elder-mode.css';
+import './components/elder-chat-cards.css';
 import { StewardWorkspaces } from "./components/steward-workspaces";
 import {useWechatShare} from './lib/use-wechat-share';
 import { WealthOperationMvp } from "./components/wealth-operation-mvp";
@@ -476,6 +479,21 @@ function AppContent() {
     return false;
   });
   usePhoneBridge();
+  useJudgeEntry(step=>{
+    if(step.target.app!=='zhiyin')return;
+    // Do not dismiss an authorization/review that the user is already working on.
+    if(modal||bankIntent||cardTransfer)return 'busy';
+    const target=step.target;
+    const existingDraft=(document.getElementById('steward-chat-input') as HTMLTextAreaElement|null)?.value.trim();
+    if(target.prompt&&existingDraft&&existingDraft!==target.prompt){
+      setMode('native');setElderChatOpen(true);go('home');return 'draft';
+    }
+    setMode('native');
+    if(target.appearance)setElderMode(target.appearance==='elder');
+    if(target.page==='home')setElderChatOpen(target.appearance!=='elder');
+    go(target.page);
+    if(target.prompt){setChatDraft(target.prompt);setToast('示例已填入，请核对后自行发送');}
+  });
   const wechatShare=useWechatShare(()=>{setMode('native');setElderChatOpen(true);setPage('home');setModal(null);setPageHistory([]);});
   useEffect(() => {
     if (connections.wechat_pay) return;
@@ -621,7 +639,7 @@ function AppContent() {
   }
 
   return (
-    <div className={`app-shell mode-${mode} ${elderMode ? 'elder-mode' : ''} ${elderMode && !elderChatOpen ? 'elder-home-view' : ''} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
+    <div className={`app-shell mode-${mode} ${elderMode ? 'elder-mode' : ''} ${elderMode && !elderChatOpen ? 'elder-home-view' : ''} ${elderMode && elderChatOpen && page === 'home' ? 'elder-chat-view' : ''} ${mode === "native" && page === "home" ? "native-chat-shell home-ui-preview" : ""}`}>
       <aside className="sidebar" hidden={mode === "native"}>
         <a
           className="brand"
@@ -681,15 +699,16 @@ function AppContent() {
         </div>
       </aside>
       <div className="workspace">
-        {(elderMode||mode==='classic')&&<div className="appearance-toolbar" role="group" aria-label="界面版本">
+        {(elderMode||mode==='classic')&&!(elderMode&&elderChatOpen&&page==='home')&&<div className="appearance-toolbar" role="group" aria-label="界面版本">
           <span>{elderMode ? '长辈版' : '普通版'}</span>
           <button type="button" className="appearance-toggle" aria-label={elderMode ? '切换到普通版' : '切换到长辈版'} onClick={() => setElderMode(value => !value)}>
             {elderMode ? '切换普通版' : '切换长辈版'}
           </button>
         </div>}
         {page === 'home' && elderMode && elderChatOpen && <header className="elder-chat-heading fixed-chat-header">
-          <button type="button" aria-label="返回长辈版首页" onClick={() => setElderChatOpen(false)}><ArrowLeft aria-hidden="true" size={24}/>返回首页</button>
-          <strong>和{steward.name}聊聊</strong>
+          <button type="button" aria-label="返回长辈版首页" onClick={() => setElderChatOpen(false)}><ArrowLeft aria-hidden="true" size={24}/><span>首页</span></button>
+          <div className="elder-chat-person"><img src={steward.image} alt=""/><div><h1 aria-label={`和${steward.name}聊聊`}>{steward.name}</h1><span>长辈版 · AI 管家</span></div></div>
+          <button type="button" aria-label="查看历史对话" aria-haspopup="dialog" aria-expanded={conversationListOpen} onClick={() => setConversationListOpen(true)}><History aria-hidden="true" size={24}/><span>历史</span></button>
         </header>}
         {page === "home" && mode === 'native' && !elderMode && <HomePreviewHeader stewardName={steward.name} stewardImage={steward.image} onSwitchSteward={()=>setModal('steward')} onTasks={()=>go('tasks')} onSubscriptions={()=>go('subscriptions')} onProfile={()=>go('profile')} onWealth={()=>go('plan')} onAutomations={()=>go('automations')} onConversations={()=>setConversationListOpen(true)} conversationsOpen={conversationListOpen} onToggleElder={()=>setElderMode(true)} onHelp={()=>setModal('help')}/>}
         {page === "home" && mode === 'classic' && (
@@ -1314,11 +1333,11 @@ function AppContent() {
             </span>
           </div>
         )}
-        <AnimatedBottomNav items={elderMode?[
+        {!(elderMode&&elderChatOpen&&page==='home')&&<AnimatedBottomNav items={elderMode?[
           {page:'home' as const,label:'首页',icon:MessageCircle},
           {page:'assets' as const,label:'我的账户',icon:Wallet},
           {page:'profile' as const,label:'更多服务',icon:UserRound},
-        ]:nav} activePage={activeNav} onNavigate={next=>{if(elderMode&&next==='home')setElderChatOpen(false);go(next);}}/>
+        ]:nav} activePage={activeNav} onNavigate={next=>{if(elderMode&&next==='home')setElderChatOpen(false);go(next);}}/>}
       </div>
       <StatusToast message={toast} onDismiss={() => setToast('')}/>
       <Dialog

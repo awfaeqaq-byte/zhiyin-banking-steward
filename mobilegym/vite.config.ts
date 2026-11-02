@@ -1390,7 +1390,7 @@ function wechatContactChatProxyPlugin(mode: string) {
 function localWechatBillPlugin() {
   const handler = createLocalWechatBillMiddleware(
     path.resolve(__dirname, '..', '.zhiyin-bill-source.local.json'),
-    path.resolve(__dirname, '..', 'scripts', 'import_wechat_bill.py'),
+    path.resolve(__dirname, '..', 'scripts', 'data', 'import_wechat_bill.py'),
   );
   return {
     name: 'local-wechat-bill',
